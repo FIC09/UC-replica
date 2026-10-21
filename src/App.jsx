@@ -471,6 +471,7 @@ function App() {
     setIsCheckoutModalOpen(false);
     setCurrentView('home');
     setActiveTrackingBooking(bookingDetails);
+    setLatestLiveBooking(bookingDetails);
     showToast(`🎉 Booking ${bookingDetails.id} confirmed!`);
   }
 
@@ -954,6 +955,7 @@ function App() {
   const [editingServiceForAdmin, setEditingServiceForAdmin] = useState(null);
   const [selectedDetailService, setSelectedDetailService] = useState(null);
   const [activeTrackingBooking, setActiveTrackingBooking] = useState(null);
+  const [latestLiveBooking, setLatestLiveBooking] = useState(null);
 
   function handleOpenCreateService() {
     setEditingServiceForAdmin('NEW');
@@ -1823,12 +1825,61 @@ function App() {
         onClose={() => setActiveTrackingBooking(null)}
       />
 
+      {/* Persistent Floating Real-Time Live Order Bar */}
+      {latestLiveBooking && !activeTrackingBooking && (
+        <div
+          onClick={() => setActiveTrackingBooking(latestLiveBooking)}
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            zIndex: 9990,
+            background: 'linear-gradient(135deg, #1E1B4B 0%, #4C1D95 100%)',
+            color: '#FFFFFF',
+            borderRadius: 50,
+            padding: '10px 18px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            boxShadow: '0 12px 28px rgba(76, 29, 149, 0.45), 0 0 0 1px rgba(255,255,255,0.15)',
+            cursor: 'pointer',
+            border: '1.5px solid #8B5CF6',
+            transition: 'transform 0.2s, box-shadow 0.2s',
+            animation: 'pulse 3s infinite'
+          }}
+          title="Click to view Live Service Tracking"
+        >
+          <div style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            background: 'rgba(255,255,255,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 16
+          }}>
+            🛵
+          </div>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 12, fontWeight: 800, color: '#F3E8FF' }}>Live Service Active</span>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+            </div>
+            <div style={{ fontSize: 11, color: '#DDD6FE' }}>Rajesh Sharma en route • Track Live ➔</div>
+          </div>
+        </div>
+      )}
+
       {/* 6. My Bookings Modal */}
       <MyBookingsModal
         isOpen={isBookingsModalOpen}
         onClose={() => setIsBookingsModalOpen(false)}
         bookings={bookings}
-        onTrackBooking={(b) => setActiveTrackingBooking(b)}
+        onTrackBooking={(b) => {
+          setActiveTrackingBooking(b);
+          setLatestLiveBooking(b);
+        }}
         onUpdateBookingSlot={handleUpdateBookingSlot}
         onUpdateBookingAddress={handleUpdateBookingAddress}
         onCancelBooking={handleCancelBooking}

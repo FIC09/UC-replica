@@ -32,12 +32,12 @@ export function SalonRoyaleServicePage({
   // 7 Sidebar Categories (Screenshot 2)
   const SIDEBAR_CATEGORIES = [
     { id: 'packages', title: 'Packages', iconType: 'package' },
-    { id: 'pedicure', title: 'Pedicure', img: '/images/men_express_pedicure.jpg' },
-    { id: 'hair-care', title: 'Hair care', img: '/images/men_haircut_pro.jpg' },
-    { id: 'face-care', title: 'Face care', img: '/images/men_o3_facial.jpg' },
-    { id: 'beard-grooming', title: 'Shave/beard grooming', img: '/images/men_beard_trim_pro.jpg' },
-    { id: 'hair-color', title: 'Hair color', img: '/images/men_hair_color_only.jpg' },
-    { id: 'massage', title: 'Massage', img: '/images/men_head_massage_pro.jpg' }
+    { id: 'pedicure', title: 'Pedicure', img: '/images/royale_tile_pedicure.png' },
+    { id: 'hair-care', title: 'Hair care', img: '/images/royale_tile_haircare.png' },
+    { id: 'face-care', title: 'Face care', img: '/images/royale_tile_facecare.png' },
+    { id: 'beard-grooming', title: 'Shave/beard grooming', img: '/images/royale_tile_shave.png' },
+    { id: 'hair-color', title: 'Hair color', img: '/images/royale_tile_haircolor.png' },
+    { id: 'massage', title: 'Massage', img: '/images/royale_tile_massage.png' }
   ];
 
   // Full Catalogue matching Screenshots

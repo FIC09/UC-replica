@@ -1,34 +1,263 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   CheckCircle2, 
   Clock, 
   MapPin, 
   Phone, 
+  PhoneOff,
   ShieldCheck, 
   Star, 
   UserCheck,
-  Calendar
+  Calendar,
+  MessageSquare,
+  Send,
+  Sparkles,
+  Copy,
+  Check,
+  Navigation,
+  FastForward,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+  FileText,
+  ThumbsUp,
+  AlertCircle
 } from 'lucide-react';
 
-export function OrderTrackingModal({ booking, onClose }) {
-  const [stage, setStage] = useState(2); // 1: Confirmed, 2: Partner Assigned, 3: On The Way, 4: In Progress
+export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) {
+  // Stages:
+  // 1: Confirmed (Safety PIN generated, order received)
+  // 2: Partner Assigned (Rajesh Sharma assigned)
+  // 3: On The Way 🛵 (Live GPS route, ETA countdown, moving scooter)
+  // 4: Arrived at Doorstep 📍 (PIN verification prompt)
+  // 5: Service In Progress ⚡ (Safety PIN verified, service elapsed timer)
+  // 6: Service Completed 🎉 (Quality check, review rating, invoice)
+  const [stage, setStage] = useState(3);
+  
+  // Real-time speed mode: 'normal' (standard countdown), 'fast' (auto-advance every 6-8s), 'manual'
+  const [speedMode, setSpeedMode] = useState('normal');
+  
+  // Active countdown for Stage 3 (ETA in seconds)
+  const [etaSeconds, setEtaSeconds] = useState(18 * 60 + 24); // 18 mins 24 secs
+  
+  // Active elapsed timer for Stage 5 (Service duration in seconds)
+  const [serviceElapsed, setServiceElapsed] = useState(0);
 
+  // Safety PIN state
+  const safetyPin = booking?.safetyPin || '4829';
+  const [copiedPin, setCopiedPin] = useState(false);
+
+  // Active view tab: 'tracker' | 'partner' | 'invoice'
+  const [activeTab, setActiveTab] = useState('tracker');
+
+  // Interactive Call Simulation Modal
+  const [isCalling, setIsCalling] = useState(false);
+  const [callStatus, setCallStatus] = useState('Ringing...');
+  const [callSeconds, setCallSeconds] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isSpeaker, setIsSpeaker] = useState(false);
+
+  // Interactive Chat Drawer
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([
+    { sender: 'partner', text: 'Hello! I am Rajesh Sharma, your assigned Urban Company professional. I am carrying sanitized tools and single-use kit.', time: 'Just now' }
+  ]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [isPartnerTyping, setIsPartnerTyping] = useState(false);
+  const chatBottomRef = useRef(null);
+
+  // Review state for Stage 6
+  const [userRating, setUserRating] = useState(5);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
+  // 1. REAL-TIME TICKER EFFECT
   useEffect(() => {
-    // Simulate real-time progress update
-    const timer = setTimeout(() => {
-      setStage(3);
-    }, 4000);
-    return () => clearTimeout(timer);
-  }, []);
+    const interval = setInterval(() => {
+      // Countdown for Stage 3
+      if (stage === 3) {
+        setEtaSeconds((prev) => {
+          if (prev <= 1) {
+            // Reached destination -> advance to stage 4
+            setStage(4);
+            return 0;
+          }
+          // In fast mode, decrease by 45 seconds per tick
+          const step = speedMode === 'fast' ? 45 : 1;
+          return Math.max(0, prev - step);
+        });
+      }
+
+      // Elapsed count-up for Stage 5
+      if (stage === 5) {
+        setServiceElapsed((prev) => {
+          const step = speedMode === 'fast' ? 20 : 1;
+          const next = prev + step;
+          if (speedMode === 'fast' && next >= 180) {
+            // In fast demo, complete after ~3 mins
+            setStage(6);
+          }
+          return next;
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [stage, speedMode]);
+
+  // Fast mode auto-advance for earlier stages
+  useEffect(() => {
+    if (speedMode === 'fast') {
+      if (stage === 1) {
+        const t = setTimeout(() => setStage(2), 3000);
+        return () => clearTimeout(t);
+      }
+      if (stage === 2) {
+        const t = setTimeout(() => setStage(3), 3500);
+        return () => clearTimeout(t);
+      }
+    }
+  }, [stage, speedMode]);
+
+  // Call timer simulation
+  useEffect(() => {
+    let callTimer;
+    if (isCalling) {
+      const ringTimer = setTimeout(() => {
+        setCallStatus('Connected');
+      }, 2500);
+
+      callTimer = setInterval(() => {
+        setCallSeconds((s) => s + 1);
+      }, 1000);
+
+      return () => {
+        clearTimeout(ringTimer);
+        clearInterval(callTimer);
+      };
+    } else {
+      setCallStatus('Ringing...');
+      setCallSeconds(0);
+    }
+  }, [isCalling]);
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (isChatOpen) {
+      chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, isPartnerTyping, isChatOpen]);
 
   if (!booking) return null;
 
+  // Formatting helpers
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}m ${s < 10 ? '0' : ''}${s}s`;
+  };
+
+  const formatStopwatch = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  // Copy PIN
+  const handleCopyPin = () => {
+    navigator.clipboard?.writeText(safetyPin);
+    setCopiedPin(true);
+    setTimeout(() => setCopiedPin(false), 2000);
+  };
+
+  // Send message to partner
+  const handleSendMessage = (textToSend) => {
+    const msg = textToSend || inputMessage;
+    if (!msg.trim()) return;
+
+    const userMsg = {
+      sender: 'user',
+      text: msg,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatMessages((prev) => [...prev, userMsg]);
+    setInputMessage('');
+
+    // Simulate partner response
+    setIsPartnerTyping(true);
+    setTimeout(() => {
+      let reply = 'Got it, thank you! I will be there as scheduled.';
+      if (msg.toLowerCase().includes('gate') || msg.toLowerCase().includes('call')) {
+        reply = 'Understood! I will call your phone right as I enter the security gate.';
+      } else if (msg.toLowerCase().includes('flat') || msg.toLowerCase().includes('floor') || msg.toLowerCase().includes('lift')) {
+        reply = 'Noted! Coming straight to Flat 402 via the elevator.';
+      } else if (msg.toLowerCase().includes('pin')) {
+        reply = `Thank you! I will verify PIN ${safetyPin} when I reach your doorstep.`;
+      }
+      setIsPartnerTyping(false);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          sender: 'partner',
+          text: reply,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    }, 1800);
+  };
+
+  // Calculated distance based on eta
+  const distanceKm = Math.max(0.1, ((etaSeconds / (18 * 60)) * 2.8)).toFixed(1);
+  const routeProgressPercent = Math.min(100, Math.max(8, Math.round(((18 * 60 - etaSeconds) / (18 * 60)) * 100)));
+
   return (
-    <div className="modal-backdrop-overlay" onClick={onClose}>
-      <div className="tracker-modal-card" onClick={(e) => e.stopPropagation()}>
-        {/* Top Header */}
-        <div className="tracker-header-badge">
+    <div 
+      className="modal-backdrop-overlay" 
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.72)',
+        backdropFilter: 'blur(5px)',
+        zIndex: 99999,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px'
+      }}
+    >
+      <div 
+        className="tracker-modal-card" 
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: '#FFFFFF',
+          width: '100%',
+          maxWidth: 540,
+          borderRadius: 20,
+          overflow: 'hidden',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0,0,0,0.06)',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: '92vh',
+          position: 'relative'
+        }}
+      >
+        {/* =========================================================================
+            1. STICKY MODAL HEADER
+           ========================================================================= */}
+        <div 
+          style={{
+            background: stage === 6 
+              ? 'linear-gradient(135deg, #059669 0%, #10B981 100%)' 
+              : 'linear-gradient(135deg, #1E1B4B 0%, #4C1D95 100%)',
+            color: '#FFFFFF',
+            padding: '16px 20px',
+            position: 'relative',
+            flexShrink: 0
+          }}
+        >
+          {/* Close button */}
           <button
             type="button"
             onClick={onClose}
@@ -37,7 +266,7 @@ export function OrderTrackingModal({ booking, onClose }) {
               position: 'absolute',
               top: 14,
               right: 14,
-              background: 'rgba(255, 255, 255, 0.2)',
+              background: 'rgba(255, 255, 255, 0.15)',
               border: 'none',
               borderRadius: '50%',
               width: 32,
@@ -46,214 +275,1251 @@ export function OrderTrackingModal({ booking, onClose }) {
               alignItems: 'center',
               justifyContent: 'center',
               color: '#FFFFFF',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'background 0.2s'
             }}
           >
             <X size={18} />
           </button>
-          <CheckCircle2 size={44} style={{ margin: '0 auto 8px' }} />
-          <h2 style={{ fontSize: 22, fontWeight: 800, marginBottom: 4 }}>
-            Booking Confirmed!
-          </h2>
-          <p style={{ fontSize: 13, opacity: 0.9 }}>
-            Order ID: <strong>{booking.id}</strong> • Total Paid: <strong>₹{booking.totalAmount}</strong>
-          </p>
+
+          {/* Header Title & Order ID */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'rgba(255,255,255,0.18)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {stage === 6 ? <CheckCircle2 size={22} color="#FFFFFF" /> : <Sparkles size={20} color="#FBBF24" />}
+            </div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0, letterSpacing: '-0.01em' }}>
+                  {stage === 6 ? 'Service Completed 🎉' : 'Live Service Tracking'}
+                </h2>
+                <span style={{
+                  background: 'rgba(255, 255, 255, 0.2)',
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  letterSpacing: '0.04em',
+                  textTransform: 'uppercase'
+                }}>
+                  {stage === 3 ? 'En Route 🛵' : stage === 4 ? 'At Doorstep 📍' : stage === 5 ? 'Ongoing ⚡' : stage === 6 ? 'Finished' : 'Confirmed'}
+                </span>
+              </div>
+              <p style={{ fontSize: 12, opacity: 0.85, margin: '2px 0 0 0' }}>
+                Order #{booking.id || 'UC-78214'} • Total: <strong>₹{booking.totalAmount}</strong>
+              </p>
+            </div>
+          </div>
+
+          {/* Real-time Demo Simulation Controls Bar */}
+          <div style={{
+            marginTop: 14,
+            padding: '8px 12px',
+            background: 'rgba(0, 0, 0, 0.25)',
+            borderRadius: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: 11.5
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                background: '#10B981',
+                boxShadow: '0 0 8px #10B981',
+                display: 'inline-block',
+                animation: 'pulse 1.5s infinite'
+              }} />
+              <span style={{ fontWeight: 600 }}>Real-Time Simulator:</span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                type="button"
+                onClick={() => setSpeedMode(speedMode === 'normal' ? 'fast' : 'normal')}
+                style={{
+                  background: speedMode === 'fast' ? '#F59E0B' : 'rgba(255,255,255,0.2)',
+                  color: speedMode === 'fast' ? '#000' : '#FFF',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '3px 8px',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 3
+                }}
+                title="Toggle fast simulation pace"
+              >
+                <FastForward size={12} />
+                <span>{speedMode === 'fast' ? 'Fast Pace ⏩' : 'Normal (1x)'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setStage(prev => Math.min(6, prev + 1))}
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '3px 8px',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+                title="Advance to next stage"
+              >
+                Next ➔
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setStage(1);
+                  setEtaSeconds(18 * 60 + 24);
+                  setServiceElapsed(0);
+                }}
+                style={{
+                  background: 'rgba(255,255,255,0.12)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 6,
+                  padding: '3px 6px',
+                  cursor: 'pointer'
+                }}
+                title="Reset simulation"
+              >
+                <RotateCcw size={12} />
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Start OTP Banner */}
+        {/* =========================================================================
+            2. SAFETY PIN BANNER (Prominent & Copyable)
+           ========================================================================= */}
         <div style={{
           background: '#EFF6FF',
           borderBottom: '1px solid #BFDBFE',
-          padding: '12px 20px',
+          padding: '10px 20px',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
           <div>
-            <span style={{ fontSize: 12, color: '#1E40AF', fontWeight: 600, display: 'block' }}>
-              Service Start Safety PIN
-            </span>
-            <span style={{ fontSize: 11.5, color: '#3B82F6' }}>
-              Share with partner upon arrival
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <ShieldCheck size={14} color="#1E40AF" />
+              <span style={{ fontSize: 12, color: '#1E40AF', fontWeight: 800 }}>
+                Service Start Safety PIN
+              </span>
+            </div>
+            <span style={{ fontSize: 11.5, color: '#3B82F6', marginTop: 1, display: 'block' }}>
+              {stage < 4 ? 'Share with partner upon doorstep arrival' : stage === 4 ? '⚠️ Partner is outside! Share this PIN now' : '✓ PIN Verified successfully'}
             </span>
           </div>
-          <div style={{
-            fontSize: 20,
-            fontWeight: 800,
-            letterSpacing: 4,
-            background: '#1E40AF',
-            color: '#fff',
-            padding: '4px 12px',
-            borderRadius: 8
-          }}>
-            4829
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              fontSize: 20,
+              fontWeight: 800,
+              letterSpacing: 4,
+              background: '#1E40AF',
+              color: '#FFFFFF',
+              padding: '4px 12px',
+              borderRadius: 8,
+              boxShadow: '0 2px 4px rgba(30, 64, 175, 0.25)',
+              fontFamily: 'monospace'
+            }}>
+              {safetyPin}
+            </div>
+            <button
+              type="button"
+              onClick={handleCopyPin}
+              style={{
+                background: copiedPin ? '#10B981' : '#DBEAFE',
+                color: copiedPin ? '#FFFFFF' : '#1E40AF',
+                border: 'none',
+                borderRadius: 6,
+                padding: '6px 8px',
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                transition: 'all 0.2s'
+              }}
+              title="Copy PIN"
+            >
+              {copiedPin ? <Check size={13} /> : <Copy size={13} />}
+              <span>{copiedPin ? 'Copied' : 'Copy'}</span>
+            </button>
           </div>
         </div>
 
-        {/* Real-time Partner Card */}
-        <div className="partner-info-box">
-          <img
-            src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80"
-            alt="Assigned Professional"
-            className="partner-avatar"
-          />
-          <div style={{ flex: 1 }}>
+        {/* =========================================================================
+            3. PARTNER CARD (With Real-Time Calling & Chat actions)
+           ========================================================================= */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          padding: '12px 18px',
+          background: '#F8FAFC',
+          borderBottom: '1px solid #E2E8F0',
+          position: 'relative'
+        }}>
+          <div style={{ position: 'relative' }}>
+            <img
+              src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80"
+              alt="Assigned Professional Rajesh Sharma"
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid #6E42E5'
+              }}
+            />
+            <span style={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              background: '#10B981',
+              border: '2px solid #FFFFFF'
+            }} title="Online" />
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>
+              <span style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 Rajesh Sharma
               </span>
               <span style={{
                 background: '#ECFDF5',
                 color: '#059669',
-                fontSize: 10.5,
-                fontWeight: 700,
+                fontSize: 10,
+                fontWeight: 800,
                 padding: '2px 6px',
                 borderRadius: 4
               }}>
-                Verified
+                Verified Pro
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#4B5563', marginTop: 2 }}>
-              <Star size={12} fill="#F59E0B" color="#F59E0B" />
-              <strong>4.92 ★</strong>
-              <span>(1,480+ jobs in Mumbai)</span>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: '#475569', marginTop: 2 }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: '#F59E0B', fontWeight: 800 }}>
+                <Star size={12} fill="#F59E0B" />
+                <span>4.92</span>
+              </div>
+              <span>• 1,480+ jobs</span>
+              <span>• Vaccinated</span>
             </div>
-            <div style={{ fontSize: 11.5, color: '#6B7280', marginTop: 2 }}>
-              Single-use kit ready • Vaccinated
+
+            <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+              Honda Activa • MH 02 CQ 8291
             </div>
           </div>
 
-          <a
-            href="tel:+919820000000"
-            onClick={(e) => { e.preventDefault(); alert('Connecting call to Rajesh Sharma (+91 98200 00000)...'); }}
+          {/* Interactive Action Buttons: Call & Chat */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => setIsChatOpen(!isChatOpen)}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                background: isChatOpen ? '#6E42E5' : '#EEF2F6',
+                color: isChatOpen ? '#FFFFFF' : '#475569',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+              title="Chat with Rajesh"
+            >
+              <MessageSquare size={17} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setIsCalling(true)}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                background: '#ECFDF5',
+                color: '#059669',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                transition: 'all 0.15s'
+              }}
+              title="Call Rajesh Sharma"
+            >
+              <Phone size={17} />
+            </button>
+          </div>
+        </div>
+
+        {/* =========================================================================
+            4. TABS (Live Tracker | Items & Invoice)
+           ========================================================================= */}
+        <div style={{
+          display: 'flex',
+          borderBottom: '1px solid #E2E8F0',
+          background: '#FFFFFF'
+        }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('tracker')}
             style={{
-              width: 38,
-              height: 38,
-              borderRadius: '50%',
-              background: '#F4F0FF',
-              color: '#6E42E5',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
+              flex: 1,
+              padding: '10px 0',
+              fontSize: 12.5,
+              fontWeight: activeTab === 'tracker' ? 800 : 600,
+              color: activeTab === 'tracker' ? '#6E42E5' : '#64748B',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'tracker' ? '2px solid #6E42E5' : '2px solid transparent',
               cursor: 'pointer'
             }}
-            title="Call Partner"
           >
-            <Phone size={18} />
-          </a>
+            Live Tracking
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('invoice')}
+            style={{
+              flex: 1,
+              padding: '10px 0',
+              fontSize: 12.5,
+              fontWeight: activeTab === 'invoice' ? 800 : 600,
+              color: activeTab === 'invoice' ? '#6E42E5' : '#64748B',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'invoice' ? '2px solid #6E42E5' : '2px solid transparent',
+              cursor: 'pointer'
+            }}
+          >
+            Order Details & Invoice
+          </button>
         </div>
 
-        {/* Live Tracking Timeline */}
-        <div style={{ padding: '0 24px 20px' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#4B5563', marginBottom: 14 }}>
-            Live Service Status
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {/* Stage 1 */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <div style={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background: '#059669',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <CheckCircle2 size={14} />
-              </div>
-              <div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>
-                  Booking Placed & Slot Confirmed
-                </div>
-                <div style={{ fontSize: 12, color: '#6B7280' }}>
-                  {booking.slot}
-                </div>
-              </div>
-            </div>
-
-            {/* Stage 2 */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <div style={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background: stage >= 2 ? '#059669' : '#E5E7EB',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                <UserCheck size={14} />
-              </div>
-              <div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>
-                  Master Partner Assigned
-                </div>
-                <div style={{ fontSize: 12, color: '#6B7280' }}>
-                  Rajesh Sharma confirmed the job request
-                </div>
-              </div>
-            </div>
-
-            {/* Stage 3 */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-              <div style={{
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background: stage >= 3 ? '#6E42E5' : '#E5E7EB',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                boxShadow: stage === 3 ? '0 0 0 4px rgba(110, 66, 229, 0.2)' : 'none'
-              }}>
-                <Clock size={14} />
-              </div>
-              <div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: stage >= 3 ? '#6E42E5' : '#0F172A' }}>
-                  {stage >= 3 ? 'Partner On The Way 🛵' : 'Dispatched to Address'}
-                </div>
-                <div style={{ fontSize: 12, color: '#6B7280' }}>
-                  {stage >= 3 ? 'Estimated arrival in 18 mins at ' + booking.address.split(',')[1] : 'Partner will depart shortly'}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Address and items summary */}
+        {/* =========================================================================
+            5. MAIN SCROLLABLE CONTENT BODY
+           ========================================================================= */}
         <div style={{
-          background: '#F8FAFC',
-          borderTop: '1px solid #E2E8F0',
+          flex: 1,
+          overflowY: 'auto',
           padding: '16px 20px',
-          fontSize: 12.5,
-          color: '#4B5563'
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 16
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-            <MapPin size={14} color="#6E42E5" />
-            <strong style={{ color: '#0F172A' }}>Delivery Address:</strong>
-          </div>
-          <div style={{ paddingLeft: 20 }}>{booking.address}</div>
+          {activeTab === 'tracker' ? (
+            <>
+              {/* --- REAL-TIME STATUS HERO CARD --- */}
+              {stage === 3 && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)',
+                  borderRadius: 14,
+                  padding: 16,
+                  border: '1px solid #DDD6FE'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 20 }}>🛵</span>
+                      <strong style={{ fontSize: 14, color: '#5B21B6' }}>
+                        Partner On The Way
+                      </strong>
+                    </div>
+                    <div style={{
+                      fontSize: 13,
+                      fontWeight: 800,
+                      color: '#6D28D9',
+                      background: '#FFFFFF',
+                      padding: '3px 10px',
+                      borderRadius: 20,
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+                    }}>
+                      ⏱️ {formatTime(etaSeconds)}
+                    </div>
+                  </div>
+
+                  <p style={{ fontSize: 12, color: '#6B21A8', margin: '0 0 10px 0' }}>
+                    Estimated arrival at <strong>{booking.address ? booking.address.split(',')[1] || booking.address.split(',')[0] : 'your location'}</strong> ({distanceKm} km away)
+                  </p>
+
+                  {/* Animated Route Progress Bar */}
+                  <div style={{ position: 'relative', width: '100%', height: 8, background: '#DDD6FE', borderRadius: 4, overflow: 'hidden' }}>
+                    <div style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: `${routeProgressPercent}%`,
+                      background: 'linear-gradient(90deg, #7C3AED 0%, #A855F7 100%)',
+                      borderRadius: 4,
+                      transition: 'width 0.5s ease'
+                    }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: '#7C3AED', marginTop: 4, fontWeight: 600 }}>
+                    <span>Dispatched</span>
+                    <span>{routeProgressPercent}% completed</span>
+                    <span>Doorstep</span>
+                  </div>
+                </div>
+              )}
+
+              {stage === 4 && (
+                <div style={{
+                  background: '#FEF3C7',
+                  borderRadius: 14,
+                  padding: 16,
+                  border: '1px solid #FDE68A'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ fontSize: 22 }}>📍</span>
+                    <div>
+                      <strong style={{ fontSize: 14, color: '#92400E', display: 'block' }}>
+                        Partner has arrived outside!
+                      </strong>
+                      <span style={{ fontSize: 12, color: '#B45309' }}>
+                        Rajesh Sharma is waiting at your doorstep with sanitized equipment.
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    marginTop: 10,
+                    padding: 10,
+                    background: '#FFFFFF',
+                    borderRadius: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between'
+                  }}>
+                    <span style={{ fontSize: 12, color: '#451A03', fontWeight: 600 }}>
+                      Share Safety PIN: <strong style={{ letterSpacing: 2, fontSize: 14, color: '#1E40AF' }}>{safetyPin}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setStage(5)}
+                      style={{
+                        background: '#059669',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: 8,
+                        padding: '6px 14px',
+                        fontSize: 12,
+                        fontWeight: 800,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Verify & Start Service
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {stage === 5 && (
+                <div style={{
+                  background: '#F0FDF4',
+                  borderRadius: 14,
+                  padding: 16,
+                  border: '1px solid #BBF7D0'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 20 }}>⚡</span>
+                      <strong style={{ fontSize: 14, color: '#166534' }}>
+                        Service In Progress
+                      </strong>
+                    </div>
+                    <div style={{
+                      fontSize: 14,
+                      fontWeight: 800,
+                      color: '#15803D',
+                      background: '#FFFFFF',
+                      padding: '4px 10px',
+                      borderRadius: 20,
+                      fontFamily: 'monospace',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+                    }}>
+                      ⏱️ {formatStopwatch(serviceElapsed)}
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 12, color: '#15803D', margin: 0 }}>
+                    Rajesh is actively performing your service. All hygiene & safety protocols verified.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setStage(6)}
+                    style={{
+                      marginTop: 12,
+                      background: '#15803D',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: 8,
+                      padding: '6px 14px',
+                      fontSize: 12,
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      width: '100%'
+                    }}
+                  >
+                    Mark Job Completed ✓
+                  </button>
+                </div>
+              )}
+
+              {stage === 6 && (
+                <div style={{
+                  background: '#F0FDF4',
+                  borderRadius: 14,
+                  padding: 18,
+                  border: '1px solid #BBF7D0',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    width: 50,
+                    height: 50,
+                    borderRadius: '50%',
+                    background: '#10B981',
+                    color: '#fff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 10px'
+                  }}>
+                    <CheckCircle2 size={30} />
+                  </div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: '#065F46', margin: '0 0 4px 0' }}>
+                    Service Finished Successfully!
+                  </h3>
+                  <p style={{ fontSize: 12.5, color: '#047857', margin: '0 0 14px 0' }}>
+                    Area thoroughly sanitized. Thank you for choosing Urban Company.
+                  </p>
+
+                  {/* Rating Stars */}
+                  {!ratingSubmitted ? (
+                    <div style={{ background: '#FFFFFF', padding: 12, borderRadius: 10, border: '1px solid #E2E8F0' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 8 }}>
+                        How was your experience with Rajesh?
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setUserRating(star)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
+                          >
+                            <Star
+                              size={24}
+                              fill={star <= userRating ? '#F59E0B' : '#E2E8F0'}
+                              color={star <= userRating ? '#F59E0B' : '#94A3B8'}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setRatingSubmitted(true)}
+                        style={{
+                          background: '#6E42E5',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: 6,
+                          padding: '6px 16px',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Submit 5-Star Review
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ background: '#ECFDF5', padding: 10, borderRadius: 8, fontSize: 12, color: '#065F46', fontWeight: 700 }}>
+                      ✓ Thank you for rating 5 stars! Rajesh appreciates your support.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* --- INTERACTIVE SVG GPS MINI-MAP --- */}
+              <div style={{
+                borderRadius: 14,
+                overflow: 'hidden',
+                border: '1px solid #E2E8F0',
+                background: '#F1F5F9',
+                position: 'relative',
+                height: 140
+              }}>
+                <svg width="100%" height="100%" style={{ background: '#F8FAFC' }}>
+                  {/* Grid Lines representing streets */}
+                  <pattern id="street-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E2E8F0" strokeWidth="1" />
+                  </pattern>
+                  <rect width="100%" height="100%" fill="url(#street-grid)" />
+
+                  {/* Road Path */}
+                  <path
+                    d="M 40 100 Q 140 20 260 80 T 480 50"
+                    fill="none"
+                    stroke="#CBD5E1"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                  />
+                  <path
+                    d="M 40 100 Q 140 20 260 80 T 480 50"
+                    fill="none"
+                    stroke="#7C3AED"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    strokeDasharray="6,4"
+                  />
+
+                  {/* Origin Point: Urban Company Hub */}
+                  <circle cx="40" cy="100" r="5" fill="#64748B" />
+                  <text x="40" y="122" fontSize="9" fontWeight="700" fill="#64748B" textAnchor="middle">
+                    UC Hub
+                  </text>
+
+                  {/* Moving Scooter Marker based on route progress */}
+                  {(() => {
+                    // Approximate coordinates along curve
+                    const p = routeProgressPercent / 100;
+                    const scooterX = 40 + p * (480 - 40);
+                    const scooterY = 100 - Math.sin(p * Math.PI) * 50;
+                    return (
+                      <g transform={`translate(${scooterX}, ${scooterY})`}>
+                        <circle cx="0" cy="0" r="16" fill="rgba(124, 58, 237, 0.2)" />
+                        <circle cx="0" cy="0" r="10" fill="#7C3AED" />
+                        <text x="0" y="4" fontSize="10" textAnchor="middle" fill="#FFFFFF">🛵</text>
+                      </g>
+                    );
+                  })()}
+
+                  {/* Destination: Delivery Address Marker */}
+                  <g transform="translate(480, 50)">
+                    <circle cx="0" cy="0" r="14" fill="rgba(16, 185, 129, 0.25)">
+                      <animate attributeName="r" values="10;18;10" dur="2s" repeatCount="indefinite" />
+                    </circle>
+                    <circle cx="0" cy="0" r="8" fill="#10B981" />
+                    <text x="0" y="24" fontSize="10" fontWeight="800" fill="#065F46" textAnchor="middle">
+                      Home 🏠
+                    </text>
+                  </g>
+                </svg>
+
+                {/* Floating Map Info Overlay */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 8,
+                  left: 10,
+                  right: 10,
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  background: 'rgba(255, 255, 255, 0.92)',
+                  backdropFilter: 'blur(4px)',
+                  padding: '4px 10px',
+                  borderRadius: 8,
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: '#1E293B'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Navigation size={12} color="#7C3AED" />
+                    <span>Live GPS Tracking</span>
+                  </div>
+                  <span style={{ color: '#059669', fontWeight: 800 }}>
+                    {stage >= 4 ? 'Arrived at Destination' : `${distanceKm} km away`}
+                  </span>
+                </div>
+              </div>
+
+              {/* --- DETAILED TIMELINE STAGES --- */}
+              <div style={{
+                background: '#FFFFFF',
+                borderRadius: 14,
+                border: '1px solid #E2E8F0',
+                padding: '16px'
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#0F172A', marginBottom: 14 }}>
+                  Live Status Updates
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {/* Stage 1: Booking Placed */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: '50%',
+                      background: '#059669',
+                      color: '#FFFFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <CheckCircle2 size={15} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
+                          Booking Placed & Slot Confirmed
+                        </span>
+                        <span style={{ fontSize: 11, color: '#64748B' }}>Done</span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 1 }}>
+                        {booking.slot || 'Today, scheduled slot'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stage 2: Partner Assigned */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: '50%',
+                      background: stage >= 2 ? '#059669' : '#E2E8F0',
+                      color: stage >= 2 ? '#FFFFFF' : '#94A3B8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <UserCheck size={15} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
+                          Master Partner Assigned
+                        </span>
+                        <span style={{ fontSize: 11, color: stage >= 2 ? '#059669' : '#94A3B8' }}>
+                          {stage >= 2 ? 'Assigned' : 'Pending'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 1 }}>
+                        Rajesh Sharma accepted this booking
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stage 3: On The Way */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: '50%',
+                      background: stage >= 3 ? '#6E42E5' : '#E2E8F0',
+                      color: stage >= 3 ? '#FFFFFF' : '#94A3B8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      boxShadow: stage === 3 ? '0 0 0 4px rgba(110, 66, 229, 0.2)' : 'none'
+                    }}>
+                      <Clock size={15} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: stage >= 3 ? '#6E42E5' : '#0F172A' }}>
+                          Partner On The Way 🛵
+                        </span>
+                        <span style={{ fontSize: 11, color: stage === 3 ? '#6E42E5' : stage > 3 ? '#059669' : '#94A3B8', fontWeight: 700 }}>
+                          {stage === 3 ? `${formatTime(etaSeconds)}` : stage > 3 ? 'Arrived' : 'Upcoming'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 1 }}>
+                        {stage === 3 ? `En route (${distanceKm} km away)` : 'Dispatched to your address'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stage 4: Arrived at Doorstep */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: '50%',
+                      background: stage >= 4 ? '#059669' : '#E2E8F0',
+                      color: stage >= 4 ? '#FFFFFF' : '#94A3B8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <MapPin size={15} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
+                          Arrived at Location
+                        </span>
+                        <span style={{ fontSize: 11, color: stage >= 4 ? '#059669' : '#94A3B8' }}>
+                          {stage >= 4 ? 'Verified' : 'Pending'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 1 }}>
+                        Share PIN {safetyPin} to initiate service
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Stage 5: In Progress */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                    <div style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: '50%',
+                      background: stage >= 5 ? '#059669' : '#E2E8F0',
+                      color: stage >= 5 ? '#FFFFFF' : '#94A3B8',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <Sparkles size={15} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
+                          Service Execution
+                        </span>
+                        <span style={{ fontSize: 11, color: stage === 5 ? '#059669' : stage === 6 ? '#059669' : '#94A3B8', fontWeight: 700 }}>
+                          {stage === 5 ? `Active (${formatStopwatch(serviceElapsed)})` : stage === 6 ? 'Done' : 'Upcoming'}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 1 }}>
+                        Senior partner executing requested services
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Delivery Address Box */}
+              <div style={{
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: 12,
+                padding: '12px 14px',
+                fontSize: 12,
+                color: '#475569'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                  <MapPin size={14} color="#6E42E5" />
+                  <strong style={{ color: '#0F172A' }}>Service Location:</strong>
+                </div>
+                <div style={{ paddingLeft: 20 }}>{booking.address}</div>
+                {booking.notes && (
+                  <div style={{ paddingLeft: 20, marginTop: 4, color: '#7C3AED', fontWeight: 600 }}>
+                    Note: {booking.notes}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            /* --- INVOICE & ORDER SUMMARY TAB --- */
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{
+                background: '#F8FAFC',
+                borderRadius: 12,
+                padding: 16,
+                border: '1px solid #E2E8F0'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, borderBottom: '1px solid #E2E8F0', paddingBottom: 8 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Services Booked</span>
+                  <span style={{ fontSize: 12, color: '#64748B' }}>Qty & Price</span>
+                </div>
+
+                {booking.items && booking.items.length > 0 ? (
+                  booking.items.map((it, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 12.5 }}>
+                      <span style={{ color: '#1E293B', fontWeight: 600 }}>{it.name} (x{it.qty})</span>
+                      <strong style={{ color: '#0F172A' }}>₹{(it.price * it.qty).toLocaleString()}</strong>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: 12.5, color: '#64748B' }}>Urban Company Service Package</div>
+                )}
+
+                <div style={{ borderTop: '1px dashed #CBD5E1', marginTop: 12, paddingTop: 10, display: 'flex', justifyContent: 'space-between' }}>
+                  <strong style={{ fontSize: 14, color: '#0F172A' }}>Total Paid</strong>
+                  <strong style={{ fontSize: 16, color: '#059669' }}>₹{booking.totalAmount}</strong>
+                </div>
+              </div>
+
+              <div style={{ background: '#EFF6FF', borderRadius: 10, padding: 12, fontSize: 12, color: '#1E40AF' }}>
+                <div style={{ fontWeight: 700, marginBottom: 2 }}>Payment Verified</div>
+                <div>Method: {booking.paymentMethod || 'ONLINE'} • Txn ID: {booking.transactionId || 'UC_TXN_98214'}</div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Footer Actions */}
-        <div style={{ padding: '16px 20px', display: 'flex', gap: 10 }}>
+        {/* =========================================================================
+            6. MODAL FOOTER ACTION
+           ========================================================================= */}
+        <div style={{
+          padding: '12px 20px',
+          borderTop: '1px solid #E2E8F0',
+          background: '#FFFFFF',
+          display: 'flex',
+          gap: 10,
+          flexShrink: 0
+        }}>
           <button
             type="button"
             onClick={onClose}
             className="proceed-checkout-btn"
-            style={{ width: '100%', justifyContent: 'center' }}
+            style={{
+              width: '100%',
+              justifyContent: 'center',
+              padding: '12px',
+              fontSize: 14,
+              fontWeight: 800,
+              background: '#6E42E5',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: 10,
+              cursor: 'pointer'
+            }}
           >
             Done & Return to Homepage
           </button>
         </div>
+
+        {/* =========================================================================
+            7. IN-APP CALL SIMULATION OVERLAY
+           ========================================================================= */}
+        {isCalling && (
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(180deg, #0F172A 0%, #1E1B4B 100%)',
+            color: '#FFFFFF',
+            zIndex: 100,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '40px 24px',
+            animation: 'fadeIn 0.2s ease'
+          }}>
+            <div style={{ textAlign: 'center', marginTop: 20 }}>
+              <div style={{
+                position: 'relative',
+                width: 90,
+                height: 90,
+                margin: '0 auto 16px'
+              }}>
+                <img
+                  src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80"
+                  alt="Rajesh Sharma"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '3px solid #10B981'
+                  }}
+                />
+                <span style={{
+                  position: 'absolute',
+                  inset: -6,
+                  borderRadius: '50%',
+                  border: '2px solid rgba(16, 185, 129, 0.4)',
+                  animation: 'pulse 1.5s infinite'
+                }} />
+              </div>
+
+              <h3 style={{ fontSize: 20, fontWeight: 800, margin: '0 0 4px 0' }}>
+                Rajesh Sharma
+              </h3>
+              <p style={{ fontSize: 13, color: '#94A3B8', margin: '0 0 8px 0' }}>
+                Urban Company Professional (+91 98200 48291)
+              </p>
+              <div style={{
+                display: 'inline-block',
+                background: callStatus === 'Connected' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                color: callStatus === 'Connected' ? '#10B981' : '#FBBF24',
+                padding: '4px 12px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 700
+              }}>
+                {callStatus === 'Connected' ? `Connected ${formatStopwatch(callSeconds)}` : 'Ringing...'}
+              </div>
+            </div>
+
+            {/* Audio Waveform Effect */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, height: 40 }}>
+              {[12, 28, 16, 36, 24, 40, 18, 30, 14].map((h, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: 4,
+                    height: callStatus === 'Connected' ? h : 8,
+                    background: '#10B981',
+                    borderRadius: 2,
+                    transition: 'height 0.2s'
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* In-Call Controls */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+              <button
+                type="button"
+                onClick={() => setIsMuted(!isMuted)}
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: '50%',
+                  background: isMuted ? '#EF4444' : 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+                title={isMuted ? 'Unmute' : 'Mute'}
+              >
+                {isMuted ? <VolumeX size={22} /> : <Volume2 size={22} />}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsCalling(false)}
+                style={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  background: '#DC2626',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)'
+                }}
+                title="End Call"
+              >
+                <PhoneOff size={26} />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsSpeaker(!isSpeaker)}
+                style={{
+                  width: 52,
+                  height: 52,
+                  borderRadius: '50%',
+                  background: isSpeaker ? '#10B981' : 'rgba(255, 255, 255, 0.15)',
+                  border: 'none',
+                  color: '#FFFFFF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+                title="Speaker"
+              >
+                <Volume2 size={22} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            8. IN-APP CHAT DRAWER
+           ========================================================================= */}
+        {isChatOpen && (
+          <div style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            height: '75%',
+            background: '#FFFFFF',
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+            boxShadow: '0 -10px 25px rgba(0,0,0,0.15)',
+            zIndex: 90,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          }}>
+            {/* Chat Header */}
+            <div style={{
+              padding: '12px 16px',
+              background: '#F8FAFC',
+              borderBottom: '1px solid #E2E8F0',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <img
+                  src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80"
+                  alt="Rajesh"
+                  style={{ width: 32, height: 32, borderRadius: '50%' }}
+                />
+                <div>
+                  <strong style={{ fontSize: 13, color: '#0F172A', display: 'block' }}>
+                    Chat with Rajesh
+                  </strong>
+                  <span style={{ fontSize: 11, color: '#10B981' }}>Online</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsChatOpen(false)}
+                style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Quick Chips */}
+            <div style={{ padding: '8px 12px', background: '#F1F5F9', display: 'flex', gap: 6, overflowX: 'auto' }}>
+              {[
+                'I am at Flat 402',
+                'Please ring the bell',
+                'Call when at gate',
+                'Take the elevator'
+              ].map((chip, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => handleSendMessage(chip)}
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: 14,
+                    padding: '3px 10px',
+                    fontSize: 11,
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    color: '#334155'
+                  }}
+                >
+                  {chip}
+                </button>
+              ))}
+            </div>
+
+            {/* Chat Messages */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {chatMessages.map((m, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    alignSelf: m.sender === 'user' ? 'flex-end' : 'flex-start',
+                    maxWidth: '80%'
+                  }}
+                >
+                  <div style={{
+                    background: m.sender === 'user' ? '#6E42E5' : '#F1F5F9',
+                    color: m.sender === 'user' ? '#FFFFFF' : '#0F172A',
+                    padding: '8px 12px',
+                    borderRadius: 12,
+                    fontSize: 12.5,
+                    lineHeight: 1.4
+                  }}>
+                    {m.text}
+                  </div>
+                  <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2, textAlign: m.sender === 'user' ? 'right' : 'left' }}>
+                    {m.time}
+                  </div>
+                </div>
+              ))}
+              {isPartnerTyping && (
+                <div style={{ alignSelf: 'flex-start', background: '#F1F5F9', padding: '6px 12px', borderRadius: 12, fontSize: 11, color: '#64748B' }}>
+                  Rajesh is typing...
+                </div>
+              )}
+              <div ref={chatBottomRef} />
+            </div>
+
+            {/* Chat Input */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendMessage();
+              }}
+              style={{
+                padding: '8px 12px',
+                borderTop: '1px solid #E2E8F0',
+                display: 'flex',
+                gap: 8,
+                background: '#FFFFFF'
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Type a message..."
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: '8px 12px',
+                  borderRadius: 20,
+                  border: '1px solid #CBD5E1',
+                  fontSize: 12.5,
+                  outline: 'none'
+                }}
+              />
+              <button
+                type="submit"
+                style={{
+                  background: '#6E42E5',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: 34,
+                  height: 34,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <Send size={15} />
+              </button>
+            </form>
+          </div>
+        )}
       </div>
     </div>
   );
