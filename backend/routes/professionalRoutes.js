@@ -78,6 +78,7 @@ router.put('/jobs/:id/status', updateJobStatus);
 router.post('/jobs/:id/verify-otp', verifyJobOtp);
 router.post('/jobs/:id/reassign', requestReassignment);
 router.post('/jobs/:id/checklist', updateJobChecklist);
+router.put('/jobs/:id/checklist', updateJobChecklist);
 router.post('/jobs/:id/notes', addProfessionalNote);
 
 // Earnings & Payouts

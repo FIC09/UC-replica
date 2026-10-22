@@ -386,6 +386,24 @@ let jobOffersStore = [
 let professionalNotesStore = new Map(); // bookingId -> array of notes
 let reassignmentRequestsStore = new Map(); // bookingId -> request
 let jobOtpAttemptsStore = new Map(); // jobId -> { attempts, expiresAt }
+let syntheticJobStatusStore = new Map(); // jobId -> status
+
+// Checklists, Evidence Vault, Extra Work & Communication Stores
+let bookingEvidenceStore = new Map(); // bookingId -> Array<{ id, type, url, mimeType, sizeBytes, caption, uploadedAt }>
+const platformExtraWorkCatalog = [
+  { code: 'EX-AC-01', title: 'AC Copper Pipe Extension (1m)', category: 'AC Repair', unitPrice: 450, unit: 'meter', maxQty: 5 },
+  { code: 'EX-AC-02', title: 'Inverter AC Outdoor Bracket Heavy Duty', category: 'AC Repair', unitPrice: 650, unit: 'pair', maxQty: 2 },
+  { code: 'EX-AC-03', title: 'Condensate Drain Pipe Replacement (3m)', category: 'AC Repair', unitPrice: 250, unit: 'roll', maxQty: 3 },
+  { code: 'EX-AC-04', title: 'Heavy Duty Dual Run Capacitor (45/50 MFD)', category: 'AC Repair', unitPrice: 380, unit: 'unit', maxQty: 2 },
+  { code: 'EX-ELEC-01', title: '16A Anchor Modular Power Socket + Plate', category: 'Electrical', unitPrice: 220, unit: 'unit', maxQty: 4 },
+  { code: 'EX-ELEC-02', title: 'Single Pole 25A MCB Breaker (Havells)', category: 'Electrical', unitPrice: 320, unit: 'unit', maxQty: 2 },
+  { code: 'EX-PLMB-01', title: 'Solid Brass Quarter-Turn Angle Valve', category: 'Plumbing', unitPrice: 340, unit: 'unit', maxQty: 4 },
+  { code: 'EX-PLMB-02', title: 'Stainless Steel Braided Inlet Hose (24")', category: 'Plumbing', unitPrice: 280, unit: 'unit', maxQty: 4 }
+];
+let extraWorkRequestsStore = new Map(); // bookingId -> Array<ExtraWorkItem>
+let bookingChatStore = new Map(); // bookingId -> Array<ChatMessage>
+let completionNotesStore = new Map(); // bookingId -> { notes, partsUsed, recordedAt }
+let bookingDelaysStore = new Map(); // bookingId -> Array<DelayNotice>
 
 function initProData(proId) {
   if (!notificationsStore[proId]) {
@@ -1292,8 +1310,15 @@ async function getAllJobsForPro(proId) {
     );
   }
 
-  // Filter baseline jobs matching proId
-  const proBaselines = baselineJobs.filter(j => j.assignedProfessional?.id === proId);
+  // Filter baseline jobs matching proId and apply any synthetic demo status updates
+  const proBaselines = baselineJobs
+    .filter(j => j.assignedProfessional?.id === proId)
+    .map(j => {
+      if (syntheticJobStatusStore.has(j.id)) {
+        return { ...j, status: syntheticJobStatusStore.get(j.id) };
+      }
+      return j;
+    });
 
   const combined = [...dbBookings, ...proBaselines];
   const uniqueMap = new Map();
@@ -1816,7 +1841,7 @@ export async function updateJobStatus(req, res) {
       }
     }
 
-    const currentStatus = booking ? booking.status : 'Assigned';
+    const currentStatus = booking ? booking.status : (syntheticJobStatusStore.get(id) || 'Assigned');
 
     // Idempotency: If already in target status, return success with current state
     if (currentStatus === status) {
@@ -1877,6 +1902,8 @@ export async function updateJobStatus(req, res) {
         timestamp: new Date()
       });
       await booking.save();
+    } else {
+      syntheticJobStatusStore.set(id, status);
     }
 
     // If completed, update wallet balance & metrics

@@ -114,25 +114,29 @@ async function runProfessionalTests() {
     // 5. JOB START OTP VERIFICATION
     console.log('\n[TEST GROUP 4] Customer Start OTP & Lifecycle Gatekeeper');
     // Invalid OTP
-    const invalidOtpRes = await apiRequest('POST', '/jobs/JOB-9410/verify-otp', { otp: '0000' }, {
+    const invalidOtpRes = await apiRequest('POST', '/jobs/JOB-9411/verify-otp', { otp: '0000' }, {
       'x-professional-id': 'PRO-8841'
     });
     assert(invalidOtpRes.statusCode === 400, 'Invalid OTP (0000) rejected with HTTP 400');
 
     // Valid OTP
-    const validOtpRes = await apiRequest('POST', '/jobs/JOB-9410/verify-otp', { otp: '4829' }, {
+    const validOtpRes = await apiRequest('POST', '/jobs/JOB-9411/verify-otp', { otp: '4829' }, {
       'x-professional-id': 'PRO-8841'
     });
     assert(validOtpRes.statusCode === 200, 'Valid customer OTP (4829) verified successfully with HTTP 200');
 
+    // Follow valid lifecycle sequence: Assigned -> En Route -> Arrived
+    await apiRequest('PUT', '/jobs/JOB-9411/status', { status: 'En Route' }, { 'x-professional-id': 'PRO-8841' });
+    await apiRequest('PUT', '/jobs/JOB-9411/status', { status: 'Arrived' }, { 'x-professional-id': 'PRO-8841' });
+
     // Moving to In Progress without OTP is rejected
-    const noOtpProgress = await apiRequest('PUT', '/jobs/JOB-9410/status', { status: 'In Progress' }, {
+    const noOtpProgress = await apiRequest('PUT', '/jobs/JOB-9411/status', { status: 'In Progress' }, {
       'x-professional-id': 'PRO-8841'
     });
     assert(noOtpProgress.statusCode === 400, 'Transition to "In Progress" requires customer OTP');
 
     // Moving to In Progress with correct OTP succeeds
-    const otpProgress = await apiRequest('PUT', '/jobs/JOB-9410/status', { status: 'In Progress', otp: '4829' }, {
+    const otpProgress = await apiRequest('PUT', '/jobs/JOB-9411/status', { status: 'In Progress', otp: '4829' }, {
       'x-professional-id': 'PRO-8841'
     });
     assert(otpProgress.statusCode === 200, 'Transition to "In Progress" with OTP succeeds');
