@@ -19,6 +19,25 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleResetDemoData = async () => {
+    setIsResetting(true);
+    try {
+      const res = await professionalClient.resetDemoData();
+      if (res.success) {
+        if (showToast) showToast('Demonstration data has been cleanly reset to default initial state.');
+        setShowResetConfirm(false);
+      } else {
+        throw new Error(res.error || 'Failed to reset demo data');
+      }
+    } catch (err) {
+      if (showToast) showToast(err.message || 'Reset failed');
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   // Cooldown timer
   useEffect(() => {
@@ -43,10 +62,21 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
       role: 'Master AC Specialist & Electrician',
       tier: 'Diamond Pro (Level 5)',
       status: 'Approved',
-      type: 'Direct Freelance',
+      type: 'Direct Freelance (Independent)',
       phone: '+91 98205 11982',
       email: 'vikram.salvi@urbanpro.com',
       badge: 'Approved Direct Freelancer'
+    },
+    {
+      id: 'PRO-8842',
+      name: 'Rajesh Kumar',
+      role: 'Appliance Repair Specialist (Data Isolation Test)',
+      tier: 'Platinum Pro (Level 4)',
+      status: 'Approved',
+      type: 'Independent Professional',
+      phone: '+91 98201 44521',
+      email: 'rajesh.kumar@urbanpro.com',
+      badge: 'Data Isolation Verified (Separate Ledgers & Jobs)'
     },
     {
       id: 'PRO-8843',
@@ -608,7 +638,110 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
               );
             })}
           </div>
+
+          {/* Reset Demo Data Action */}
+          <div style={{ marginTop: 14, textAlign: 'center', paddingTop: 10, borderTop: '1px dashed #e2e8f0' }}>
+            <button
+              type="button"
+              onClick={() => setShowResetConfirm(true)}
+              style={{
+                background: '#fee2e2',
+                border: '1px solid #fecaca',
+                color: '#991b1b',
+                padding: '7px 16px',
+                borderRadius: 8,
+                fontSize: 11,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}
+            >
+              🔄 Reset Demo Data (Confirmed)
+            </button>
+            <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
+              Restores synthetic dispatches, tickets & ledgers. Does not affect live data.
+            </div>
+          </div>
         </div>
+
+        {/* Confirmed Demo Reset Modal */}
+        {showResetConfirm && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(15, 23, 42, 0.7)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+            padding: 16
+          }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: 18,
+              padding: '28px 24px',
+              maxWidth: 420,
+              width: '100%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: 38, marginBottom: 10 }}>⚠️</div>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 8px 0' }}>
+                Reset Synthetic Demo Data?
+              </h3>
+              <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, margin: '0 0 20px 0' }}>
+                This will reset all synthetic bookings, extra work proposals, notifications, support tickets, and earnings back to their initial seed state.
+                <br /><br />
+                <strong style={{ color: '#059669' }}>✓ Live records are completely segregated and unaffected.</strong>
+              </p>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowResetConfirm(false)}
+                  disabled={isResetting}
+                  style={{
+                    flex: 1,
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: 'none',
+                    padding: '11px 0',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetDemoData}
+                  disabled={isResetting}
+                  style={{
+                    flex: 1.5,
+                    background: '#dc2626',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '11px 0',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: isResetting ? 'wait' : 'pointer'
+                  }}
+                >
+                  {isResetting ? 'Resetting...' : 'Confirm Demo Reset'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer Actions */}
         <div style={{ marginTop: 24, textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 16 }}>

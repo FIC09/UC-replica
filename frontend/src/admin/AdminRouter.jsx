@@ -3,32 +3,39 @@ import { AdminLayout } from './AdminLayout';
 import { AdminLogin } from './AdminLogin';
 import { adminClient } from './adminClient';
 
-// Import All 21 Admin Views
+// Import Admin Views
 import { OverviewView } from './views/OverviewView';
 import { BookingsView } from './views/BookingsView';
 import { CustomersView } from './views/CustomersView';
 import { ProfessionalsView } from './views/ProfessionalsView';
 import { PartnersView } from './views/PartnersView';
 import { ServicesView } from './views/ServicesView';
-import { LocationsView } from './views/LocationsView';
 import { PaymentsView } from './views/PaymentsView';
 import { PayoutsView } from './views/PayoutsView';
 import { RefundsView } from './views/RefundsView';
 import { SupportView } from './views/SupportView';
 import { ReviewsView } from './views/ReviewsView';
-import { TrainingView } from './views/TrainingView';
-import { InventoryView } from './views/InventoryView';
 import { PromotionsView } from './views/PromotionsView';
 import { ContentView } from './views/ContentView';
 import { NotificationsView } from './views/NotificationsView';
-import { ReportsView } from './views/ReportsView';
-import { TeamView } from './views/TeamView';
-import { AuditLogsView } from './views/AuditLogsView';
 import { SettingsView } from './views/SettingsView';
+
+const REMOVED_ADMIN_PATHS = [
+  '/admin/locations',
+  '/admin/inventory',
+  '/admin/training',
+  '/admin/reports',
+  '/admin/team',
+  '/admin/audit-logs'
+];
 
 export function AdminRouter({ onExitToMarketplace }) {
   const [currentPath, setCurrentPath] = useState(() => {
     const path = window.location.pathname;
+    if (REMOVED_ADMIN_PATHS.includes(path)) {
+      window.history.replaceState({}, '', '/admin');
+      return '/admin';
+    }
     return path.startsWith('/admin') ? path : '/admin';
   });
 
@@ -66,6 +73,11 @@ export function AdminRouter({ onExitToMarketplace }) {
   useEffect(() => {
     function handlePopState() {
       const path = window.location.pathname;
+      if (REMOVED_ADMIN_PATHS.includes(path)) {
+        window.history.replaceState({}, '', '/admin');
+        setCurrentPath('/admin');
+        return;
+      }
       if (path.startsWith('/admin')) {
         setCurrentPath(path);
       }
@@ -82,9 +94,10 @@ export function AdminRouter({ onExitToMarketplace }) {
   }, []);
 
   const handleNavigate = useCallback((path) => {
-    if (window.location.pathname !== path) {
-      window.history.pushState({}, '', path);
-      setCurrentPath(path);
+    const targetPath = REMOVED_ADMIN_PATHS.includes(path) ? '/admin' : path;
+    if (window.location.pathname !== targetPath) {
+      window.history.pushState({}, '', targetPath);
+      setCurrentPath(targetPath);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }, []);
@@ -160,8 +173,6 @@ export function AdminRouter({ onExitToMarketplace }) {
         return <PartnersView onShowToast={showToast} />;
       case '/admin/services':
         return <ServicesView onShowToast={showToast} />;
-      case '/admin/locations':
-        return <LocationsView onShowToast={showToast} />;
       case '/admin/payments':
         return <PaymentsView onShowToast={showToast} />;
       case '/admin/payouts':
@@ -172,22 +183,12 @@ export function AdminRouter({ onExitToMarketplace }) {
         return <SupportView onShowToast={showToast} />;
       case '/admin/reviews':
         return <ReviewsView onShowToast={showToast} />;
-      case '/admin/training':
-        return <TrainingView onShowToast={showToast} />;
-      case '/admin/inventory':
-        return <InventoryView onShowToast={showToast} />;
       case '/admin/promotions':
         return <PromotionsView onShowToast={showToast} />;
       case '/admin/content':
         return <ContentView onShowToast={showToast} />;
       case '/admin/notifications':
         return <NotificationsView onShowToast={showToast} />;
-      case '/admin/reports':
-        return <ReportsView onShowToast={showToast} />;
-      case '/admin/team':
-        return <TeamView onShowToast={showToast} />;
-      case '/admin/audit-logs':
-        return <AuditLogsView onShowToast={showToast} />;
       case '/admin/settings':
         return <SettingsView onShowToast={showToast} />;
       default:

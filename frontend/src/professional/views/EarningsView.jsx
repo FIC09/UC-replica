@@ -4,6 +4,7 @@ import { professionalClient } from '../professionalClient';
 export function EarningsView({ onNavigate, showToast }) {
   const [earnings, setEarnings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currencyMode, setCurrencyMode] = useState('inr'); // 'inr' | 'paisa'
 
   useEffect(() => {
     loadEarnings();
@@ -16,171 +17,228 @@ export function EarningsView({ onNavigate, showToast }) {
         setEarnings(data.earnings);
       }
     } catch (err) {
-      console.warn('Earnings load error, using default:', err);
-      setEarnings({
-        today: 1840,
-        thisWeek: 12650,
-        thisMonth: 48920,
-        lifetime: 428000,
-        completedJobs: 1520,
-        averagePerJob: 485,
-        breakdown: {
-          grossFare: 61150,
-          platformCommission: 12230,
-          tips: 2800,
-          surgeBonus: 1400,
-          tierBonus: 5000,
-          netEarnings: 58120
-        },
-        recentTransactions: [
-          { id: 'TX-891', date: 'Today, 01:15 PM', service: 'Powerjet AC Servicing (Split)', gross: 548, comm: 110, tip: 50, net: 488, ref: 'JOB-9410' },
-          { id: 'TX-890', date: 'Today, 10:45 AM', service: 'AC Foam Jet Deep Cleaning', gross: 499, comm: 100, tip: 100, net: 499, ref: 'JOB-9409' },
-          { id: 'TX-889', date: 'Yesterday, 04:30 PM', service: 'Master AC Foam Jet Servicing', gross: 899, comm: 180, tip: 0, net: 719, ref: 'JOB-9388' },
-          { id: 'TX-888', date: '20 Oct 2026', service: 'Inverter AC PCB Circuit Repair', gross: 1250, comm: 250, tip: 150, net: 1150, ref: 'JOB-9372' },
-          { id: 'TX-887', date: '19 Oct 2026', service: 'AC Gas Leak Check & R32 Top-Up', gross: 948, comm: 190, tip: 50, net: 808, ref: 'JOB-9365' }
-        ]
-      });
+      console.warn('Earnings load error:', err);
     } finally {
       setLoading(false);
     }
   }
 
   if (loading || !earnings) {
-    return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading earnings summary...</div>;
+    return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading comprehensive earnings ledger...</div>;
   }
 
+  const formatAmount = (rupees, paisa) => {
+    if (currencyMode === 'paisa') {
+      const p = paisa !== undefined ? paisa : Math.round((rupees || 0) * 100);
+      return `${p.toLocaleString('en-IN')} Paisa`;
+    }
+    return `₹${(rupees || 0).toLocaleString('en-IN')}`;
+  };
+
+  const stages = earnings.financialStages || {
+    earned: 48920,
+    earnedPaisa: 4892000,
+    pendingConfirmation: 548,
+    pendingConfirmationPaisa: 54800,
+    availableForSettlement: 15450,
+    availableForSettlementPaisa: 1545000,
+    processing: 0,
+    processingPaisa: 0,
+    paid: 428000,
+    paidPaisa: 42800000,
+    disputed: 0,
+    disputedPaisa: 0
+  };
+
   return (
-    <div style={{ padding: '24px 20px', maxWidth: 1200, margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      {/* Title */}
+    <div style={{ padding: '24px 20px', maxWidth: 1250, margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      
+      {/* Title & Mode Switch */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
-            Earnings & Take-Rate Statement
+            Earnings Ledger & Financial Settlement
           </h1>
           <div style={{ fontSize: 13, color: '#64748b' }}>
-            Transparent financial breakdown • 80% pro payout + 100% of customer tips retained
+            Shared backend accounting • 80% professional entitlement + 100% customer tips retained
           </div>
         </div>
 
-        <button
-          onClick={() => onNavigate('/professional/payouts')}
-          style={{
-            background: '#059669',
-            color: '#ffffff',
-            border: 'none',
-            padding: '10px 20px',
-            borderRadius: 8,
-            fontSize: 14,
-            fontWeight: 700,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6
-          }}
-        >
-          <span>🏦</span>
-          Withdraw Balance →
-        </button>
-      </div>
-
-      {/* Top 4 KPI Cards */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: 16,
-        marginBottom: 24
-      }}>
-        <div style={{ background: '#ffffff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>TODAY'S EARNINGS</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
-            ₹{earnings.today?.toLocaleString('en-IN')}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          {/* Minor Currency Units Switch */}
+          <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 8 }}>
+            <button
+              onClick={() => setCurrencyMode('inr')}
+              style={{
+                background: currencyMode === 'inr' ? '#ffffff' : 'none',
+                color: currencyMode === 'inr' ? '#0f172a' : '#64748b',
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: currencyMode === 'inr' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+              }}
+            >
+              Rupees (₹)
+            </button>
+            <button
+              onClick={() => setCurrencyMode('paisa')}
+              style={{
+                background: currencyMode === 'paisa' ? '#ffffff' : 'none',
+                color: currencyMode === 'paisa' ? '#0f172a' : '#64748b',
+                border: 'none',
+                padding: '6px 12px',
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: currencyMode === 'paisa' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+              }}
+            >
+              Integer Minor Units (Paisa)
+            </button>
           </div>
-          <div style={{ fontSize: 12, color: '#059669', marginTop: 4, fontWeight: 600 }}>2 jobs completed today</div>
-        </div>
 
-        <div style={{ background: '#ffffff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>THIS WEEK</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
-            ₹{earnings.thisWeek?.toLocaleString('en-IN')}
-          </div>
-          <div style={{ fontSize: 12, color: '#2563eb', marginTop: 4, fontWeight: 600 }}>22 jobs serviced</div>
-        </div>
-
-        <div style={{ background: '#ffffff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>THIS MONTH (OCT 2026)</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
-            ₹{earnings.thisMonth?.toLocaleString('en-IN')}
-          </div>
-          <div style={{ fontSize: 12, color: '#059669', marginTop: 4, fontWeight: 600 }}>+ ₹5,000 Tier 5 Bonus</div>
-        </div>
-
-        <div style={{ background: '#ffffff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e2e8f0' }}>
-          <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>LIFETIME EARNINGS</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginTop: 6 }}>
-            ₹{earnings.lifetime?.toLocaleString('en-IN')}
-          </div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>Across 1,520 jobs</div>
+          <button
+            onClick={() => onNavigate('/professional/payouts')}
+            style={{
+              background: '#059669',
+              color: '#ffffff',
+              border: 'none',
+              padding: '10px 18px',
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
+            <span>🏦</span>
+            Withdraw Balance →
+          </button>
         </div>
       </div>
 
-      {/* Monthly Breakdown Container */}
+      {/* Completed != Disbursed Clarification Banner */}
       <div style={{
-        background: '#ffffff',
-        borderRadius: 16,
-        padding: '24px 28px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-        marginBottom: 24
+        background: '#eff6ff',
+        border: '1px solid #bfdbfe',
+        padding: '14px 18px',
+        borderRadius: 12,
+        fontSize: 13,
+        color: '#1e40af',
+        lineHeight: 1.5,
+        marginBottom: 24,
+        display: 'flex',
+        alignItems: 'flex-start',
+        gap: 12
       }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 16px 0' }}>
-          October 2026 Monthly Breakdown
-        </h3>
+        <div style={{ fontSize: 20 }}>⚖️</div>
+        <div>
+          <strong>Financial Distinction Rule:</strong> Do not confuse a completed job with money already received in your bank account. Completed services represent earned technician entitlement. Amounts move into <em>Available for Settlement</em> after audit, then into <em>Processing</em>, and finally <em>Paid</em> once a banking UTR settlement batch is executed.
+        </div>
+      </div>
 
+      {/* 6 Separate Financial Stages Grid */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 12 }}>
+          Financial Stages Breakdown (Preserved Historical Records)
+        </div>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: 16,
-          background: '#f8fafc',
-          padding: '20px 22px',
-          borderRadius: 12,
-          border: '1px solid #e2e8f0'
+          gap: 14
         }}>
-          <div>
-            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>GROSS BOOKINGS FARE</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>
-              ₹{earnings.breakdown?.grossFare?.toLocaleString('en-IN') || '61,150'}
+          {/* 1. Earned */}
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e2e8f0', borderTop: '4px solid #2563eb' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>1. EARNED (THIS MONTH)</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
+              {formatAmount(stages.earned, stages.earnedPaisa)}
             </div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Gross completed jobs value</div>
           </div>
 
-          <div>
-            <div style={{ fontSize: 12, color: '#dc2626', fontWeight: 600 }}>PLATFORM COMM (20%)</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#dc2626', marginTop: 4 }}>
-              - ₹{earnings.breakdown?.platformCommission?.toLocaleString('en-IN') || '12,230'}
+          {/* 2. Pending Confirmation */}
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e2e8f0', borderTop: '4px solid #d97706' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>2. PENDING AUDIT</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#d97706', marginTop: 4 }}>
+              {formatAmount(stages.pendingConfirmation, stages.pendingConfirmationPaisa)}
             </div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Awaiting OTP / customer sign-off</div>
           </div>
 
-          <div>
-            <div style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>TIPS (100% PRO)</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#059669', marginTop: 4 }}>
-              + ₹{earnings.breakdown?.tips?.toLocaleString('en-IN') || '2,800'}
+          {/* 3. Available for Settlement */}
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e2e8f0', borderTop: '4px solid #059669' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#059669' }}>3. AVAILABLE SETTLEMENT</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#059669', marginTop: 4 }}>
+              {formatAmount(stages.availableForSettlement, stages.availableForSettlementPaisa)}
             </div>
+            <div style={{ fontSize: 11, color: '#059669', marginTop: 4, fontWeight: 600 }}>Ready to withdraw</div>
           </div>
 
-          <div>
-            <div style={{ fontSize: 12, color: '#2563eb', fontWeight: 600 }}>DIAMOND TIER BONUS</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: '#2563eb', marginTop: 4 }}>
-              + ₹{earnings.breakdown?.tierBonus?.toLocaleString('en-IN') || '5,000'}
+          {/* 4. Processing */}
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e2e8f0', borderTop: '4px solid #7c3aed' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>4. PROCESSING</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#7c3aed', marginTop: 4 }}>
+              {formatAmount(stages.processing, stages.processingPaisa)}
             </div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>In NEFT / IMPS batch queue</div>
           </div>
 
-          <div>
-            <div style={{ fontSize: 12, color: '#059669', fontWeight: 700 }}>NET PRO TAKE-HOME</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: '#059669', marginTop: 4 }}>
-              ₹{earnings.breakdown?.netEarnings?.toLocaleString('en-IN') || '58,120'}
+          {/* 5. Paid */}
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e2e8f0', borderTop: '4px solid #10b981' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>5. PAID (LIFETIME)</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#10b981', marginTop: 4 }}>
+              {formatAmount(stages.paid, stages.paidPaisa)}
             </div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Settled with verified UTRs</div>
+          </div>
+
+          {/* 6. Disputed */}
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e2e8f0', borderTop: '4px solid #94a3b8' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>6. DISPUTED / ON HOLD</div>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#64748b', marginTop: 4 }}>
+              {formatAmount(stages.disputed, stages.disputedPaisa)}
+            </div>
+            <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Quality dispute hold</div>
           </div>
         </div>
       </div>
+
+      {/* Recipient Snapshot Box */}
+      {earnings.recipientSnapshot && (
+        <div style={{
+          background: '#ffffff',
+          borderRadius: 14,
+          padding: '18px 22px',
+          border: '1px solid #e2e8f0',
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 14
+        }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+              VERIFIED SETTLEMENT RECIPIENT SNAPSHOT
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', marginTop: 4 }}>
+              {earnings.recipientSnapshot.bankName} • Account: {earnings.recipientSnapshot.accountNumberMasked}
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+              IFSC: <strong>{earnings.recipientSnapshot.ifscCode}</strong> • Account Holder: <strong>{earnings.recipientSnapshot.accountHolderName}</strong> • UPI: {earnings.recipientSnapshot.upiId}
+            </div>
+          </div>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#059669', background: '#ecfdf5', padding: '6px 12px', borderRadius: 8 }}>
+            ✓ Verified for Auto-Disbursement
+          </span>
+        </div>
+      )}
 
       {/* Itemized Ledger Table */}
       <div style={{
@@ -190,33 +248,67 @@ export function EarningsView({ onNavigate, showToast }) {
         border: '1px solid #e2e8f0',
         boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
       }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 16px 0' }}>
-          Recent Job Earnings Ledger
-        </h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>
+            Itemized Service Ledger (Full Audit Trail)
+          </h3>
+          <span style={{ fontSize: 12, color: '#64748b' }}>
+            Showing recent bookings with commission, tip pass-through & recipient snapshots
+          </span>
+        </div>
 
         <div style={{ overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
-                <th style={{ padding: '12px 10px', fontWeight: 600 }}>TX REF</th>
-                <th style={{ padding: '12px 10px', fontWeight: 600 }}>DATE & TIME</th>
+                <th style={{ padding: '12px 10px', fontWeight: 600 }}>REF / DATE</th>
                 <th style={{ padding: '12px 10px', fontWeight: 600 }}>SERVICE NAME</th>
                 <th style={{ padding: '12px 10px', fontWeight: 600 }}>GROSS FARE</th>
                 <th style={{ padding: '12px 10px', fontWeight: 600 }}>COMMISSION (20%)</th>
-                <th style={{ padding: '12px 10px', fontWeight: 600 }}>CUSTOMER TIP</th>
-                <th style={{ padding: '12px 10px', fontWeight: 700, color: '#059669' }}>PRO PAYOUT</th>
+                <th style={{ padding: '12px 10px', fontWeight: 600 }}>PRO ENTITLEMENT</th>
+                <th style={{ padding: '12px 10px', fontWeight: 600 }}>APPROVED TIPS</th>
+                <th style={{ padding: '12px 10px', fontWeight: 700, color: '#059669' }}>NET EARNINGS</th>
+                <th style={{ padding: '12px 10px', fontWeight: 600 }}>STAGE</th>
               </tr>
             </thead>
             <tbody>
-              {earnings.recentTransactions?.map(tx => (
+              {(earnings.itemizedLedger || []).map(tx => (
                 <tr key={tx.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px 10px', fontWeight: 600, color: '#2563eb' }}>{tx.id}</td>
-                  <td style={{ padding: '12px 10px', color: '#64748b' }}>{tx.date}</td>
-                  <td style={{ padding: '12px 10px', fontWeight: 600, color: '#0f172a' }}>{tx.service}</td>
-                  <td style={{ padding: '12px 10px', color: '#334155' }}>₹{tx.gross}</td>
-                  <td style={{ padding: '12px 10px', color: '#dc2626' }}>-₹{tx.comm}</td>
-                  <td style={{ padding: '12px 10px', color: '#059669' }}>{tx.tip > 0 ? `+₹${tx.tip}` : '—'}</td>
-                  <td style={{ padding: '12px 10px', fontWeight: 800, color: '#059669', fontSize: 14 }}>₹{tx.net}</td>
+                  <td style={{ padding: '14px 10px' }}>
+                    <div style={{ fontWeight: 700, color: '#2563eb' }}>{tx.bookingReference}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{tx.serviceDate}</div>
+                  </td>
+                  <td style={{ padding: '14px 10px' }}>
+                    <div style={{ fontWeight: 600, color: '#0f172a' }}>{tx.service}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{tx.settlementEligibility}</div>
+                  </td>
+                  <td style={{ padding: '14px 10px', color: '#334155' }}>
+                    {formatAmount(tx.grossFare, tx.grossFarePaisa)}
+                  </td>
+                  <td style={{ padding: '14px 10px', color: '#dc2626' }}>
+                    - {formatAmount(tx.platformCommission, tx.platformCommissionPaisa)}
+                  </td>
+                  <td style={{ padding: '14px 10px', color: '#0f172a', fontWeight: 600 }}>
+                    {formatAmount(tx.professionalEntitlement, tx.professionalEntitlementPaisa)}
+                  </td>
+                  <td style={{ padding: '14px 10px', color: '#059669' }}>
+                    {tx.approvedTips > 0 ? `+ ${formatAmount(tx.approvedTips, tx.approvedTipsPaisa)}` : '—'}
+                  </td>
+                  <td style={{ padding: '14px 10px', fontWeight: 800, color: '#059669', fontSize: 14 }}>
+                    {formatAmount(tx.netEarnings, tx.netEarningsPaisa)}
+                  </td>
+                  <td style={{ padding: '14px 10px' }}>
+                    <span style={{
+                      background: tx.settlementStatus === 'Paid' ? '#ecfdf5' : '#eff6ff',
+                      color: tx.settlementStatus === 'Paid' ? '#059669' : '#2563eb',
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      fontWeight: 700
+                    }}>
+                      {tx.settlementStatus}
+                    </span>
+                  </td>
                 </tr>
               ))}
             </tbody>

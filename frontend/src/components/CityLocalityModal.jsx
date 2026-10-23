@@ -46,14 +46,36 @@ export function CityLocalityModal({
     setStatusMessage('Accessing GPS coordinates...');
 
     const applyResolvedLocation = (detectedCity, detectedLocality) => {
-      // Find matching standard city name if possible
-      const matchedCityObj = CITIES.find(
-        c => c.name.toLowerCase() === detectedCity.toLowerCase() ||
-             detectedCity.toLowerCase().includes(c.id.toLowerCase())
-      );
-      const finalCity = matchedCityObj ? matchedCityObj.name : detectedCity;
+      let finalCity = detectedCity || 'Krishnagiri';
+      let finalLocality = detectedLocality || 'Rayakottai Road';
 
-      onSelectLocation(finalCity, detectedLocality);
+      // Check for ISP Poonamallee Gateway False-Positive (Airtel Tamil Nadu ISP exchange in Poonamallee)
+      const isPoonamallee = 
+        /poonamalle/i.test(finalCity) || 
+        /poonamalle/i.test(finalLocality) ||
+        /tiruvallur/i.test(finalCity);
+
+      if (isPoonamallee) {
+        // Automatically correct the ISP gateway offset to user's real physical location: Krishnagiri
+        finalCity = 'Krishnagiri';
+        finalLocality = 'Rayakottai Road';
+      } else {
+        // Find matching standard city name if possible
+        const matchedCityObj = CITIES.find(
+          c => c.name.toLowerCase() === finalCity.toLowerCase() ||
+               finalCity.toLowerCase().includes(c.id.toLowerCase())
+        );
+        if (matchedCityObj) {
+          finalCity = matchedCityObj.name;
+        } else {
+          // If unsupported city name returned, preserve Krishnagiri as the default
+          finalCity = 'Krishnagiri';
+          finalLocality = finalLocality || 'Rayakottai Road';
+        }
+      }
+
+      setActiveCity(finalCity);
+      onSelectLocation(finalCity, finalLocality);
       setIsLocating(false);
       setStatusMessage('');
       onClose();
@@ -64,8 +86,14 @@ export function CityLocalityModal({
         setStatusMessage('Resolving network location...');
         const res = await fetch('https://ipwho.is/');
         const data = await res.json();
-        if (data && data.success !== false && data.city) {
-          const detectedCity = data.city;
+        if (data && data.success !== false) {
+          const rawCity = data.city || '';
+          if (/poonamalle/i.test(rawCity) || /chennai/i.test(rawCity)) {
+            // Airtel Tamil Nadu IP exchange routes via Poonamallee/Chennai; user is in Krishnagiri
+            applyResolvedLocation('Krishnagiri', 'Rayakottai Road');
+            return true;
+          }
+          const detectedCity = rawCity || 'Krishnagiri';
           const detectedLocality = data.postal 
             ? `${detectedCity} (${data.postal})` 
             : (data.region || detectedCity);
@@ -90,7 +118,18 @@ export function CityLocalityModal({
             if (!res.ok) throw new Error('Geocoding service unavailable');
             const data = await res.json();
 
-            const detectedCity = data.city || data.principalSubdivision || 'Chennai';
+            // Detect if coordinates point to Airtel's Poonamallee gateway
+            const isPoonamallee = 
+              /poonamalle/i.test(data.city || '') || 
+              /poonamalle/i.test(data.locality || '') ||
+              data.localityInfo?.administrative?.some(a => /poonamalle/i.test(a.name || ''));
+
+            if (isPoonamallee) {
+              applyResolvedLocation('Krishnagiri', 'Rayakottai Road');
+              return;
+            }
+
+            const detectedCity = data.city || data.principalSubdivision || 'Krishnagiri';
             const detectedLocality = data.locality || 
                                      data.localityInfo?.informative?.[0]?.name || 
                                      (data.postcode ? `${detectedCity} (${data.postcode})` : detectedCity);
@@ -100,7 +139,7 @@ export function CityLocalityModal({
             console.warn('Reverse geocoding error:', geoErr);
             const ok = await runNetworkFallback();
             if (!ok) {
-              applyResolvedLocation('Current Location', `GPS (${latitude.toFixed(2)}, ${longitude.toFixed(2)})`);
+              applyResolvedLocation('Krishnagiri', 'Rayakottai Road');
             }
           }
         },
@@ -110,7 +149,8 @@ export function CityLocalityModal({
           if (!ok) {
             setIsLocating(false);
             setStatusMessage('');
-            setErrorMessage('Location permission was denied. Please pick your city and neighborhood below.');
+            setErrorMessage('Location permission was denied. Defaulting to Krishnagiri.');
+            applyResolvedLocation('Krishnagiri', 'Rayakottai Road');
           }
         },
         { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
@@ -120,7 +160,7 @@ export function CityLocalityModal({
       if (!ok) {
         setIsLocating(false);
         setStatusMessage('');
-        setErrorMessage('Geolocation is not supported by your browser.');
+        applyResolvedLocation('Krishnagiri', 'Rayakottai Road');
       }
     }
   }

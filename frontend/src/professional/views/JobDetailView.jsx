@@ -5,6 +5,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('checklists'); // 'checklists' | 'extra_work' | 'communication' | 'incidents' | 'financials'
 
   // Start OTP verification modal
   const [otpInput, setOtpInput] = useState('');
@@ -21,8 +22,47 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
   const [newNoteInput, setNewNoteInput] = useState('');
   const [isAddingNote, setIsAddingNote] = useState(false);
 
+  // 1. Checklists & Evidence States
+  const [structuredChecklists, setStructuredChecklists] = useState(null);
+  const [completionNotes, setCompletionNotes] = useState('');
+  const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [photoPhase, setPhotoPhase] = useState('before');
+  const [photoType, setPhotoType] = useState('equipment');
+  const [photoError, setPhotoError] = useState('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  // 2. Extra Work & Parts States
+  const [extraWorkCatalog, setExtraWorkCatalog] = useState([]);
+  const [extraWorkItems, setExtraWorkItems] = useState([]);
+  const [selectedRuleId, setSelectedRuleId] = useState('EX-AC-04');
+  const [extraWorkScope, setExtraWorkScope] = useState('');
+  const [extraWorkQty, setExtraWorkQty] = useState(1);
+  const [isSubmittingExtraWork, setIsSubmittingExtraWork] = useState(false);
+  const [approvingWorkId, setApprovingWorkId] = useState(null);
+
+  // 3. Customer Communication States
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newMessageText, setNewMessageText] = useState('');
+  const [communicationChannels, setCommunicationChannels] = useState(null);
+  const [isRefreshingChat, setIsRefreshingChat] = useState(false);
+  const [lastPolledAt, setLastPolledAt] = useState('');
+  const [showPermissionModal, setShowPermissionModal] = useState(null); // 'camera' | 'location' | null
+
+  // 4. Cancellation & Incidents States
+  const [cancellationPolicies, setCancellationPolicies] = useState({});
+  const [selectedIncidentCategory, setSelectedIncidentCategory] = useState('running_late');
+  const [incidentReason, setIncidentReason] = useState('');
+  const [delayMinutes, setDelayMinutes] = useState(20);
+  const [consequencesAcknowledged, setConsequencesAcknowledged] = useState(false);
+  const [isSubmittingIncident, setIsSubmittingIncident] = useState(false);
+
+  // 5. Financials State
+  const [currencyMode, setCurrencyMode] = useState('inr'); // 'inr' | 'paisa'
+
   useEffect(() => {
     loadJob();
+    loadExtraWorkCatalogue();
+    loadCancellationPolicy();
   }, [jobId]);
 
   async function loadJob() {
@@ -32,11 +72,74 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       const data = await professionalClient.getJobDetail(jobId);
       if (data.success && data.job) {
         setJob(data.job);
+        if (data.job.structuredChecklists) {
+          setStructuredChecklists(data.job.structuredChecklists);
+          setCompletionNotes(data.job.structuredChecklists.completionNotes || '');
+        }
+        if (data.job.extraWorkRequests) {
+          setExtraWorkItems(data.job.extraWorkRequests);
+        }
+        if (data.job.communicationChannels) {
+          setCommunicationChannels(data.job.communicationChannels);
+        }
       }
+      // Also load fresh chat and checklists
+      loadChatMessages();
+      loadChecklistsData();
     } catch (err) {
       setError(err.message || 'Failed to load job details. Unauthorized access.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadChecklistsData() {
+    try {
+      const res = await professionalClient.getJobChecklists(jobId);
+      if (res.success && res.checklists) {
+        setStructuredChecklists(res.checklists);
+        setCompletionNotes(res.completionNotes || res.checklists.completionNotes || '');
+      }
+    } catch (e) {
+      console.warn('Checklists load error:', e);
+    }
+  }
+
+  async function loadExtraWorkCatalogue() {
+    try {
+      const res = await professionalClient.getExtraWorkCatalogue(jobId);
+      if (res.success && res.catalogue) {
+        setExtraWorkCatalog(res.catalogue);
+      }
+    } catch (e) {
+      console.warn('Catalogue load error:', e);
+    }
+  }
+
+  async function loadCancellationPolicy() {
+    try {
+      const res = await professionalClient.getCancellationPolicy();
+      if (res.success && res.policies) {
+        setCancellationPolicies(res.policies);
+      }
+    } catch (e) {
+      console.warn('Policy load error:', e);
+    }
+  }
+
+  async function loadChatMessages() {
+    setIsRefreshingChat(true);
+    try {
+      const res = await professionalClient.getJobMessages(jobId);
+      if (res.success) {
+        setChatMessages(res.messages || []);
+        setLastPolledAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+        if (res.channels) setCommunicationChannels(res.channels);
+      }
+    } catch (e) {
+      console.warn('Chat load error:', e);
+    } finally {
+      setIsRefreshingChat(false);
     }
   }
 
@@ -72,26 +175,173 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
     }
   };
 
-  // Interactive Checklist
-  const handleToggleChecklist = async (itemId, currentCompleted) => {
-    try {
-      const nextCompleted = !currentCompleted;
-      // Optimistic update
-      setJob(prev => ({
+  // 1. Checklist Interaction Handlers
+  const handleToggleChecklist = async (section, itemId, currentVal) => {
+    const nextVal = !currentVal;
+    if (structuredChecklists && structuredChecklists[section]) {
+      setStructuredChecklists(prev => ({
         ...prev,
-        serviceChecklist: (prev.serviceChecklist || []).map(item =>
-          item.id === itemId ? { ...item, completed: nextCompleted } : item
-        )
+        [section]: prev[section].map(it => it.id === itemId ? { ...it, completed: nextVal } : it)
       }));
+    }
 
-      await professionalClient.updateJobChecklist(jobId, itemId, nextCompleted);
-    } catch (err) {
-      showToast('Could not save checklist item change.');
-      loadJob();
+    try {
+      await professionalClient.updateJobChecklistSection(jobId, {
+        section,
+        itemId,
+        completed: nextVal
+      });
+      // also sync legacy checklist if needed
+      await professionalClient.updateJobChecklist(jobId, itemId, nextVal);
+    } catch (e) {
+      showToast('Checklist update failed to persist.');
+      loadChecklistsData();
     }
   };
 
-  // Reassignment Submission
+  const handleSaveCompletionNotes = async () => {
+    setIsSavingNotes(true);
+    try {
+      await professionalClient.updateJobChecklistSection(jobId, {
+        completionNotes
+      });
+      showToast('Technician completion notes saved.');
+    } catch (e) {
+      showToast(e.message || 'Failed to save notes');
+    } finally {
+      setIsSavingNotes(false);
+    }
+  };
+
+  // Photo Upload Handler with Client-Side Validation
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setPhotoError('');
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type.toLowerCase())) {
+      setPhotoError('Invalid file type. Only JPG, PNG, and WebP images are permitted per Platform Photo Policy.');
+      return;
+    }
+
+    const sizeKb = file.size / 1024;
+    if (sizeKb > 5120) {
+      setPhotoError(`File size (${(sizeKb / 1024).toFixed(1)}MB) exceeds 5MB platform maximum limit.`);
+      return;
+    }
+
+    setIsUploadingPhoto(true);
+    try {
+      const res = await professionalClient.uploadJobPhotoEvidence(jobId, {
+        phase: photoPhase,
+        photoType,
+        fileName: file.name,
+        fileSizeKb: Math.round(sizeKb),
+        mimeType: file.type
+      });
+      showToast(res.message || 'Photo evidence attached under protected access vault.');
+      loadChecklistsData();
+      loadJob();
+    } catch (err) {
+      setPhotoError(err.message || 'Photo upload failed');
+    } finally {
+      setIsUploadingPhoto(false);
+      e.target.value = '';
+    }
+  };
+
+  // 2. Extra Work Proposal & Verifiable Approval Handlers
+  const handleProposeExtraWork = async (e) => {
+    e.preventDefault();
+    setIsSubmittingExtraWork(true);
+    try {
+      const res = await professionalClient.proposeExtraWork(jobId, {
+        ruleId: selectedRuleId,
+        scope: extraWorkScope,
+        qty: extraWorkQty
+      });
+      showToast(res.message || 'Extra work proposed. Pending customer approval.');
+      setExtraWorkScope('');
+      setExtraWorkQty(1);
+      // Refresh items
+      const itemsRes = await professionalClient.getExtraWorkRequests(jobId);
+      if (itemsRes.success) setExtraWorkItems(itemsRes.extraWorkItems);
+      loadJob();
+    } catch (err) {
+      showToast(err.message || 'Failed to submit extra work proposal');
+    } finally {
+      setIsSubmittingExtraWork(false);
+    }
+  };
+
+  const handleSimulateCustomerApproval = async (workId, action) => {
+    setApprovingWorkId(workId);
+    try {
+      const res = await professionalClient.handleCustomerExtraWorkApproval(jobId, workId, {
+        action,
+        approvedBy: job?.userName || 'Customer',
+        approvalMethod: action === 'approve' ? 'Customer App In-App Authorization (Demo Flow)' : 'Customer App Rejection',
+        isDemo: true,
+        rejectionReason: action === 'reject' ? 'Customer requested service to stay within base package.' : ''
+      });
+      showToast(res.message || 'Customer approval status updated.');
+      loadJob();
+      const itemsRes = await professionalClient.getExtraWorkRequests(jobId);
+      if (itemsRes.success) setExtraWorkItems(itemsRes.extraWorkItems);
+    } catch (err) {
+      showToast(err.message || 'Approval action failed');
+    } finally {
+      setApprovingWorkId(null);
+    }
+  };
+
+  // 3. Customer Chat Handler
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessageText.trim()) return;
+    const textToSend = newMessageText.trim();
+    setNewMessageText('');
+    try {
+      await professionalClient.sendJobMessage(jobId, { text: textToSend });
+      loadChatMessages();
+    } catch (err) {
+      showToast(err.message || 'Failed to send message');
+    }
+  };
+
+  // 4. Incident / Cancellation Report Handler
+  const handleSubmitIncident = async (e) => {
+    e.preventDefault();
+    if (!consequencesAcknowledged) {
+      showToast('Please review and acknowledge the platform consequence policy.');
+      return;
+    }
+    if (!incidentReason.trim() || incidentReason.trim().length < 5) {
+      showToast('Please provide an auditable reason (min 5 characters).');
+      return;
+    }
+
+    setIsSubmittingIncident(true);
+    try {
+      const res = await professionalClient.reportJobIncident(jobId, {
+        category: selectedIncidentCategory,
+        reason: incidentReason.trim(),
+        delayMinutes: selectedIncidentCategory === 'running_late' ? delayMinutes : 0,
+        consequencesAcknowledged
+      });
+      showToast(res.message || 'Incident reported to Dispatch Cell.');
+      setIncidentReason('');
+      setConsequencesAcknowledged(false);
+      loadJob();
+    } catch (err) {
+      showToast(err.message || 'Incident filing failed');
+    } finally {
+      setIsSubmittingIncident(false);
+    }
+  };
+
+  // Legacy Reassignment Submission
   const handleSubmitReassignment = async () => {
     if (!reassignReason || reassignReason.trim().length < 5) {
       showToast('Please enter a valid reason (min 5 characters).');
@@ -120,7 +370,6 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       const res = await professionalClient.addProfessionalNote(jobId, newNoteInput.trim());
       showToast('Private technician note recorded.');
       setNewNoteInput('');
-      // Attach note locally
       if (res.note) {
         setJob(prev => ({
           ...prev,
@@ -137,7 +386,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
   if (loading) {
     return (
       <div style={{ padding: 60, textAlign: 'center', color: '#64748b', fontFamily: 'Inter, system-ui, sans-serif' }}>
-        Loading job specifications and execution checklist...
+        Loading job specifications, checklists and dispatch communication...
       </div>
     );
   }
@@ -179,12 +428,12 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
     );
   }
 
-  // Sequence: Assigned → En Route → Arrived → In Progress → Completed
   const lifecycleSteps = ['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'];
   const currentStepIndex = lifecycleSteps.indexOf(job.status);
+  const currentPolicy = cancellationPolicies[selectedIncidentCategory] || {};
 
   return (
-    <div style={{ padding: '24px 20px', maxWidth: 1000, margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ padding: '24px 20px', maxWidth: 1100, margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
       {/* Top Breadcrumb & Status */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
@@ -248,7 +497,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
         boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
       }}>
         <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 12 }}>
-          Service Execution Progress
+          Service Execution Lifecycle (Verified Transition Engine)
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
           {lifecycleSteps.map((step, idx) => {
@@ -293,7 +542,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
         padding: '24px 28px',
         border: '1px solid #e2e8f0',
         boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-        marginBottom: 24
+        marginBottom: 20
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
           <div>
@@ -333,81 +582,8 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           </div>
         </div>
 
-        {/* Customer instructions */}
-        {job.customerInstructions && (
-          <div style={{
-            background: '#faf5ff',
-            border: '1px solid #e9d5ff',
-            borderRadius: 10,
-            padding: '14px 18px',
-            marginTop: 20
-          }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#6b21a8', textTransform: 'uppercase' }}>
-              Customer Instructions & Access Notes
-            </div>
-            <div style={{ fontSize: 14, color: '#3b0764', marginTop: 4, fontStyle: 'italic' }}>
-              "{job.customerInstructions}"
-            </div>
-          </div>
-        )}
-
-        {/* Customer & Location Policy (Masked / Unmasked) */}
-        <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: 18 }}>
-          <div style={{ background: '#f8fafc', padding: '16px 18px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-              Customer Contact
-            </div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>
-              {job.customer}
-            </div>
-            <div style={{ fontSize: 14, color: '#2563eb', marginTop: 4 }}>
-              📞 {job.phone}
-            </div>
-            {job.isPhoneMasked ? (
-              <div style={{ fontSize: 11, color: '#92400e', marginTop: 6 }}>
-                🔒 Customer phone masked per Booking Access Policy. Unlocks upon marking "En Route".
-              </div>
-            ) : (
-              <div style={{ fontSize: 11, color: '#059669', marginTop: 6, fontWeight: 600 }}>
-                ✓ Live contact access active
-              </div>
-            )}
-          </div>
-
-          <div style={{ background: '#f8fafc', padding: '16px 18px', borderRadius: 12, border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>
-              Destination Address
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: '#1e293b', marginTop: 4 }}>
-              {job.address}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
-              <span style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>
-                📍 Zone: {job.area}
-              </span>
-              {!job.preciseAddressHidden && (
-                <button
-                  onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(job.fullAddress || job.address)}`, '_blank')}
-                  style={{
-                    background: '#2563eb',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Turn-by-turn Navigation ↗
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Primary Action Button Bar following valid lifecycle */}
-        <div style={{ marginTop: 24, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        {/* Action Button Bar */}
+        <div style={{ marginTop: 22, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
           {job.status === 'Assigned' && (
             <button
               onClick={() => handleUpdateStatus('En Route')}
@@ -494,10 +670,9 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
             </button>
           )}
 
-          {/* Reassignment trigger (only if not finished) */}
           {['Assigned', 'En Route', 'Arrived'].includes(job.status) && (
             <button
-              onClick={() => setShowReassignModal(true)}
+              onClick={() => setActiveTab('incidents')}
               style={{
                 background: '#ffffff',
                 color: '#475569',
@@ -509,7 +684,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 cursor: 'pointer'
               }}
             >
-              Request Reassignment
+              ⚠️ Report Incident / Delay / Reassign
             </button>
           )}
 
@@ -530,208 +705,1004 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               gap: 6
             }}
           >
-            🚨 SOS / Support
+            🚨 SOS / Safety Dispatch
           </button>
         </div>
       </div>
 
-      {/* Grid: Scope & Checklist (Left) + Financials & Notes (Right) */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, alignItems: 'start' }}>
-        
-        {/* Left: Package Items, Required Tools & Service Checklist */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          
-          {/* Service Package & Items */}
-          <div style={{
-            background: '#ffffff',
-            borderRadius: 16,
-            padding: '22px 24px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-          }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 12px 0' }}>
-              Service Package & Included Scope
-            </h3>
+      {/* Enhanced Tab Navigation */}
+      <div style={{
+        display: 'flex',
+        gap: 8,
+        borderBottom: '2px solid #e2e8f0',
+        marginBottom: 24,
+        overflowX: 'auto',
+        paddingBottom: 4
+      }}>
+        {[
+          { id: 'checklists', label: '📋 SOP Checklists & Evidence', count: structuredChecklists ? ((structuredChecklists.photos || []).length) : null },
+          { id: 'extra_work', label: '⚡ Extra Work & Parts (Customer Approval)', count: extraWorkItems.length || null },
+          { id: 'communication', label: '💬 Customer Chat & Navigation', count: chatMessages.length || null },
+          { id: 'incidents', label: '⚠️ Delays & Policy Actions', count: (job.incidentReports || []).length || null },
+          { id: 'financials', label: '💰 Financial Ledger (Paisa Minor Units)' }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              background: activeTab === tab.id ? '#7c3aed' : '#ffffff',
+              color: activeTab === tab.id ? '#ffffff' : '#475569',
+              border: '1px solid',
+              borderColor: activeTab === tab.id ? '#7c3aed' : '#e2e8f0',
+              padding: '10px 18px',
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              whiteSpace: 'nowrap',
+              boxShadow: activeTab === tab.id ? '0 2px 4px rgba(124, 58, 237, 0.2)' : 'none',
+              transition: 'all 0.15s ease'
+            }}
+          >
+            <span>{tab.label}</span>
+            {tab.count !== null && (
+              <span style={{
+                background: activeTab === tab.id ? '#ffffff' : '#f1f5f9',
+                color: activeTab === tab.id ? '#7c3aed' : '#64748b',
+                padding: '2px 7px',
+                borderRadius: 12,
+                fontSize: 11,
+                fontWeight: 800
+              }}>
+                {tab.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {(job.items || []).map((it, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '10px 14px',
-                    background: '#f8fafc',
-                    borderRadius: 8,
-                    border: '1px solid #f1f5f9'
-                  }}
-                >
-                  <span style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>
-                    {it.title || it.name} x {it.qty || 1}
-                  </span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-                    ₹{it.price}
-                  </span>
-                </div>
-              ))}
-
-              {job.addons && job.addons.length > 0 && (
-                <div style={{ marginTop: 6 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 6 }}>
-                    Customer Add-ons:
+      {/* TAB 1: SOP Checklists, Evidence Photos & Completion Notes */}
+      {activeTab === 'checklists' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, alignItems: 'start' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            
+            {/* Before-Service Checks */}
+            <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  🔍 Before-Service Checks
+                </h3>
+                <span style={{ fontSize: 12, color: '#64748b' }}>Mandatory baseline diagnostics</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {(structuredChecklists?.beforeService || []).map(item => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleToggleChecklist('beforeService', item.id, item.completed)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                      padding: '12px 14px',
+                      borderRadius: 10,
+                      background: item.completed ? '#ecfdf5' : '#f8fafc',
+                      border: `1px solid ${item.completed ? '#a7f3d0' : '#e2e8f0'}`,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <input type="checkbox" checked={Boolean(item.completed)} onChange={() => {}} style={{ marginTop: 3, cursor: 'pointer', width: 16, height: 16 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: item.completed ? '#065f46' : '#0f172a' }}>{item.text}</div>
+                      {item.notes && <div style={{ fontSize: 11, color: '#059669', marginTop: 2, fontStyle: 'italic' }}>✓ {item.notes}</div>}
+                    </div>
                   </div>
-                  {job.addons.map((add, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: '#475569', padding: '6px 14px' }}>
-                      <span>+ {add.title}</span>
-                      <span>₹{add.price}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Safety Checks */}
+            <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  🛡️ Safety & PPE Checks
+                </h3>
+                <span style={{ fontSize: 11, background: '#fee2e2', color: '#991b1b', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>Zero-Harm Protocol</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {(structuredChecklists?.safetyChecks || []).map(item => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleToggleChecklist('safetyChecks', item.id, item.completed)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                      padding: '12px 14px',
+                      borderRadius: 10,
+                      background: item.completed ? '#ecfdf5' : '#f8fafc',
+                      border: `1px solid ${item.completed ? '#a7f3d0' : '#e2e8f0'}`,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <input type="checkbox" checked={Boolean(item.completed)} onChange={() => {}} style={{ marginTop: 3, cursor: 'pointer', width: 16, height: 16 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: item.completed ? '#065f46' : '#0f172a' }}>{item.text}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Work Performed SOP */}
+            <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 14px 0' }}>
+                ⚡ Work Performed Execution SOP
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {(structuredChecklists?.workPerformed || []).map(item => (
+                  <div
+                    key={item.id}
+                    onClick={() => handleToggleChecklist('workPerformed', item.id, item.completed)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 12,
+                      padding: '12px 14px',
+                      borderRadius: 10,
+                      background: item.completed ? '#ecfdf5' : '#f8fafc',
+                      border: `1px solid ${item.completed ? '#a7f3d0' : '#e2e8f0'}`,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <input type="checkbox" checked={Boolean(item.completed)} onChange={() => {}} style={{ marginTop: 3, cursor: 'pointer', width: 16, height: 16 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: item.completed ? '#065f46' : '#0f172a' }}>{item.text}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Parts / Materials Consumed */}
+            <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 12px 0' }}>
+                🧰 Parts & Materials Consumed
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {(structuredChecklists?.partsMaterials || []).map(pm => (
+                  <div key={pm.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 13 }}>
+                    <div>
+                      <strong style={{ color: '#0f172a' }}>{pm.name}</strong> x {pm.qty} {pm.unit}
+                      {pm.serialNo && <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Lot / Batch: {pm.serialNo}</div>}
+                    </div>
+                    <span style={{ color: '#059669', fontWeight: 700 }}>Standard Package Included</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Evidence Photos Vault & Completion Notes */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            
+            {/* Photo Evidence Vault */}
+            <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 6px 0' }}>
+                📸 Protected Evidence Photos Vault
+              </h3>
+              <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 14px 0' }}>
+                Upload before & after job evidence. File type (JPG, PNG, WebP) and size (&lt;=5MB) validated.
+              </p>
+
+              {/* Privacy protection banner */}
+              <div style={{
+                background: '#fef3c7',
+                border: '1px solid #fde68a',
+                padding: '10px 12px',
+                borderRadius: 8,
+                fontSize: 11,
+                color: '#92400e',
+                marginBottom: 16,
+                lineHeight: 1.4
+              }}>
+                🔒 <strong>Platform Privacy Policy:</strong> Do NOT require or upload photos of customers or private residential interiors. Capture only equipment, model tags, replaced parts, or immediate technical work perimeter.
+              </div>
+
+              {photoError && (
+                <div style={{ background: '#fee2e2', color: '#991b1b', padding: '8px 12px', borderRadius: 8, fontSize: 12, marginBottom: 12, fontWeight: 600 }}>
+                  ⚠️ {photoError}
+                </div>
+              )}
+
+              {/* Upload Controls */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#475569' }}>SERVICE PHASE</label>
+                  <select
+                    value={photoPhase}
+                    onChange={(e) => setPhotoPhase(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12, marginTop: 4 }}
+                  >
+                    <option value="before">Before Service (Baseline)</option>
+                    <option value="after">After Service (Completion)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 11, fontWeight: 700, color: '#475569' }}>ALLOWED CATEGORY</label>
+                  <select
+                    value={photoType}
+                    onChange={(e) => setPhotoType(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 12, marginTop: 4 }}
+                  >
+                    <option value="equipment">Equipment Overview</option>
+                    <option value="part">Replaced / Defective Part</option>
+                    <option value="serial_plate">Model / Serial Number Plate</option>
+                    <option value="work_area">Work Area / Protected Floor</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
+                <label style={{
+                  flex: 1,
+                  background: isUploadingPhoto ? '#94a3b8' : '#7c3aed',
+                  color: '#ffffff',
+                  textAlign: 'center',
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: isUploadingPhoto ? 'not-allowed' : 'pointer'
+                }}>
+                  {isUploadingPhoto ? 'Validating & Uploading...' : '📁 Choose & Upload Photo Evidence (Max 5MB)'}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    disabled={isUploadingPhoto}
+                    onChange={handlePhotoUpload}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+              </div>
+
+              {/* Gallery of uploaded evidence */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {(structuredChecklists?.photos || []).map(ph => (
+                  <div key={ph.id} style={{ display: 'flex', gap: 12, padding: '10px 12px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', alignItems: 'center' }}>
+                    <img src={ph.url} alt={ph.fileName} style={{ width: 54, height: 54, borderRadius: 8, objectFit: 'cover', border: '1px solid #cbd5e1' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{ph.fileName}</div>
+                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                        Phase: <strong style={{ color: ph.phase === 'before' ? '#d97706' : '#059669', textTransform: 'uppercase' }}>{ph.phase}</strong> • Category: <strong>{ph.photoType}</strong> ({ph.fileSizeKb} KB)
+                      </div>
+                    </div>
+                    <span style={{ fontSize: 11, color: '#059669', fontWeight: 700, background: '#ecfdf5', padding: '3px 8px', borderRadius: 6 }}>
+                      🔒 Protected
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Completion Notes */}
+            <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 6px 0' }}>
+                📝 Technician Completion Notes
+              </h3>
+              <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 12px 0' }}>
+                Record service remarks, technical recommendations, and observations for customer and hub QA audit.
+              </p>
+              <textarea
+                rows={4}
+                value={completionNotes}
+                onChange={(e) => setCompletionNotes(e.target.value)}
+                placeholder="e.g. Cleaned dual coils with powerjet. Pressure tested stable at 125 PSI. Advised customer on monthly filter rinsing..."
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, boxSizing: 'border-box', marginBottom: 12 }}
+              />
+              <button
+                onClick={handleSaveCompletionNotes}
+                disabled={isSavingNotes}
+                style={{
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '9px 18px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {isSavingNotes ? 'Saving Notes...' : 'Save Completion Notes ✓'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 2: Extra Work & Parts (Customer Approval Workflow) */}
+      {activeTab === 'extra_work' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 24, alignItems: 'start' }}>
+          
+          {/* Propose Extra Work Form */}
+          <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px 26px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
+              Propose Additional Work / Approved Parts
+            </h3>
+            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 18px 0' }}>
+              Select from platform-approved price rules. All extra work requires explicit customer approval before addition to the invoice.
+            </p>
+
+            <div style={{
+              background: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              padding: '12px 14px',
+              borderRadius: 10,
+              fontSize: 12,
+              color: '#1e40af',
+              marginBottom: 20
+            }}>
+              ⚖️ <strong>Billing Integrity Rule:</strong> Technicians cannot silently increase the customer bill. Total fares only recalculate on the backend upon verifiable customer approval.
+            </div>
+
+            <form onSubmit={handleProposeExtraWork} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>
+                  PLATFORM-APPROVED PRICE RULE / PART:
+                </label>
+                <select
+                  value={selectedRuleId}
+                  onChange={(e) => setSelectedRuleId(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, marginTop: 6 }}
+                >
+                  {extraWorkCatalog.map(rule => (
+                    <option key={rule.id || rule.code} value={rule.id || rule.code}>
+                      {rule.title} — ₹{rule.amount || rule.unitPrice} / {rule.unit}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>QUANTITY</label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={extraWorkQty}
+                    onChange={(e) => setExtraWorkQty(e.target.value)}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, marginTop: 6, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>PROPOSED AMOUNT</label>
+                  <div style={{ padding: '10px 12px', background: '#f1f5f9', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, fontWeight: 800, color: '#059669', marginTop: 6 }}>
+                    ₹{((extraWorkCatalog.find(r => r.id === selectedRuleId || r.code === selectedRuleId)?.amount || 450) * extraWorkQty)}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>
+                  TECHNICAL SCOPE & JUSTIFICATION (VISIBLE TO CUSTOMER)
+                </label>
+                <textarea
+                  rows={3}
+                  value={extraWorkScope}
+                  onChange={(e) => setExtraWorkScope(e.target.value)}
+                  placeholder="e.g. Existing 45uF capacitor reading degraded to 18uF causing compressor hum and startup tripping..."
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, marginTop: 6, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmittingExtraWork}
+                style={{
+                  background: '#7c3aed',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 20px',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  marginTop: 6
+                }}
+              >
+                {isSubmittingExtraWork ? 'Submitting Proposal...' : 'Submit Extra Work for Customer Approval →'}
+              </button>
+            </form>
+          </div>
+
+          {/* Pending & Approved Requests List */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 12px 0' }}>
+                Extra Work Proposals & Approvals Ledger
+              </h3>
+
+              {extraWorkItems.length === 0 ? (
+                <div style={{ padding: 24, textAlign: 'center', color: '#94a3b8', fontStyle: 'italic', fontSize: 13 }}>
+                  No additional work or parts proposed for this booking.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {extraWorkItems.map(item => (
+                    <div
+                      key={item.id}
+                      style={{
+                        padding: '16px 18px',
+                        borderRadius: 12,
+                        background: item.status === 'Approved' ? '#ecfdf5' : item.status === 'Rejected' ? '#fef2f2' : '#fffbeb',
+                        border: `1px solid ${item.status === 'Approved' ? '#a7f3d0' : item.status === 'Rejected' ? '#fecaca' : '#fde68a'}`
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{item.title}</div>
+                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                            Scope: {item.scope} (Qty: {item.qty || 1})
+                          </div>
+                        </div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>
+                          ₹{item.amount}
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTop: '1px dashed #cbd5e1' }}>
+                        <span style={{
+                          fontSize: 12,
+                          fontWeight: 700,
+                          color: item.status === 'Approved' ? '#059669' : item.status === 'Rejected' ? '#dc2626' : '#d97706'
+                        }}>
+                          Status: {item.status}
+                        </span>
+
+                        {item.approvalDetails && (
+                          <span style={{ fontSize: 11, color: '#64748b' }}>
+                            via {item.approvalDetails.approvalMethod}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Verifiable Customer Approval Simulation (Demo Flow) */}
+                      {item.status === 'Pending Customer Approval' && (
+                        <div style={{ marginTop: 14, background: '#ffffff', padding: '12px 14px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#6b21a8', textTransform: 'uppercase', marginBottom: 8 }}>
+                            🧪 Verifiable Customer Approval Workflow (Demo Flow)
+                          </div>
+                          <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 10px 0' }}>
+                            Simulate customer response on mobile app. Does not impersonate; explicitly tagged in audit history.
+                          </p>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              onClick={() => handleSimulateCustomerApproval(item.id, 'approve')}
+                              disabled={approvingWorkId === item.id}
+                              style={{
+                                flex: 1,
+                                background: '#059669',
+                                color: '#ffffff',
+                                border: 'none',
+                                padding: '8px 12px',
+                                borderRadius: 6,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {approvingWorkId === item.id ? 'Processing...' : '✓ Approve & Recalculate Bill (+₹' + item.amount + ')'}
+                            </button>
+                            <button
+                              onClick={() => handleSimulateCustomerApproval(item.id, 'reject')}
+                              disabled={approvingWorkId === item.id}
+                              style={{
+                                background: '#fee2e2',
+                                color: '#991b1b',
+                                border: 'none',
+                                padding: '8px 12px',
+                                borderRadius: 6,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              ✕ Reject
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
               )}
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Required Tools & Supplies */}
-          <div style={{
-            background: '#ffffff',
-            borderRadius: 16,
-            padding: '22px 24px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-          }}>
-            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 10px 0' }}>
-              Required Tools & Supplies Checklist
-            </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {(job.requiredTools || ['Insulated Toolkit', 'PPE Safety Gear', 'Disposable Shoe Covers']).map((tool, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    background: '#f1f5f9',
-                    color: '#334155',
-                    padding: '6px 12px',
-                    borderRadius: 20,
-                    fontSize: 12,
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6
-                  }}
+      {/* TAB 3: Customer Communication, Telephony & Navigation */}
+      {activeTab === 'communication' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 24, alignItems: 'start' }}>
+          
+          {/* Booking-Scoped In-App Chat */}
+          <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div>
+                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  💬 Booking-Scoped Customer Chat
+                </h3>
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                  Direct chat with homeowner <strong>{job.customer}</strong> (Booking: {job.bookingReference})
+                </div>
+              </div>
+              <button
+                onClick={loadChatMessages}
+                disabled={isRefreshingChat}
+                style={{
+                  background: '#f1f5f9',
+                  border: '1px solid #cbd5e1',
+                  color: '#475569',
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                {isRefreshingChat ? 'Checking...' : '🔄 Refresh Chat'}
+              </button>
+            </div>
+
+            {/* Manual Polling Notice (Zero fake real-time claims) */}
+            <div style={{ background: '#f8fafc', padding: '8px 12px', borderRadius: 8, fontSize: 11, color: '#64748b', border: '1px solid #e2e8f0', marginBottom: 16 }}>
+              ℹ️ <strong>Delivery Mode:</strong> Manual Refresh / Polled (Updated at {lastPolledAt || 'just now'}). System does not claim fabricated real-time websockets.
+            </div>
+
+            {/* Chat Thread */}
+            <div style={{ height: 320, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, padding: 12, background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0', marginBottom: 16 }}>
+              {chatMessages.map(msg => {
+                const isPro = msg.senderRole === 'professional';
+                return (
+                  <div
+                    key={msg.id}
+                    style={{
+                      alignSelf: isPro ? 'flex-end' : 'flex-start',
+                      maxWidth: '80%',
+                      background: isPro ? '#7c3aed' : '#ffffff',
+                      color: isPro ? '#ffffff' : '#0f172a',
+                      padding: '10px 14px',
+                      borderRadius: 12,
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                      border: isPro ? 'none' : '1px solid #e2e8f0'
+                    }}
+                  >
+                    <div style={{ fontSize: 11, opacity: 0.8, marginBottom: 2, fontWeight: 700 }}>
+                      {msg.senderName}
+                    </div>
+                    <div style={{ fontSize: 13, lineHeight: 1.4 }}>{msg.text}</div>
+                    <div style={{ fontSize: 10, opacity: 0.7, textAlign: 'right', marginTop: 4, display: 'flex', justifyContent: 'flex-end', gap: 4 }}>
+                      <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {isPro && (
+                        <span>
+                          {msg.deliveryStatus === 'read' ? '✓✓ (Read)' : msg.deliveryStatus === 'delivered' ? '✓✓' : '✓'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Quick replies & send input */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+              {['I am en route to your address.', 'I have reached outside your doorstep.', 'Please buzz building security.'].map(txt => (
+                <button
+                  key={txt}
+                  type="button"
+                  onClick={() => setNewMessageText(txt)}
+                  style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: 14, padding: '4px 10px', fontSize: 11, color: '#334155', cursor: 'pointer' }}
                 >
-                  <span>🧰</span>
-                  {tool}
-                </span>
+                  {txt}
+                </button>
               ))}
             </div>
+
+            <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: 8 }}>
+              <input
+                type="text"
+                placeholder="Type your message to customer..."
+                value={newMessageText}
+                onChange={(e) => setNewMessageText(e.target.value)}
+                style={{ flex: 1, padding: '10px 14px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13 }}
+              />
+              <button
+                type="submit"
+                style={{ background: '#7c3aed', color: '#ffffff', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Send
+              </button>
+            </form>
           </div>
 
-          {/* Applicable Service Checklist */}
-          <div style={{
-            background: '#ffffff',
-            borderRadius: 16,
-            padding: '22px 24px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                Service SOP Checklist
-              </h3>
-              <span style={{ fontSize: 12, color: '#64748b' }}>
-                {(job.serviceChecklist || []).filter(c => c.completed).length} of {(job.serviceChecklist || []).length} completed
-              </span>
-            </div>
+          {/* Telephony Channels & Navigation Cards */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            
+            {/* Customer Access Instructions */}
+            {job.customerInstructions && (
+              <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 14, padding: '18px 20px' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#6b21a8', textTransform: 'uppercase' }}>
+                  Customer Entry Instructions
+                </div>
+                <div style={{ fontSize: 14, color: '#3b0764', marginTop: 4, fontStyle: 'italic' }}>
+                  "{job.customerInstructions}"
+                </div>
+              </div>
+            )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {(job.serviceChecklist || []).map(item => (
-                <div
-                  key={item.id}
-                  onClick={() => handleToggleChecklist(item.id, item.completed)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 12,
-                    padding: '12px 14px',
-                    borderRadius: 10,
-                    background: item.completed ? '#ecfdf5' : '#f8fafc',
-                    border: `1px solid ${item.completed ? '#a7f3d0' : '#e2e8f0'}`,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={Boolean(item.completed)}
-                    onChange={() => {}}
-                    style={{ marginTop: 3, cursor: 'pointer', width: 16, height: 16 }}
-                  />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: item.completed ? '#065f46' : '#0f172a' }}>
-                      {item.text}
-                    </div>
-                    {item.required && (
-                      <span style={{ fontSize: 10, color: '#991b1b', fontWeight: 700, textTransform: 'uppercase' }}>
-                        Required for job sign-off
-                      </span>
-                    )}
+            {/* Telephony Options */}
+            <div style={{ background: '#ffffff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 10px 0' }}>
+                📞 Voice Telephony Channels
+              </h3>
+
+              {/* Masked Call Channel */}
+              <div style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', marginBottom: 12 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#059669', textTransform: 'uppercase' }}>
+                  🔒 Masked Telephony Bridge (Recommended)
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>
+                  {communicationChannels?.maskedTelephony?.number || '+91 22 6982 4400'} (Ext: {communicationChannels?.maskedTelephony?.extension || '829'})
+                </div>
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                  Both numbers are masked via automated telecom switch to protect technician and customer privacy.
+                </div>
+              </div>
+
+              {/* Direct Call channel */}
+              {communicationChannels?.directTelephony ? (
+                <div style={{ padding: '12px 14px', background: '#fef3c7', borderRadius: 10, border: '1px solid #fde68a' }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#92400e', textTransform: 'uppercase' }}>
+                    ⚠️ {communicationChannels.directTelephony.label}
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>
+                    <a href={`tel:${communicationChannels.directTelephony.number}`} style={{ color: '#2563eb', textDecoration: 'none' }}>
+                      {communicationChannels.directTelephony.number}
+                    </a>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#78350f', marginTop: 4 }}>
+                    Direct cellular call. Your personal phone number will be visible to customer.
                   </div>
                 </div>
-              ))}
+              ) : (
+                <div style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
+                  Direct cellular contact is locked during Assigned status and unlocks once marked "En Route".
+                </div>
+              )}
+            </div>
+
+            {/* External Navigation Link */}
+            <div style={{ background: '#ffffff', borderRadius: 14, padding: '20px 22px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 8px 0' }}>
+                🗺️ Doorstep Navigation
+              </h3>
+              <div style={{ fontSize: 13, color: '#334155', marginBottom: 12 }}>
+                Authorized Destination: <strong>{job.address}</strong>
+              </div>
+
+              <div style={{
+                background: '#f1f5f9',
+                padding: '8px 12px',
+                borderRadius: 8,
+                fontSize: 11,
+                color: '#475569',
+                marginBottom: 14
+              }}>
+                ℹ️ <strong>System Notice:</strong> External navigation opens Google Maps with the authorized service address. Synthetic live GPS tracking or fabricated arrival estimates are not displayed.
+              </div>
+
+              <button
+                onClick={() => {
+                  setShowPermissionModal('location');
+                }}
+                style={{
+                  background: '#2563eb',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '10px 16px',
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}
+              >
+                📍 Open Google Maps Navigation ↗
+              </button>
             </div>
           </div>
         </div>
+      )}
 
-        {/* Right: Financial Breakdown, Strict Notes Separation, & Timeline */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* TAB 4: Incident, Delays & Cancellation Reporting */}
+      {activeTab === 'incidents' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 24, alignItems: 'start' }}>
           
-          {/* Financials Worker is Authorized to See */}
-          <div style={{
-            background: '#ffffff',
-            borderRadius: 16,
-            padding: '22px 24px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-          }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 12px 0' }}>
-              Authorized Financial Summary
+          {/* Policy-Controlled Report Form */}
+          <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px 26px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
+              Policy-Controlled Delay, Incident & Reassignment Hub
             </h3>
+            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0' }}>
+              Select the applicable platform incident category. Consequences and resolution workflows are governed strictly by Platform Policy SOP v4.2.
+            </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 13 }}>
+            <form onSubmit={handleSubmitIncident} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>
+                  INCIDENT / POLICY ACTION CATEGORY:
+                </label>
+                <select
+                  value={selectedIncidentCategory}
+                  onChange={(e) => setSelectedIncidentCategory(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, marginTop: 6 }}
+                >
+                  <option value="running_late">1. Running Late (Traffic / Prior Job Overrun)</option>
+                  <option value="customer_unavailable">2. Customer Unavailable / Doorstep Locked (15-Min Protocol)</option>
+                  <option value="unsafe_situation">3. Unsafe Situation / Electrical or Physical Hazard</option>
+                  <option value="unable_to_attend">4. Unable to Attend Scheduled Slot</option>
+                  <option value="address_issue">5. Address Issue / Out of Service Hub Boundary</option>
+                  <option value="outside_scope">6. Service Outside Booked Scope (Capacity Mismatch)</option>
+                  <option value="equipment_failure">7. Technician Equipment / Vehicle Failure</option>
+                  <option value="reassignment_request">8. Dispatch Reassignment Request</option>
+                  <option value="emergency_unavailability">9. Emergency Medical / Compassionate Unavailability</option>
+                </select>
+              </div>
+
+              {selectedIncidentCategory === 'running_late' && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>ESTIMATED DELAY (MINUTES)</label>
+                  <select
+                    value={delayMinutes}
+                    onChange={(e) => setDelayMinutes(parseInt(e.target.value))}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, marginTop: 6 }}
+                  >
+                    <option value={15}>+15 Minutes (Traffic Slowdown)</option>
+                    <option value={30}>+30 Minutes (Moderate Delay)</option>
+                    <option value={45}>+45 Minutes (Significant Delay)</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Dynamic Platform Policy Rules Display */}
+              <div style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                  PLATFORM POLICY RULE ({selectedIncidentCategory})
+                </div>
+                <div style={{ fontSize: 13, color: '#1e293b', marginTop: 4, lineHeight: 1.4 }}>
+                  {currentPolicy.policyText || 'Evaluated under platform dispatch operational rules.'}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', marginTop: 6 }}>
+                  Resolution: {currentPolicy.resolution}
+                </div>
+                <div style={{ fontSize: 11, color: '#059669', marginTop: 4 }}>
+                  Consequences: {currentPolicy.consequenceText}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>
+                  DETAILED AUDIT REASON / CIRCUMSTANCE:
+                </label>
+                <textarea
+                  rows={3}
+                  value={incidentReason}
+                  onChange={(e) => setIncidentReason(e.target.value)}
+                  placeholder="Provide precise details for dispatch cell audit..."
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, marginTop: 6, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <input
+                  type="checkbox"
+                  id="ack-policy"
+                  checked={consequencesAcknowledged}
+                  onChange={(e) => setConsequencesAcknowledged(e.target.checked)}
+                  style={{ marginTop: 3, width: 16, height: 16 }}
+                />
+                <label htmlFor="ack-policy" style={{ fontSize: 12, color: '#334155', cursor: 'pointer' }}>
+                  I have read and acknowledge the configured platform consequences for this incident type. (No arbitrary fines or un-audited penalties are applied).
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmittingIncident || !consequencesAcknowledged}
+                style={{
+                  background: consequencesAcknowledged ? '#dc2626' : '#94a3b8',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 20px',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: consequencesAcknowledged ? 'pointer' : 'not-allowed',
+                  marginTop: 6
+                }}
+              >
+                {isSubmittingIncident ? 'Submitting Report...' : 'File Official Incident Report →'}
+              </button>
+            </form>
+          </div>
+
+          {/* Audit History of Reported Incidents */}
+          <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 12px 0' }}>
+              Booking Incident History & Preservation
+            </h3>
+            <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 14px 0' }}>
+              All job history, delays, and reassignment reasons remain permanently attached to the booking.
+            </p>
+
+            {(job.incidentReports || []).length === 0 ? (
+              <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8', fontSize: 13, fontStyle: 'italic' }}>
+                No active incidents filed for this booking.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {(job.incidentReports || []).map(inc => (
+                  <div key={inc.id} style={{ padding: '12px 14px', borderRadius: 10, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong style={{ fontSize: 13, color: '#0f172a' }}>{inc.title}</strong>
+                      <span style={{ fontSize: 11, background: '#eff6ff', color: '#2563eb', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>
+                        {inc.status}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#475569', marginTop: 4 }}>{inc.reason}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>
+                      {new Date(inc.reportedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • Policy Applied: {inc.policyRuleApplied}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* TAB 5: Authorized Financial Ledger (Minor Currency Units: Paisa) */}
+      {activeTab === 'financials' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, alignItems: 'start' }}>
+          
+          {/* Main Financial Statement */}
+          <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px 28px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  Booking Financial Ledger
+                </h3>
+                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                  Shared financial calculation engine • Preserves historical pricing snapshot
+                </div>
+              </div>
+
+              {/* Minor Currency Units toggle */}
+              <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setCurrencyMode('inr')}
+                  style={{
+                    background: currencyMode === 'inr' ? '#ffffff' : 'none',
+                    color: currencyMode === 'inr' ? '#0f172a' : '#64748b',
+                    border: 'none',
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  INR (₹)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrencyMode('paisa')}
+                  style={{
+                    background: currencyMode === 'paisa' ? '#ffffff' : 'none',
+                    color: currencyMode === 'paisa' ? '#0f172a' : '#64748b',
+                    border: 'none',
+                    padding: '4px 10px',
+                    borderRadius: 6,
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Paisa (1/100 ₹)
+                </button>
+              </div>
+            </div>
+
+            {/* Completed != Disbursed Clarification Banner */}
+            <div style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              padding: '12px 14px',
+              borderRadius: 10,
+              fontSize: 12,
+              color: '#166534',
+              marginBottom: 20
+            }}>
+              ⚖️ <strong>Financial Separation Rule:</strong> A completed job represents earned technician entitlement. It is distinct from money already settled into your bank account. Funds disburse in accordance with settlement batches.
+            </div>
+
+            {/* Itemized Math */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, fontSize: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
-                <span>Customer Total Fare:</span>
-                <span style={{ fontWeight: 600, color: '#0f172a' }}>₹{job.totalAmount}</span>
+                <span>Gross Customer Booking Fare:</span>
+                <span style={{ fontWeight: 700, color: '#0f172a' }}>
+                  {currencyMode === 'paisa' ? `${(job.totalAmount || 548) * 100} Paisa` : `₹${job.totalAmount || 548}`}
+                </span>
               </div>
+
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
-                <span>Platform Commission (20%):</span>
-                <span>- ₹{job.platformCommission || Math.round(job.totalAmount * 0.2)}</span>
+                <span>Platform Commission ({job.commissionRate || 20}%):</span>
+                <span>
+                  - {currencyMode === 'paisa' ? `${Math.round((job.totalAmount || 548) * 0.2 * 100)} Paisa` : `₹${job.platformCommission || Math.round((job.totalAmount || 548) * 0.2)}`}
+                </span>
               </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669' }}>
+                <span>Customer Tip (100% Retained by Technician):</span>
+                <span>
+                  + {currencyMode === 'paisa' ? `5000 Paisa` : `₹50`}
+                </span>
+              </div>
+
               <div style={{
-                borderTop: '1px dashed #cbd5e1',
-                paddingTop: 10,
-                marginTop: 4,
+                borderTop: '2px solid #e2e8f0',
+                paddingTop: 12,
+                marginTop: 6,
                 display: 'flex',
                 justifyContent: 'space-between',
-                fontSize: 16,
+                fontSize: 18,
                 fontWeight: 800,
                 color: '#059669'
               }}>
-                <span>Net Pro Payout:</span>
-                <span>₹{job.payout}</span>
+                <span>Net Professional Payout:</span>
+                <span>
+                  {currencyMode === 'paisa' ? `${((job.payout || 438) + 50) * 100} Paisa` : `₹${(job.payout || 438) + 50}`}
+                </span>
               </div>
             </div>
-            <div style={{ fontSize: 11, color: '#64748b', marginTop: 10 }}>
-              🔒 Payout will be credited directly to your registered wallet immediately upon service completion.
+
+            {/* Recipient Snapshot */}
+            <div style={{ marginTop: 24, padding: '16px 18px', background: '#f8fafc', borderRadius: 12, border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
+                HISTORICAL RECIPIENT SNAPSHOT
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>
+                HDFC Bank ••••4821 [IFSC: HDFC0001248]
+              </div>
+              <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
+                Primary UPI ID: vikramsalvi@okaxis • Mode: Direct IMPS / NEFT Batch
+              </div>
+              <div style={{ fontSize: 11, color: '#059669', marginTop: 6, fontWeight: 600 }}>
+                Status: Verified for Settlement Cycle
+              </div>
             </div>
           </div>
 
-          {/* Strict Notes Separation */}
-          <div style={{
-            background: '#ffffff',
-            borderRadius: 16,
-            padding: '22px 24px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
-          }}>
+          {/* Right Column: Private Notes */}
+          <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
               Professional Private Notes
             </h3>
@@ -766,7 +1737,6 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               )}
             </div>
 
-            {/* Add note input */}
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 type="text"
@@ -799,46 +1769,62 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               </button>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Job Audit Timeline */}
+      {/* Permission Explanation Modal (Never requests camera/location automatically without explanation) */}
+      {showPermissionModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: 20
+        }}>
           <div style={{
             background: '#ffffff',
             borderRadius: 16,
-            padding: '22px 24px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+            padding: 24,
+            maxWidth: 440,
+            width: '100%',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
           }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 14px 0' }}>
-              Job Audit Timeline
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: '0 0 8px 0' }}>
+              {showPermissionModal === 'camera' ? '📷 Camera Access Purpose' : '📍 Location Access Purpose'}
             </h3>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {(job.timeline || []).map((tl, idx) => (
-                <div key={tl.id || idx} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                  <div style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: '50%',
-                    background: '#7c3aed',
-                    marginTop: 6
-                  }} />
-                  <div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#1e293b' }}>
-                      {tl.title}
-                    </div>
-                    {tl.description && (
-                      <div style={{ fontSize: 12, color: '#64748b' }}>{tl.description}</div>
-                    )}
-                    <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
-                      {new Date(tl.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {tl.actor}
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, margin: '0 0 16px 0' }}>
+              {showPermissionModal === 'camera'
+                ? 'Camera access is requested solely to capture HVAC unit model numbers, replacement parts, and work completion evidence. We never photograph customers or private interiors.'
+                : 'Location permission is used strictly to open Google Maps route navigation to the authorized doorstep address. We do not run background tracking.'}
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setShowPermissionModal(null)}
+                style={{ flex: 1, background: '#f1f5f9', color: '#475569', border: 'none', padding: '10px 0', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowPermissionModal(null);
+                  if (showPermissionModal === 'location') {
+                    window.open(`https://maps.google.com/?q=${encodeURIComponent(job.fullAddress || job.address)}`, '_blank');
+                  }
+                }}
+                style={{ flex: 1.5, background: '#2563eb', color: '#ffffff', border: 'none', padding: '10px 0', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Continue to Navigation ↗
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Start OTP Modal */}
       {showOtpModal && (
@@ -960,7 +1946,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
         </div>
       )}
 
-      {/* Reassignment Request Modal */}
+      {/* Legacy Reassignment Request Modal */}
       {showReassignModal && (
         <div style={{
           position: 'fixed',

@@ -26,9 +26,10 @@ export function PaymentGatewayModal({
   slot = '',
   address = '',
   items = [],
-  onPaymentSuccess
+  onPaymentSuccess,
+  hideCOD = false
 }) {
-  const [activeTab, setActiveTab] = useState(initialMethod);
+  const [activeTab, setActiveTab] = useState(initialMethod === 'cod' && hideCOD ? 'gpay' : initialMethod);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [txnId, setTxnId] = useState('');
@@ -53,14 +54,14 @@ export function PaymentGatewayModal({
     if (isOpen) {
       if (initialMethod === 'upi') setActiveTab('gpay');
       else if (initialMethod === 'card') setActiveTab('card');
-      else if (initialMethod === 'cod') setActiveTab('cod');
+      else if (initialMethod === 'cod') setActiveTab(hideCOD ? 'gpay' : 'cod');
       else setActiveTab(initialMethod || 'gpay');
       setIsProcessing(false);
       setIsSuccess(false);
       setTxnId('');
       setShowQrCode(false);
     }
-  }, [isOpen, initialMethod]);
+  }, [isOpen, initialMethod, hideCOD]);
 
   // Handle escape key
   useEffect(() => {
@@ -519,43 +520,45 @@ export function PaymentGatewayModal({
               </button>
 
               {/* 5. Cash on Delivery (COD) */}
-              <button
-                type="button"
-                onClick={() => { setActiveTab('cod'); setShowQrCode(false); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '11px 12px',
-                  borderRadius: 12,
-                  border: activeTab === 'cod' ? '1.5px solid #10B981' : '1px solid transparent',
-                  backgroundColor: activeTab === 'cod' ? '#FFFFFF' : 'transparent',
-                  boxShadow: activeTab === 'cod' ? '0 3px 10px rgba(16, 185, 129, 0.12)' : 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    backgroundColor: '#ECFDF5',
-                    color: '#059669',
+              {!hideCOD && (
+                <button
+                  type="button"
+                  onClick={() => { setActiveTab('cod'); setShowQrCode(false); }}
+                  style={{
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <Banknote size={17} />
+                    justifyContent: 'space-between',
+                    padding: '11px 12px',
+                    borderRadius: 12,
+                    border: activeTab === 'cod' ? '1.5px solid #10B981' : '1px solid transparent',
+                    backgroundColor: activeTab === 'cod' ? '#FFFFFF' : 'transparent',
+                    boxShadow: activeTab === 'cod' ? '0 3px 10px rgba(16, 185, 129, 0.12)' : 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 8,
+                      backgroundColor: '#ECFDF5',
+                      color: '#059669',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Banknote size={17} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>Cash on Delivery</div>
+                      <div style={{ fontSize: 11, color: '#059669', fontWeight: 700 }}>COD (Pay after service)</div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>Cash on Delivery</div>
-                    <div style={{ fontSize: 11, color: '#059669', fontWeight: 700 }}>COD (Pay after service)</div>
-                  </div>
-                </div>
-                {activeTab === 'cod' && <ChevronRight size={16} color="#059669" />}
-              </button>
+                  {activeTab === 'cod' && <ChevronRight size={16} color="#059669" />}
+                </button>
+              )}
 
               {/* 6. Wallets */}
               <button

@@ -362,19 +362,9 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Top Header */}
-      <div style={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: '20px 24px',
-        border: '1px solid #E2E8F0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 16
-      }}>
+      <div className="admin-page-header">
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
             Professional Partner & Technician Management
@@ -405,7 +395,8 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
         </div>
       </div>
 
-      {/* Status Pipeline Tabs */}
+      <div className="admin-page-body">
+        {/* Status Pipeline Tabs */}
       <div style={{
         display: 'flex',
         borderBottom: '1px solid #E2E8F0',
@@ -1992,7 +1983,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
           </div>
         </div>
       )}
-
+      </div>
     </div>
   );
 }

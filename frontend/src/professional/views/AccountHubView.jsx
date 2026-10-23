@@ -64,12 +64,6 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
           desc: 'Spare parts, cleaning solutions, chemical kits',
           icon: '🧰',
           path: '/professional/inventory'
-        },
-        {
-          label: 'Pro Equipment & Uniform Shop',
-          desc: 'Purchase official kits, PPE gear, branded t-shirts',
-          icon: '👕',
-          path: '/professional/shop'
         }
       ]
     },
@@ -94,12 +88,6 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
     {
       title: 'Safety & Support',
       items: [
-        {
-          label: 'Helpdesk & SOS Emergency',
-          desc: '24/7 Partner helpline, dispute resolution, safety cell',
-          icon: '🚨',
-          path: '/professional/support'
-        },
         {
           label: 'Dispatch Broadcasts & Alerts',
           desc: 'System notifications, route updates, SLA reminders',

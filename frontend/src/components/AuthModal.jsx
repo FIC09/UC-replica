@@ -119,8 +119,11 @@ export function AuthModal({
 
   // Handle escape key & initialMode sync
   useEffect(() => {
-    if (initialMode === 'login') {
+    if (isOpen && initialMode === 'login') {
       setIsSwitchingAccount(true);
+      setMode('login');
+      setErrorMsg('');
+      setSuccessMsg('');
     }
   }, [isOpen, initialMode]);
 

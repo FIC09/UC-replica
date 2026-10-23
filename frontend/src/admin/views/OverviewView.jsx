@@ -59,28 +59,17 @@ export function OverviewView({ onNavigate, onShowToast }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      {/* 1. Global Filter Bar */}
-      <div style={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        border: '1px solid #E2E8F0',
-        padding: '14px 18px',
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 14,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#334155' }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* 1. Global Filter Bar (Flush Sub-Header Toolbar) */}
+      <div className="admin-overview-filter-bar">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#334155', flexShrink: 0 }}>
             <Filter size={15} color="#6E42E5" />
             <span>Filters:</span>
           </div>
 
           {/* Date Range Selector */}
-          <div style={{ display: 'flex', backgroundColor: '#F8FAFC', borderRadius: 8, border: '1px solid #CBD5E1', padding: 2 }}>
+          <div style={{ display: 'flex', backgroundColor: '#F8FAFC', borderRadius: 8, border: '1px solid #CBD5E1', padding: 2, flexShrink: 0 }}>
             {[
               { id: 'today', label: 'Today' },
               { id: '7d', label: '7D' },
@@ -92,7 +81,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                 key={r.id}
                 onClick={() => setDateRange(r.id)}
                 style={{
-                  padding: '5px 12px',
+                  padding: '5px 11px',
                   borderRadius: 6,
                   border: 'none',
                   fontSize: 12,
@@ -113,18 +102,21 @@ export function OverviewView({ onNavigate, onShowToast }) {
             value={city}
             onChange={e => setCity(e.target.value)}
             style={{
-              padding: '6px 12px',
+              padding: '6px 10px',
               borderRadius: 8,
               border: '1px solid #CBD5E1',
               backgroundColor: '#FFFFFF',
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: 600,
               color: '#334155',
               outline: 'none',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              flex: '1 1 115px',
+              maxWidth: 155,
+              minWidth: 110
             }}
           >
-            <option value="ALL">All Operational Hubs</option>
+            <option value="ALL">All Hubs</option>
             <option value="Mumbai">Mumbai Metro</option>
             <option value="Bengaluru">Bengaluru Hub</option>
             <option value="Delhi NCR">Delhi NCR</option>
@@ -136,22 +128,25 @@ export function OverviewView({ onNavigate, onShowToast }) {
             value={category}
             onChange={e => setCategory(e.target.value)}
             style={{
-              padding: '6px 12px',
+              padding: '6px 10px',
               borderRadius: 8,
               border: '1px solid #CBD5E1',
               backgroundColor: '#FFFFFF',
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: 600,
               color: '#334155',
               outline: 'none',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              flex: '1 1 115px',
+              maxWidth: 155,
+              minWidth: 110
             }}
           >
             <option value="ALL">All Categories</option>
             <option value="salon">Salon for Women</option>
-            <option value="ac">AC Repair & Appliances</option>
-            <option value="cleaning">Cleaning & Pest Control</option>
-            <option value="repairs">Electrician, Plumber & Handyman</option>
+            <option value="ac">AC & Appliances</option>
+            <option value="cleaning">Cleaning & Pest</option>
+            <option value="repairs">Quick Repairs</option>
           </select>
 
           {/* Business Partner Filter */}
@@ -159,20 +154,23 @@ export function OverviewView({ onNavigate, onShowToast }) {
             value={partner}
             onChange={e => setPartner(e.target.value)}
             style={{
-              padding: '6px 12px',
+              padding: '6px 10px',
               borderRadius: 8,
               border: '1px solid #CBD5E1',
               backgroundColor: '#FFFFFF',
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: 600,
               color: '#334155',
               outline: 'none',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              flex: '1 1 125px',
+              maxWidth: 165,
+              minWidth: 115
             }}
           >
-            <option value="ALL">All Supply (Direct & Agency)</option>
-            <option value="direct">Direct Freelance Pros Only</option>
-            <option value="agency">Business Partner Agencies Only</option>
+            <option value="ALL">All Supply</option>
+            <option value="direct">Direct Freelance</option>
+            <option value="agency">Agency Fleet</option>
           </select>
         </div>
 
@@ -185,17 +183,22 @@ export function OverviewView({ onNavigate, onShowToast }) {
             gap: 6,
             background: 'none',
             border: 'none',
-            fontSize: 12.5,
+            fontSize: 12,
             fontWeight: 700,
             color: '#6E42E5',
             cursor: 'pointer',
-            padding: '4px 8px'
+            padding: '4px 8px',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
           }}
         >
           <Info size={15} />
-          <span>{showCalculationGuide ? 'Hide Calculation Rules' : 'Calculation Definitions'}</span>
+          <span>{showCalculationGuide ? 'Hide Rules' : 'Calculation Definitions'}</span>
         </button>
       </div>
+
+      {/* Main Content Body */}
+      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
       {/* Calculation Guide Banner (Explaining GBV vs Collected vs Revenue vs Pro Earnings) */}
       {showCalculationGuide && (
@@ -229,35 +232,32 @@ export function OverviewView({ onNavigate, onShowToast }) {
       )}
 
       {/* 2. Top Financial & Platform KPIs (Clickable) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: 16
-      }}>
+      <div className="admin-kpi-grid">
         {/* Metric 1: GBV */}
         <div
           onClick={() => handleMetricClick(metrics.grossBookingValue?.clickTarget)}
           style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
-            padding: 20,
+            padding: '16px 18px',
             border: '1px solid #E2E8F0',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
             cursor: 'pointer',
-            transition: 'transform 0.15s ease, box-shadow 0.15s ease'
+            transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+            minWidth: 0
           }}
           title="Click to view full payment transactions"
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#64748B' }}>Gross Booking Value (GBV)</span>
-            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <IndianRupee size={17} color="#6E42E5" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', whiteSpace: 'nowrap' }}>Gross Booking Value (GBV)</span>
+            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <IndianRupee size={16} color="#6E42E5" />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', letterSpacing: -0.5 }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
             {metrics.grossBookingValue?.formatted || '₹48,25,000'}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, fontWeight: 700, color: metrics.grossBookingValue?.isPositive ? '#16A34A' : '#DC2626' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, fontWeight: 700, color: metrics.grossBookingValue?.isPositive ? '#16A34A' : '#DC2626', whiteSpace: 'nowrap' }}>
             <span>{metrics.grossBookingValue?.isPositive ? '↑' : '↓'} {metrics.grossBookingValue?.change || 18.2}%</span>
             <span style={{ color: '#94A3B8', fontWeight: 500 }}>vs previous {dateRange}</span>
           </div>
@@ -269,23 +269,24 @@ export function OverviewView({ onNavigate, onShowToast }) {
           style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
-            padding: 20,
+            padding: '16px 18px',
             border: '1px solid #E2E8F0',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            minWidth: 0
           }}
           title="Click to view settled gateway payments"
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#64748B' }}>Collected Payments</span>
-            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CreditCard size={17} color="#16A34A" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', whiteSpace: 'nowrap' }}>Collected Payments</span>
+            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <CreditCard size={16} color="#16A34A" />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', letterSpacing: -0.5 }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
             {metrics.collectedPayments?.formatted || '₹45,35,500'}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, fontWeight: 700, color: '#16A34A' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, fontWeight: 700, color: '#16A34A', whiteSpace: 'nowrap' }}>
             <span>↑ {metrics.collectedPayments?.change || 17.8}%</span>
             <span style={{ color: '#94A3B8', fontWeight: 500 }}>settled in bank</span>
           </div>
@@ -297,23 +298,24 @@ export function OverviewView({ onNavigate, onShowToast }) {
           style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
-            padding: 20,
+            padding: '16px 18px',
             border: '1px solid #E2E8F0',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            minWidth: 0
           }}
           title="Click to view financial BI report"
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#64748B' }}>Platform Net Revenue</span>
-            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <TrendingUp size={17} color="#6E42E5" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', whiteSpace: 'nowrap' }}>Platform Net Revenue</span>
+            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <TrendingUp size={16} color="#6E42E5" />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#6E42E5', letterSpacing: -0.5 }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#6E42E5', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
             {metrics.platformRevenue?.formatted || '₹9,65,000'}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, fontWeight: 600, color: '#64748B' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, fontWeight: 600, color: '#64748B', whiteSpace: 'nowrap' }}>
             <span>Take rate: <strong>{metrics.platformRevenue?.takeRate || '20.0%'}</strong></span>
             <span style={{ color: '#16A34A', fontWeight: 700 }}>+{metrics.platformRevenue?.change || 19.4}%</span>
           </div>
@@ -325,34 +327,31 @@ export function OverviewView({ onNavigate, onShowToast }) {
           style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
-            padding: 20,
+            padding: '16px 18px',
             border: '1px solid #E2E8F0',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            minWidth: 0
           }}
           title="Click to view pending payout batches"
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: '#64748B' }}>Technician & Partner Pool</span>
-            <div style={{ width: 34, height: 34, borderRadius: 8, backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Wallet size={17} color="#D97706" />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', whiteSpace: 'nowrap' }}>Technician & Partner Pool</span>
+            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Wallet size={16} color="#D97706" />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', letterSpacing: -0.5 }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
             {metrics.proEarnings?.formatted || '₹38,60,000'}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, color: '#64748B' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, color: '#64748B', whiteSpace: 'nowrap' }}>
             <span>Ready for payout: <strong>{metrics.outstandingPayouts?.formatted || '₹4,40,200'}</strong></span>
           </div>
         </div>
       </div>
 
       {/* 3. Operational Orders & Fulfillment KPIs (Clickable) */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
-        gap: 14
-      }}>
+      <div className="admin-subkpi-grid">
         <div
           onClick={() => handleMetricClick(metrics.totalBookings?.clickTarget)}
           style={{ backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, border: '1px solid #E2E8F0', cursor: 'pointer' }}
@@ -746,6 +745,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
           </tbody>
         </table>
       </div>
+    </div>
     </div>
   );
 }

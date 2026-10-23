@@ -20,7 +20,7 @@ export function UCPlusSection({ hasUCPlus, onToggleUCPlus }) {
               Save up to ₹150 on every service
             </h2>
             <p className="plus-sub">
-              Unlock VIP privileges with exclusive member discounts, top-rated master professionals, and zero convenience fees across Mumbai.
+              Unlock VIP privileges with exclusive member discounts, top-rated master professionals, and zero convenience fees across your city.
             </p>
 
             <div className="plus-benefits-grid">

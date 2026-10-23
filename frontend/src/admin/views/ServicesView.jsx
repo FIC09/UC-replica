@@ -239,19 +239,9 @@ export function ServicesView({ onShowToast, onNavigate }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Header & Policy Notice */}
-      <div style={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: '20px 24px',
-        border: '1px solid #E2E8F0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 16
-      }}>
+      <div className="admin-page-header">
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
             Service Catalogue & SKU Specifications
@@ -301,7 +291,8 @@ export function ServicesView({ onShowToast, onNavigate }) {
         </div>
       </div>
 
-      {/* Snapshot Protection Notice */}
+      <div className="admin-page-body">
+        {/* Snapshot Protection Notice */}
       <div style={{
         padding: '12px 18px',
         borderRadius: 10,
@@ -982,7 +973,7 @@ export function ServicesView({ onShowToast, onNavigate }) {
           </div>
         </div>
       )}
-
+      </div>
     </div>
   );
 }

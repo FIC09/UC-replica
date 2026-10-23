@@ -24,6 +24,9 @@ import {
   OrderTrackingModal 
 } from './components/OrderTrackingModal';
 import { 
+  PaymentGatewayModal 
+} from './components/PaymentGatewayModal';
+import { 
   CityLocalityModal 
 } from './components/CityLocalityModal';
 import { 
@@ -46,6 +49,8 @@ import {
 } from './components/AdminLoginModal';
 import { AdminRouter } from './admin/AdminRouter';
 import { ProfessionalRouter } from './professional/ProfessionalRouter';
+import { professionalClient } from './professional/professionalClient';
+import { PartnerRouter } from './partner/PartnerRouter';
 import { 
   PartnerDashboardModal 
 } from './components/PartnerDashboardModal';
@@ -191,7 +196,7 @@ function App() {
   const [selectedCity, setSelectedCity] = useState(() => {
     try {
       const saved = localStorage.getItem('uc_selected_city');
-      if (saved && !saved.includes('Mumbai')) return saved;
+      if (saved && !saved.includes('Mumbai') && !/poonamalle/i.test(saved)) return saved;
       return 'Krishnagiri';
     } catch {
       return 'Krishnagiri';
@@ -200,7 +205,7 @@ function App() {
   const [selectedLocality, setSelectedLocality] = useState(() => {
     try {
       const saved = localStorage.getItem('uc_selected_locality');
-      if (saved && !saved.includes('Bandra')) return saved;
+      if (saved && !saved.includes('Bandra') && !/poonamalle/i.test(saved)) return saved;
       return 'Rayakottai Road';
     } catch {
       return 'Rayakottai Road';
@@ -225,11 +230,15 @@ function App() {
   const [isProfessionalRoute, setIsProfessionalRoute] = useState(() => {
     return window.location.pathname.startsWith('/professional');
   });
+  const [isPartnerRoute, setIsPartnerRoute] = useState(() => {
+    return window.location.pathname.startsWith('/partner');
+  });
 
   useEffect(() => {
     function handleLocationSync() {
       setIsAdminRoute(window.location.pathname.startsWith('/admin'));
       setIsProfessionalRoute(window.location.pathname.startsWith('/professional'));
+      setIsPartnerRoute(window.location.pathname.startsWith('/partner'));
     }
     window.addEventListener('popstate', handleLocationSync);
     return () => window.removeEventListener('popstate', handleLocationSync);
@@ -682,7 +691,33 @@ function App() {
   // ==========================================
   // 5. USER AUTH & PLUS MEMBERSHIP
   // ==========================================
-  const [hasUCPlus, setHasUCPlus] = useState(false);
+  const [hasUCPlus, setHasUCPlus] = useState(() => {
+    try {
+      return localStorage.getItem('uc_plus_active') === 'true';
+    } catch {
+      return false;
+    }
+  });
+
+  const [isUCPlusPaymentOpen, setIsUCPlusPaymentOpen] = useState(false);
+
+  function handleOpenUCPlusPayment() {
+    if (hasUCPlus) {
+      showToast('✨ Your UC Plus Membership is active! Enjoy 10% off on all bookings.');
+      return;
+    }
+    setIsUCPlusPaymentOpen(true);
+  }
+
+  function handleUCPlusPaymentSuccess(paymentDetails) {
+    setIsUCPlusPaymentOpen(false);
+    setHasUCPlus(true);
+    try {
+      localStorage.setItem('uc_plus_active', 'true');
+    } catch {}
+    showToast(`🎉 Payment of ₹299 successful via ${paymentDetails?.methodLabel || 'Online Payment'}! UC Plus VIP Membership activated for 6 months.`);
+  }
+
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('uc_user');
@@ -915,23 +950,40 @@ function App() {
   const [isPartnerOnboardingOpen, setIsPartnerOnboardingOpen] = useState(false);
   const [isWorkerOnboardingOpen, setIsWorkerOnboardingOpen] = useState(false);
 
+  function handleOpenProfessionalPortal() {
+    try {
+      professionalClient.setAuth('demo_pro_token', professionalClient.getStoredUser());
+    } catch {}
+    setIsProfessionalDashboardOpen(false);
+    window.history.pushState({}, '', '/professional');
+    setIsProfessionalRoute(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleOpenPartnerPortal() {
+    setIsPartnerDashboardOpen(false);
+    window.history.pushState({}, '', '/partner');
+    setIsPartnerRoute(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   // Automatic deep-link & direct launch for Partner and Professional Worker Dashboards
   useEffect(() => {
     function checkDirectLaunchPortal() {
       try {
         const portal = localStorage.getItem('uc_open_portal');
         if (portal === 'partner') {
-          setIsPartnerDashboardOpen(true);
+          handleOpenPartnerPortal();
           localStorage.removeItem('uc_open_portal');
         } else if (portal === 'professional') {
-          setIsProfessionalDashboardOpen(true);
+          handleOpenProfessionalPortal();
           localStorage.removeItem('uc_open_portal');
         }
         const search = window.location.search;
         if (search.includes('open=partner')) {
-          setIsPartnerDashboardOpen(true);
+          handleOpenPartnerPortal();
         } else if (search.includes('open=professional')) {
-          setIsProfessionalDashboardOpen(true);
+          handleOpenProfessionalPortal();
         }
       } catch {}
     }
@@ -1120,9 +1172,11 @@ function App() {
   const totalCartCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
 
   function handleLocationSelect(city, locality) {
-    setSelectedCity(city);
-    setSelectedLocality(locality);
-    showToast(`📍 Delivering to ${locality}, ${city}`);
+    const finalCity = /poonamalle/i.test(city) ? 'Krishnagiri' : city;
+    const finalLocality = /poonamalle/i.test(locality) ? 'Rayakottai Road' : locality;
+    setSelectedCity(finalCity);
+    setSelectedLocality(finalLocality);
+    showToast(`📍 Delivering to ${finalLocality}, ${finalCity}`);
   }
 
   function handleProceedToCheckout() {
@@ -1183,6 +1237,20 @@ function App() {
         onExitToMarketplace={() => {
           window.history.pushState({}, '', '/');
           setIsProfessionalRoute(false);
+          setCurrentView('home');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+    );
+  }
+
+  // Dedicated Full-Page Business Partner Dashboard Routing (/partner/*)
+  if (isPartnerRoute) {
+    return (
+      <PartnerRouter
+        onExitToMarketplace={() => {
+          window.history.pushState({}, '', '/');
+          setIsPartnerRoute(false);
           setCurrentView('home');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}
@@ -1605,7 +1673,7 @@ function App() {
           onConfirmOrder={handleConfirmOrder}
           showToast={showToast}
           hasUCPlus={hasUCPlus}
-          onToggleUCPlus={() => setHasUCPlus(!hasUCPlus)}
+          onToggleUCPlus={handleOpenUCPlusPayment}
         />
       ) : (
         <>
@@ -1626,8 +1694,8 @@ function App() {
         onOpenAdmin={handleOpenAdminPortal}
         onOpenAdminDashboard={handleOpenAdminPortal}
         isAdminAuthenticated={isAdminAuthenticated}
-        onOpenPartnerDashboard={() => setIsPartnerDashboardOpen(true)}
-        onOpenProfessionalDashboard={() => setIsProfessionalDashboardOpen(true)}
+        onOpenPartnerDashboard={handleOpenPartnerPortal}
+        onOpenProfessionalDashboard={handleOpenProfessionalPortal}
         onOpenWorkerOnboarding={() => setIsWorkerOnboardingOpen(true)}
         onOpenPartnerOnboarding={() => setIsPartnerOnboardingOpen(true)}
         onLogout={handleLogout}
@@ -1856,12 +1924,7 @@ function App() {
             {/* UC Plus Membership Section */}
             <UCPlusSection
               hasUCPlus={hasUCPlus}
-              onToggleUCPlus={() => {
-                setHasUCPlus(!hasUCPlus);
-                if (!hasUCPlus) {
-                  showToast('🎉 UC Plus activated! 10% discount on all bookings.');
-                }
-              }}
+              onToggleUCPlus={handleOpenUCPlusPayment}
             />
 
             {/* The Urban Company Promise */}
@@ -1894,8 +1957,14 @@ function App() {
             || 'Central';
           handleLocationSelect(city, defaultLocality);
         }}
-        onOpenPartnerDashboard={() => setIsPartnerDashboardOpen(true)}
-        onOpenPartnerOnboarding={() => setIsPartnerOnboardingOpen(true)}
+        onOpenPartnerDashboard={() => {
+          window.history.pushState({}, '', '/partner');
+          setIsPartnerRoute(true);
+        }}
+        onOpenPartnerOnboarding={() => {
+          window.history.pushState({}, '', '/partner/onboarding');
+          setIsPartnerRoute(true);
+        }}
         onOpenWorkerOnboarding={() => setIsWorkerOnboardingOpen(true)}
       />
 
@@ -1979,7 +2048,7 @@ function App() {
         onClearCart={handleClearCart}
         onProceedToCheckout={handleProceedToCheckout}
         hasUCPlus={hasUCPlus}
-        onToggleUCPlus={() => setHasUCPlus(!hasUCPlus)}
+        onToggleUCPlus={handleOpenUCPlusPayment}
       />
 
       {/* 4. Checkout Modal */}
@@ -1994,6 +2063,26 @@ function App() {
         savedAddresses={savedAddresses}
         onConfirmOrder={handleConfirmOrder}
         onOpenManageAddresses={() => setIsAddressModalOpen(true)}
+      />
+
+      {/* 4.5. UC Plus Membership Payment Gateway Modal */}
+      <PaymentGatewayModal
+        isOpen={isUCPlusPaymentOpen}
+        onClose={() => setIsUCPlusPaymentOpen(false)}
+        amount={299}
+        user={user}
+        slot="Instant Activation (6 Months)"
+        address={selectedLocality ? `${selectedLocality}, ${selectedCity}` : selectedCity}
+        items={[
+          {
+            id: 'uc_plus_membership',
+            title: 'UC Plus VIP Membership (6 Months Validity)',
+            price: 299,
+            qty: 1
+          }
+        ]}
+        onPaymentSuccess={handleUCPlusPaymentSuccess}
+        hideCOD={true}
       />
 
       {/* 5. Live Order Tracker Modal */}
@@ -2107,10 +2196,10 @@ function App() {
             setIsAdminRoute(true);
             showToast(`🛡️ Admin Operations Dashboard opened for ${loggedInUser.name}!`);
           } else if (loggedInUser.role === 'professional') {
-            setIsProfessionalDashboardOpen(true);
+            handleOpenProfessionalPortal();
             showToast(`⚡ Professional Service Hub opened for ${loggedInUser.name}!`);
           } else if (loggedInUser.role === 'partner') {
-            setIsPartnerDashboardOpen(true);
+            handleOpenPartnerPortal();
             showToast(`🏢 Partner Agency Portal opened for ${loggedInUser.agencyName || loggedInUser.name}!`);
           } else {
             showToast(`✨ Welcome, ${loggedInUser.name || 'User'}! Logged in successfully.`);
@@ -2169,6 +2258,7 @@ function App() {
         onClose={() => setIsProfessionalDashboardOpen(false)}
         user={user}
         onShowToast={showToast}
+        onOpenFullPortal={handleOpenProfessionalPortal}
       />
 
       {/* 12. Urban Company Worker Onboarding Modal */}

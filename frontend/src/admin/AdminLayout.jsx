@@ -7,20 +7,14 @@ import {
   HardHat, 
   Building2, 
   Wrench, 
-  MapPin, 
   CreditCard, 
   Wallet, 
   RotateCcw, 
   HelpCircle, 
   Star, 
-  GraduationCap, 
-  Package, 
   Tag, 
   FileText, 
   Bell, 
-  BarChart3, 
-  UserCheck, 
-  History, 
   Sliders, 
   Search, 
   ChevronRight, 
@@ -86,11 +80,9 @@ export function AdminLayout({
       ]
     },
     {
-      title: 'CATALOGUE & LOGISTICS',
+      title: 'SERVICES & CATALOGUE',
       items: [
-        { path: '/admin/services', label: 'Services Catalogue', icon: Wrench, badge: '51' },
-        { path: '/admin/locations', label: 'Locations & Zones', icon: MapPin },
-        { path: '/admin/inventory', label: 'Inventory & Kits', icon: Package }
+        { path: '/admin/services', label: 'Services Catalogue', icon: Wrench, badge: '51' }
       ]
     },
     {
@@ -103,11 +95,10 @@ export function AdminLayout({
       ]
     },
     {
-      title: 'QUALITY & TRAINING',
+      title: 'QUALITY & SUPPORT',
       items: [
         { path: '/admin/support', label: 'Support Tickets', icon: HelpCircle, badge: '3' },
-        { path: '/admin/reviews', label: 'Ratings & Reviews', icon: Star },
-        { path: '/admin/training', label: 'Training Academy', icon: GraduationCap }
+        { path: '/admin/reviews', label: 'Ratings & Reviews', icon: Star }
       ]
     },
     {
@@ -115,9 +106,6 @@ export function AdminLayout({
       items: [
         { path: '/admin/content', label: 'Marketing Content', icon: FileText },
         { path: '/admin/notifications', label: 'Notifications', icon: Bell },
-        { path: '/admin/reports', label: 'Analytics & Reports', icon: BarChart3 },
-        { path: '/admin/team', label: 'Team & Access', icon: UserCheck },
-        { path: '/admin/audit-logs', label: 'Audit Trail', icon: History },
         { path: '/admin/settings', label: 'Platform Settings', icon: Sliders }
       ]
     }
@@ -346,25 +334,39 @@ export function AdminLayout({
           height: 64,
           backgroundColor: '#FFFFFF',
           borderBottom: '1px solid #E2E8F0',
-          padding: '0 24px',
+          padding: '0 20px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          gap: 12,
           position: 'sticky',
           top: 0,
-          zIndex: 40
+          zIndex: 40,
+          boxSizing: 'border-box'
         }}>
           {/* Left: Breadcrumbs */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13 }}>
-            <span style={{ color: '#94A3B8', fontWeight: 600 }}>Urban Services Admin</span>
-            <ChevronRight size={14} color="#CBD5E1" />
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 13,
+            flexShrink: 0,
+            whiteSpace: 'nowrap'
+          }}>
+            <span style={{ color: '#94A3B8', fontWeight: 600 }}>Admin</span>
+            <ChevronRight size={13} color="#CBD5E1" style={{ flexShrink: 0 }} />
             <span style={{ color: '#64748B', fontWeight: 600 }}>{currentSection}</span>
-            <ChevronRight size={14} color="#CBD5E1" />
+            <ChevronRight size={13} color="#CBD5E1" style={{ flexShrink: 0 }} />
             <span style={{ color: '#0F172A', fontWeight: 700 }}>{currentItem.label}</span>
           </div>
 
           {/* Right Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            flexShrink: 0
+          }}>
             {/* Global Search Button */}
             <button
               type="button"
@@ -372,18 +374,30 @@ export function AdminLayout({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
+                gap: 8,
                 backgroundColor: '#F8FAFC',
                 border: '1px solid #E2E8F0',
                 borderRadius: 8,
-                padding: '7px 12px',
-                fontSize: 12.5,
+                padding: '0 10px',
+                height: 36,
+                width: 190,
+                fontSize: 12,
                 color: '#64748B',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                flexShrink: 0,
+                boxSizing: 'border-box'
               }}
             >
-              <Search size={14} color="#94A3B8" />
-              <span>Search modules, bookings, users...</span>
+              <Search size={14} color="#94A3B8" style={{ flexShrink: 0 }} />
+              <span style={{
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                flex: 1,
+                textAlign: 'left'
+              }}>
+                Search modules, users...
+              </span>
               <kbd style={{
                 fontSize: 10,
                 fontWeight: 700,
@@ -391,7 +405,9 @@ export function AdminLayout({
                 border: '1px solid #CBD5E1',
                 borderRadius: 4,
                 padding: '1px 5px',
-                color: '#64748B'
+                color: '#64748B',
+                flexShrink: 0,
+                lineHeight: '14px'
               }}>
                 ⌘K
               </kbd>
@@ -403,14 +419,18 @@ export function AdminLayout({
               alignItems: 'center',
               gap: 6,
               backgroundColor: '#F1F5F9',
-              padding: '6px 10px',
+              padding: '0 8px',
+              height: 36,
               borderRadius: 8,
-              fontSize: 12,
+              fontSize: 11.5,
               fontWeight: 600,
-              color: '#334155'
+              color: '#334155',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
+              boxSizing: 'border-box'
             }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981' }}></span>
-              <span>Krishnagiri & Mumbai Hubs</span>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981', flexShrink: 0 }}></span>
+              <span>Krishnagiri & Mumbai</span>
             </div>
 
             {/* Rain Surge Quick Toggle */}
@@ -420,23 +440,27 @@ export function AdminLayout({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '6px 12px',
+                gap: 5,
+                padding: '0 10px',
+                height: 36,
                 borderRadius: 8,
                 border: `1px solid ${weatherSurge ? '#86EFAC' : '#E2E8F0'}`,
                 backgroundColor: weatherSurge ? '#ECFDF5' : '#FFFFFF',
                 color: weatherSurge ? '#065F46' : '#475569',
-                fontSize: 12,
+                fontSize: 11.5,
                 fontWeight: 700,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                boxSizing: 'border-box'
               }}
             >
-              <CloudRain size={14} color={weatherSurge ? '#059669' : '#64748B'} />
+              <CloudRain size={13} color={weatherSurge ? '#059669' : '#64748B'} style={{ flexShrink: 0 }} />
               <span>Surge: {weatherSurge ? 'ON (+₹49)' : 'OFF'}</span>
             </button>
 
             {/* Notifications Bell */}
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
               <button
                 type="button"
                 onClick={() => setShowNotifications(!showNotifications)}
@@ -451,16 +475,17 @@ export function AdminLayout({
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  position: 'relative'
+                  position: 'relative',
+                  boxSizing: 'border-box'
                 }}
               >
-                <Bell size={16} />
+                <Bell size={15} />
                 <span style={{
                   position: 'absolute',
                   top: 7,
                   right: 7,
-                  width: 7,
-                  height: 7,
+                  width: 6,
+                  height: 6,
                   borderRadius: '50%',
                   backgroundColor: '#EF4444'
                 }}></span>
@@ -508,37 +533,46 @@ export function AdminLayout({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6,
-                padding: '6px 12px',
+                gap: 5,
+                padding: '0 10px',
+                height: 36,
                 borderRadius: 8,
                 border: '1px solid #E2E8F0',
                 backgroundColor: '#FFFFFF',
                 color: '#475569',
-                fontSize: 12,
+                fontSize: 11.5,
                 fontWeight: 600,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                boxSizing: 'border-box'
               }}
             >
               <span>Marketplace</span>
-              <ExternalLink size={13} color="#94A3B8" />
+              <ExternalLink size={12} color="#94A3B8" style={{ flexShrink: 0 }} />
             </button>
 
             {/* Signed-in Administrator Menu */}
-            <div style={{ position: 'relative' }}>
+            <div style={{ position: 'relative', flexShrink: 0 }}>
               <div
                 onClick={() => setShowUserDropdown(!showUserDropdown)}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 9,
+                  gap: 7,
                   cursor: 'pointer',
-                  padding: '4px 6px',
-                  borderRadius: 8
+                  padding: '0 8px',
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  boxSizing: 'border-box',
+                  whiteSpace: 'nowrap'
                 }}
               >
                 <div style={{
-                  width: 32,
-                  height: 32,
+                  width: 24,
+                  height: 24,
                   borderRadius: '50%',
                   backgroundColor: '#EDE9FE',
                   color: '#6E42E5',
@@ -546,19 +580,20 @@ export function AdminLayout({
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 800,
-                  fontSize: 13
+                  fontSize: 11,
+                  flexShrink: 0
                 }}>
                   {adminUser?.avatarInitials || 'SA'}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0F172A' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>
                     {adminUser?.name || 'Super Admin'}
                   </span>
-                  <span style={{ fontSize: 10.5, color: '#64748B' }}>
+                  <span style={{ fontSize: 9.5, color: '#64748B', whiteSpace: 'nowrap' }}>
                     {adminUser?.role || 'Administrator'}
                   </span>
                 </div>
-                <ChevronDown size={14} color="#64748B" />
+                <ChevronDown size={13} color="#64748B" style={{ flexShrink: 0 }} />
               </div>
 
               {showUserDropdown && (
@@ -597,25 +632,6 @@ export function AdminLayout({
                   >
                     Platform Settings
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowUserDropdown(false);
-                      onNavigate('/admin/team');
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 14px',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      textAlign: 'left',
-                      fontSize: 12.5,
-                      color: '#334155',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Team & RBAC
-                  </button>
                   <div style={{ borderTop: '1px solid #F1F5F9', marginTop: 4 }}>
                     <button
                       type="button"
@@ -650,7 +666,7 @@ export function AdminLayout({
         {/* MAIN BODY CONTENT */}
         <main style={{
           flex: 1,
-          padding: '24px 28px',
+          padding: 0,
           overflowY: 'auto',
           backgroundColor: '#F8FAFC'
         }}>

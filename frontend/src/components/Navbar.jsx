@@ -267,357 +267,96 @@ export function Navbar({
             )}
           </button>
 
-          {/* Profile Icon in Circle + Floating "Login" Pill (Exact match from screenshot) */}
-          <div className="uc-profile-wrap" ref={profileRef}>
+          {/* Profile Icon in Circle */}
+          <div className="uc-profile-wrap" ref={profileRef} style={{ position: 'relative' }}>
             <button 
               type="button" 
               className="uc-profile-btn" 
               onClick={() => {
-                if (!user) {
-                  onOpenAuth();
-                } else {
-                  setShowProfileMenu(prev => !prev);
-                }
+                setShowProfileMenu(prev => !prev);
               }}
-              title={user ? (user.name || "My Profile") : "Login / Sign up"}
+              title={user ? (user.name || "My Account") : "Login"}
+              aria-label="Profile Menu"
             >
               <CircleUserRound size={26} color="#111827" strokeWidth={1.5} />
             </button>
 
-            {/* Floating "Login" Pill Tooltip underneath Profile Icon matching Screenshot */}
-            {!user && (
-              <div 
-                className="uc-login-pill-tooltip"
-                onClick={onOpenAuth}
-              >
-                Login
-              </div>
-            )}
-
-            {/* Interactive User & Services Dropdown */}
+            {/* Profile Dropdown: strictly gives login wordings */}
             {showProfileMenu && (
-              <div className="uc-profile-dropdown" style={{ width: 280 }}>
-                {user ? (
-                  <div>
-                    <div className="uc-profile-dropdown-user-header">
-                      <div 
-                        className="uc-dropdown-user-avatar"
-                        style={{
-                          background: user.role === 'admin' ? '#7C3AED'
-                            : user.role === 'professional' ? '#059669'
-                            : user.role === 'partner' ? '#2563EB'
-                            : '#1E293B'
-                        }}
-                      >
-                        {(user.name || 'U')[0].toUpperCase()}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div className="uc-dropdown-user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {user.name || 'Valued User'}
-                        </div>
-                        <div style={{ marginTop: 3 }}>
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            fontSize: 10.5,
-                            fontWeight: 700,
-                            padding: '2px 7px',
-                            borderRadius: 9999,
-                            background: user.role === 'admin' ? '#F5F3FF' : user.role === 'professional' ? '#ECFDF5' : user.role === 'partner' ? '#EFF6FF' : '#F1F5F9',
-                            color: user.role === 'admin' ? '#7C3AED' : user.role === 'professional' ? '#047857' : user.role === 'partner' ? '#1D4ED8' : '#475569',
-                            border: `1px solid ${user.role === 'admin' ? '#DDD6FE' : user.role === 'professional' ? '#A7F3D0' : user.role === 'partner' ? '#BFDBFE' : '#E2E8F0'}`
-                          }}>
-                            {user.role === 'admin' && '🛡️ Administrator'}
-                            {user.role === 'professional' && '⚡ Professional Pro'}
-                            {user.role === 'partner' && '🏢 Partner Agency'}
-                            {(!user.role || user.role === 'customer') && '👤 Customer'}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Dedicated Quick Action Card for Active Role */}
-                    {user.role === 'admin' && (
-                      <div style={{ margin: '8px 10px 4px', padding: '10px 12px', background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)', borderRadius: 8, border: '1px solid #DDD6FE' }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#6D28D9', marginBottom: 6 }}>
-                          ADMIN SESSION ACTIVE
-                        </div>
-                        <button
-                          type="button"
-                          style={{
-                            width: '100%',
-                            padding: '7px 12px',
-                            background: '#7C3AED',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: 6,
-                            fontSize: 12.5,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 6
-                          }}
-                          onClick={() => {
-                            setShowProfileMenu(false);
-                            if (onOpenAdminDashboard) onOpenAdminDashboard();
-                          }}
-                        >
-                          <ShieldCheck size={14} /> Open Admin Operations
-                        </button>
-                      </div>
-                    )}
-
-                    {user.role === 'professional' && (
-                      <div style={{ margin: '8px 10px 4px', padding: '10px 12px', background: 'linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)', borderRadius: 8, border: '1px solid #A7F3D0' }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#047857', marginBottom: 6 }}>
-                          TECHNICIAN COMPANION ACTIVE
-                        </div>
-                        <button
-                          type="button"
-                          style={{
-                            width: '100%',
-                            padding: '7px 12px',
-                            background: '#059669',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: 6,
-                            fontSize: 12.5,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 6
-                          }}
-                          onClick={() => {
-                            setShowProfileMenu(false);
-                            if (onOpenProfessionalDashboard) onOpenProfessionalDashboard();
-                          }}
-                        >
-                          <Wrench size={14} /> Open Professional Hub
-                        </button>
-                      </div>
-                    )}
-
-                    {user.role === 'partner' && (
-                      <div style={{ margin: '8px 10px 4px', padding: '10px 12px', background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)', borderRadius: 8, border: '1px solid #BFDBFE' }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#1D4ED8', marginBottom: 6 }}>
-                          AGENCY FLEET ACTIVE
-                        </div>
-                        <button
-                          type="button"
-                          style={{
-                            width: '100%',
-                            padding: '7px 12px',
-                            background: '#2563EB',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: 6,
-                            fontSize: 12.5,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 6
-                          }}
-                          onClick={() => {
-                            setShowProfileMenu(false);
-                            if (onOpenPartnerDashboard) onOpenPartnerDashboard();
-                          }}
-                        >
-                          <Briefcase size={14} /> Open Partner Fleet Portal
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Switch Role Quick Button */}
-                    <div style={{ padding: '6px 10px 4px' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowProfileMenu(false);
-                          onOpenAuth('login');
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '7px 10px',
-                          background: '#F8FAFC',
-                          border: '1px dashed #CBD5E1',
-                          borderRadius: 6,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: '#475569',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 6
-                        }}
-                      >
-                        🔑 Switch Account / Role Login
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid #F1F5F9' }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A', marginBottom: 4 }}>
-                      Welcome to Urban Company
-                    </div>
-                    <p style={{ fontSize: 12, color: '#64748B', margin: '0 0 10px 0' }}>
-                      Login as Admin, Pro, Partner, or Customer
-                    </p>
-                    <button
-                      type="button"
-                      className="uc-dropdown-login-btn"
-                      onClick={() => {
-                        setShowProfileMenu(false);
-                        onOpenAuth('login');
-                      }}
-                    >
-                      Login / Sign up
-                    </button>
-                  </div>
+              <div 
+                className="uc-profile-dropdown" 
+                style={{ 
+                  position: 'absolute',
+                  top: 'calc(100% + 8px)',
+                  right: 0,
+                  minWidth: '140px',
+                  background: '#FFFFFF',
+                  borderRadius: '10px',
+                  boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                  border: '1px solid #E2E8F0',
+                  padding: '6px',
+                  zIndex: 1000,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '4px'
+                }}
+              >
+                <button
+                  type="button"
+                  className="uc-dropdown-login-btn"
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    onOpenAuth('login');
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 14px',
+                    background: '#000000',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: '7px',
+                    fontSize: '13.5px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    textAlign: 'center',
+                    transition: 'background 0.15s ease'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1F2937'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#000000'}
+                >
+                  Login
+                </button>
+                {user && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowProfileMenu(false);
+                      if (onLogout) {
+                        onLogout();
+                      } else {
+                        localStorage.removeItem('uc_user');
+                        window.location.reload();
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '7px 12px',
+                      background: 'none',
+                      color: '#EF4444',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      textAlign: 'center',
+                      borderTop: '1px solid #F1F5F9'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEF2F2'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    Log Out
+                  </button>
                 )}
-
-                <div className="uc-profile-menu-list">
-                  <button
-                    type="button"
-                    className="uc-profile-menu-item"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      onOpenBookings();
-                    }}
-                  >
-                    <Calendar size={16} color="#475569" />
-                    <span style={{ flex: 1, textAlign: 'left' }}>My Bookings</span>
-                    {bookingsCount > 0 && (
-                      <span className="uc-menu-count-badge">{bookingsCount}</span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="uc-profile-menu-item"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      onOpenAddresses();
-                    }}
-                  >
-                    <Home size={16} color="#475569" />
-                    <span style={{ flex: 1, textAlign: 'left' }}>Saved Addresses</span>
-                    {addressesCount > 0 && (
-                      <span className="uc-menu-count-badge">{addressesCount}</span>
-                    )}
-                  </button>
-
-                  {/* Dashboard Shortcuts */}
-                  <button
-                    type="button"
-                    className="uc-profile-menu-item"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      if (onOpenAdminDashboard) onOpenAdminDashboard();
-                      else if (onOpenAdmin) onOpenAdmin();
-                    }}
-                  >
-                    <ShieldCheck size={16} color="#7C3AED" />
-                    <span style={{ flex: 1, textAlign: 'left', fontWeight: user?.role === 'admin' ? 700 : 600 }}>
-                      Admin Operations Portal
-                    </span>
-                    {user?.role === 'admin' && (
-                      <span style={{ fontSize: 10, fontWeight: 800, color: '#7C3AED', background: '#F5F3FF', padding: '1px 6px', borderRadius: 4 }}>
-                        CURRENT
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="uc-profile-menu-item"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      if (onOpenProfessionalDashboard) onOpenProfessionalDashboard();
-                    }}
-                  >
-                    <Wrench size={16} color="#059669" />
-                    <span style={{ flex: 1, textAlign: 'left', fontWeight: user?.role === 'professional' ? 700 : 600 }}>
-                      Professional Service Hub
-                    </span>
-                    {user?.role === 'professional' && (
-                      <span style={{ fontSize: 10, fontWeight: 800, color: '#059669', background: '#ECFDF5', padding: '1px 6px', borderRadius: 4 }}>
-                        CURRENT
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="uc-profile-menu-item"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      if (onOpenPartnerDashboard) onOpenPartnerDashboard();
-                    }}
-                  >
-                    <Briefcase size={16} color="#2563EB" />
-                    <span style={{ flex: 1, textAlign: 'left', fontWeight: user?.role === 'partner' ? 700 : 600 }}>
-                      Partner Fleet Portal
-                    </span>
-                    {user?.role === 'partner' && (
-                      <span style={{ fontSize: 10, fontWeight: 800, color: '#2563EB', background: '#EFF6FF', padding: '1px 6px', borderRadius: 4 }}>
-                        CURRENT
-                      </span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="uc-profile-menu-item"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      if (onOpenAdminCatalogue) onOpenAdminCatalogue();
-                    }}
-                  >
-                    <PlusCircle size={16} color="#475569" />
-                    <span style={{ flex: 1, textAlign: 'left' }}>Manage Services Catalogue</span>
-                    <span className="uc-menu-count-badge">{services?.length || 0}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="uc-profile-menu-item"
-                    onClick={() => {
-                      setShowProfileMenu(false);
-                      if (onOpenPartnerOnboarding) onOpenPartnerOnboarding();
-                    }}
-                  >
-                    <Building2 size={16} color="#475569" />
-                    <span style={{ flex: 1, textAlign: 'left' }}>Register as a Professional</span>
-                  </button>
-
-                  {user && (
-                    <div style={{ borderTop: '1px solid #F1F5F9', marginTop: 4, paddingTop: 4 }}>
-                      <button
-                        type="button"
-                        className="uc-profile-menu-item logout"
-                        onClick={() => {
-                          setShowProfileMenu(false);
-                          if (onLogout) {
-                            onLogout();
-                          } else {
-                            localStorage.removeItem('uc_user');
-                            window.location.reload();
-                          }
-                        }}
-                      >
-                        <LogOut size={16} color="#EF4444" />
-                        <span style={{ flex: 1, textAlign: 'left', color: '#EF4444' }}>Log Out</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
               </div>
             )}
           </div>

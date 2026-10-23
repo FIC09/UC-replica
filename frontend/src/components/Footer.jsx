@@ -86,7 +86,7 @@ export function Footer({
             </ul>
           </div>
 
-          {/* Column 4: Social links & App Store Download Badges */}
+          {/* Column 4: Social links */}
           <div className="footer-uc-col">
             <h5 className="footer-uc-heading">Social links</h5>
             <div className="footer-uc-social-row">
@@ -117,58 +117,6 @@ export function Footer({
                 </svg>
               </a>
             </div>
-
-            {/* App Badges: Apple App Store & Google Play */}
-            <div className="footer-uc-badges-col">
-              <a href="#appstore" onClick={(e) => e.preventDefault()} className="footer-uc-store-btn" aria-label="Download on App Store">
-                <svg width="18" height="22" viewBox="0 0 170 170" fill="currentColor">
-                  <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.66-7.81-11.91-14.3-5.74-8.8-10.28-18.77-13.62-29.9-3.34-11.13-5.01-21.73-5.01-31.81 0-15.42 3.84-28.09 11.53-38.02 7.69-9.93 17.51-14.98 29.46-15.15 4.35 0 9.4 1.16 15.15 3.48 5.75 2.32 9.5 3.53 11.26 3.63 1.37-.1 5.37-1.37 12-3.8 6.64-2.43 11.94-3.48 15.91-3.17 11.85.95 21.2 5.07 28.07 12.35-10.37 6.27-15.42 15.02-15.15 26.24.27 8.8 3.59 16.2 9.97 22.2 6.38 6 13.9 9.55 22.56 10.65-2.23 6.78-4.99 13.97-8.27 21.57zM119.22 32.64c0-7.23 2.65-13.98 7.95-20.25 5.3-6.27 11.75-10.24 19.35-11.91.8 3.48 1.2 6.84 1.2 10.09 0 7.37-2.73 14.33-8.19 20.88-5.46 6.55-12.06 10.57-19.8 12.07-.35-3.69-.51-7.31-.51-10.88z"/>
-                </svg>
-                <div className="footer-uc-store-text">
-                  <span className="store-sub">Download on the</span>
-                  <span className="store-main">App Store</span>
-                </div>
-              </a>
-
-              <a href="#googleplay" onClick={(e) => e.preventDefault()} className="footer-uc-store-btn" aria-label="Get it on Google Play">
-                <svg width="18" height="20" viewBox="0 0 512 512" fill="currentColor">
-                  <path d="M325.3 234.3L104.6 13l280.8 161.2-60.1 59.8zM47 0C34 6.8 25.3 19.2 25.3 35.3v441.3c0 16.1 8.7 28.5 21.7 35.3l256.6-256L47 0zm425.2 225.6l-58.9-34.1-65.7 64.5 65.7 64.5 60.1-34.1c18-14.3 18-46.5-1.2-60.8zM104.6 499l280.8-161.2-60.1-60.1L104.6 499z"/>
-                </svg>
-                <div className="footer-uc-store-text">
-                  <span className="store-sub">GET IT ON</span>
-                  <span className="store-main">Google Play</span>
-                </div>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Cities Directory Strip */}
-        <div className="footer-uc-cities-strip">
-          <span className="footer-uc-cities-label">Serving 50+ Cities:</span>
-          <div className="footer-uc-cities-tags">
-            {CITIES.map((c) => {
-              const isSelected = (c.name || '').trim().toLowerCase() === (selectedCity || '').trim().toLowerCase();
-              return (
-                <span
-                  key={c.id}
-                  onClick={() => onSelectCity && onSelectCity(c.name)}
-                  className={`footer-uc-city-chip ${isSelected ? 'active' : ''}`}
-                >
-                  {c.name}
-                </span>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Disclaimer & Copyright (Matches Screenshot 4) */}
-        <div className="footer-uc-bottom">
-          <div className="footer-uc-disclaimer">
-            * As on December 31, 2024
-          </div>
-          <div className="footer-uc-copyright">
-            © Copyright 2026 Urban Company Limited (formerly known as UrbanClap Technologies India Limited and UrbanClap Technologies India Private Limited) All rights reserved. | CIN: L74140DL2014PLC274413
           </div>
         </div>
       </div>

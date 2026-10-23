@@ -241,19 +241,9 @@ export function PartnersView({ onShowToast, onNavigate }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Policy & Governance Notice */}
-      <div style={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: '16px 20px',
-        border: '1px solid #E2E8F0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 12
-      }}>
+      <div className="admin-page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 40,
@@ -296,7 +286,8 @@ export function PartnersView({ onShowToast, onNavigate }) {
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
+      <div className="admin-page-body">
+        {/* Filter and Search Bar */}
       <div style={{
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
@@ -1480,7 +1471,7 @@ export function PartnersView({ onShowToast, onNavigate }) {
           </div>
         </div>
       )}
-
+      </div>
     </div>
   );
 }

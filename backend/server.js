@@ -13,6 +13,7 @@ import partnerRoutes from './routes/partnerRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import professionalRoutes from './routes/professionalRoutes.js';
+import partnerApiRoutes from './routes/partnerApiRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -40,7 +41,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token', 'x-professional-id'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token', 'x-professional-id', 'x-partner-token', 'x-partner-id'],
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -70,6 +71,7 @@ app.use('/api/partner-applications', partnerRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/professional', professionalRoutes);
+app.use('/api/partner', partnerApiRoutes);
 
 // 404 handler for API routes
 app.use('/api/*', (req, res) => {

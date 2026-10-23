@@ -328,17 +328,18 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
     .reduce((sum, p) => sum + (p.netPayoutRupees || 0), 0);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* HEADER & TABS NAVIGATION */}
       <div style={{
         backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: '20px 24px',
-        border: '1px solid #E2E8F0',
+        borderRadius: 0,
+        border: 'none',
+        borderBottom: '1px solid #E2E8F0',
+        padding: '20px 24px 0 24px',
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
           <div>
@@ -518,6 +519,8 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
           </button>
         </div>
       </div>
+
+      <div className="admin-page-body">
 
       {/* ========================================================================= */}
       {/* SCREEN 1: CUSTOMER TRANSACTIONS                                            */}
@@ -1889,6 +1892,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

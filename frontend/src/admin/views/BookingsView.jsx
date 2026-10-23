@@ -396,19 +396,9 @@ export function BookingsView({ onShowToast, onNavigate }) {
   const currentTransitions = selectedBooking ? (VALID_TRANSITIONS[selectedBooking.status] || []) : [];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Top Header & Fast Action Bar */}
-      <div style={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: '20px 24px',
-        border: '1px solid #E2E8F0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 16
-      }}>
+      <div className="admin-page-header">
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
             Bookings & Dispatch Control
@@ -419,7 +409,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
         </div>
       </div>
 
-      {/* Comprehensive Filter Bar */}
+      <div className="admin-page-body">
+        {/* Comprehensive Filter Bar */}
       <div style={{
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
@@ -2103,7 +2094,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
           </div>
         </div>
       )}
-
+      </div>
     </div>
   );
 }

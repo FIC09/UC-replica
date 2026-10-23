@@ -47,8 +47,6 @@ export function ProfessionalLayout({
     { path: '/professional/availability', label: 'Shift Availability', icon: '⏱️' },
     { path: '/professional/payouts', label: 'Payouts & Banking', icon: '🏦' },
     { path: '/professional/inventory', label: 'Inventory & Parts', icon: '🧰' },
-    { path: '/professional/shop', label: 'Pro Shop & Uniform', icon: '👕' },
-    { path: '/professional/support', label: 'Helpdesk & SOS', icon: '🚨' },
     { path: '/professional/notifications', label: 'Alerts & Broadcasts', icon: '🔔' },
     { path: '/professional/settings', label: 'App Settings', icon: '⚙️' }
   ];
@@ -137,8 +135,22 @@ export function ProfessionalLayout({
               ⚡
             </div>
             <div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
-                Urban Pro
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>
+                  Urban Pro
+                </span>
+                <span style={{
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  border: '1px solid #fde68a',
+                  padding: '1px 6px',
+                  borderRadius: 10,
+                  fontSize: 9,
+                  fontWeight: 800,
+                  letterSpacing: 0.3
+                }}>
+                  🧪 DEMO MODE
+                </span>
               </div>
               <div style={{ fontSize: 10, color: '#7c3aed', fontWeight: 800, letterSpacing: 0.6 }}>
                 PARTNER PORTAL
@@ -202,29 +214,6 @@ export function ProfessionalLayout({
             <span style={{ color: '#7c3aed', fontWeight: 800 }}>₹</span>
             <span>{(profile?.walletBalance || 0).toLocaleString('en-IN')}</span>
           </div>
-
-          {/* SOS Emergency Button */}
-          <button
-            onClick={() => handleNav('/professional/support')}
-            title="Emergency SOS Support"
-            style={{
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
-              color: '#dc2626',
-              padding: '6px 10px',
-              borderRadius: 20,
-              fontSize: 12,
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
-              minHeight: 38
-            }}
-          >
-            <span>🚨</span>
-            <span className="pro-sos-text">SOS</span>
-          </button>
 
           {/* Profile Dropdown Trigger */}
           <div style={{ position: 'relative' }}>

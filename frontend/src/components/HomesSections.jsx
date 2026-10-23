@@ -279,16 +279,6 @@ export function HomesSections({
                 </div>
               </div>
             </div>
-
-            {/* Right arrow button matching Screenshot 2 */}
-            <button 
-              type="button" 
-              className="homes-slider-nav-btn right" 
-              onClick={() => scrollPromo('right')}
-              aria-label="Scroll right"
-            >
-              <ChevronRight size={20} />
-            </button>
           </div>
         </div>
       </section>
@@ -395,16 +385,6 @@ export function HomesSections({
                 <h4 className="homes-card-clean-title">AC</h4>
               </div>
             </div>
-
-            {/* Right arrow button matching Screenshot 3 */}
-            <button 
-              type="button" 
-              className="homes-slider-nav-btn right" 
-              onClick={() => scrollNN('right')}
-              aria-label="Scroll right"
-            >
-              <ChevronRight size={20} />
-            </button>
           </div>
         </div>
       </section>
@@ -417,17 +397,6 @@ export function HomesSections({
           <h2 className="homes-section-title">Most booked services</h2>
 
           <div className="homes-slider-relative-container">
-            {canScrollMBLeft && (
-              <button 
-                type="button" 
-                className="homes-slider-nav-btn left" 
-                onClick={() => scrollMB('left')}
-                aria-label="Scroll left"
-              >
-                <ChevronLeft size={20} />
-              </button>
-            )}
-
             <div 
               className="homes-cards-row scrollable" 
               ref={mostBookedRef}
@@ -528,17 +497,6 @@ export function HomesSections({
                 </div>
               </div>
             </div>
-
-            {canScrollMBRight && (
-              <button 
-                type="button" 
-                className="homes-slider-nav-btn right" 
-                onClick={() => scrollMB('right')}
-                aria-label="Scroll right"
-              >
-                <ChevronRight size={20} />
-              </button>
-            )}
           </div>
         </div>
       </section>
@@ -656,16 +614,6 @@ export function HomesSections({
                 </div>
               </div>
             </div>
-
-            {/* Right arrow button matching Screenshot 5 */}
-            <button 
-              type="button" 
-              className="homes-slider-nav-btn right" 
-              onClick={() => scrollAppliance('right')}
-              aria-label="Scroll right"
-            >
-              <ChevronRight size={20} />
-            </button>
           </div>
         </div>
       </section>

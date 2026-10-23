@@ -340,26 +340,111 @@ export function SessionExpiredModal({ onRelogin }) {
   );
 }
 
-// 7. Persistent Offline Banner
-export function OfflineBanner({ isOffline }) {
+// 7. Persistent Offline & Mobile Reliability Connectivity Banner
+export function OfflineBanner({ isOffline, onReconnect }) {
+  const [reconnecting, setReconnecting] = React.useState(false);
+  const [justReconnected, setJustReconnected] = React.useState(false);
+
+  const handleReconnectCheck = async () => {
+    setReconnecting(true);
+    try {
+      if (onReconnect) {
+        await onReconnect();
+      } else {
+        // Ping lightweight endpoint
+        await fetch('/api/professional/profile');
+      }
+      setJustReconnected(true);
+      setTimeout(() => setJustReconnected(false), 4000);
+    } catch {
+      // Still offline
+    } finally {
+      setReconnecting(false);
+    }
+  };
+
+  if (justReconnected) {
+    return (
+      <div style={{
+        background: '#059669',
+        color: '#ffffff',
+        padding: '10px 16px',
+        fontSize: 12,
+        fontWeight: 700,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 12,
+        position: 'sticky',
+        top: 0,
+        zIndex: 9999,
+        boxShadow: '0 2px 8px rgba(5,150,105,0.2)'
+      }}>
+        <span>✅</span>
+        <span>Reconnected to Server. Permissions, dispatches & sync states revalidated successfully.</span>
+      </div>
+    );
+  }
+
   if (!isOffline) return null;
+
   return (
     <div style={{
-      background: '#b91c1c',
+      background: '#991b1b',
       color: '#ffffff',
-      padding: '8px 16px',
+      padding: '10px 16px',
       fontSize: 12,
-      fontWeight: 700,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
+      fontWeight: 600,
       position: 'sticky',
       top: 0,
-      zIndex: 9999
+      zIndex: 9999,
+      boxShadow: '0 2px 10px rgba(0,0,0,0.25)'
     }}>
-      <span style={{ fontSize: 16 }}>⚠️</span>
-      <span>No Internet Connection. Operating in cached offline mode. Actions will be queued.</span>
+      <div style={{
+        maxWidth: 1100,
+        margin: '0 auto',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: 10
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 260 }}>
+          <span style={{ fontSize: 18, animation: 'pulse 1.5s infinite' }}>📡</span>
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 13, letterSpacing: 0.2 }}>
+              Offline Mode Active (Pending Sync)
+            </div>
+            <div style={{ fontSize: 11, opacity: 0.9, marginTop: 1 }}>
+              Drafts preserved locally. Financial transfers, payout updates, and job completions require live server verification.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={handleReconnectCheck}
+            disabled={reconnecting}
+            style={{
+              background: '#ffffff',
+              color: '#991b1b',
+              border: 'none',
+              padding: '6px 14px',
+              borderRadius: 6,
+              fontSize: 11,
+              fontWeight: 800,
+              cursor: reconnecting ? 'wait' : 'pointer',
+              minHeight: 32,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}
+          >
+            {reconnecting ? 'Reconnecting...' : 'Retry Connection ↺'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
+

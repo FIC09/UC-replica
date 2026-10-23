@@ -235,6 +235,139 @@ const bookingSchema = new mongoose.Schema({
     enum: ['unoffered', 'offered', 'accepted', 'declined', 'expired'],
     default: 'unoffered'
   },
+  // Structured SOP Checklists & Evidence
+  structuredChecklists: {
+    beforeService: [{
+      id: String,
+      text: String,
+      completed: { type: Boolean, default: false },
+      required: { type: Boolean, default: true },
+      notes: { type: String, default: '' }
+    }],
+    safetyChecks: [{
+      id: String,
+      text: String,
+      completed: { type: Boolean, default: false },
+      required: { type: Boolean, default: true }
+    }],
+    workPerformed: [{
+      id: String,
+      text: String,
+      completed: { type: Boolean, default: false },
+      required: { type: Boolean, default: true }
+    }],
+    partsMaterials: [{
+      id: String,
+      name: String,
+      qty: { type: Number, default: 1 },
+      unit: { type: String, default: 'pcs' },
+      cost: { type: Number, default: 0 },
+      serialNo: { type: String, default: '' }
+    }],
+    photos: [{
+      id: String,
+      phase: { type: String, enum: ['before', 'after'], default: 'before' },
+      photoType: { type: String, enum: ['equipment', 'part', 'serial_plate', 'work_area'], default: 'equipment' },
+      url: String,
+      fileName: String,
+      fileSizeKb: Number,
+      mimeType: String,
+      uploadedAt: { type: Date, default: Date.now }
+    }],
+    completionNotes: { type: String, default: '' }
+  },
+  // Extra Work / Parts with Customer Approval
+  extraWorkRequests: [{
+    id: String,
+    title: String,
+    category: String,
+    scope: String,
+    amount: Number,
+    priceRule: String,
+    status: { type: String, enum: ['Pending Customer Approval', 'Approved', 'Rejected'], default: 'Pending Customer Approval' },
+    requestedAt: { type: Date, default: Date.now },
+    approvalDetails: {
+      approvedBy: String,
+      approvedAt: Date,
+      approvalMethod: String,
+      rejectionReason: String,
+      isDemoFlow: { type: Boolean, default: false }
+    },
+    history: [{
+      action: String,
+      by: String,
+      timestamp: { type: Date, default: Date.now },
+      notes: String
+    }]
+  }],
+  // Cancellation, Delay & Incident Reports
+  incidentReports: [{
+    id: String,
+    bookingId: String,
+    category: {
+      type: String,
+      enum: [
+        'unable_to_attend',
+        'running_late',
+        'customer_unavailable',
+        'unsafe_situation',
+        'address_issue',
+        'outside_scope',
+        'equipment_failure',
+        'reassignment_request',
+        'emergency_unavailability'
+      ]
+    },
+    reason: String,
+    details: String,
+    delayMinutes: Number,
+    evidencePhotos: [String],
+    status: { type: String, default: 'Logged' },
+    resolution: String,
+    reportedAt: { type: Date, default: Date.now },
+    consequencesAcknowledged: Boolean,
+    policyRuleApplied: String
+  }],
+  // Booking-Scoped In-App Messages
+  messages: [{
+    id: String,
+    senderRole: { type: String, enum: ['customer', 'professional', 'dispatch_system'], default: 'customer' },
+    senderName: String,
+    senderId: String,
+    text: String,
+    attachments: [{
+      url: String,
+      name: String,
+      sizeKb: Number,
+      mimeType: String
+    }],
+    deliveryStatus: { type: String, enum: ['sent', 'delivered', 'read'], default: 'sent' },
+    createdAt: { type: Date, default: Date.now }
+  }],
+  // Itemized Financial Ledger (Integer minor currency units in Paisa)
+  financialLedger: {
+    grossAmountPaisa: { type: Number, default: 0 },
+    platformCommissionPaisa: { type: Number, default: 0 },
+    professionalEntitlementPaisa: { type: Number, default: 0 },
+    approvedTipsPaisa: { type: Number, default: 0 },
+    incentivesPaisa: { type: Number, default: 0 },
+    adjustmentsPaisa: { type: Number, default: 0 },
+    refundDeductionsPaisa: { type: Number, default: 0 },
+    netEarningsPaisa: { type: Number, default: 0 },
+    settlementEligibility: { type: String, default: 'Eligible for next settlement cycle' },
+    settlementStatus: {
+      type: String,
+      enum: ['Earned', 'Pending Confirmation', 'Available for Settlement', 'Processing', 'Paid', 'Disputed'],
+      default: 'Earned'
+    },
+    recipientSnapshot: {
+      accountHolderName: String,
+      accountNumberMasked: String,
+      bankName: String,
+      ifscCode: String,
+      upiId: String
+    }
+  },
   reassignmentRequest: {
     requestedBy: String,
     reason: String,

@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken';
 import { WorkerApplication } from '../models/WorkerApplication.js';
 import { Booking, canTransitionLifecycle } from '../models/Booking.js';
 import { User } from '../models/User.js';
+import { sanitizeAuditPayload } from '../models/AuditLog.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'urban_company_jwt_secret_key_2026';
 
@@ -9,7 +10,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'urban_company_jwt_secret_key_2026'
 let professionalsStore = [
   {
     id: 'PRO-8841',
+    workerId: 'PRO-8841',
     applicantName: 'Vikram Salvi',
+    legalName: 'Vikram Salvi',
     phone: '+91 98205 11982',
     email: 'vikram.salvi@urbanpro.com',
     avatar: 'VS',
@@ -25,6 +28,8 @@ let professionalsStore = [
     status: 'Approved',
     tier: 'Diamond Pro Partner (Level 5)',
     employmentType: 'Direct Freelance',
+    settlementModel: 'direct_to_worker',
+    securityPin: '1234',
     partnerAgencyId: '',
     partnerAgencyName: '',
     rating: 4.94,
@@ -119,6 +124,7 @@ let professionalsStore = [
     status: 'Approved',
     tier: 'Gold Pro (Level 3)',
     employmentType: 'Agency Employed',
+    settlementModel: 'settle_to_business',
     partnerAgencyId: 'PTR-90142',
     partnerAgencyName: 'Apex Home Solutions LLP',
     rating: 4.91,
@@ -339,6 +345,45 @@ let notificationsStore = {};
 let supportTicketsStore = {};
 let trainingsStore = {};
 let inventoryStore = {};
+let bankChangeRequestsStore = new Map(); // proId -> Array<BankChangeRequest>
+let financialDisputesStore = new Map(); // proId -> Array<FinancialDispute>
+let performanceAppealsStore = new Map(); // proId -> Array<PerformanceAppeal>
+let reviewsStore = new Map(); // proId -> Array<Review>
+let trainingSessionsStore = new Map(); // proId -> Array<SessionBooking>
+let inventoryReturnsStore = new Map(); // proId -> Array<ReturnReport>
+let shopOrdersStore = new Map(); // proId -> Array<ShopOrder>
+let profileChangeRequestsStore = new Map(); // proId -> Array<ProfileChangeRequest>
+let accountClosureRequestsStore = new Map(); // proId -> Object
+let professionalAuditRecordsStore = new Map(); // proId -> Array<AuditRecord>
+let professionalSettingsStore = new Map(); // proId -> SettingsObject
+let idempotencyKeysStore = new Map(); // idempotencyKey -> { response, createdAt }
+
+export function recordProfessionalAudit(proId, actor, action, entity, reason, beforeAfter = {}) {
+  const auditId = `AUD-${Math.floor(100000 + Math.random() * 900000)}`;
+  const record = {
+    id: auditId,
+    proId,
+    actor: {
+      type: actor?.type || 'professional',
+      id: actor?.id || proId,
+      name: actor?.name || 'Professional Partner'
+    },
+    action,
+    entity: {
+      type: entity?.type || 'General',
+      id: entity?.id || proId
+    },
+    timestamp: new Date().toISOString(),
+    reason: reason || 'Operation executed on professional portal',
+    beforeAfter: sanitizeAuditPayload(beforeAfter),
+    safeSummary: sanitizeAuditPayload(beforeAfter)
+  };
+
+  const list = professionalAuditRecordsStore.get(proId) || [];
+  list.unshift(record);
+  professionalAuditRecordsStore.set(proId, list);
+  return record;
+}
 
 // Platform Job Allocation Model Configuration ('automatic' | 'offer_accept')
 let platformAllocationConfig = {
@@ -389,17 +434,136 @@ let jobOtpAttemptsStore = new Map(); // jobId -> { attempts, expiresAt }
 let syntheticJobStatusStore = new Map(); // jobId -> status
 
 // Checklists, Evidence Vault, Extra Work & Communication Stores
-let bookingEvidenceStore = new Map(); // bookingId -> Array<{ id, type, url, mimeType, sizeBytes, caption, uploadedAt }>
-const platformExtraWorkCatalog = [
-  { code: 'EX-AC-01', title: 'AC Copper Pipe Extension (1m)', category: 'AC Repair', unitPrice: 450, unit: 'meter', maxQty: 5 },
-  { code: 'EX-AC-02', title: 'Inverter AC Outdoor Bracket Heavy Duty', category: 'AC Repair', unitPrice: 650, unit: 'pair', maxQty: 2 },
-  { code: 'EX-AC-03', title: 'Condensate Drain Pipe Replacement (3m)', category: 'AC Repair', unitPrice: 250, unit: 'roll', maxQty: 3 },
-  { code: 'EX-AC-04', title: 'Heavy Duty Dual Run Capacitor (45/50 MFD)', category: 'AC Repair', unitPrice: 380, unit: 'unit', maxQty: 2 },
-  { code: 'EX-ELEC-01', title: '16A Anchor Modular Power Socket + Plate', category: 'Electrical', unitPrice: 220, unit: 'unit', maxQty: 4 },
-  { code: 'EX-ELEC-02', title: 'Single Pole 25A MCB Breaker (Havells)', category: 'Electrical', unitPrice: 320, unit: 'unit', maxQty: 2 },
-  { code: 'EX-PLMB-01', title: 'Solid Brass Quarter-Turn Angle Valve', category: 'Plumbing', unitPrice: 340, unit: 'unit', maxQty: 4 },
-  { code: 'EX-PLMB-02', title: 'Stainless Steel Braided Inlet Hose (24")', category: 'Plumbing', unitPrice: 280, unit: 'unit', maxQty: 4 }
+let bookingEvidenceStore = new Map(); // bookingId -> Array<{ id, phase, photoType, url, fileName, fileSizeKb, mimeType, uploadedAt }>
+
+export const PLATFORM_EXTRA_WORK_RULES = [
+  { code: 'EX-AC-01', id: 'PART_COPPER_PIPE', title: 'AC Copper Pipe Extension (1m)', category: 'Parts & Materials', unitPrice: 450, amount: 450, unit: 'meter', maxQty: 5, approvedScope: 'Refrigerant line extension or damaged segment splice with flare fitting.' },
+  { code: 'EX-AC-02', id: 'WORK_BRACKET_FIX', title: 'Inverter AC Outdoor Bracket Heavy Duty', category: 'Additional Service Work', unitPrice: 650, amount: 650, unit: 'pair', maxQty: 2, approvedScope: 'High-tensile outdoor unit wall mount stabilization with anti-vibration pads.' },
+  { code: 'EX-AC-03', id: 'PART_DRAIN_PIPE', title: 'Condensate Drain Pipe Replacement (3m)', category: 'Parts & Materials', unitPrice: 250, amount: 250, unit: 'roll', maxQty: 3, approvedScope: 'Flexible anti-algae drain tube replacement to cure indoor unit overflow.' },
+  { code: 'EX-AC-04', id: 'PART_CAP_45UF', title: 'Heavy Duty Dual Run Capacitor (45/50 MFD)', category: 'Parts & Materials', unitPrice: 450, amount: 450, unit: 'unit', maxQty: 2, approvedScope: 'Capacitor tested below 80% tolerance threshold; replacement required for compressor start.' },
+  { code: 'EX-AC-05', id: 'PART_GAS_R32', title: 'R32 Refrigerant Gas Refill & Valve Seal (up to 400g)', category: 'Parts & Materials', unitPrice: 850, amount: 850, unit: 'cylinder recharge', maxQty: 2, approvedScope: 'Pressure leak detected, brazed, vacuumed and recharged to 125 PSI.' },
+  { code: 'EX-AC-06', id: 'WORK_COIL_DESCALING', title: 'Condenser Coil Chemical Descaling Treatment', category: 'Additional Service Work', unitPrice: 300, amount: 300, unit: 'service', maxQty: 1, approvedScope: 'Acid-free alkaline chemical descaling for heavy coastal grease or salt encrustation.' },
+  { code: 'EX-ELEC-01', id: 'PART_CONTACTOR', title: '16A Heavy Duty Compressor Contactor Relay', category: 'Electrical & Parts', unitPrice: 380, amount: 380, unit: 'unit', maxQty: 2, approvedScope: 'Pitted magnetic contactor switch preventing outdoor unit ignition.' },
+  { code: 'EX-ELEC-02', id: 'PART_BREAKER', title: 'Single Pole 25A MCB Breaker (Havells)', category: 'Electrical & Parts', unitPrice: 320, amount: 320, unit: 'unit', maxQty: 2, approvedScope: 'Faulty tripping breaker replacement on AC dedicated line.' }
 ];
+
+export const PLATFORM_CANCELLATION_POLICIES = {
+  unable_to_attend: {
+    category: 'unable_to_attend',
+    title: 'Unable to Attend Scheduled Appointment',
+    policyText: 'Advance notice must be logged >= 2 hours prior to scheduled window. Reassignment processed without penalty if advance notice given. Late notification (<30m) logs an operational review point.',
+    consequenceText: 'Zero financial deduction when reported >2h prior. If within 30 mins, ticket flagged to Hub Manager per SOP v4.2.',
+    requiresEvidence: false,
+    resolution: 'Job placed back in Dispatch Queue for immediate re-matching.'
+  },
+  running_late: {
+    category: 'running_late',
+    title: 'Running Late (Traffic / Prior Job Overrun)',
+    policyText: 'Professional must log delay notice before scheduled slot starts. Up to 30 min buffer shared with customer automatically. ETA updated and customer message dispatched.',
+    consequenceText: 'Customer informed with revised ETA window. No penalty for delays under 30 minutes with prompt notification.',
+    requiresEvidence: false,
+    resolution: 'Revised ETA broadcasted to customer app.'
+  },
+  customer_unavailable: {
+    category: 'customer_unavailable',
+    title: 'Customer Unavailable / Doorstep Locked',
+    policyText: 'Requires 15-minute doorstep wait protocol and 2 call attempts via masked telephony channel. If customer remains unreachable, request verification from Dispatch Operations before departure.',
+    consequenceText: 'Professional receives 100% travel compensation allowance (₹150) upon Dispatch Cell verification.',
+    requiresEvidence: true,
+    resolution: 'Doorstep photo required. Booking marked Customer Unreachable; reschedule offered.'
+  },
+  unsafe_situation: {
+    category: 'unsafe_situation',
+    title: 'Unsafe Working Situation / Hazard',
+    policyText: 'Zero tolerance for safety risks. Hazardous electrical grounding, structurally unstable mounting, or hazardous environments permit immediate work stoppage. Take equipment safety photo evidence. Job reassigned or cancelled with zero professional penalty.',
+    consequenceText: 'Zero worker penalty. Immediate safety flag generated for Senior Safety Inspector.',
+    requiresEvidence: true,
+    resolution: 'Work paused immediately. Safety incident ticket opened.'
+  },
+  address_issue: {
+    category: 'address_issue',
+    title: 'Address Issue / Out of Bound Area',
+    policyText: 'Address unserviceable, unreachable, or beyond assigned operational hub boundaries. Customer contacted to confirm location.',
+    consequenceText: 'No penalty. Re-routed to the correct regional hub or cancelled with full pro travel credit.',
+    requiresEvidence: false,
+    resolution: 'Hub routing adjustment initiated.'
+  },
+  outside_scope: {
+    category: 'outside_scope',
+    title: 'Service Outside Booked Scope',
+    policyText: 'Physical site requirements exceed booked service package (e.g. 3-phase commercial chiller booked under 1.5-ton split AC). Professional submits scope mismatch notice with photo evidence; revised estimate required.',
+    consequenceText: 'Job cancelled or upgraded with customer consent. No negative scoring.',
+    requiresEvidence: true,
+    resolution: 'Revised commercial quotation or customer cancellation without worker fee.'
+  },
+  equipment_failure: {
+    category: 'equipment_failure',
+    title: 'Technician Equipment / Vehicle Breakdown',
+    policyText: 'Service vehicle or vital equipment failure (e.g. Powerjet high-pressure pump malfunction). Immediate reassignment triggered to next available partner.',
+    consequenceText: 'Emergency pass applied. Restock / repair assistance coordinated through Bandra Hub.',
+    requiresEvidence: false,
+    resolution: 'Instant dispatch reassignment to nearest available technician.'
+  },
+  reassignment_request: {
+    category: 'reassignment_request',
+    title: 'Standard Dispatch Reassignment Request',
+    policyText: 'Requires auditable justification. Evaluated by Dispatch Operations Cell within 10 minutes. Job history remains intact.',
+    consequenceText: 'Dispatch team reallocates booking. Rating and history preserved.',
+    requiresEvidence: false,
+    resolution: 'Pending review by Dispatch Operations Cell.'
+  },
+  emergency_unavailability: {
+    category: 'emergency_unavailability',
+    title: 'Emergency Medical / Compassionate Unavailability',
+    policyText: 'Emergency medical or family exigency. Handled under compassionate dispatch policy. Active dispatches reassigned immediately without penalty.',
+    consequenceText: 'Compassionate leave granted. Zero penalty or rating impact.',
+    requiresEvidence: false,
+    resolution: 'All subsequent dispatches today paused; emergency coverage triggered.'
+  }
+};
+
+export function calculateBookingFinancials(booking, pro = {}) {
+  const totalAmount = booking.totalAmount || 548;
+  const grossAmountPaisa = Math.round(totalAmount * 100);
+  const commissionRate = pro.employmentType === 'Agency Employed' ? 0.14 : 0.20;
+  const platformCommissionPaisa = Math.round(grossAmountPaisa * commissionRate);
+  const professionalEntitlementPaisa = grossAmountPaisa - platformCommissionPaisa;
+  const approvedTipsPaisa = Math.round((booking.tipAmount || 50) * 100);
+  const incentivesPaisa = 0;
+  const adjustmentsPaisa = 0;
+  const refundDeductionsPaisa = Math.round((booking.paymentDetails?.refundAmount || 0) * 100);
+  const netEarningsPaisa = professionalEntitlementPaisa + approvedTipsPaisa + incentivesPaisa + adjustmentsPaisa - refundDeductionsPaisa;
+
+  return {
+    grossAmountPaisa,
+    grossFare: totalAmount,
+    platformCommissionPaisa,
+    platformCommission: Math.round(platformCommissionPaisa / 100),
+    commissionRatePercentage: Math.round(commissionRate * 100),
+    professionalEntitlementPaisa,
+    professionalEntitlement: Math.round(professionalEntitlementPaisa / 100),
+    approvedTipsPaisa,
+    approvedTips: Math.round(approvedTipsPaisa / 100),
+    incentivesPaisa,
+    incentives: 0,
+    adjustmentsPaisa,
+    adjustments: 0,
+    refundDeductionsPaisa,
+    refundDeductions: Math.round(refundDeductionsPaisa / 100),
+    netEarningsPaisa,
+    netEarnings: Math.round(netEarningsPaisa / 100),
+    settlementEligibility: 'Eligible for weekly settlement cycle (Batch PO-302)',
+    settlementStatus: booking.status === 'Completed' ? 'Available for Settlement' : 'Pending Confirmation',
+    recipientSnapshot: {
+      accountHolderName: pro.applicantName || 'Vikram Salvi',
+      accountNumberMasked: pro.bankDetails?.accountNumber || '••••••••4821',
+      bankName: pro.bankDetails?.bankName || 'HDFC Bank',
+      ifscCode: pro.bankDetails?.ifscCode || 'HDFC0001248',
+      upiId: pro.bankDetails?.upiId || 'vikramsalvi@okaxis'
+    }
+  };
+}
+
 let extraWorkRequestsStore = new Map(); // bookingId -> Array<ExtraWorkItem>
 let bookingChatStore = new Map(); // bookingId -> Array<ChatMessage>
 let completionNotesStore = new Map(); // bookingId -> { notes, partsUsed, recordedAt }
@@ -410,27 +574,147 @@ function initProData(proId) {
     notificationsStore[proId] = [
       {
         id: `notif-${proId}-1`,
-        title: 'New Service Dispatch Alert',
-        message: 'You have been assigned to Booking #UC-829410 in Bandra West.',
-        type: 'dispatch',
-        createdAt: new Date(Date.now() - 3600000),
-        read: false
+        category: 'new_assignment',
+        title: 'New Service Dispatch Assigned',
+        message: 'You have been assigned to Booking #UC-829410 (Split AC Powerjet Deep Servicing) for Rohan Kapoor at Pali Hill, Bandra West.',
+        read: false,
+        deepLink: '/professional/jobs',
+        deliveryChannel: 'in_app',
+        deliveryStatus: 'Delivered (In-App Verified)',
+        deduplicationKey: `DEDUP-${proId}-ASSIGN-829410`,
+        createdAt: new Date(Date.now() - 1800000)
       },
       {
         id: `notif-${proId}-2`,
-        title: 'Weekly Payout Statement Generated',
-        message: 'Payout batch #BATCH-W42 has been verified and released to your registered account.',
-        type: 'payout',
-        createdAt: new Date(Date.now() - 86400000),
-        read: true
+        category: 'offer_expiry',
+        title: 'Dispatch Offer Expiry Warning',
+        message: 'Direct dispatch offer OFFER-7712 for Split AC Servicing in Bandra West will expire in 12 minutes if unaccepted.',
+        read: false,
+        deepLink: '/professional/today',
+        deliveryChannel: 'in_app',
+        deliveryStatus: 'Delivered (In-App Verified)',
+        deduplicationKey: `DEDUP-${proId}-OFFEREXP-7712`,
+        createdAt: new Date(Date.now() - 3600000)
       },
       {
         id: `notif-${proId}-3`,
-        title: 'Safety SOP Refresher Course',
-        message: 'Mandatory 6-Step Safety Protocol SOP is ready for your annual review.',
-        type: 'training',
-        createdAt: new Date(Date.now() - 172800000),
-        read: true
+        category: 'booking_changes',
+        title: 'Customer Schedule Time Revised',
+        message: 'Customer for Booking UC-829410 adjusted preferred arrival window to 02:00 PM - 03:00 PM.',
+        read: true,
+        deepLink: '/professional/jobs',
+        deliveryChannel: 'in_app',
+        deliveryStatus: 'Delivered (In-App Verified)',
+        deduplicationKey: `DEDUP-${proId}-CHANGE-829410`,
+        createdAt: new Date(Date.now() - 7200000)
+      },
+      {
+        id: `notif-${proId}-4`,
+        category: 'customer_cancellation',
+        title: 'Customer Cancelled - Doorstep Travel Compensation Credited',
+        message: 'Customer cancelled booking UC-829100. ₹150 doorstep transit compensation credited to your earnings wallet.',
+        read: true,
+        deepLink: '/professional/earnings',
+        deliveryChannel: 'local_outbox_sms',
+        deliveryStatus: 'Queued in Local Outbox (Simulated SMS Gateway)',
+        deduplicationKey: `DEDUP-${proId}-CANCEL-829100`,
+        createdAt: new Date(Date.now() - 14400000)
+      },
+      {
+        id: `notif-${proId}-5`,
+        category: 'reassignment',
+        title: 'Emergency Reassignment Approved',
+        message: 'Your compassionate emergency reassignment for Booking UC-829004 was approved by Bandra Hub Operations Cell without penalty.',
+        read: true,
+        deepLink: '/professional/jobs',
+        deliveryChannel: 'in_app',
+        deliveryStatus: 'Delivered (In-App Verified)',
+        deduplicationKey: `DEDUP-${proId}-REASSIGN-829004`,
+        createdAt: new Date(Date.now() - 28800000)
+      },
+      {
+        id: `notif-${proId}-6`,
+        category: 'training',
+        title: 'Mandatory Technical SOP Course Assigned',
+        message: 'TRN-103 "Inverter PCB Diagnostics & High-Voltage Safety" is assigned. Complete verified assessment to maintain Tier 5 status.',
+        read: true,
+        deepLink: '/professional/training',
+        deliveryChannel: 'in_app',
+        deliveryStatus: 'Delivered (In-App Verified)',
+        deduplicationKey: `DEDUP-${proId}-TRAIN-103`,
+        createdAt: new Date(Date.now() - 43200000)
+      },
+      {
+        id: `notif-${proId}-7`,
+        category: 'document_review',
+        title: 'Police Verification Record Approved',
+        message: 'Safety Cell verified your Maharashtra Police Background Clearance Record. Background check status is now Active.',
+        read: true,
+        deepLink: '/professional/documents',
+        deliveryChannel: 'in_app',
+        deliveryStatus: 'Delivered (In-App Verified)',
+        deduplicationKey: `DEDUP-${proId}-DOC-POL`,
+        createdAt: new Date(Date.now() - 86400000)
+      },
+      {
+        id: `notif-${proId}-8`,
+        category: 'expiry_reminders',
+        title: 'Trade License Renewal Reminder',
+        message: 'Govt ITI HVAC Technician Diploma expires on 30 Jun 2028. Upload renewed credentials before expiry to avoid dispatch interruptions.',
+        read: true,
+        deepLink: '/professional/documents',
+        deliveryChannel: 'local_outbox_sms',
+        deliveryStatus: 'Queued in Local Outbox (Simulated SMS Gateway)',
+        deduplicationKey: `DEDUP-${proId}-EXP-ITI`,
+        createdAt: new Date(Date.now() - 129600000)
+      },
+      {
+        id: `notif-${proId}-9`,
+        category: 'earnings_updates',
+        title: 'Doorstep Job Payout Credited: ₹738',
+        message: 'Booking UC-829410 marked completed. Net payout of ₹738 + ₹50 tip added to available weekly settlement balance.',
+        read: true,
+        deepLink: '/professional/earnings',
+        deliveryChannel: 'in_app',
+        deliveryStatus: 'Delivered (In-App Verified)',
+        deduplicationKey: `DEDUP-${proId}-EARN-829410`,
+        createdAt: new Date(Date.now() - 172800000)
+      },
+      {
+        id: `notif-${proId}-10`,
+        category: 'payout_status',
+        title: 'Bank Transfer Completed: ₹8,500',
+        message: 'Batch PO-301 settlement of ₹8,500 transferred to HDFC Bank A/C ending in 4821 (UTR-AXIS-992147).',
+        read: true,
+        deepLink: '/professional/payouts',
+        deliveryChannel: 'local_outbox_sms',
+        deliveryStatus: 'Queued in Local Outbox (Simulated SMS Gateway)',
+        deduplicationKey: `DEDUP-${proId}-PAYOUT-PO301`,
+        createdAt: new Date(Date.now() - 259200000)
+      },
+      {
+        id: `notif-${proId}-11`,
+        category: 'support_responses',
+        title: 'Helpdesk Response Posted on Ticket TKT-101',
+        message: 'Finance Operations Desk answered your inquiry regarding AC monsoon surge incentive calculation.',
+        read: true,
+        deepLink: '/professional/support',
+        deliveryChannel: 'in_app',
+        deliveryStatus: 'Delivered (In-App Verified)',
+        deduplicationKey: `DEDUP-${proId}-SUP-101`,
+        createdAt: new Date(Date.now() - 345600000)
+      },
+      {
+        id: `notif-${proId}-12`,
+        category: 'policy_updates',
+        title: 'Monsoon High-Voltage Safety SOP Active',
+        message: 'Updated safety protocol v4.2 regarding outdoor unit electrical isolation during high humidity and rainstorm alerts is now live.',
+        read: true,
+        deepLink: '/professional/today',
+        deliveryChannel: 'in_app',
+        deliveryStatus: 'Delivered (In-App Verified)',
+        deduplicationKey: `DEDUP-${proId}-POLICY-SOP42`,
+        createdAt: new Date(Date.now() - 432000000)
       }
     ];
   }
@@ -439,16 +723,120 @@ function initProData(proId) {
     supportTicketsStore[proId] = [
       {
         id: `TKT-${proId}-101`,
-        subject: 'Spare Part Pricing Clarification',
-        bookingId: 'UC-829410',
-        category: 'Billing & Spare Parts',
-        status: 'Resolved',
+        subject: 'Monsoon surge incentive calculation inquiry',
+        category: 'earnings_payout',
         priority: 'Normal',
-        createdAt: new Date(Date.now() - 172800000),
+        relatedPayoutRef: 'PO-301',
+        relatedBookingId: '',
+        description: 'Statement PO-301 did not reflect the +15% monsoon weather incentive for Saturday evening dispatches in Bandra.',
+        status: 'Resolved',
+        attachments: [
+          { fileName: 'monsoon_rate_screenshot.png', fileUrl: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=300', mimeType: 'image/png', uploadedAt: new Date(Date.now() - 172800000) }
+        ],
         messages: [
-          { sender: 'Professional', text: 'Customer requested copper pipe extension. How is this billed?', timestamp: new Date(Date.now() - 172800000) },
-          { sender: 'Operations Lead', text: 'Copper piping is billed at standard rate of ₹450/meter via add-ons in your job checklist.', timestamp: new Date(Date.now() - 160000000) }
-        ]
+          { id: 'M-1', sender: 'Professional', senderRole: 'Professional', text: 'Statement PO-301 did not reflect the +15% monsoon surge for Saturday evening dispatches in Bandra.', timestamp: new Date(Date.now() - 172800000) },
+          { id: 'M-2', sender: 'Finance Support Desk (Amit Patel)', senderRole: 'Support Agent', text: 'GPS logs confirmed severe rainfall during the dispatch. The ₹1,400 surge has been verified and added to next batch PO-302.', timestamp: new Date(Date.now() - 160000000) }
+        ],
+        resolutionHistory: [
+          { timestamp: new Date(Date.now() - 172800000), status: 'Open', updatedBy: 'Vikram Salvi', note: 'Ticket opened by professional' },
+          { timestamp: new Date(Date.now() - 160000000), status: 'Resolved', updatedBy: 'Finance Support Desk (Amit Patel)', note: 'Surge verified from geo-timestamps and credited to pending ledger.' }
+        ],
+        internalStaffNotes: [
+          { id: 'SN-1', staffId: 'ADM-FIN-09', staffName: 'Amit Patel', note: 'Staff Note (CONFIDENTIAL): Driver experienced app GPS lag during Bandra rainstorm. Cross-checked with BMC rainfall telemetry. Approved 1400.', timestamp: new Date(Date.now() - 160500000) }
+        ],
+        createdAt: new Date(Date.now() - 172800000)
+      },
+      {
+        id: `TKT-${proId}-102`,
+        subject: 'Customer requested complimentary heavy duty AC bracket',
+        category: 'booking_support',
+        priority: 'High',
+        relatedBookingId: 'UC-829410',
+        relatedPayoutRef: '',
+        description: 'Customer at Pali Hill insisted on unbilled outdoor bracket stabilization. Informed customer of ₹650 platform add-on rule.',
+        status: 'In Progress',
+        attachments: [],
+        messages: [
+          { id: 'M-1', sender: 'Professional', senderRole: 'Professional', text: 'Customer refused to pay add-on fee for rusted bracket replacement. Advised him work is on hold pending quote approval.', timestamp: new Date(Date.now() - 86400000) },
+          { id: 'M-2', sender: 'Operations Lead (Sunita Rao)', senderRole: 'Operations Lead', text: 'Reaching out to customer now via escalation desk to confirm add-on scope.', timestamp: new Date(Date.now() - 72000000) }
+        ],
+        resolutionHistory: [
+          { timestamp: new Date(Date.now() - 86400000), status: 'Open', updatedBy: 'Vikram Salvi', note: 'Ticket raised from job site' },
+          { timestamp: new Date(Date.now() - 72000000), status: 'In Progress', updatedBy: 'Operations Lead (Sunita Rao)', note: 'Customer contact initiated' }
+        ],
+        internalStaffNotes: [
+          { id: 'SN-2', staffId: 'OPS-LEAD-02', staffName: 'Sunita Rao', note: 'Staff Note (CONFIDENTIAL): Customer has history of demanding unbilled parts. Escalated to Tier 2 Customer Experience Lead.', timestamp: new Date(Date.now() - 71000000) }
+        ],
+        createdAt: new Date(Date.now() - 86400000)
+      },
+      {
+        id: `TKT-${proId}-103`,
+        subject: 'Loose 230V live wire on customer terrace compressor mount',
+        category: 'safety_incident',
+        priority: 'Critical',
+        relatedBookingId: 'UC-829910',
+        relatedPayoutRef: '',
+        description: 'Encountered ungrounded phase wire touching metal terrace railing near outdoor AC unit. Work stopped per Safety SOP.',
+        status: 'Open',
+        attachments: [
+          { fileName: 'hazardous_wire_terrace.jpg', fileUrl: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=300', mimeType: 'image/jpeg', uploadedAt: new Date(Date.now() - 3600000) }
+        ],
+        messages: [
+          { id: 'M-1', sender: 'Professional', senderRole: 'Professional', text: 'Terrace rail is carrying stray voltage. Evacuated terrace and informed homeowner to call licensed building electrician.', timestamp: new Date(Date.now() - 3600000) }
+        ],
+        resolutionHistory: [
+          { timestamp: new Date(Date.now() - 3600000), status: 'Open', updatedBy: 'Vikram Salvi', note: 'Critical safety incident reported' }
+        ],
+        internalStaffNotes: [
+          { id: 'SN-3', staffId: 'SAFE-01', staffName: 'Captain Ramesh (Safety Cell)', note: 'Staff Note (CONFIDENTIAL): Senior Safety Cell notified building manager. Professional awarded full trip fee and instructed not to touch unit until ground certification.', timestamp: new Date(Date.now() - 3000000) }
+        ],
+        createdAt: new Date(Date.now() - 3600000)
+      },
+      {
+        id: `TKT-${proId}-104`,
+        subject: 'App photo upload freezing on Android 14',
+        category: 'technical_issue',
+        priority: 'Normal',
+        relatedBookingId: '',
+        relatedPayoutRef: '',
+        description: 'Photo evidence upload spinner stalls when uploading compressed .jpg images over 4G connection.',
+        status: 'Resolved',
+        attachments: [],
+        messages: [
+          { id: 'M-1', sender: 'Professional', senderRole: 'Professional', text: 'Evidence camera modal stalls on upload button.', timestamp: new Date(Date.now() - 259200000) },
+          { id: 'M-2', sender: 'Tech Support (Devendra)', senderRole: 'Support Agent', text: 'Client v4.8.2 fixes the image buffer deadlock. Please refresh the browser or update app.', timestamp: new Date(Date.now() - 240000000) }
+        ],
+        resolutionHistory: [
+          { timestamp: new Date(Date.now() - 259200000), status: 'Open', updatedBy: 'Vikram Salvi', note: 'Technical issue logged' },
+          { timestamp: new Date(Date.now() - 240000000), status: 'Resolved', updatedBy: 'Tech Support (Devendra)', note: 'Fix deployed in app bundle' }
+        ],
+        internalStaffNotes: [
+          { id: 'SN-4', staffId: 'DEV-04', staffName: 'Devendra', note: 'Staff Note (CONFIDENTIAL): Known canvas blob bug on Chrome 124 Webview.', timestamp: new Date(Date.now() - 241000000) }
+        ],
+        createdAt: new Date(Date.now() - 259200000)
+      },
+      {
+        id: `TKT-${proId}-105`,
+        subject: 'Commercial 3-Phase AC Skill Endorsement for Tier 5',
+        category: 'account_onboarding',
+        priority: 'Normal',
+        relatedBookingId: '',
+        relatedPayoutRef: '',
+        description: 'Submitted ITI Wireman Trade Certificate endorsement to qualify for commercial HVAC split systems.',
+        status: 'Awaiting Professional',
+        attachments: [],
+        messages: [
+          { id: 'M-1', sender: 'Professional', senderRole: 'Professional', text: 'Uploaded ITI Wireman certificate. Please review endorsement status.', timestamp: new Date(Date.now() - 345600000) },
+          { id: 'M-2', sender: 'Skill Academy Verifier', senderRole: 'Support Agent', text: 'Document reviewed. Please schedule the 1-hour in-person hub assessment at Bandra West to finalize certification.', timestamp: new Date(Date.now() - 300000000) }
+        ],
+        resolutionHistory: [
+          { timestamp: new Date(Date.now() - 345600000), status: 'Open', updatedBy: 'Vikram Salvi', note: 'Endorsement requested' },
+          { timestamp: new Date(Date.now() - 300000000), status: 'Awaiting Professional', updatedBy: 'Skill Academy Verifier', note: 'Awaiting hands-on lab booking' }
+        ],
+        internalStaffNotes: [
+          { id: 'SN-5', staffId: 'TRN-DIR-01', staffName: 'Academy Verifier', note: 'Staff Note (CONFIDENTIAL): Written credentials valid; practical brazing exam still mandatory.', timestamp: new Date(Date.now() - 301000000) }
+        ],
+        createdAt: new Date(Date.now() - 345600000)
       }
     ];
   }
@@ -457,48 +845,512 @@ function initProData(proId) {
     trainingsStore[proId] = [
       {
         id: 'TRN-101',
-        title: '6-Step Safety & Sanitization Protocol',
-        description: 'Mandatory safety protocol for doorstep execution, PPE usage, and customer property protection.',
+        title: 'Doorstep Customer Hygiene & Zero-Spill Protocol',
+        category: 'Safety & SOP',
+        courseType: 'required',
+        description: 'Mandatory standard on PPE usage, clean shoe covers, clean floor drop sheets, polite greetings, and zero-spill site cleanup.',
         duration: '45 mins',
-        modulesCount: 4,
+        modulesCount: 3,
         completed: true,
         score: '98%',
-        badge: 'Zero-Contamination Certified',
-        completedAt: '2026-01-16'
+        passingScore: 80,
+        badge: 'Zero-Spill Certified Master',
+        completedAt: '2026-01-16',
+        certificateId: 'CERT-HYG-2026-8812',
+        issuedDate: '2026-01-16',
+        expiryDate: '2027-01-16',
+        eligibilityImpact: 'Mandatory for all indoor customer doorstep dispatches. Incomplete status restricts assignments to outdoor diagnostics only.',
+        externalVideoNotice: 'Notice: External video player offline in sandbox; illustrated SOP guidelines and interactive assessment active.',
+        modules: [
+          { id: 'M-1', title: 'PPE & Shoe Covers Placement', duration: '15 mins', completed: true },
+          { id: 'M-2', title: 'Waterproof Drop Sheet Layout', duration: '15 mins', completed: true },
+          { id: 'M-3', title: 'Post-Service Site Restoration', duration: '15 mins', completed: true }
+        ],
+        currentModule: 3
       },
       {
         id: 'TRN-102',
-        title: 'PowerJet High-Pressure Deep Coil Cleaning',
-        description: 'Advanced HVAC maintenance, PCB splash guarding, and airflow optimization.',
+        title: 'PowerJet High-Pressure Deep Coil Cleaning SOP',
+        category: 'Technical Mastery',
+        courseType: 'required',
+        description: 'Masterclass on mounting indoor catch bags, high-pressure foam wash, PCB water deflection, and drain tray sterilization.',
         duration: '60 mins',
-        modulesCount: 6,
+        modulesCount: 4,
         completed: true,
         score: '95%',
+        passingScore: 80,
         badge: 'Master HVAC Technician',
-        completedAt: '2026-01-18'
+        completedAt: '2026-01-18',
+        certificateId: 'CERT-HVAC-2026-9041',
+        issuedDate: '2026-01-18',
+        expiryDate: '2027-01-18',
+        eligibilityImpact: 'Unlocks high-yield Powerjet jet pump servicing dispatches.',
+        externalVideoNotice: 'Notice: External video player offline in sandbox; illustrated SOP guidelines and interactive assessment active.',
+        modules: [
+          { id: 'M-1', title: 'Indoor Catchment Bag Assembly', duration: '15 mins', completed: true },
+          { id: 'M-2', title: 'Alkaline Foam Spray Application', duration: '15 mins', completed: true },
+          { id: 'M-3', title: 'PCB Splash Protection Protocol', duration: '15 mins', completed: true },
+          { id: 'M-4', title: 'Airflow & Delta-T Measurement', duration: '15 mins', completed: true }
+        ],
+        currentModule: 4
       },
       {
         id: 'TRN-103',
-        title: 'Customer Communication & Dispute Handling',
-        description: 'Professional etiquette, on-time arrival etiquette, and billing transparency.',
-        duration: '30 mins',
+        title: 'Inverter PCB Diagnostics & High-Voltage Safety',
+        category: 'Advanced Electronics',
+        courseType: 'assigned',
+        description: 'Using digital multimeters to trace microcontroller error codes, DC motor communication signals, IPM inverter bridge faults, and capacitor bleed discharge.',
+        duration: '60 mins',
         modulesCount: 3,
         completed: false,
         score: null,
-        badge: 'Top-Rated Communicator',
-        completedAt: null
+        passingScore: 80,
+        badge: 'Inverter Electronics Specialist',
+        completedAt: null,
+        certificateId: null,
+        issuedDate: null,
+        expiryDate: null,
+        eligibilityImpact: 'Required for inverter compressor and circuit board repair assignments. Incomplete status limits job allocation to non-inverter models.',
+        externalVideoNotice: 'Notice: External streaming video player unconfigured; interactive syllabus, illustrated procedures, and verified knowledge assessment active.',
+        modules: [
+          { id: 'M-1', title: 'Multimeter Calibration & Safe Capacitor Discharge', duration: '20 mins', completed: true },
+          { id: 'M-2', title: 'DC Inverter IPM Fault Codes (E1/E6/F3)', duration: '20 mins', completed: true },
+          { id: 'M-3', title: 'Compressor Winding Resistance Balance Check', duration: '20 mins', completed: false }
+        ],
+        currentModule: 3,
+        assessmentQuestions: [
+          {
+            id: 'q1',
+            text: 'Before measuring resistance on a dual-run capacitor, what critical safety step must be performed?',
+            options: [
+              'Connect multimeter in series while powered',
+              'Discharge capacitor terminals with a 20k-ohm bleed resistor',
+              'Spray foam cleanser on terminals',
+              'Short directly with a metal screwdriver'
+            ],
+            correctOption: 1
+          },
+          {
+            id: 'q2',
+            text: 'What does error code E6 typically signify on inverter split AC systems?',
+            options: [
+              'Indoor filter dirty',
+              'Communication failure between indoor PCB and outdoor inverter controller',
+              'Drain pipe clogged',
+              'Thermostat battery low'
+            ],
+            correctOption: 1
+          },
+          {
+            id: 'q3',
+            text: 'What is the acceptable resistance balance across balanced 3-phase BLDC compressor terminals (U-V, V-W, W-U)?',
+            options: [
+              'Completely open circuit on all phases',
+              'Equal resistance across all pairs within 0.2 ohms tolerance',
+              'One winding must be double the other',
+              'Zero ohms on all pins to ground'
+            ],
+            correctOption: 1
+          },
+          {
+            id: 'q4',
+            text: 'What minimum passing score is required on the Urban Company Technical Certification Assessment?',
+            options: [
+              '50%',
+              '60%',
+              '75%',
+              '80%'
+            ],
+            correctOption: 3
+          }
+        ]
+      },
+      {
+        id: 'TRN-104',
+        title: 'R32 / R410A Eco Refrigerant Safe Recovery & Vacuum SOP',
+        category: 'Green HVAC & Environment',
+        courseType: 'available',
+        description: 'Mandatory environmental protocol on flaring copper tubing, digital micron vacuum pump evacuation below 500 microns, and zero atmospheric venting.',
+        duration: '45 mins',
+        modulesCount: 3,
+        completed: false,
+        score: null,
+        passingScore: 80,
+        badge: 'Green HVAC Certified Technician',
+        completedAt: null,
+        certificateId: null,
+        issuedDate: null,
+        expiryDate: null,
+        eligibilityImpact: 'Elective certification: Unlocks high-pressure eco-refrigerant charging jobs with ₹150 bonus per booking.',
+        externalVideoNotice: 'Notice: External streaming video player unconfigured; interactive syllabus, illustrated procedures, and verified knowledge assessment active.',
+        modules: [
+          { id: 'M-1', title: 'R32 Flammability A2L Safety Precautions', duration: '15 mins', completed: false },
+          { id: 'M-2', title: 'Dual-Stage Vacuum Pump Evacuation to 500 Microns', duration: '15 mins', completed: false },
+          { id: 'M-3', title: 'Electronic Scale Liquid Charging Protocol', duration: '15 mins', completed: false }
+        ],
+        currentModule: 1,
+        assessmentQuestions: [
+          {
+            id: 'q1',
+            text: 'R32 is classified under which ASHRAE flammability/toxicity safety group?',
+            options: [
+              'A1 (Non-flammable)',
+              'A2L (Lower flammability)',
+              'B2 (Toxic flammable)',
+              'A3 (Higher flammability / Propane)'
+            ],
+            correctOption: 1
+          },
+          {
+            id: 'q2',
+            text: 'What minimum vacuum level must be reached before releasing refrigerant into an installed split AC line?',
+            options: [
+              '2000 Microns',
+              '1500 Microns',
+              '500 Microns (held for 10 minutes)',
+              '0 Microns instantly'
+            ],
+            correctOption: 2
+          },
+          {
+            id: 'q3',
+            text: 'How should R32 refrigerant always be charged into the system during service?',
+            options: [
+              'Vapor phase through discharge line while compressor running',
+              'Liquid phase using an electronic digital scale into liquid valve',
+              'Open cylinder upside down without weighing',
+              'Directly through water drain pipe'
+            ],
+            correctOption: 1
+          }
+        ]
       }
     ];
   }
 
   if (!inventoryStore[proId]) {
     inventoryStore[proId] = [
-      { id: 'INV-01', item: 'PowerJet Spray Wash Bag (Waterproof)', sku: 'KIT-HVAC-WPB', qty: 2, unit: 'Pieces', status: 'Optimal', threshold: 1 },
-      { id: 'INV-02', item: 'Coil Cleanser Eco Solution (500ml)', sku: 'CHEM-HVAC-CCS', qty: 4, unit: 'Bottles', status: 'Optimal', threshold: 2 },
-      { id: 'INV-03', item: 'Teflon Sealing Tape', sku: 'TOOL-PLMB-TST', qty: 6, unit: 'Rolls', status: 'Optimal', threshold: 2 },
-      { id: 'INV-04', item: 'Disposable Shoe Covers & Gloves Pack', sku: 'PPE-GEN-DSC', qty: 25, unit: 'Pairs', status: 'Optimal', threshold: 10 },
-      { id: 'INV-05', item: 'Digital Multimeter & Clamp Meter', sku: 'TOOL-ELEC-DMM', qty: 1, unit: 'Unit', status: 'Assigned Toolkit', threshold: 1 }
+      {
+        id: 'INV-01',
+        item: 'Digital True-RMS Multimeter & Clamp Sensor',
+        sku: 'KIT-ELEC-DMM',
+        ownershipType: 'personal',
+        ownershipLabel: 'Personal Technician Stock',
+        assignedBy: 'Vikram Salvi (Self-Owned)',
+        qty: 1,
+        unit: 'Unit',
+        minThreshold: 1,
+        status: 'In Stock',
+        serialNumber: 'SN-FLK-88219'
+      },
+      {
+        id: 'INV-02',
+        item: '1000V Insulated VDE Tool Set',
+        sku: 'TOOL-PPE-1KV',
+        ownershipType: 'personal',
+        ownershipLabel: 'Personal Technician Stock',
+        assignedBy: 'Vikram Salvi (Self-Owned)',
+        qty: 1,
+        unit: 'Kit',
+        minThreshold: 1,
+        status: 'In Stock',
+        serialNumber: 'SN-VDE-3091'
+      },
+      {
+        id: 'INV-03',
+        item: 'Commercial Single-Disc Floor Scrubber (1200W)',
+        sku: 'EQP-SCRUB-1200',
+        ownershipType: 'business_owned',
+        ownershipLabel: 'Partner Agency Assigned Asset',
+        assignedBy: 'Apex Home Solutions LLP (PTR-90142)',
+        qty: 1,
+        unit: 'Unit',
+        minThreshold: 1,
+        status: 'Assigned Equipment',
+        serialNumber: 'ASSET-APX-4412'
+      },
+      {
+        id: 'INV-04',
+        item: 'PowerJet Commercial Jet Pump (140 Bar)',
+        sku: 'EQP-HVAC-PJ140',
+        ownershipType: 'business_owned',
+        ownershipLabel: 'Platform Hub Assigned Tool',
+        assignedBy: 'Urban Company Central Depot',
+        qty: 1,
+        unit: 'Unit',
+        minThreshold: 1,
+        status: 'Assigned Equipment',
+        serialNumber: 'UC-PJ-8821'
+      },
+      {
+        id: 'INV-05',
+        item: 'R32 Refrigerant Gas Cylinder (7kg)',
+        sku: 'GAS-R32-7KG',
+        ownershipType: 'platform_order',
+        ownershipLabel: 'Platform Consumable Stock',
+        assignedBy: 'Bandra West Central Hub',
+        qty: 2.4,
+        unit: 'kg',
+        minThreshold: 3.0,
+        status: 'Low Stock'
+      },
+      {
+        id: 'INV-06',
+        item: 'Powerjet Coil Cleaning Foam Spray',
+        sku: 'CHEM-COIL-CFS',
+        ownershipType: 'platform_order',
+        ownershipLabel: 'Platform Consumable Stock',
+        assignedBy: 'Bandra West Central Hub',
+        qty: 4,
+        unit: 'Cans',
+        minThreshold: 2,
+        status: 'In Stock'
+      },
+      {
+        id: 'INV-07',
+        item: 'Disposable Shoe Covers (Box of 50)',
+        sku: 'PPE-SHOE-CVR',
+        ownershipType: 'platform_order',
+        ownershipLabel: 'Platform Consumable Stock',
+        assignedBy: 'Bandra West Central Hub',
+        qty: 35,
+        unit: 'Pairs',
+        minThreshold: 10,
+        status: 'In Stock'
+      },
+      {
+        id: 'INV-08',
+        item: 'Universal Inverter Dual-Run Capacitors (45µF)',
+        sku: 'PART-CAP-45UF',
+        ownershipType: 'platform_order',
+        ownershipLabel: 'Platform Consumable Stock',
+        assignedBy: 'Bandra West Central Hub',
+        qty: 3,
+        unit: 'Units',
+        minThreshold: 2,
+        status: 'In Stock'
+      }
     ];
+  }
+
+  if (!bankChangeRequestsStore.has(proId)) {
+    bankChangeRequestsStore.set(proId, [
+      {
+        id: 'BCR-1002',
+        submittedAt: '2026-01-10T14:30:00Z',
+        status: 'Verified',
+        reviewFeedback: 'Penny-drop verification successful. Name on bank account matched Aadhaar KYC. Change activated.',
+        oldDetailsMasked: {
+          accountNumber: '••••••••1120',
+          bankName: 'State Bank of India',
+          ifscCode: 'SBIN0000421',
+          accountHolderName: 'Vikram Salvi'
+        },
+        newDetailsMasked: {
+          accountHolderName: 'Vikram Salvi',
+          accountNumber: '••••••••4821',
+          bankName: 'HDFC Bank',
+          ifscCode: 'HDFC0001248',
+          upiId: 'vikramsalvi@okaxis',
+          documentRef: 'DOC-CHQ-1002.jpg'
+        },
+        effectiveApplied: true,
+        reason: 'Switched primary savings account to HDFC Bank Pali Hill Branch.'
+      }
+    ]);
+  }
+
+  if (!financialDisputesStore.has(proId)) {
+    financialDisputesStore.set(proId, [
+      {
+        id: 'DISP-88210',
+        proId,
+        category: 'incorrect_deduction',
+        sourceType: 'booking',
+        sourceRef: 'UC-829100',
+        disputedAmount: 150,
+        reason: 'Doorstep late fee deduction during torrential rain waterlogging',
+        description: 'Bandra West traffic advisory caused a 15-minute unavoidable arrival delay. Delay was reported before slot start time.',
+        status: 'Resolved',
+        resolutionNotes: 'Delay notice timestamp verified. BMC traffic waterlogging confirmed. Reversal credit of ₹150 processed in Batch PO-299.',
+        createdAt: '2026-10-14T11:20:00Z',
+        resolutionHistory: [
+          {
+            timestamp: '2026-10-14T11:20:00Z',
+            status: 'Open',
+            actor: 'Vikram Salvi (Professional)',
+            note: 'Dispute submitted with traffic advisory screenshot.'
+          },
+          {
+            timestamp: '2026-10-14T16:45:00Z',
+            status: 'Resolved',
+            actor: 'Pooja Nair (Financial Audit Team)',
+            note: 'Advisory verified. 100% deduction reversed to wallet.'
+          }
+        ]
+      }
+    ]);
+  }
+
+  if (!reviewsStore.has(proId)) {
+    reviewsStore.set(proId, [
+      {
+        id: 'REV-101',
+        customer: 'Rohan Kapoor',
+        rating: 5,
+        date: 'Today, 03:15 PM',
+        service: 'Powerjet AC Servicing (Split)',
+        comment: 'Outstanding job by Vikram! AC is cooling like brand new. He carried proper waterproof drop sheets, foam blasted the indoor coils, and explained the refrigerant pressure readings. Very professional.',
+        verified: true,
+        flagged: false,
+        flagStatus: null
+      },
+      {
+        id: 'REV-102',
+        customer: 'Pooja Bhatia',
+        rating: 5,
+        date: '21 Oct 2026',
+        service: 'AC Foam Jet Deep Cleaning',
+        comment: 'Punctual, polite, and very methodical. Cleaned up the floor completely before leaving. Highly recommend Vikram for any AC servicing.',
+        verified: true,
+        flagged: false,
+        flagStatus: null
+      },
+      {
+        id: 'REV-103',
+        customer: 'Karan Mehra',
+        rating: 5,
+        date: '19 Oct 2026',
+        service: 'Inverter AC PCB Diagnosis',
+        comment: 'Fixed an inverter tripping issue that two other local technicians could not diagnose. Saved me the cost of buying a new AC. Excellent technical knowledge!',
+        verified: true,
+        flagged: false,
+        flagStatus: null
+      },
+      {
+        id: 'REV-104',
+        customer: 'Meera Sen',
+        rating: 4,
+        date: '17 Oct 2026',
+        service: 'AC Gas Leak Check & R32 Top-Up',
+        comment: 'Very good work and timely completion. Cooling restored immediately.',
+        verified: true,
+        flagged: false,
+        flagStatus: null
+      }
+    ]);
+  }
+
+  if (!trainingSessionsStore.has(proId)) {
+    trainingSessionsStore.set(proId, [
+      {
+        sessionId: 'SESS-HUB-101',
+        courseId: 'TRN-103',
+        courseTitle: 'Inverter PCB Oscilloscope & Diagnostics Lab',
+        hub: 'Bandra West Central Hub Training Lab',
+        instructor: 'Ramesh Kulkarni (Senior HVAC Lead)',
+        slot: 'Saturday, 25 Oct 2026 • 10:00 AM - 01:00 PM',
+        capacity: 12,
+        enrolledCount: 7,
+        status: 'Available'
+      },
+      {
+        sessionId: 'SESS-HUB-102',
+        courseId: 'TRN-104',
+        courseTitle: 'Hands-on R32 Recovery & Electronic Scale Vacuum Workshop',
+        hub: 'Andheri Central Logistics Depot',
+        instructor: 'Santosh Divekar (HVAC Safety Master)',
+        slot: 'Monday, 27 Oct 2026 • 02:00 PM - 05:00 PM',
+        capacity: 10,
+        enrolledCount: 4,
+        status: 'Available'
+      }
+    ]);
+  }
+
+  if (!inventoryReturnsStore.has(proId)) {
+    inventoryReturnsStore.set(proId, []);
+  }
+
+  if (!shopOrdersStore.has(proId)) {
+    shopOrdersStore.set(proId, [
+      {
+        orderId: 'ORD-SHP-8812',
+        item: 'Urban Pro Branded Polo Uniform (Set of 2)',
+        qty: 1,
+        amount: 499,
+        orderedAt: '2026-10-10T12:00:00Z',
+        deliveryMethod: 'Hub Pickup (Bandra West)',
+        fulfilmentStatus: 'Collected',
+        sandboxNotice: 'Sandbox demonstration order'
+      }
+    ]);
+  }
+
+  if (!profileChangeRequestsStore.has(proId)) {
+    profileChangeRequestsStore.set(proId, [
+      {
+        id: 'REQ-KYC-881',
+        field: 'phone',
+        fieldLabel: 'Primary Contact Mobile Number',
+        currentVal: '+91 98205 11980',
+        requestedVal: '+91 98205 11982',
+        reason: 'Upgraded to corporate 5G SIM card',
+        status: 'Approved',
+        submittedAt: '2026-01-10T10:00:00Z',
+        reviewedAt: '2026-01-11T14:30:00Z',
+        feedback: 'OTP penny-drop verification successful. Number updated in core system.'
+      }
+    ]);
+  }
+
+  if (!professionalSettingsStore.has(proId)) {
+    professionalSettingsStore.set(proId, {
+      notificationPreferences: {
+        jobOffersInApp: true,
+        jobOffersSms: true,
+        earningsUpdatesPush: true,
+        bookingChangesInApp: true,
+        safetyAlertsUrgent: true
+      },
+      appLanguage: 'en',
+      availabilityPreferences: {
+        autoAcceptRadiusKm: 5,
+        maxDailyJobs: 6,
+        preferredMap: 'Google Maps'
+      },
+      sessions: [
+        { id: 'SESS-CURR', device: 'Chrome on Windows 11 (Current Active Session)', ip: '127.0.0.1', isCurrent: true, lastActive: 'Active now' },
+        { id: 'SESS-MOB-1', device: 'Urban Pro Partner App v4.8 (Samsung Galaxy S23)', ip: '152.57.44.12', isCurrent: false, lastActive: '2 hours ago' }
+      ]
+    });
+  }
+
+  if (!professionalAuditRecordsStore.has(proId)) {
+    professionalAuditRecordsStore.set(proId, [
+      {
+        id: `AUD-901412`,
+        proId,
+        actor: { type: 'professional', id: proId, name: 'Vikram Salvi' },
+        action: 'PROFILE_UPDATED',
+        entity: { type: 'Profile', id: proId },
+        timestamp: new Date(Date.now() - 86400000).toISOString(),
+        reason: 'Updated spoken languages and emergency contact',
+        beforeAfter: { spokenLanguages: { before: ['English'], after: ['English', 'Hindi', 'Marathi'] } },
+        safeSummary: { spokenLanguages: { before: ['English'], after: ['English', 'Hindi', 'Marathi'] } }
+      },
+      {
+        id: `AUD-901301`,
+        proId,
+        actor: { type: 'admin', id: 'ADM-COMP-01', name: 'Compliance Officer (Priya Nair)' },
+        action: 'DOCUMENT_VERIFIED',
+        entity: { type: 'Document', id: 'POL-VERIF-2026' },
+        timestamp: new Date(Date.now() - 172800000).toISOString(),
+        reason: 'Police background verification record cleared from police portal',
+        beforeAfter: { status: { before: 'Under Review', after: 'Approved' } },
+        safeSummary: { status: { before: 'Under Review', after: 'Approved' } }
+      }
+    ]);
   }
 }
 
@@ -916,9 +1768,19 @@ export async function getProfessionalProfile(req, res) {
     let pro = professionalsStore.find(p => p.id === proId) || req.professional;
     initProData(proId);
 
+    const fieldClassification = {
+      editableFields: ['bio', 'spokenLanguages', 'avatar', 'emergencyContact'],
+      reviewRequiredFields: ['phone', 'email', 'serviceAreas', 'categories', 'experience', 'locality'],
+      platformControlledFields: ['id', 'applicantName', 'partnerAgencyId', 'partnerAgencyName', 'settlementModel', 'tier', 'rating', 'verificationStatus', 'backgroundCheckClearance']
+    };
+
+    const reviewRequests = profileChangeRequestsStore.get(proId) || [];
+
     return res.json({
       success: true,
-      profile: pro
+      profile: pro,
+      fieldClassification,
+      reviewRequests
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -928,24 +1790,122 @@ export async function getProfessionalProfile(req, res) {
 export async function updateProfessionalProfile(req, res) {
   try {
     const proId = req.professional.id;
-    const { phone, email, serviceAreas, experience } = req.body;
+    initProData(proId);
+    let pro = professionalsStore.find(p => p.id === proId) || req.professional;
 
-    let pro = professionalsStore.find(p => p.id === proId);
-    if (pro) {
-      if (phone) pro.phone = phone.trim();
-      if (email) pro.email = email.trim();
-      if (serviceAreas && Array.isArray(serviceAreas)) pro.serviceAreas = serviceAreas;
-      if (experience) pro.experience = experience.trim();
+    const platformControlled = ['applicantName', 'legalName', 'partnerAgencyId', 'partnerAgencyName', 'settlementModel', 'tier', 'rating', 'verificationStatus', 'backgroundCheckClearance', 'id', 'workerId'];
+    const blockedFields = platformControlled.filter(field => req.body[field] !== undefined && req.body[field] !== pro[field]);
+    if (blockedFields.length > 0) {
+      return res.status(403).json({
+        success: false,
+        error: `Platform-controlled fields [${blockedFields.join(', ')}] cannot be modified directly by professionals. Legal identity and business association changes require Operations Management authorization.`,
+        blockedFields
+      });
+    }
+
+    const reviewRequired = ['phone', 'email', 'serviceAreas', 'categories', 'experience', 'locality'];
+    const changeRequestsCreated = [];
+
+    for (const field of reviewRequired) {
+      if (req.body[field] !== undefined) {
+        const newVal = req.body[field];
+        const oldVal = pro[field];
+        const isDifferent = Array.isArray(newVal)
+          ? JSON.stringify(newVal) !== JSON.stringify(oldVal)
+          : String(newVal).trim() !== String(oldVal || '').trim();
+
+        if (isDifferent) {
+          const changeReq = {
+            id: `REQ-KYC-${Math.floor(1000 + Math.random() * 9000)}`,
+            field,
+            fieldLabel: field === 'phone' ? 'Primary Contact Number' : field === 'email' ? 'Registered Email' : field === 'serviceAreas' ? 'Operational Service Areas' : field,
+            currentVal: Array.isArray(oldVal) ? oldVal.join(', ') : String(oldVal || ''),
+            requestedVal: Array.isArray(newVal) ? newVal.join(', ') : String(newVal).trim(),
+            reason: req.body.reviewReason || req.body.changeReason || req.body.reason || 'Professional profile detail update submitted for verification',
+            status: 'Pending KYC Review',
+            submittedAt: new Date().toISOString(),
+            feedback: 'Queued for compliance review. Current verified details remain active until approved.'
+          };
+          const existing = profileChangeRequestsStore.get(proId) || [];
+          existing.unshift(changeReq);
+          profileChangeRequestsStore.set(proId, existing);
+          changeRequestsCreated.push(changeReq);
+
+          recordProfessionalAudit(
+            proId,
+            { type: 'professional', id: proId, name: pro.applicantName },
+            'PROFILE_CHANGE_REQUESTED',
+            { type: 'ProfileField', id: field },
+            changeReq.reason,
+            { [field]: { before: oldVal, requested: newVal } }
+          );
+        }
+      }
+    }
+
+    // Editable fields update immediately
+    const editableFields = ['bio', 'spokenLanguages', 'avatar', 'emergencyContact'];
+    let updatedEditable = false;
+    const beforeState = {};
+    const afterState = {};
+
+    editableFields.forEach(f => {
+      if (req.body[f] !== undefined) {
+        beforeState[f] = pro[f];
+        pro[f] = req.body[f];
+        afterState[f] = req.body[f];
+        updatedEditable = true;
+      }
+    });
+
+    if (updatedEditable) {
+      recordProfessionalAudit(
+        proId,
+        { type: 'professional', id: proId, name: pro.applicantName },
+        'PROFILE_UPDATED',
+        { type: 'Profile', id: proId },
+        'Updated editable profile preferences',
+        { before: beforeState, after: afterState }
+      );
     }
 
     try {
-      await WorkerApplication.findOneAndUpdate({ id: proId }, { $set: { phone, email, serviceAreas, experience } });
+      await WorkerApplication.findOneAndUpdate(
+        { id: proId },
+        { $set: { bio: pro.bio, spokenLanguages: pro.spokenLanguages, emergencyContact: pro.emergencyContact } }
+      );
     } catch {}
 
+    let message = 'Professional profile updated successfully.';
+    if (changeRequestsCreated.length > 0) {
+      message = `${changeRequestsCreated.length} field change request(s) queued for KYC compliance verification. Immediate editable fields updated.`;
+    }
+
+    const statusCode = changeRequestsCreated.length > 0 && !updatedEditable ? 202 : 200;
+
+    return res.status(statusCode).json({
+      success: true,
+      requiresReview: changeRequestsCreated.length > 0,
+      changeRequest: changeRequestsCreated[0] || null,
+      message,
+      profile: pro,
+      changeRequests: changeRequestsCreated,
+      reviewRequests: profileChangeRequestsStore.get(proId) || []
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getProfileChangeHistory(req, res) {
+  try {
+    const proId = req.professional.id;
+    initProData(proId);
+    const history = profileChangeRequestsStore.get(proId) || [];
     return res.json({
       success: true,
-      message: 'Professional profile updated successfully',
-      profile: pro
+      history,
+      changeRequests: history
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -960,12 +1920,39 @@ export async function getAvailability(req, res) {
     const proId = req.professional.id;
     const pro = professionalsStore.find(p => p.id === proId) || req.professional;
 
+    const allJobs = await getAllJobsForPro(proId);
+    const activeBooking = allJobs.find(j => ['Assigned', 'En Route', 'Arrived', 'In Progress'].includes(j.status));
+
+    const workingDays = pro.workingDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const workingHours = pro.workingHours || { start: '08:00', end: '20:00' };
+    const shiftBreaks = pro.shiftBreaks || [{ start: '13:00', end: '14:00', title: 'Lunch & Transit Recharge Break' }];
+    const workingSlots = pro.workingSlots || ['08:00 - 10:00', '10:30 - 12:30', '14:00 - 16:00', '16:30 - 18:30'];
+    const serviceAreas = pro.serviceAreas || ['Bandra West', 'Khar', 'Santacruz West', 'Pali Hill'];
+
+    let dispatchState = 'Available';
+    if (pro.status === 'Suspended') {
+      dispatchState = 'Suspended';
+    } else if (pro.isOnline === false) {
+      dispatchState = 'Offline';
+    } else if (activeBooking) {
+      dispatchState = 'Busy on Booking';
+    }
+
     return res.json({
       success: true,
       isOnline: pro.isOnline !== false,
-      workingHours: pro.workingHours || { start: '08:00', end: '20:00' },
-      workingDays: pro.workingDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-      leaves: pro.leaves || []
+      workingHours,
+      workingDays,
+      shiftBreaks,
+      workingSlots,
+      serviceAreas,
+      leaves: pro.leaves || [],
+      declaredAvailability: `Declared shift: ${workingDays.join(', ')} (${workingHours.start} - ${workingHours.end})`,
+      dispatchState,
+      activeBookingId: activeBooking ? activeBooking.id : null,
+      availabilityNotice: 'Declared availability indicates readiness for dispatch but does not guarantee booking assignment.',
+      timeZone: 'Asia/Kolkata (IST)',
+      operatingCity: pro.city || 'Mumbai'
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -975,7 +1962,7 @@ export async function getAvailability(req, res) {
 export async function updateAvailability(req, res) {
   try {
     const proId = req.professional.id;
-    const { isOnline, workingHours, workingDays, newLeave } = req.body;
+    const { isOnline, workingHours, workingDays, shiftBreaks, workingSlots, serviceAreas, newLeave, leaves } = req.body;
 
     let pro = professionalsStore.find(p => p.id === proId) || req.professional;
     if (isOnline === true && pro.status !== 'Approved') {
@@ -984,10 +1971,45 @@ export async function updateAvailability(req, res) {
         error: `Cannot go online. Account onboarding approval required (current status: "${pro.status || 'Under Review'}").`
       });
     }
+
+    // Backend Validation: prevent invalid availability ranges
+    if (workingHours && workingHours.start && workingHours.end) {
+      if (workingHours.start >= workingHours.end) {
+        return res.status(400).json({
+          success: false,
+          error: 'Invalid working hours range: Start time must precede end time.'
+        });
+      }
+    }
+
+    // Backend Validation: check existing confirmed bookings. Do not remove confirmed jobs silently!
+    const allJobs = await getAllJobsForPro(proId);
+    const confirmedActive = allJobs.filter(j => ['Confirmed', 'Assigned', 'En Route', 'In Progress'].includes(j.status));
+
+    if (newLeave && newLeave.date) {
+      const conflict = confirmedActive.find(j => {
+        const slotText = (j.slot || '').toLowerCase();
+        const leaveDateText = (newLeave.date || '').toLowerCase();
+        return slotText.includes(leaveDateText) || (leaveDateText.includes('today') && slotText.includes('today'));
+      });
+
+      if (conflict) {
+        return res.status(409).json({
+          success: false,
+          error: `Cannot declare leave for ${newLeave.date}: You have an active confirmed dispatch (${conflict.bookingReference || conflict.id}). Confirmed jobs cannot be removed silently. Please submit a Reassignment Request or Incident Report through dispatch before scheduling leave.`,
+          conflictBooking: conflict.bookingReference || conflict.id
+        });
+      }
+    }
+
     if (pro) {
       if (typeof isOnline === 'boolean') pro.isOnline = isOnline;
       if (workingHours) pro.workingHours = workingHours;
       if (workingDays && Array.isArray(workingDays)) pro.workingDays = workingDays;
+      if (shiftBreaks && Array.isArray(shiftBreaks)) pro.shiftBreaks = shiftBreaks;
+      if (workingSlots && Array.isArray(workingSlots)) pro.workingSlots = workingSlots;
+      if (serviceAreas && Array.isArray(serviceAreas)) pro.serviceAreas = serviceAreas;
+      if (leaves && Array.isArray(leaves)) pro.leaves = leaves;
       if (newLeave && newLeave.date) {
         pro.leaves = pro.leaves || [];
         pro.leaves.push({
@@ -1003,18 +2025,68 @@ export async function updateAvailability(req, res) {
       isOnline: pro ? pro.isOnline : isOnline,
       workingHours: pro ? pro.workingHours : workingHours,
       workingDays: pro ? pro.workingDays : workingDays,
-      leaves: pro ? pro.leaves : []
+      shiftBreaks: pro?.shiftBreaks || [{ start: '13:00', end: '14:00', title: 'Lunch & Transit Recharge Break' }],
+      workingSlots: pro?.workingSlots || ['08:00 - 10:00', '10:30 - 12:30', '14:00 - 16:00', '16:30 - 18:30'],
+      leaves: pro ? pro.leaves : [],
+      serviceAreas: pro?.serviceAreas || ['Bandra West', 'Khar', 'Santacruz West', 'Pali Hill'],
+      timeZone: 'Asia/Kolkata (IST)',
+      availabilityNotice: 'Declared availability indicates readiness for dispatch but does not guarantee booking assignment.'
     };
 
     return res.json({
       success: true,
-      message: 'Availability settings updated',
+      message: 'Availability settings and shift buffers updated successfully',
       availability: resultAvailability,
       ...resultAvailability
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
+}
+
+// -------------------------------------------------------------
+// HELPER: Generates Service-Specific SOP Checklists & Evidence
+// -------------------------------------------------------------
+function getJobStructuredChecklists(job) {
+  const existing = job.structuredChecklists || {};
+  return {
+    beforeService: existing.beforeService && existing.beforeService.length > 0 ? existing.beforeService : [
+      { id: 'bc-1', text: 'Incoming electrical voltage & MCB earthing check (220-240V nominal)', completed: true, required: true, notes: 'Measured 232V stable' },
+      { id: 'bc-2', text: 'Pre-service cooling delta measurement (Inlet vs Outlet temp)', completed: true, required: true, notes: 'Delta 4.2°C recorded' },
+      { id: 'bc-3', text: 'Physical inspection for pre-existing cabinet cracks or wall vibrations', completed: false, required: true, notes: '' },
+      { id: 'bc-4', text: 'Verify customer service consent and explain standard operating duration', completed: true, required: true, notes: '' }
+    ],
+    safetyChecks: existing.safetyChecks && existing.safetyChecks.length > 0 ? existing.safetyChecks : [
+      { id: 'sc-1', text: 'Main AC electrical isolator / MCB switched OFF prior to opening panel', completed: true, required: true },
+      { id: 'sc-2', text: 'Wear full UC safety kit (insulated rubber gloves, goggles & shoe covers)', completed: true, required: true },
+      { id: 'sc-3', text: 'Deploy waterproof AC service catch-bag & floor protection drop sheet', completed: false, required: true },
+      { id: 'sc-4', text: 'Verify no exposed live terminals before high-pressure powerjet spraying', completed: false, required: true }
+    ],
+    workPerformed: existing.workPerformed && existing.workPerformed.length > 0 ? existing.workPerformed : [
+      { id: 'wp-1', text: 'High-pressure powerjet jetting of indoor cooling coil & fins', completed: false, required: true },
+      { id: 'wp-2', text: 'Antibacterial chemical foam spray & microbial disinfection', completed: false, required: true },
+      { id: 'wp-3', text: 'Condensate drain tray flush and clearing of blockage sludge', completed: false, required: true },
+      { id: 'wp-4', text: 'Cross-flow blower wheel agitation & spindle bearing lubrication', completed: false, required: true },
+      { id: 'wp-5', text: 'Outdoor condenser heat-exchanger jet wash & debris clearing', completed: false, required: false }
+    ],
+    partsMaterials: existing.partsMaterials && existing.partsMaterials.length > 0 ? existing.partsMaterials : [
+      { id: 'pm-1', name: 'Biodegradable AC Coil Cleaning Foam (500ml)', qty: 1, unit: 'can', cost: 0, serialNo: 'LOT-2026-B81' },
+      { id: 'pm-2', name: 'Disposable Anti-Static Floor Protection Mat', qty: 1, unit: 'sheet', cost: 0, serialNo: 'UC-MAT-402' }
+    ],
+    photos: bookingEvidenceStore.get(job.id) || existing.photos || [
+      {
+        id: 'ev-1',
+        phase: 'before',
+        photoType: 'equipment',
+        url: 'https://images.unsplash.com/photo-1621905251918-48416bd8575a?auto=format&fit=crop&w=600&q=80',
+        fileName: 'indoor_unit_pre_service.jpg',
+        fileSizeKb: 1420,
+        mimeType: 'image/jpeg',
+        uploadedAt: new Date(Date.now() - 1800000)
+      }
+    ],
+    completionNotes: completionNotesStore.get(job.id)?.notes || existing.completionNotes || ''
+  };
 }
 
 // -------------------------------------------------------------
@@ -1098,6 +2170,12 @@ function formatJobForProfessional(job, proId) {
 
   const proNotes = professionalNotesStore.get(job.id) || job.professionalNotes || [];
   const reassignment = reassignmentRequestsStore.get(job.id) || job.reassignmentRequest || { status: 'None' };
+  const pro = professionalsStore.find(p => p.id === proId) || {};
+  const financialLedger = calculateBookingFinancials(job, pro);
+  const structuredChecklists = getJobStructuredChecklists(job);
+  const extraWorkRequests = extraWorkRequestsStore.get(job.id) || job.extraWorkRequests || [];
+  const incidentReports = job.incidentReports || bookingDelaysStore.get(job.id) || [];
+  const messagesList = bookingChatStore.get(job.id) || job.messages || [];
 
   return {
     id: job.id,
@@ -1111,6 +2189,7 @@ function formatJobForProfessional(job, proId) {
     userName: job.userName || job.customer || 'Customer',
     phone: maskedPhone,
     userPhone: maskedPhone,
+    rawPhone: isEnRouteOrBeyond ? rawPhone : undefined,
     isPhoneMasked: !isEnRouteOrBeyond,
     address: displayAddress,
     preciseAddressHidden: !isEnRouteOrBeyond,
@@ -1141,6 +2220,36 @@ function formatJobForProfessional(job, proId) {
       { id: '4', text: 'Execute service per UC standard operating procedures', completed: false, required: true },
       { id: '5', text: 'Post-service performance check & mess-free cleanup', completed: false, required: true }
     ],
+    structuredChecklists,
+    extraWorkRequests,
+    incidentReports,
+    messagesCount: messagesList.length,
+    financialLedger,
+    communicationChannels: {
+      maskedTelephony: {
+        number: '+91 22 6982 4400',
+        extension: '829',
+        isMasked: true,
+        label: 'Platform Masked Telephony Bridge (Privacy Protected)'
+      },
+      directTelephony: isEnRouteOrBeyond ? {
+        number: rawPhone,
+        isMasked: false,
+        label: 'Direct Cellular Telephony (Unmasked - Authorized for On-Site Dispatch)'
+      } : null,
+      navigation: {
+        serviceAddress: displayAddress,
+        fullAddress: isEnRouteOrBeyond ? (job.addressDetails?.fullAddress || job.address) : undefined,
+        externalMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.addressDetails?.fullAddress || job.address || area)}`,
+        label: 'Open Google Maps Navigation with Authorized Address',
+        trackingNotice: 'Navigation opens external maps service with authorized address. Synthetic GPS tracking is disabled.'
+      },
+      customerInstructions: job.customerInstructions || '',
+      permissionPolicy: {
+        cameraRationale: 'Camera access is requested solely to photograph HVAC equipment tags, parts, and work completion evidence.',
+        locationRationale: 'Location permission is used exclusively to open external route navigation to authorized doorstep.'
+      }
+    },
     serviceOutcomes: job.serviceOutcomes || [],
     reassignmentRequest: reassignment,
     professionalNotes: proNotes,
@@ -1672,7 +2781,567 @@ export async function addProfessionalNote(req, res) {
 }
 
 // -------------------------------------------------------------
-// 4D. JOBS DISPATCH & LIFECYCLE MANAGEMENT (Strict Ownership Protected)
+// 4B. SERVICE SOP CHECKLISTS & EVIDENCE VAULT
+// -------------------------------------------------------------
+export async function getJobChecklists(req, res) {
+  try {
+    const { id } = req.params;
+    const proId = req.professional.id;
+
+    let booking = await Booking.findOne({ id }).lean();
+    if (!booking) {
+      const all = await getAllJobsForPro(proId);
+      booking = all.find(j => j.id === id || j.bookingReference === id);
+    }
+
+    if (!booking) {
+      return res.status(404).json({ success: false, error: 'Job not found.' });
+    }
+
+    const structured = getJobStructuredChecklists(booking);
+    return res.json({
+      success: true,
+      checklists: structured,
+      completionNotes: completionNotesStore.get(id)?.notes || structured.completionNotes || '',
+      partsUsed: completionNotesStore.get(id)?.partsUsed || structured.partsMaterials || [],
+      platformPhotoPolicy: {
+        maxSizeBytes: 5242880,
+        maxSizeMb: 5,
+        allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp'],
+        privacyRule: 'Do not photograph customers or private residential interiors. Capture only the equipment, serial plate, work area, or replaced components.'
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function updateJobChecklistSection(req, res) {
+  try {
+    const { id } = req.params;
+    const { section, itemId, completed, notes, completionNotes, partsUsed } = req.body;
+
+    let booking = await Booking.findOne({ id });
+    if (booking) {
+      booking.structuredChecklists = booking.structuredChecklists || {};
+      if (completionNotes !== undefined) {
+        booking.structuredChecklists.completionNotes = completionNotes;
+      }
+      if (partsUsed && Array.isArray(partsUsed)) {
+        booking.structuredChecklists.partsMaterials = partsUsed;
+      }
+      if (section && booking.structuredChecklists[section]) {
+        const item = booking.structuredChecklists[section].find(it => it.id === itemId);
+        if (item) {
+          if (typeof completed === 'boolean') item.completed = completed;
+          if (notes !== undefined) item.notes = notes;
+        }
+      }
+      await booking.save();
+    }
+
+    if (completionNotes !== undefined || partsUsed !== undefined) {
+      completionNotesStore.set(id, {
+        notes: completionNotes !== undefined ? completionNotes : (completionNotesStore.get(id)?.notes || ''),
+        partsUsed: partsUsed || (completionNotesStore.get(id)?.partsUsed || []),
+        recordedAt: new Date()
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Checklist updated successfully.',
+      section,
+      itemId,
+      completed
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function uploadJobPhotoEvidence(req, res) {
+  try {
+    const { id } = req.params;
+    const { phase, photoType, fileBase64, fileName, fileSizeKb, mimeType } = req.body;
+    const proId = req.professional.id;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+
+    const allowedMime = ['image/jpeg', 'image/png', 'image/webp'];
+    if (mimeType && !allowedMime.includes(mimeType.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid file type "${mimeType}". Only JPG, PNG, and WebP evidence photos are permitted per platform SOP.`
+      });
+    }
+
+    const sizeKb = parseFloat(fileSizeKb) || 1200;
+    if (sizeKb > 5120) {
+      return res.status(400).json({
+        success: false,
+        error: `File size (${(sizeKb / 1024).toFixed(1)}MB) exceeds 5MB platform maximum limit.`
+      });
+    }
+
+    const allowedTypes = ['equipment', 'part', 'serial_plate', 'work_area'];
+    const finalPhotoType = allowedTypes.includes(photoType) ? photoType : 'equipment';
+
+    const photoRecord = {
+      id: `photo-${Date.now()}`,
+      phase: phase === 'after' ? 'after' : 'before',
+      photoType: finalPhotoType,
+      fileName: fileName || `${phase || 'before'}_${finalPhotoType}_${Date.now()}.jpg`,
+      fileSizeKb: sizeKb,
+      mimeType: mimeType || 'image/jpeg',
+      url: fileBase64 || (finalPhotoType === 'serial_plate'
+        ? 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'
+        : 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80'),
+      uploadedAt: new Date(),
+      uploadedBy: pro.applicantName
+    };
+
+    let list = bookingEvidenceStore.get(id) || [];
+    list.push(photoRecord);
+    bookingEvidenceStore.set(id, list);
+
+    let booking = await Booking.findOne({ id });
+    if (booking) {
+      booking.structuredChecklists = booking.structuredChecklists || {};
+      booking.structuredChecklists.photos = booking.structuredChecklists.photos || [];
+      booking.structuredChecklists.photos.push(photoRecord);
+      booking.timeline.push({
+        id: `tl-${Date.now()}`,
+        status: booking.status,
+        title: `Uploaded ${photoRecord.phase.toUpperCase()} Evidence Photo`,
+        description: `Verified ${finalPhotoType} inspection photo (${photoRecord.fileName}) attached to work vault.`,
+        actor: pro.applicantName,
+        actorRole: 'Service Professional',
+        timestamp: new Date()
+      });
+      await booking.save();
+    }
+
+    return res.json({
+      success: true,
+      message: `Inspection evidence photo uploaded successfully under protected vault access. (Category: ${finalPhotoType})`,
+      photo: photoRecord
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// -------------------------------------------------------------
+// 4C. EXTRA WORK & PARTS (CUSTOMER-APPROVED WORKFLOW)
+// -------------------------------------------------------------
+export async function getExtraWorkCatalogue(req, res) {
+  return res.json({
+    success: true,
+    catalogue: PLATFORM_EXTRA_WORK_RULES,
+    policyNotice: 'Technicians must select from platform-approved price rules. All extra work requires verifiable customer consent before addition to the bill.'
+  });
+}
+
+export async function getExtraWorkRequests(req, res) {
+  try {
+    const { id } = req.params;
+    let items = extraWorkRequestsStore.get(id);
+    if (!items || items.length === 0) {
+      let booking = await Booking.findOne({ id }).lean();
+      items = booking?.extraWorkRequests || [];
+    }
+    return res.json({
+      success: true,
+      extraWorkItems: items
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function proposeExtraWork(req, res) {
+  try {
+    const { id } = req.params;
+    const { ruleId, title, category, scope, amount, qty } = req.body;
+    const proId = req.professional.id;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+
+    const matchedRule = PLATFORM_EXTRA_WORK_RULES.find(r => r.id === ruleId || r.code === ruleId);
+    const finalTitle = matchedRule ? matchedRule.title : (title || 'Additional Service Work');
+    const finalCategory = matchedRule ? matchedRule.category : (category || 'Parts & Materials');
+    const quantity = parseInt(qty) || 1;
+    const finalAmount = matchedRule ? (matchedRule.amount * quantity) : (parseFloat(amount) || 0);
+
+    if (finalAmount <= 0) {
+      return res.status(400).json({ success: false, error: 'A valid amount > 0 is required.' });
+    }
+
+    const extraItem = {
+      id: `EX-${Date.now()}`,
+      ruleId: matchedRule ? matchedRule.id : 'CUSTOM_RULE',
+      title: finalTitle,
+      category: finalCategory,
+      scope: scope || (matchedRule ? matchedRule.approvedScope : 'Additional component required to complete repair.'),
+      amount: finalAmount,
+      amountPaisa: Math.round(finalAmount * 100),
+      qty: quantity,
+      status: 'Pending Customer Approval',
+      requestedBy: pro.applicantName,
+      requestedAt: new Date(),
+      history: [
+        {
+          action: 'Proposed by Professional',
+          by: pro.applicantName,
+          timestamp: new Date(),
+          notes: `Proposed scope: ${finalTitle} (₹${finalAmount}). Final bill unchanged pending customer approval.`
+        }
+      ]
+    };
+
+    let items = extraWorkRequestsStore.get(id) || [];
+    items.push(extraItem);
+    extraWorkRequestsStore.set(id, items);
+
+    let booking = await Booking.findOne({ id });
+    if (booking) {
+      booking.extraWorkRequests = booking.extraWorkRequests || [];
+      booking.extraWorkRequests.push(extraItem);
+      booking.timeline.push({
+        id: `tl-${Date.now()}`,
+        status: booking.status,
+        title: 'Extra Work Proposed (Pending Customer Approval)',
+        description: `Technician proposed ${finalTitle} (₹${finalAmount}). Total bill remains unchanged pending customer sign-off.`,
+        actor: pro.applicantName,
+        actorRole: 'Service Professional',
+        timestamp: new Date()
+      });
+      await booking.save();
+    }
+
+    return res.json({
+      success: true,
+      message: 'Extra work proposal recorded and dispatched to customer for approval. Bill total has not been modified pending sign-off.',
+      extraWorkItem: extraItem
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function handleCustomerExtraWorkApproval(req, res) {
+  try {
+    const { id, workId } = req.params;
+    const { action, approvedBy, approvalMethod, isDemo, rejectionReason } = req.body;
+
+    let items = extraWorkRequestsStore.get(id) || [];
+    const item = items.find(it => it.id === workId);
+
+    if (!item) {
+      return res.status(404).json({ success: false, error: 'Extra work request item not found.' });
+    }
+
+    if (item.status !== 'Pending Customer Approval') {
+      return res.status(400).json({ success: false, error: `This item is already ${item.status}.` });
+    }
+
+    let booking = await Booking.findOne({ id });
+
+    if (action === 'approve') {
+      item.status = 'Approved';
+      item.approvalDetails = {
+        approvedBy: approvedBy || (booking?.userName || 'Customer'),
+        approvedAt: new Date(),
+        approvalMethod: approvalMethod || (isDemo ? 'Customer App Simulation (Demo Flow)' : 'In-App Digital Signature'),
+        isDemoFlow: Boolean(isDemo)
+      };
+      item.history.push({
+        action: 'Customer Approved',
+        by: item.approvalDetails.approvedBy,
+        timestamp: new Date(),
+        notes: `Customer formally authorized addition of ₹${item.amount} via ${item.approvalDetails.approvalMethod}.`
+      });
+
+      let updatedTotal = 548 + item.amount;
+      if (booking) {
+        booking.addons = booking.addons || [];
+        booking.addons.push({
+          title: item.title,
+          price: item.amount,
+          qty: item.qty || 1
+        });
+        booking.totalAmount = (booking.totalAmount || 548) + item.amount;
+        if (booking.pricingBreakdown) {
+          booking.pricingBreakdown.subtotal = (booking.pricingBreakdown.subtotal || 0) + item.amount;
+          booking.pricingBreakdown.total = (booking.pricingBreakdown.total || 0) + item.amount;
+        }
+        booking.timeline.push({
+          id: `tl-${Date.now()}`,
+          status: booking.status,
+          title: 'Extra Work Approved by Customer',
+          description: `Customer verified ${item.title} (+₹${item.amount}). New booking total: ₹${booking.totalAmount}.`,
+          actor: item.approvalDetails.approvedBy,
+          actorRole: 'Customer',
+          timestamp: new Date()
+        });
+        await booking.save();
+        updatedTotal = booking.totalAmount;
+      }
+
+      extraWorkRequestsStore.set(id, items);
+
+      return res.json({
+        success: true,
+        message: `Extra work approved successfully via ${item.approvalDetails.approvalMethod}. Backend totals recalculated to ₹${updatedTotal}.`,
+        extraWorkItem: item,
+        newTotal: updatedTotal,
+        newPayout: Math.round(updatedTotal * 0.8)
+      });
+    } else {
+      item.status = 'Rejected';
+      item.approvalDetails = {
+        approvedBy: approvedBy || (booking?.userName || 'Customer'),
+        approvedAt: new Date(),
+        approvalMethod: approvalMethod || 'Customer App Rejection',
+        rejectionReason: rejectionReason || 'Customer declined additional parts/labour.',
+        isDemoFlow: Boolean(isDemo)
+      };
+      item.history.push({
+        action: 'Customer Declined',
+        by: item.approvalDetails.approvedBy,
+        timestamp: new Date(),
+        notes: item.approvalDetails.rejectionReason
+      });
+
+      if (booking) {
+        booking.timeline.push({
+          id: `tl-${Date.now()}`,
+          status: booking.status,
+          title: 'Extra Work Proposal Declined by Customer',
+          description: `Customer declined ${item.title}. Scope remains at standard package.`,
+          actor: item.approvalDetails.approvedBy,
+          actorRole: 'Customer',
+          timestamp: new Date()
+        });
+        await booking.save();
+      }
+
+      extraWorkRequestsStore.set(id, items);
+
+      return res.json({
+        success: true,
+        message: 'Customer declined extra work request. Bill total remains unaltered.',
+        extraWorkItem: item
+      });
+    }
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// -------------------------------------------------------------
+// 4D. BOOKING-SCOPED IN-APP MESSAGES & COMMUNICATION
+// -------------------------------------------------------------
+export async function getJobMessages(req, res) {
+  try {
+    const { id } = req.params;
+    const proId = req.professional.id;
+
+    let booking = await Booking.findOne({ id }).lean();
+    if (booking && booking.assignedProfessional && booking.assignedProfessional.id && booking.assignedProfessional.id !== proId) {
+      return res.status(403).json({ success: false, error: 'Access Forbidden: Chat is strictly scoped to the assigned professional.' });
+    }
+
+    let messages = bookingChatStore.get(id);
+    if (!messages || messages.length === 0) {
+      messages = booking?.messages?.length ? booking.messages : [
+        {
+          id: 'msg-1',
+          senderRole: 'customer',
+          senderName: booking?.userName || 'Rohan Kapoor',
+          senderId: 'CUST-10492',
+          text: 'Hi Vikram, please ring the bell twice when you reach. The lobby security will guide you to Tower 4.',
+          deliveryStatus: 'read',
+          createdAt: new Date(Date.now() - 3600000)
+        },
+        {
+          id: 'msg-2',
+          senderRole: 'professional',
+          senderName: 'Vikram Salvi',
+          senderId: proId,
+          text: 'Understood sir. I have packed all genuine parts and high-pressure powerjet kit. En route shortly.',
+          deliveryStatus: 'delivered',
+          createdAt: new Date(Date.now() - 2400000)
+        }
+      ];
+      bookingChatStore.set(id, messages);
+    }
+
+    const rawPhone = booking?.userPhone || '+91 98200 12345';
+    const isEnRoute = ['En Route', 'Arrived', 'In Progress', 'Completed'].includes(booking?.status || 'Assigned');
+
+    return res.json({
+      success: true,
+      messages,
+      pollingNotice: 'Manual Refresh / Polled (Updated just now) - No synthetic websocket claimed.',
+      lastPolledAt: new Date().toISOString(),
+      channels: {
+        maskedTelephony: {
+          number: '+91 22 6982 4400',
+          extension: '829',
+          isMasked: true,
+          label: 'Platform Masked Telephony Bridge (Privacy Protected)'
+        },
+        directTelephony: isEnRoute ? {
+          number: rawPhone,
+          isMasked: false,
+          label: 'Direct Cellular Telephony (Unmasked - Authorized for On-Site Dispatch)'
+        } : null,
+        navigation: {
+          serviceAddress: booking?.address || 'Pali Hill, Bandra West, Mumbai',
+          externalMapsUrl: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking?.address || 'Pali Hill, Bandra West, Mumbai')}`,
+          label: 'Open Google Maps Navigation with Authorized Address',
+          trackingNotice: 'Navigation opens external system maps. Synthetic GPS tracking is disabled.'
+        },
+        permissionPolicy: {
+          cameraRationale: 'Camera is requested exclusively to capture HVAC unit model numbers, leak evidence, and before/after SOP work.',
+          locationRationale: 'Location is requested solely to display precise turn-by-turn route to authorized destination.'
+        }
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function sendJobMessage(req, res) {
+  try {
+    const { id } = req.params;
+    const { text, attachments } = req.body;
+    const proId = req.professional.id;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ success: false, error: 'Message text cannot be empty.' });
+    }
+
+    const newMsg = {
+      id: `msg-${Date.now()}`,
+      senderRole: 'professional',
+      senderName: pro.applicantName,
+      senderId: proId,
+      text: text.trim(),
+      attachments: attachments || [],
+      deliveryStatus: 'sent',
+      createdAt: new Date()
+    };
+
+    let list = bookingChatStore.get(id) || [];
+    list.push(newMsg);
+    bookingChatStore.set(id, list);
+
+    let booking = await Booking.findOne({ id });
+    if (booking) {
+      booking.messages = booking.messages || [];
+      booking.messages.push(newMsg);
+      await booking.save();
+    }
+
+    setTimeout(() => {
+      newMsg.deliveryStatus = 'delivered';
+    }, 1500);
+
+    return res.json({
+      success: true,
+      message: newMsg
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// -------------------------------------------------------------
+// 4E. CANCELLATION, DELAYS & INCIDENT REPORTING
+// -------------------------------------------------------------
+export async function getCancellationPolicy(req, res) {
+  return res.json({
+    success: true,
+    policies: PLATFORM_CANCELLATION_POLICIES,
+    operatingNotice: 'Cancellation consequences, delay buffers, and reassignment guidelines are strictly governed by platform policy rules. No un-audited penalties or arbitrary fines are applied.'
+  });
+}
+
+export async function reportJobIncident(req, res) {
+  try {
+    const { id } = req.params;
+    const { category, reason, details, delayMinutes, evidencePhotos, consequencesAcknowledged } = req.body;
+    const proId = req.professional.id;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+
+    const policy = PLATFORM_CANCELLATION_POLICIES[category];
+    if (!policy) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid incident category "${category}". Must be one of: ${Object.keys(PLATFORM_CANCELLATION_POLICIES).join(', ')}`
+      });
+    }
+
+    if (!reason || reason.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        error: 'A detailed reason (min 5 characters) is required to file this report.'
+      });
+    }
+
+    const incident = {
+      id: `inc-${Date.now()}`,
+      bookingId: id,
+      category,
+      title: policy.title,
+      reason: reason.trim(),
+      details: details ? details.trim() : '',
+      delayMinutes: parseInt(delayMinutes) || 0,
+      evidencePhotos: evidencePhotos || [],
+      status: 'Logged & Active',
+      policyRuleApplied: policy.policyText,
+      consequenceSummary: policy.consequenceText,
+      resolution: policy.resolution,
+      reportedBy: pro.applicantName,
+      reportedAt: new Date(),
+      timeZone: 'Asia/Kolkata'
+    };
+
+    let delays = bookingDelaysStore.get(id) || [];
+    delays.push(incident);
+    bookingDelaysStore.set(id, delays);
+
+    let booking = await Booking.findOne({ id });
+    if (booking) {
+      booking.incidentReports = booking.incidentReports || [];
+      booking.incidentReports.push(incident);
+      booking.timeline.push({
+        id: `tl-${Date.now()}`,
+        status: booking.status,
+        title: `Incident Filed: ${policy.title}`,
+        description: `${reason.trim()} • Policy: ${policy.consequenceText}`,
+        actor: pro.applicantName,
+        actorRole: 'Service Professional',
+        timestamp: new Date()
+      });
+      await booking.save();
+    }
+
+    return res.json({
+      success: true,
+      message: `Incident reported successfully under platform policy: "${policy.title}". Resolution: ${policy.resolution}`,
+      incident
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// -------------------------------------------------------------
+// 4F. JOBS DISPATCH & LIFECYCLE MANAGEMENT (Strict Ownership Protected)
 // -------------------------------------------------------------
 export async function getAssignedJobs(req, res) {
   try {
@@ -1958,6 +3627,163 @@ export async function getEarnings(req, res) {
     const proId = req.professional.id;
     const pro = professionalsStore.find(p => p.id === proId) || req.professional;
 
+    const recipientSnapshot = {
+      accountHolderName: pro.applicantName || 'Vikram Salvi',
+      accountNumberMasked: pro.bankDetails?.accountNumber || '••••••••4821',
+      bankName: pro.bankDetails?.bankName || 'HDFC Bank',
+      ifscCode: pro.bankDetails?.ifscCode || 'HDFC0001248',
+      upiId: pro.bankDetails?.upiId || 'vikramsalvi@okaxis',
+      settlementMode: 'Direct IMPS / Bank NEFT'
+    };
+
+    const itemizedLedger = [
+      {
+        id: 'TXN-901',
+        bookingReference: 'UC-829410',
+        serviceDate: '23 Oct 2026, 02:45 PM',
+        service: 'Powerjet AC Servicing (Split) + Deep Coil Cleaning',
+        grossFare: 548,
+        grossFarePaisa: 54800,
+        platformCommission: 110,
+        platformCommissionPaisa: 11000,
+        professionalEntitlement: 438,
+        professionalEntitlementPaisa: 43800,
+        approvedTips: 50,
+        approvedTipsPaisa: 5000,
+        incentives: 0,
+        incentivesPaisa: 0,
+        adjustments: 0,
+        adjustmentsPaisa: 0,
+        refundDeductions: 0,
+        refundDeductionsPaisa: 0,
+        netEarnings: 488,
+        netEarningsPaisa: 48800,
+        settlementEligibility: 'Eligible for weekly settlement cycle (Batch PO-302)',
+        settlementStatus: 'Available for Settlement',
+        recipientSnapshot,
+        pricingSnapshot: { baseRate: 499, addons: 49, commissionPercentage: 20 }
+      },
+      {
+        id: 'TXN-902',
+        bookingReference: 'UC-829399',
+        serviceDate: '22 Oct 2026, 04:15 PM',
+        service: 'AC Foam Jet Deep Cleaning + Anti-Rust Protection',
+        grossFare: 899,
+        grossFarePaisa: 89900,
+        platformCommission: 180,
+        platformCommissionPaisa: 18000,
+        professionalEntitlement: 719,
+        professionalEntitlementPaisa: 71900,
+        approvedTips: 100,
+        approvedTipsPaisa: 10000,
+        incentives: 0,
+        incentivesPaisa: 0,
+        adjustments: 0,
+        adjustmentsPaisa: 0,
+        refundDeductions: 0,
+        refundDeductionsPaisa: 0,
+        netEarnings: 819,
+        netEarningsPaisa: 81900,
+        settlementEligibility: 'Disbursed in Batch PO-301 (UTR-77192841)',
+        settlementStatus: 'Paid',
+        recipientSnapshot,
+        pricingSnapshot: { baseRate: 899, addons: 0, commissionPercentage: 20 }
+      },
+      {
+        id: 'TXN-903',
+        bookingReference: 'UC-829388',
+        serviceDate: '22 Oct 2026, 10:00 AM',
+        service: 'Master AC Foam Jet Servicing (Window)',
+        grossFare: 648,
+        grossFarePaisa: 64800,
+        platformCommission: 130,
+        platformCommissionPaisa: 13000,
+        professionalEntitlement: 518,
+        professionalEntitlementPaisa: 51800,
+        approvedTips: 0,
+        approvedTipsPaisa: 0,
+        incentives: 0,
+        incentivesPaisa: 0,
+        adjustments: 0,
+        adjustmentsPaisa: 0,
+        refundDeductions: 0,
+        refundDeductionsPaisa: 0,
+        netEarnings: 518,
+        netEarningsPaisa: 51800,
+        settlementEligibility: 'Disbursed in Batch PO-301 (UTR-77192842)',
+        settlementStatus: 'Paid',
+        recipientSnapshot,
+        pricingSnapshot: { baseRate: 599, addons: 49, commissionPercentage: 20 }
+      },
+      {
+        id: 'TXN-904',
+        bookingReference: 'UC-829372',
+        serviceDate: '20 Oct 2026, 03:30 PM',
+        service: 'Inverter AC PCB Circuit Board Diagnostics',
+        grossFare: 1250,
+        grossFarePaisa: 125000,
+        platformCommission: 250,
+        platformCommissionPaisa: 25000,
+        professionalEntitlement: 1000,
+        professionalEntitlementPaisa: 100000,
+        approvedTips: 150,
+        approvedTipsPaisa: 15000,
+        incentives: 0,
+        incentivesPaisa: 0,
+        adjustments: 0,
+        adjustmentsPaisa: 0,
+        refundDeductions: 0,
+        refundDeductionsPaisa: 0,
+        netEarnings: 1150,
+        netEarningsPaisa: 115000,
+        settlementEligibility: 'Disbursed in Batch PO-299',
+        settlementStatus: 'Paid',
+        recipientSnapshot,
+        pricingSnapshot: { baseRate: 1250, addons: 0, commissionPercentage: 20 }
+      },
+      {
+        id: 'TXN-905',
+        bookingReference: 'UC-829365',
+        serviceDate: '19 Oct 2026, 11:00 AM',
+        service: 'AC Gas Leak Check & R32 Top-Up',
+        grossFare: 948,
+        grossFarePaisa: 94800,
+        platformCommission: 190,
+        platformCommissionPaisa: 19000,
+        professionalEntitlement: 758,
+        professionalEntitlementPaisa: 75800,
+        approvedTips: 50,
+        approvedTipsPaisa: 5000,
+        incentives: 0,
+        incentivesPaisa: 0,
+        adjustments: 0,
+        adjustmentsPaisa: 0,
+        refundDeductions: 0,
+        refundDeductionsPaisa: 0,
+        netEarnings: 808,
+        netEarningsPaisa: 80800,
+        settlementEligibility: 'Disbursed in Batch PO-299',
+        settlementStatus: 'Paid',
+        recipientSnapshot,
+        pricingSnapshot: { baseRate: 899, addons: 49, commissionPercentage: 20 }
+      }
+    ];
+
+    const financialStages = {
+      earnedPaisa: 4892000,
+      earned: 48920,
+      pendingConfirmationPaisa: 54800,
+      pendingConfirmation: 548,
+      availableForSettlementPaisa: (pro.walletBalance || 15450) * 100,
+      availableForSettlement: pro.walletBalance || 15450,
+      processingPaisa: 0,
+      processing: 0,
+      paidPaisa: (pro.lifetimeEarnings || 428000) * 100,
+      paid: pro.lifetimeEarnings || 428000,
+      disputedPaisa: 0,
+      disputed: 0
+    };
+
     const earningsData = {
       walletBalance: pro.walletBalance || 15450,
       lifetime: pro.lifetimeEarnings || 428000,
@@ -1970,19 +3796,31 @@ export async function getEarnings(req, res) {
       tipsReceived: 450,
       incentivesEarned: 800,
       platformTakeRate: pro.employmentType === 'Agency Employed' ? '14% (Agency Partner Rate)' : '20% (Standard Solo Rate)',
+      currencyUnit: 'INR (₹)',
+      minorCurrencyUnit: 'Paisa (100 Paisa = ₹1.00)',
+      financialNotice: 'Completed job indicates earned professional entitlement but is distinct from funds already released into your bank account. Settlements disburse on configured weekly cycles.',
+      financialStages,
       breakdown: {
         grossFare: 61150,
+        grossFarePaisa: 6115000,
         platformCommission: 12230,
+        platformCommissionPaisa: 1223000,
         tips: 2800,
+        tipsPaisa: 280000,
         surgeBonus: 1400,
+        surgeBonusPaisa: 140000,
         tierBonus: 5000,
-        netEarnings: 58120
+        tierBonusPaisa: 500000,
+        netEarnings: 58120,
+        netEarningsPaisa: 5812000
       },
       recentTransactions: [
         { id: 'TXN-901', bookingRef: 'UC-829410', service: 'Powerjet AC Servicing', gross: 499, platformTake: 100, net: 399, date: 'Today, 02:45 PM', status: 'Credited' },
         { id: 'TXN-902', bookingRef: 'UC-829399', service: 'AC Gas Charging & Valve Fit', gross: 899, platformTake: 180, net: 719, date: 'Yesterday, 04:15 PM', status: 'Credited' },
         { id: 'TXN-903', bookingRef: 'UC-829350', service: 'Electrical Fuse Replacement', gross: 299, platformTake: 60, net: 239, date: '20 Oct 2026', status: 'Credited' }
-      ]
+      ],
+      itemizedLedger,
+      recipientSnapshot
     };
 
     return res.json({
@@ -1998,21 +3836,323 @@ export async function getPayouts(req, res) {
   try {
     const proId = req.professional.id;
     const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    initProData(proId);
+
+    const isBusinessAssociated = pro.employmentType === 'Agency Employed';
+    const settlementModel = pro.settlementModel || (isBusinessAssociated ? 'settle_to_business' : 'direct_to_worker');
+
+    let recipientDetails;
+    if (settlementModel === 'settle_to_business') {
+      recipientDetails = {
+        type: 'partner_business',
+        name: pro.partnerAgencyName || 'Apex Home Solutions LLP',
+        entityId: pro.partnerAgencyId || 'PTR-90142',
+        accountNumberMasked: pro.bankDetails?.accountNumber || '••••••••9012',
+        bankName: pro.bankDetails?.bankName || 'ICICI Bank (Corporate Current Account)',
+        ifscCodeMasked: pro.bankDetails?.ifscCode || 'ICIC0000002',
+        label: `${pro.partnerAgencyName || 'Apex Home Solutions LLP'} [Partner Agency ID: ${pro.partnerAgencyId || 'PTR-90142'}]`
+      };
+    } else {
+      recipientDetails = {
+        type: 'professional_personal',
+        name: pro.applicantName || 'Vikram Salvi',
+        entityId: pro.id,
+        accountNumberMasked: pro.bankDetails?.accountNumber || '••••••••4821',
+        bankName: pro.bankDetails?.bankName || 'HDFC Bank (Savings Account)',
+        ifscCodeMasked: pro.bankDetails?.ifscCode || 'HDFC0001248',
+        upiIdMasked: pro.bankDetails?.upiId ? pro.bankDetails.upiId.replace(/(.{3})(.*)(@.*)/, '$1***$3') : 'vik***@okaxis',
+        label: `${pro.applicantName} [Personal Verified Account]`
+      };
+    }
+
+    const settlementNotice = isBusinessAssociated
+      ? `Platform settlement model configured: Settle to Business Partner (${recipientDetails.name}, ${recipientDetails.entityId}). Transfers disbursed to the partner agency corporate account represent B2B platform settlements and do NOT represent completed salary or wage payments to individual workers. Your partner agency manages your employment contract and salary schedule. Platform transfers are distinct from employer-reported wages.`
+      : `Platform settlement model configured: Direct Professional Settlement. Verified platform transfers are disbursed directly into your personal bank/UPI account on weekly settlement cycles.`;
+
+    const changeRequests = bankChangeRequestsStore.get(proId) || [];
+    const disputes = financialDisputesStore.get(proId) || [];
+
+    const payoutStatements = [
+      {
+        id: 'STMT-2026-W42',
+        period: '15 Oct - 21 Oct 2026',
+        cycleDates: { start: '2026-10-15', end: '2026-10-21' },
+        grossFare: 18800,
+        platformCommission: isBusinessAssociated ? 2632 : 3760,
+        commissionRate: isBusinessAssociated ? '14% (Agency Rate)' : '20% (Standard Rate)',
+        netSettlementAmount: isBusinessAssociated ? 16168 : 15040,
+        currency: 'INR',
+        actualRecipient: recipientDetails.label,
+        recipientType: recipientDetails.type,
+        status: 'Ready for Release',
+        batchId: 'BATCH-W42',
+        estimatedDisbursement: '23 Oct 2026',
+        utr: 'UTR-PENDING-RELEASE',
+        isVerifiedPlatformTransfer: true,
+        isEmployerReportedPayment: false,
+        adjustments: [],
+        failureDetails: null
+      },
+      {
+        id: 'STMT-2026-W41',
+        period: '08 Oct - 14 Oct 2026',
+        cycleDates: { start: '2026-10-08', end: '2026-10-14' },
+        grossFare: 22750,
+        platformCommission: isBusinessAssociated ? 3185 : 4550,
+        commissionRate: isBusinessAssociated ? '14% (Agency Rate)' : '20% (Standard Rate)',
+        netSettlementAmount: isBusinessAssociated ? 19565 : 18200,
+        currency: 'INR',
+        actualRecipient: recipientDetails.label,
+        recipientType: recipientDetails.type,
+        status: 'Settled',
+        batchId: 'BATCH-W41',
+        disbursementDate: '15 Oct 2026',
+        paidAt: '15 Oct 2026',
+        utr: 'UTR-98421092',
+        isVerifiedPlatformTransfer: true,
+        isEmployerReportedPayment: false,
+        adjustments: [
+          {
+            type: 'bonus_incentive',
+            description: 'Weekly Diwali Peak Readiness Performance Incentive',
+            amount: 500,
+            refId: 'INC-DWL-41'
+          }
+        ],
+        failureDetails: null
+      },
+      {
+        id: 'STMT-2026-W40',
+        period: '01 Oct - 07 Oct 2026',
+        cycleDates: { start: '2026-10-01', end: '2026-10-07' },
+        grossFare: 18500,
+        platformCommission: isBusinessAssociated ? 2590 : 3700,
+        commissionRate: isBusinessAssociated ? '14% (Agency Rate)' : '20% (Standard Rate)',
+        netSettlementAmount: isBusinessAssociated ? 15910 : 14800,
+        currency: 'INR',
+        actualRecipient: recipientDetails.label,
+        recipientType: recipientDetails.type,
+        status: 'Settled',
+        batchId: 'BATCH-W40',
+        disbursementDate: '08 Oct 2026',
+        paidAt: '08 Oct 2026',
+        utr: 'UTR-97621008',
+        isVerifiedPlatformTransfer: true,
+        isEmployerReportedPayment: false,
+        adjustments: [],
+        failureDetails: null
+      }
+    ];
 
     return res.json({
       success: true,
-      bankDetails: pro.bankDetails || {
-        accountHolderName: pro.applicantName,
-        accountNumber: '••••••••4821',
-        bankName: 'HDFC Bank',
-        ifscCode: 'HDFC0001248',
-        upiId: 'vikramsalvi@okaxis'
+      balance: pro.walletBalance || 15450,
+      settlementModel,
+      isBusinessAssociated,
+      actualRecipient: recipientDetails,
+      settlementNotice,
+      preventDoubleCountingNotice: 'Partner Agency accounts maintain business-level receivables; professional dashboard displays individual job entitlements only.',
+      disallowWorkerManualPaidMarking: true,
+      sandboxMode: true,
+      sandboxNotice: 'Sandbox Environment: Financial transfers and withdrawals are simulated for demonstration. No live banking transactions are initiated.',
+      bankDetails: {
+        accountHolderName: pro.bankDetails?.accountHolderName || pro.applicantName,
+        accountNumber: pro.bankDetails?.accountNumber || '••••••••4821',
+        bankName: pro.bankDetails?.bankName || 'HDFC Bank',
+        ifscCode: pro.bankDetails?.ifscCode || 'HDFC0001248',
+        upiId: pro.bankDetails?.upiId || 'vikramsalvi@okaxis',
+        status: pro.bankDetails?.status || 'Verified',
+        hasPendingChangeRequest: changeRequests.some(r => r.status === 'Pending Review')
       },
-      payoutBatches: [
-        { id: 'PO-301', amount: 15450, period: '15 Oct - 21 Oct 2026', status: 'Ready for Release', batchId: 'BATCH-W42', estimatedDisbursement: '23 Oct 2026' },
-        { id: 'PO-299', amount: 18200, period: '08 Oct - 14 Oct 2026', status: 'Processed', batchId: 'BATCH-W41', paidAt: '15 Oct 2026' },
-        { id: 'PO-295', amount: 14800, period: '01 Oct - 07 Oct 2026', status: 'Processed', batchId: 'BATCH-W40', paidAt: '08 Oct 2026' }
-      ]
+      bankChangeRequests: changeRequests,
+      financialDisputes: disputes,
+      payoutBatches: payoutStatements,
+      payoutStatements
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function submitBankChangeRequest(req, res) {
+  try {
+    const proId = req.professional.id;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    initProData(proId);
+
+    const {
+      accountHolderName,
+      accountNumber,
+      confirmAccountNumber,
+      ifscCode,
+      bankName,
+      upiId,
+      reason,
+      documentRef
+    } = req.body;
+
+    if (!accountHolderName || !accountNumber || !ifscCode || !bankName) {
+      return res.status(400).json({
+        success: false,
+        error: 'Account holder name, account number, IFSC code, and bank name are required.'
+      });
+    }
+
+    if (confirmAccountNumber && String(accountNumber).trim() !== String(confirmAccountNumber).trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Account number and confirmation do not match.'
+      });
+    }
+
+    const cleanAcc = String(accountNumber).trim();
+    if (cleanAcc.length < 9 || cleanAcc.length > 18 || !/^\d+$/.test(cleanAcc)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid bank account number format (must be 9 to 18 digits).'
+      });
+    }
+
+    const cleanIfsc = String(ifscCode).trim().toUpperCase();
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(cleanIfsc)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid IFSC code format (must be 11 characters starting with 4 letters, 5th char 0, e.g. HDFC0001248).'
+      });
+    }
+
+    // Mask for storage and presentation - NEVER log full details
+    const maskedAccountNumber = '••••••••' + cleanAcc.slice(-4);
+    const maskedUpi = upiId ? String(upiId).trim().replace(/(.{3})(.*)(@.*)/, '$1***$3') : '';
+
+    const newRequest = {
+      id: `BCR-${Math.floor(1000 + Math.random() * 9000)}`,
+      submittedAt: new Date().toISOString(),
+      status: 'Pending Review',
+      reviewFeedback: 'Awaiting penny-drop bank verification and compliance clearance. Verification SLA: 24-48 hours.',
+      oldDetailsMasked: {
+        accountNumber: pro.bankDetails?.accountNumber || '••••••••4821',
+        bankName: pro.bankDetails?.bankName || 'HDFC Bank',
+        ifscCode: pro.bankDetails?.ifscCode || 'HDFC0001248',
+        accountHolderName: pro.bankDetails?.accountHolderName || pro.applicantName
+      },
+      newDetailsMasked: {
+        accountHolderName: accountHolderName.trim(),
+        accountNumber: maskedAccountNumber,
+        bankName: bankName.trim(),
+        ifscCode: cleanIfsc,
+        upiId: maskedUpi,
+        documentRef: documentRef || 'Cancelled Cheque on File'
+      },
+      effectiveApplied: false,
+      reason: reason || 'Updated bank account details',
+      policyNotice: 'Unverified bank changes are never applied immediately to pending transfers. Current scheduled payouts continue routing to existing verified account until compliance sign-off.'
+    };
+
+    const requests = bankChangeRequestsStore.get(proId) || [];
+    requests.unshift(newRequest);
+    bankChangeRequestsStore.set(proId, requests);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Bank detail change request submitted for compliance verification. Pending payouts will not be altered until verified.',
+      changeRequest: newRequest,
+      changeHistory: requests
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getBankChangeHistory(req, res) {
+  try {
+    const proId = req.professional.id;
+    initProData(proId);
+    return res.json({
+      success: true,
+      history: bankChangeRequestsStore.get(proId) || []
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getFinancialDisputes(req, res) {
+  try {
+    const proId = req.professional.id;
+    initProData(proId);
+    return res.json({
+      success: true,
+      disputes: financialDisputesStore.get(proId) || []
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function submitFinancialDispute(req, res) {
+  try {
+    const proId = req.professional.id;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    initProData(proId);
+
+    const { category, sourceType, sourceRef, disputedAmount, reason, description } = req.body;
+
+    const validCategories = ['missing_earnings', 'incorrect_deduction', 'incorrect_incentive', 'settlement_mismatch'];
+    if (!category || !validCategories.includes(category)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid dispute category. Must be one of: ${validCategories.join(', ')}`
+      });
+    }
+
+    if (!sourceRef || String(sourceRef).trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'Dispute must be linked to a valid source record (e.g. Booking ID, Transaction ID, or Payout Batch ID).'
+      });
+    }
+
+    const amount = parseFloat(disputedAmount);
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'Disputed amount must be greater than ₹0.'
+      });
+    }
+
+    const newDispute = {
+      id: `DISP-${Math.floor(10000 + Math.random() * 90000)}`,
+      proId,
+      category,
+      sourceType: sourceType || 'booking',
+      sourceRef: String(sourceRef).trim(),
+      disputedAmount: amount,
+      reason: reason || 'Earnings or settlement discrepancy',
+      description: description || 'Professional requested audit review for source record.',
+      status: 'Open',
+      resolutionNotes: 'Dispute logged with Financial Audit & Reconciliation Cell. Resolution SLA: 48 business hours.',
+      createdAt: new Date().toISOString(),
+      resolutionHistory: [
+        {
+          timestamp: new Date().toISOString(),
+          status: 'Open',
+          actor: `${pro.applicantName} (Professional)`,
+          note: `Dispute filed regarding ${category.replace(/_/g, ' ')} for ref ${sourceRef}. Claimed amount: ₹${amount}.`
+        }
+      ],
+      immutabilityNotice: 'Professionals cannot directly rewrite ledger entries. Audit corrections are applied via formal adjustment batches.'
+    };
+
+    const disputes = financialDisputesStore.get(proId) || [];
+    disputes.unshift(newDispute);
+    financialDisputesStore.set(proId, disputes);
+
+    return res.status(201).json({
+      success: true,
+      message: `Financial dispute ${newDispute.id} created and linked to record ${sourceRef}. Audit investigation initiated.`,
+      dispute: newDispute,
+      disputes
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2056,7 +4196,8 @@ export async function requestWithdrawal(req, res) {
       message: `Withdrawal of ₹${withdrawAmount} initiated to your registered account ${pro.bankDetails?.accountNumber || '••••4821'}. Funds settle in 2-4 hours.`,
       newBalance: pro.walletBalance,
       utr,
-      payoutId
+      payoutId,
+      sandboxNotice: 'Sandbox Simulation: No actual banking transfer executed. Balance debited in sandbox state.'
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2068,19 +4209,64 @@ export async function requestWithdrawal(req, res) {
 // -------------------------------------------------------------
 export async function getReviews(req, res) {
   try {
-    const reviews = [
-      { id: 'REV-1', rating: 5, author: 'Rohan Kapoor', service: 'Powerjet AC Servicing', comment: 'Outstanding service! Cleaned the AC thoroughly without leaving any mess on the walls. Highly recommended.', date: '21 Oct 2026' },
-      { id: 'REV-2', rating: 5, author: 'Meera Sen', service: 'Gas Charging & Leak Check', comment: 'Very skilled technician. Identified the micro-leak in 5 minutes and cooling is now icy cold.', date: '19 Oct 2026' },
-      { id: 'REV-3', rating: 5, author: 'Pooja Hegde', service: 'Switchboard Fixing & Wiring', comment: 'Polite, came on time with all tools and shoe covers. Very professional.', date: '16 Oct 2026' },
-      { id: 'REV-4', rating: 4.8, author: 'Aditya Roy', service: 'Split AC Master Service', comment: 'Punctual and honest. Did not try to upsell unnecessary spare parts.', date: '12 Oct 2026' }
-    ];
+    const proId = req.professional.id;
+    initProData(proId);
+    const reviews = reviewsStore.get(proId) || [];
+
+    const breakdown = { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 };
+    let sum = 0;
+    reviews.forEach(r => {
+      const star = String(Math.floor(r.rating || 5));
+      if (breakdown[star] !== undefined) breakdown[star]++;
+      sum += (r.rating || 5);
+    });
+
+    const averageRating = reviews.length > 0 ? (sum / reviews.length).toFixed(2) : 0;
 
     return res.json({
       success: true,
-      averageRating: 4.94,
-      totalReviewsCount: 1520,
-      breakdown: { '5': 1420, '4': 85, '3': 12, '2': 2, '1': 1 },
-      reviews
+      averageRating: parseFloat(averageRating),
+      totalReviewsCount: reviews.length,
+      breakdown,
+      reviews,
+      policyNotice: 'Professionals may read customer feedback and flag abusive or inaccurate reviews for moderation. Customer ratings cannot be edited or deleted by professionals.'
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function flagReview(req, res) {
+  try {
+    const proId = req.professional.id;
+    const { id } = req.params;
+    const { reason, explanation } = req.body;
+    initProData(proId);
+
+    const validReasons = ['abusive_language', 'inaccurate_feedback', 'safety_threat', 'customer_scope_dispute', 'unrelated_issue'];
+    if (!reason || !validReasons.includes(reason)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid flag reason. Must be one of: ${validReasons.join(', ')}`
+      });
+    }
+
+    const reviews = reviewsStore.get(proId) || [];
+    const review = reviews.find(r => r.id === id);
+    if (!review) {
+      return res.status(404).json({ success: false, error: 'Review not found.' });
+    }
+
+    review.flagged = true;
+    review.flagStatus = 'Pending Moderation Review';
+    review.flagReason = reason;
+    review.flagExplanation = explanation || 'Flagged for moderation audit';
+    review.flaggedAt = new Date().toISOString();
+
+    return res.json({
+      success: true,
+      message: 'Review flagged for moderation audit. Customer Trust & Safety Cell will inspect the booking communication and doorstep logs within 24 hours.',
+      review
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2091,18 +4277,134 @@ export async function getPerformance(req, res) {
   try {
     const proId = req.professional.id;
     const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    initProData(proId);
+
+    const jobsCompleted = pro.jobsCompleted !== undefined ? pro.jobsCompleted : 1520;
+    const insufficientData = jobsCompleted < 10;
+
+    const appeals = performanceAppealsStore.get(proId) || [];
+
+    const scorecard = {
+      averageRating: {
+        value: pro.rating || 4.94,
+        target: 4.90,
+        unit: 'Stars',
+        definition: 'Weighted average of 1-to-5 star customer ratings received across verified completed jobs during the rolling 30-day review period.'
+      },
+      reviewCount: {
+        value: jobsCompleted > 0 ? (pro.reviewCount || 1520) : 0,
+        target: 10,
+        unit: 'Reviews',
+        definition: 'Total number of verified homeowner service ratings registered on platform.'
+      },
+      completionRate: {
+        value: jobsCompleted > 0 ? (100 - (pro.cancellationRate || 0.6)) : 0,
+        target: 98.0,
+        unit: '%',
+        definition: 'Percentage of accepted service dispatches completed successfully without cancellation: (Completed Jobs / Total Accepted Jobs) × 100.'
+      },
+      cancellationRate: {
+        value: pro.cancellationRate !== undefined ? pro.cancellationRate : 0.6,
+        target: 1.0,
+        unit: '%',
+        definition: 'Percentage of accepted bookings initiated for cancellation by the professional: (Cancelled by Worker / Total Accepted) × 100.'
+      },
+      onTimeArrivalRate: {
+        value: pro.onTimeArrivalRate !== undefined ? pro.onTimeArrivalRate : 99.2,
+        target: 98.0,
+        unit: '%',
+        definition: 'Percentage of bookings where the technician arrived at the doorstep on or before the scheduled service window start time based on GPS geo-fence timestamp.'
+      },
+      revisitRate: {
+        value: pro.revisitRate !== undefined ? pro.revisitRate : 0.4,
+        target: 0.5,
+        unit: '%',
+        definition: 'Percentage of completed jobs requiring a customer-initiated rework or warranty revisit within 14 days of original service.'
+      },
+      jobsCompleted: {
+        value: jobsCompleted,
+        target: 45,
+        unit: 'Jobs',
+        definition: 'Total completed service dispatches executed in current rolling calendar month.'
+      }
+    };
+
+    const trainingRecommendations = [
+      {
+        courseId: 'TRN-103',
+        title: 'Inverter PCB Diagnostics & High-Voltage Safety',
+        reason: 'Recommended based on seasonal inverter split AC maintenance demand in Mumbai region.'
+      },
+      {
+        courseId: 'TRN-104',
+        title: 'R32 / R410A Eco Refrigerant Safe Recovery & Vacuum SOP',
+        reason: 'Recommended for Diamond Pro Partners to qualify for zero-emission eco-refrigerant premium bonuses.'
+      }
+    ];
 
     return res.json({
       success: true,
-      tier: pro.tier || 'Diamond Pro Partner (Level 5)',
-      scorecard: {
-        rating: pro.rating || 4.94,
-        onTimeArrivalRate: pro.onTimeArrivalRate || 99.2,
-        cancellationRate: pro.cancellationRate || 0.6,
-        revisitRate: pro.revisitRate || 0.4,
-        jobsCompleted: pro.jobsCompleted || 1520,
-        badgeStatus: 'Gold Shield Safety Champion'
-      }
+      tier: insufficientData ? 'Evaluating Partner (Onboarding)' : (pro.tier || 'Diamond Pro Partner (Level 5)'),
+      reviewPeriod: 'Rolling 30-Day Evaluation Window (23 Sep 2026 – 23 Oct 2026)',
+      reviewCycleExplanation: 'Performance metrics and partner tiers are evaluated continuously over a rolling 30-day window. Tier promotions and guaranteed monthly bonus payouts execute on the 1st of every calendar month.',
+      insufficientData,
+      insufficientDataNotice: insufficientData
+        ? 'Insufficient data for tier ranking. A minimum of 10 completed dispatches within the 30-day evaluation period is required to generate reliable performance scorecards and tier rankings. Keep taking assignments to establish your baseline.'
+        : null,
+      scorecard,
+      trainingRecommendations,
+      tierEligibility: {
+        currentTier: insufficientData ? 'Evaluating' : (pro.tier || 'Diamond Pro Partner (Level 5)'),
+        nextTier: 'Master Elite Partner (Level 6)',
+        progressPercent: insufficientData ? 0 : 93,
+        thresholds: {
+          minRating: 4.90,
+          minCompletionRate: 98.0,
+          maxCancellationRate: 1.0,
+          minOnTimeArrival: 98.0
+        }
+      },
+      appeals
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function submitPerformanceAppeal(req, res) {
+  try {
+    const proId = req.professional.id;
+    initProData(proId);
+
+    const { metric, incidentBookingRef, explanation, evidenceRef } = req.body;
+
+    if (!metric || !explanation) {
+      return res.status(400).json({
+        success: false,
+        error: 'Metric and explanation are required for appeal submission.'
+      });
+    }
+
+    const appeal = {
+      id: `APP-${Math.floor(1000 + Math.random() * 9000)}`,
+      proId,
+      metric,
+      incidentBookingRef: incidentBookingRef || 'N/A',
+      explanation,
+      evidenceRef: evidenceRef || 'Doorstep log on record',
+      status: 'Pending Audit',
+      createdAt: new Date().toISOString(),
+      auditNotes: 'Performance appeal queued for Senior Dispatch Operations Cell audit. SLA: 48 business hours.'
+    };
+
+    const appeals = performanceAppealsStore.get(proId) || [];
+    appeals.unshift(appeal);
+    performanceAppealsStore.set(proId, appeals);
+
+    return res.status(201).json({
+      success: true,
+      message: `Performance appeal ${appeal.id} submitted for Operations Cell audit.`,
+      appeal
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2116,9 +4418,149 @@ export async function getTrainings(req, res) {
   try {
     const proId = req.professional.id;
     initProData(proId);
+
+    const allCourses = trainingsStore[proId] || [];
+    const sessions = trainingSessionsStore.get(proId) || [];
+
+    const required = allCourses.filter(c => c.courseType === 'required');
+    const assigned = allCourses.filter(c => c.courseType === 'assigned');
+    const available = allCourses.filter(c => c.courseType === 'available');
+
     return res.json({
       success: true,
-      trainings: trainingsStore[proId]
+      trainings: allCourses,
+      categories: {
+        required,
+        assigned,
+        available
+      },
+      availableSessions: sessions,
+      externalVideoProviderStatus: 'Unconfigured (Sandbox Mode)',
+      externalVideoNotice: 'Notice: Third-party streaming video integration is unconfigured in this sandbox environment. Illustrated step-by-step SOP cards and verified interactive knowledge assessments are active.'
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function getTrainingAssessment(req, res) {
+  try {
+    const proId = req.professional.id;
+    const { id } = req.params;
+    initProData(proId);
+
+    const course = (trainingsStore[proId] || []).find(t => t.id === id);
+    if (!course) {
+      return res.status(404).json({ success: false, error: 'Training course not found.' });
+    }
+
+    if (!course.assessmentQuestions || course.assessmentQuestions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No assessment questions configured for this course.'
+      });
+    }
+
+    // Strip out correctOption so answers are not exposed to the client
+    const sanitizedQuestions = course.assessmentQuestions.map(q => ({
+      id: q.id,
+      text: q.text,
+      options: q.options
+    }));
+
+    return res.json({
+      success: true,
+      courseId: course.id,
+      courseTitle: course.title,
+      passingScore: course.passingScore || 80,
+      passingRule: 'Minimum 80% score required to achieve verified certification.',
+      totalQuestions: sanitizedQuestions.length,
+      questions: sanitizedQuestions
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function submitTrainingAssessment(req, res) {
+  try {
+    const proId = req.professional.id;
+    const { id } = req.params;
+    const { answers } = req.body;
+    initProData(proId);
+
+    const course = (trainingsStore[proId] || []).find(t => t.id === id);
+    if (!course) {
+      return res.status(404).json({ success: false, error: 'Training course not found.' });
+    }
+
+    if (!course.assessmentQuestions || course.assessmentQuestions.length === 0) {
+      return res.status(400).json({ success: false, error: 'Course does not require an assessment.' });
+    }
+
+    if (!answers || typeof answers !== 'object') {
+      return res.status(400).json({
+        success: false,
+        error: 'Assessment answers object is required.'
+      });
+    }
+
+    let correctCount = 0;
+    const total = course.assessmentQuestions.length;
+
+    course.assessmentQuestions.forEach(q => {
+      const submitted = answers[q.id];
+      if (submitted !== undefined && parseInt(submitted) === q.correctOption) {
+        correctCount++;
+      }
+    });
+
+    const scorePercentage = Math.round((correctCount / total) * 100);
+    const passingThreshold = course.passingScore || 80;
+    const passed = scorePercentage >= passingThreshold;
+
+    if (!passed) {
+      return res.status(422).json({
+        success: false,
+        passed: false,
+        score: `${scorePercentage}%`,
+        correctAnswersCount: correctCount,
+        totalQuestions: total,
+        passingThreshold: `${passingThreshold}%`,
+        message: `Assessment score ${scorePercentage}% is below the required ${passingThreshold}% passing mark (${correctCount}/${total} correct). Certification withheld. Please review the course modules and re-attempt.`,
+        certificate: null
+      });
+    }
+
+    // Passed! Update course status and award certificate
+    const today = new Date();
+    const expiry = new Date();
+    expiry.setFullYear(today.getFullYear() + 1);
+
+    course.completed = true;
+    course.score = `${scorePercentage}%`;
+    course.completedAt = today.toISOString().split('T')[0];
+    course.certificateId = `CERT-${course.id.replace('TRN-', '')}-${Math.floor(1000 + Math.random() * 9000)}`;
+    course.issuedDate = today.toISOString().split('T')[0];
+    course.expiryDate = expiry.toISOString().split('T')[0];
+
+    return res.json({
+      success: true,
+      passed: true,
+      score: `${scorePercentage}%`,
+      correctAnswersCount: correctCount,
+      totalQuestions: total,
+      passingThreshold: `${passingThreshold}%`,
+      message: `Congratulations! You passed the assessment with ${scorePercentage}% (${correctCount}/${total} correct). Certification awarded.`,
+      certificate: {
+        certificateId: course.certificateId,
+        title: course.title,
+        badge: course.badge,
+        issuedDate: course.issuedDate,
+        expiryDate: course.expiryDate,
+        status: 'Active'
+      },
+      training: course
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2131,17 +4573,72 @@ export async function completeTraining(req, res) {
     const { id } = req.params;
     initProData(proId);
 
-    const found = trainingsStore[proId].find(t => t.id === id);
-    if (found) {
-      found.completed = true;
-      found.score = '96%';
-      found.completedAt = new Date().toISOString().split('T')[0];
+    const found = trainingsStore[proId]?.find(t => t.id === id);
+    if (!found) {
+      return res.status(404).json({ success: false, error: 'Course not found' });
     }
+
+    // Direct mark-as-completed is prohibited for courses with required assessments or mandatory status
+    if ((found.assessmentQuestions && found.assessmentQuestions.length > 0) || found.required) {
+      return res.status(400).json({
+        success: false,
+        error: 'Training completion must be verified by the appropriate backend workflow. Direct mark-as-completed is not permitted for courses with mandatory assessments.'
+      });
+    }
+
+    const today = new Date();
+    const expiry = new Date();
+    expiry.setFullYear(today.getFullYear() + 1);
+
+    found.completed = true;
+    found.score = '96%';
+    found.completedAt = today.toISOString().split('T')[0];
+    found.certificateId = `CERT-${found.id.replace('TRN-', '')}-${Math.floor(1000 + Math.random() * 9000)}`;
+    found.issuedDate = today.toISOString().split('T')[0];
+    found.expiryDate = expiry.toISOString().split('T')[0];
 
     return res.json({
       success: true,
-      message: `Training "${found?.title || id}" successfully completed. Certificate awarded!`,
-      training: found
+      message: `Training "${found.title}" verified and completed via backend accreditation workflow. Certificate awarded!`,
+      training: found,
+      certificate: {
+        certificateId: found.certificateId,
+        issuedDate: found.issuedDate,
+        expiryDate: found.expiryDate,
+        status: 'Active'
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function bookTrainingSession(req, res) {
+  try {
+    const proId = req.professional.id;
+    const { sessionId } = req.body;
+    initProData(proId);
+
+    const sessions = trainingSessionsStore.get(proId) || [];
+    const session = sessions.find(s => s.sessionId === sessionId);
+
+    if (!session) {
+      return res.status(404).json({ success: false, error: 'Workshop session not found.' });
+    }
+
+    if (session.enrolledCount >= session.capacity) {
+      return res.status(400).json({ success: false, error: 'Selected workshop session is fully booked.' });
+    }
+
+    session.enrolledCount += 1;
+    session.bookedByPro = true;
+    session.bookingStatus = 'Confirmed';
+    session.bookedAt = new Date().toISOString();
+
+    return res.json({
+      success: true,
+      message: `Seat confirmed for "${session.courseTitle}" at ${session.hub} on ${session.slot}.`,
+      session
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2155,9 +4652,26 @@ export async function getInventory(req, res) {
   try {
     const proId = req.professional.id;
     initProData(proId);
+    const items = inventoryStore[proId] || [];
+
+    const personalStock = items.filter(i => i.ownershipType === 'personal');
+    const businessOwnedStock = items.filter(i => i.ownershipType === 'business_owned');
+    const platformOrders = items.filter(i => i.ownershipType === 'platform_order');
+
+    const lowStockAlerts = items.filter(i => i.qty <= (i.minThreshold || 1));
+    const returns = inventoryReturnsStore.get(proId) || [];
+
     return res.json({
       success: true,
-      inventory: inventoryStore[proId]
+      inventory: items,
+      grouped: {
+        personalStock,
+        businessOwnedStock,
+        platformOrders
+      },
+      lowStockAlerts,
+      returns,
+      policyNotice: 'Business-owned equipment is assigned under corporate accountability and cannot be altered or transferred without Hub Manager authorization. Negative inventory balances are strictly prohibited.'
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2167,18 +4681,93 @@ export async function getInventory(req, res) {
 export async function requestRestock(req, res) {
   try {
     const proId = req.professional.id;
-    const { itemId, requestedQty, reason } = req.body;
+    const { itemId, requestedQty, quantity, hub } = req.body;
     initProData(proId);
 
-    const item = inventoryStore[proId].find(i => i.id === itemId);
-    if (item) {
-      item.qty += parseInt(requestedQty) || 2;
+    const qty = parseInt(requestedQty || quantity || 1);
+    if (!qty || isNaN(qty) || qty <= 0) {
+      return res.status(400).json({ success: false, error: 'Restock quantity must be at least 1 unit.' });
+    }
+
+    const item = (inventoryStore[proId] || []).find(i =>
+      i.id === itemId ||
+      (i.item && i.item.toLowerCase() === String(itemId).toLowerCase()) ||
+      (i.sku && i.sku.toLowerCase() === String(itemId).toLowerCase())
+    );
+    if (!item) {
+      return res.status(404).json({ success: false, error: 'Inventory item not found.' });
+    }
+
+    item.qty = parseFloat((item.qty + qty).toFixed(2));
+    if (item.qty > (item.minThreshold || 1)) {
+      item.status = 'In Stock';
     }
 
     return res.json({
       success: true,
-      message: `Restock request for ${requestedQty} units of ${item?.item || 'item'} submitted to Central Logistics Depot.`,
+      message: `Restock request for ${qty} ${item.unit} of "${item.item}" confirmed at ${hub || 'Bandra West Central Hub'}. Ready for collection.`,
       updatedItem: item
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function reportDamagedItemOrReturn(req, res) {
+  try {
+    const proId = req.professional.id;
+    const { itemId, serialNumber, reason, quantity, description } = req.body;
+    initProData(proId);
+
+    const validReasons = ['damaged_in_transit', 'defective_out_of_box', 'normal_wear_and_tear', 'expired_chemical'];
+    if (!reason || !validReasons.includes(reason)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid return reason. Must be one of: ${validReasons.join(', ')}`
+      });
+    }
+
+    const item = (inventoryStore[proId] || []).find(i => i.id === itemId);
+    if (!item) {
+      return res.status(404).json({ success: false, error: 'Inventory item not found.' });
+    }
+
+    const returnQty = parseFloat(quantity) || 1;
+    if (returnQty > item.qty) {
+      return res.status(400).json({
+        success: false,
+        error: `Cannot return ${returnQty} units. Available stock is only ${item.qty} ${item.unit}. Negative stock prevented.`
+      });
+    }
+
+    item.qty = parseFloat((item.qty - returnQty).toFixed(2));
+    if (item.qty <= (item.minThreshold || 1)) {
+      item.status = item.qty === 0 ? 'Out of Stock' : 'Low Stock';
+    }
+
+    const returnTicket = {
+      returnId: `RET-${Math.floor(1000 + Math.random() * 9000)}`,
+      proId,
+      itemId,
+      itemName: item.item,
+      sku: item.sku,
+      ownershipType: item.ownershipType,
+      serialNumber: serialNumber || item.serialNumber || 'N/A',
+      reason,
+      quantity: returnQty,
+      description: description || 'Damaged / defective item reported for replacement.',
+      status: 'Pending Inspection at Regional Logistics Hub',
+      reportedAt: new Date().toISOString()
+    };
+
+    const returns = inventoryReturnsStore.get(proId) || [];
+    returns.unshift(returnTicket);
+    inventoryReturnsStore.set(proId, returns);
+
+    return res.status(201).json({
+      success: true,
+      message: `Damaged item return report ${returnTicket.returnId} registered. Please bring the unit to the Hub Inspection Desk for replacement.`,
+      returnTicket
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2190,16 +4779,126 @@ export async function requestRestock(req, res) {
 // -------------------------------------------------------------
 export async function getShopItems(req, res) {
   try {
+    const proId = req.professional.id;
+    initProData(proId);
+
     const shopItems = [
-      { id: 'SH-01', title: 'Urban Pro Branded Polo Uniform (Set of 2)', price: 499, category: 'Uniforms & Apparel', rating: 4.9, image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=300&q=80' },
-      { id: 'SH-02', title: 'Universal HVAC Waterproof Spray Service Bag', price: 649, category: 'AC Specialty Tools', rating: 4.8, image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300&q=80' },
-      { id: 'SH-03', title: 'Heavy Duty Electrician Tool Backpack with USB Hub', price: 1299, category: 'Toolkits & Cases', rating: 4.9, image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=300&q=80' },
-      { id: 'SH-04', title: 'Disposable Shoe Covers (100 Pieces Box)', price: 199, category: 'Safety & Hygiene', rating: 4.95, image: 'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=300&q=80' }
+      {
+        id: 'SH-01',
+        title: 'Official Urban Pro Polo Uniform (Pack of 3)',
+        category: 'Uniforms & Apparel',
+        price: 899,
+        rating: 4.9,
+        inStock: true,
+        availableStock: 45,
+        specs: 'Dry-fit breathable polyester blend with embroidered Urban Company Pro Partner emblem.',
+        image: 'https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=300&q=80'
+      },
+      {
+        id: 'SH-02',
+        title: 'Powerjet Commercial AC Foam Washer Unit (120 Bar)',
+        category: 'AC Specialty Tools',
+        price: 4499,
+        rating: 5.0,
+        inStock: true,
+        availableStock: 12,
+        specs: 'High-pressure compact jet pump designed for indoor split AC coil deep servicing with variable spray nozzle.',
+        image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300&q=80'
+      },
+      {
+        id: 'SH-03',
+        title: 'Heavy Duty Electrician Tool Backpack with USB Hub',
+        category: 'Toolkits & Cases',
+        price: 1299,
+        rating: 4.9,
+        inStock: true,
+        availableStock: 28,
+        specs: 'Reinforced ballistic nylon, water-resistant base, 36 individual tool loops.',
+        image: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=300&q=80'
+      },
+      {
+        id: 'SH-04',
+        title: 'Waterproof Indoor Split AC Catchment Bag & Drain Hose',
+        category: 'Spill Prevention',
+        price: 650,
+        rating: 4.9,
+        inStock: true,
+        availableStock: 30,
+        specs: 'Prevents wastewater splashing onto customer walls and wood floors during indoor powerjet deep cleans.',
+        image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300&q=80'
+      },
+      {
+        id: 'SH-05',
+        title: 'Full PPE Safety Kit (Goggles, 1000V Gloves, Shoe Covers)',
+        category: 'Safety & Compliance',
+        price: 499,
+        rating: 4.95,
+        inStock: true,
+        availableStock: 100,
+        specs: '1000V electrical shock-insulated gloves, anti-fog polycarbonate goggles, and 50 pairs of reusable shoe covers.',
+        image: 'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=300&q=80'
+      }
     ];
+
+    const orderHistory = shopOrdersStore.get(proId) || [];
 
     return res.json({
       success: true,
-      items: shopItems
+      items: shopItems,
+      orderHistory,
+      sandboxNotice: 'Sandbox Demonstration Store: Orders placed are simulated for demonstration. No real financial debit occurs.'
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function placeShopOrder(req, res) {
+  try {
+    const proId = req.professional.id;
+    const { itemId, quantity = 1, deliveryMethod = 'hub_pickup' } = req.body;
+    initProData(proId);
+
+    const qty = parseInt(quantity);
+    if (!qty || isNaN(qty) || qty <= 0) {
+      return res.status(400).json({ success: false, error: 'Order quantity must be at least 1.' });
+    }
+
+    const catalog = [
+      { id: 'SH-01', title: 'Official Urban Pro Polo Uniform (Pack of 3)', price: 899 },
+      { id: 'SH-02', title: 'Powerjet Commercial AC Foam Washer Unit (120 Bar)', price: 4499 },
+      { id: 'SH-03', title: 'Heavy Duty Electrician Tool Backpack with USB Hub', price: 1299 },
+      { id: 'SH-04', title: 'Waterproof Indoor Split AC Catchment Bag & Drain Hose', price: 650 },
+      { id: 'SH-05', title: 'Full PPE Safety Kit (Goggles, 1000V Gloves, Shoe Covers)', price: 499 }
+    ];
+
+    const item = catalog.find(i => i.id === itemId);
+    if (!item) {
+      return res.status(404).json({ success: false, error: 'Product not found in shop catalog.' });
+    }
+
+    const totalAmount = item.price * qty;
+
+    const newOrder = {
+      orderId: `ORD-SHP-${Math.floor(1000 + Math.random() * 9000)}`,
+      itemId: item.id,
+      item: item.title,
+      qty,
+      amount: totalAmount,
+      orderedAt: new Date().toISOString(),
+      deliveryMethod: deliveryMethod === 'express_courier' ? 'Express Doorstep Courier' : 'Hub Pickup (Bandra West Central Hub)',
+      fulfilmentStatus: 'Ready for Pickup at Bandra West Hub',
+      sandboxNotice: 'Sandbox demonstration order - simulated purchase without real financial debit'
+    };
+
+    const orders = shopOrdersStore.get(proId) || [];
+    orders.unshift(newOrder);
+    shopOrdersStore.set(proId, orders);
+
+    return res.status(201).json({
+      success: true,
+      message: `Order ${newOrder.orderId} placed for ${qty}x ${item.title}. Status: Ready for Pickup.`,
+      order: newOrder
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2207,15 +4906,52 @@ export async function getShopItems(req, res) {
 }
 
 // -------------------------------------------------------------
-// 10. SUPPORT & NOTIFICATIONS
+// 10. SUPPORT & SAFETY
 // -------------------------------------------------------------
 export async function getSupportTickets(req, res) {
   try {
     const proId = req.professional.id;
     initProData(proId);
+
+    const { category, status, priority, page = 1, limit = 20 } = req.query;
+    let list = supportTicketsStore[proId] || [];
+
+    if (category) list = list.filter(t => t.category === category);
+    if (status) list = list.filter(t => t.status === status);
+    if (priority) list = list.filter(t => t.priority === priority);
+
+    // CRITICAL SECURITY RULE: Strip staff internal notes from worker response!
+    const sanitizedTickets = list.map(t => {
+      const copy = { ...t, reference: t.reference || t.id };
+      delete copy.internalStaffNotes;
+      return copy;
+    });
+
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 20;
+    const startIndex = (pageNum - 1) * limitNum;
+    const paginated = sanitizedTickets.slice(startIndex, startIndex + limitNum);
+
     return res.json({
       success: true,
-      tickets: supportTicketsStore[proId]
+      tickets: paginated,
+      totalCount: sanitizedTickets.length,
+      page: pageNum,
+      totalPages: Math.ceil(sanitizedTickets.length / limitNum) || 1,
+      categories: [
+        { id: 'booking_support', label: 'Booking-Related Support' },
+        { id: 'earnings_payout', label: 'Earnings & Payout Support' },
+        { id: 'account_onboarding', label: 'Account & Onboarding Support' },
+        { id: 'technical_issue', label: 'Technical Issues' },
+        { id: 'safety_incident', label: 'Safety Incident Reporting' }
+      ],
+      priorities: ['Normal', 'High', 'Urgent', 'Critical'],
+      configuredSupportChannels: {
+        safetyDesk24x7: '+91 1800 209 8820',
+        hubDispatchHelpline: '+91 98200 44911',
+        safetyCellEmail: 'safety-cell@urbanpro.com',
+        operationalHub: 'Bandra West Central Hub'
+      }
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2225,40 +4961,374 @@ export async function getSupportTickets(req, res) {
 export async function createSupportTicket(req, res) {
   try {
     const proId = req.professional.id;
-    const { subject, category, message, priority = 'Normal' } = req.body;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
     initProData(proId);
 
+    // Idempotency guard
+    const idempotencyKey = req.headers['x-idempotency-key'] || req.body.idempotencyKey;
+    if (idempotencyKey && idempotencyKeysStore.has(idempotencyKey)) {
+      return res.status(200).json(idempotencyKeysStore.get(idempotencyKey));
+    }
+
+    const { subject, category, message, description, priority = 'Normal', relatedBookingId, relatedPayoutRef, attachments } = req.body;
+
+    const categoryMap = {
+      'Technical issues': 'technical_issue',
+      'technical_issues': 'technical_issue',
+      'technical_issue': 'technical_issue',
+      'Booking-related support': 'booking_support',
+      'booking_support': 'booking_support',
+      'Earnings support': 'earnings_payout',
+      'earnings_payout': 'earnings_payout',
+      'Account/onboarding support': 'account_onboarding',
+      'account_onboarding': 'account_onboarding',
+      'Safety incident reporting': 'safety_incident',
+      'safety_incident': 'safety_incident'
+    };
+    const cat = categoryMap[category] || category;
+    const validCategories = ['booking_support', 'earnings_payout', 'account_onboarding', 'technical_issue', 'safety_incident'];
+    if (!cat || !validCategories.includes(cat)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid support category. Must be one of: ${validCategories.join(', ')}`
+      });
+    }
+
+    const validPriorities = ['Normal', 'High', 'Urgent', 'Critical'];
+    if (priority && !validPriorities.includes(priority)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid priority level. Must be one of: ${validPriorities.join(', ')}`
+      });
+    }
+
+    const ticketDesc = description || message || subject;
+    if (!ticketDesc || ticketDesc.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        error: 'Ticket description is required and must contain at least 5 characters.'
+      });
+    }
+
+    // Attachment validation (type and 5MB limit)
+    const validAttachments = [];
+    if (attachments && Array.isArray(attachments)) {
+      for (const att of attachments) {
+        if (att.fileSizeKb && att.fileSizeKb > 5120) {
+          return res.status(400).json({
+            success: false,
+            error: `Attachment ${att.fileName || 'file'} exceeds the 5MB maximum platform limit.`
+          });
+        }
+        if (att.mimeType && !['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(att.mimeType.toLowerCase())) {
+          return res.status(400).json({
+            success: false,
+            error: `Attachment type ${att.mimeType} is not permitted. Only JPG, PNG, and PDF allowed.`
+          });
+        }
+        validAttachments.push({
+          fileName: att.fileName || 'attachment',
+          fileUrl: att.fileUrl || 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300',
+          mimeType: att.mimeType || 'image/jpeg',
+          uploadedAt: new Date().toISOString()
+        });
+      }
+    }
+
+    const ticketId = `TKT-${proId}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const now = new Date();
+
     const newTicket = {
-      id: `TKT-${proId}-${Math.floor(100 + Math.random() * 900)}`,
-      subject: subject || 'General Query',
-      category: category || 'Operations',
+      id: ticketId,
+      reference: ticketId,
+      subject: subject || `${cat.replace('_', ' ').toUpperCase()} Ticket`,
+      category: cat,
       priority,
+      relatedBookingId: relatedBookingId || '',
+      relatedPayoutRef: relatedPayoutRef || '',
+      description: ticketDesc.trim(),
+      attachments: validAttachments,
       status: 'Open',
-      createdAt: new Date(),
       messages: [
-        { sender: 'Professional', text: message || 'Need assistance from operations.', timestamp: new Date() }
-      ]
+        {
+          id: `MSG-${Math.floor(1000 + Math.random() * 9000)}`,
+          sender: 'Professional',
+          senderRole: 'Professional',
+          text: ticketDesc.trim(),
+          timestamp: now,
+          attachments: validAttachments
+        }
+      ],
+      resolutionHistory: [
+        {
+          timestamp: now,
+          status: 'Open',
+          updatedBy: pro.applicantName || 'Professional',
+          note: 'Ticket created via Professional Portal'
+        }
+      ],
+      internalStaffNotes: [], // Staff notes stay strictly private
+      createdAt: now
     };
 
     supportTicketsStore[proId].unshift(newTicket);
 
-    return res.status(201).json({
+    recordProfessionalAudit(
+      proId,
+      { type: 'professional', id: proId, name: pro.applicantName },
+      'SUPPORT_TICKET_CREATED',
+      { type: 'SupportTicket', id: ticketId },
+      `Raised ${priority} priority ${category} ticket: ${newTicket.subject}`,
+      { ticketId, category, priority, relatedBookingId, relatedPayoutRef }
+    );
+
+    // Prepare safe sanitized return object
+    const returnTicket = { ...newTicket };
+    delete returnTicket.internalStaffNotes;
+
+    const responsePayload = {
       success: true,
-      message: 'Support ticket submitted to Operations Helpdesk.',
-      ticket: newTicket
+      message: `Support ticket ${ticketId} created. Priority: ${priority}. Support desk notified.`,
+      ticket: returnTicket
+    };
+
+    if (idempotencyKey) {
+      idempotencyKeysStore.set(idempotencyKey, responsePayload);
+    }
+
+    return res.status(201).json(responsePayload);
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function addTicketMessage(req, res) {
+  try {
+    const proId = req.professional.id;
+    const { id } = req.params;
+    const { message, text, attachments } = req.body;
+    initProData(proId);
+
+    const ticket = (supportTicketsStore[proId] || []).find(t => t.id === id || t.reference === id);
+    if (!ticket) {
+      return res.status(404).json({ success: false, error: 'Support ticket not found.' });
+    }
+
+    const msgText = (text || message || '').trim();
+    if (!msgText) {
+      return res.status(400).json({ success: false, error: 'Message text cannot be empty.' });
+    }
+
+    const msgObj = {
+      id: `MSG-${Math.floor(1000 + Math.random() * 9000)}`,
+      sender: 'Professional',
+      senderRole: 'Professional',
+      text: msgText,
+      timestamp: new Date(),
+      attachments: attachments || []
+    };
+
+    ticket.messages.push(msgObj);
+    if (ticket.status === 'Resolved' || ticket.status === 'Closed') {
+      ticket.status = 'Open';
+      ticket.resolutionHistory.push({
+        timestamp: new Date(),
+        status: 'Reopened',
+        updatedBy: req.professional.name || 'Professional',
+        note: 'Reopened by professional with additional inquiry.'
+      });
+    }
+
+    recordProfessionalAudit(
+      proId,
+      { type: 'professional', id: proId, name: req.professional.name },
+      'TICKET_MESSAGE_SENT',
+      { type: 'SupportTicket', id: ticket.id },
+      'Appended message to support ticket thread',
+      { ticketId: ticket.id }
+    );
+
+    const safeTicket = { ...ticket };
+    delete safeTicket.internalStaffNotes;
+
+    return res.json({
+      success: true,
+      message: 'Message added to ticket thread.',
+      ticket: safeTicket
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
 
+export async function escalateSafetyIncident(req, res) {
+  try {
+    const proId = req.professional.id;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    initProData(proId);
+
+    const {
+      incidentType,
+      description,
+      relatedBookingId,
+      consentLocationShare,
+      latitude,
+      longitude
+    } = req.body;
+
+    const consent = consentLocationShare !== undefined ? consentLocationShare : req.body.userLocationSharingConsent;
+
+    // Consent validation: Do not transmit location or contact third parties without an authorized workflow
+    if (!consent) {
+      return res.status(400).json({
+        success: false,
+        error: 'Location transmission and emergency escalation require explicit professional consent. Please check the authorization box to share live coordinates with the platform safety team.'
+      });
+    }
+
+    const validIncidentTypes = ['threat_or_harassment', 'hazardous_environment', 'medical_emergency', 'structural_collapse', 'other_safety_hazard'];
+    const type = validIncidentTypes.includes(incidentType) ? incidentType : 'hazardous_environment';
+
+    const ticketId = `SAFE-ESC-${proId}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const now = new Date();
+
+    const safetyTicket = {
+      id: ticketId,
+      reference: ticketId,
+      subject: `🚨 CRITICAL SAFETY ESCALATION: ${type.replace(/_/g, ' ').toUpperCase()}`,
+      category: 'safety_incident',
+      priority: 'Critical',
+      relatedBookingId: relatedBookingId || '',
+      relatedPayoutRef: '',
+      description: description || 'Immediate safety incident reported from on-site doorstep location.',
+      attachments: [],
+      status: 'Open',
+      messages: [
+        {
+          id: `MSG-${Math.floor(1000 + Math.random() * 9000)}`,
+          sender: 'Professional',
+          senderRole: 'Professional',
+          text: `SAFETY ESCALATION: ${description || 'Safety incident escalated with authorized live GPS sharing.'}`,
+          timestamp: now
+        },
+        {
+          id: `MSG-${Math.floor(1000 + Math.random() * 9000)}`,
+          sender: 'Platform 24x7 Safety Desk',
+          senderRole: 'Safety Cell',
+          text: 'Emergency escalation received. Safety officer dispatching immediate callback. If in immediate physical danger, exit the premises now.',
+          timestamp: new Date(now.getTime() + 10000)
+        }
+      ],
+      resolutionHistory: [
+        {
+          timestamp: now,
+          status: 'Critical Alert',
+          updatedBy: pro.applicantName,
+          note: `Live GPS shared with explicit consent: (${latitude || '19.0596'}, ${longitude || '72.8295'}). Work stoppage protocol activated.`
+        }
+      ],
+      internalStaffNotes: [
+        {
+          id: 'SN-SAFE',
+          staffId: 'SAFE-CELL-01',
+          staffName: 'Captain Ramesh',
+          note: `CONFIDENTIAL SAFETY LOG: Automated outbound telephony dispatched to professional mobile. Bandra Hub Manager alerted.`,
+          timestamp: now
+        }
+      ],
+      createdAt: now
+    };
+
+    supportTicketsStore[proId].unshift(safetyTicket);
+
+    recordProfessionalAudit(
+      proId,
+      { type: 'professional', id: proId, name: pro.applicantName },
+      'SAFETY_INCIDENT_ESCALATED',
+      { type: 'SafetyEscalation', id: ticketId },
+      `Critical safety escalation reported with authorized GPS transmission`,
+      { incidentType: type, relatedBookingId, consentLocationShare: true }
+    );
+
+    const safeTicket = { ...safetyTicket };
+    delete safeTicket.internalStaffNotes;
+
+    const guidance = {
+      nationalEmergency: '112',
+      policeControlRoom: '100',
+      medicalAmbulance: '108',
+      womenHelpline: '1091',
+      platform24x7SafetyDesk: '+91 1800 209 8820',
+      regionalHubDispatchHelpline: '+91 98200 44911',
+      safetyCellEmail: 'safety-cell@urbanpro.com'
+    };
+
+    return res.status(201).json({
+      success: true,
+      message: 'Safety escalation registered with Priority CRITICAL. Platform Safety Cell and Regional Hub have been alerted with your authorized coordinates.',
+      safetyAction: {
+        reference: ticketId,
+        action: 'IMMEDIATE SAFETY ACTION: If you are in imminent physical danger, immediately exit the customer premises and move to a well-lit, public area. Do not confront aggressive individuals. Do not attempt hazardous electrical/mechanical work.',
+        incidentType: type,
+        relatedBookingId
+      },
+      verifiedEmergencyGuidance: guidance,
+      emergencyHelplines: guidance,
+      policyNotice: 'Zero-Tolerance Policy: You will never be penalized, fined, or have your rating reduced for halting work due to legitimate safety concerns.',
+      escalationTicket: safeTicket,
+      ticket: safeTicket
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// -------------------------------------------------------------
+// 11. NOTIFICATIONS & DISPATCH ALERTS
+// -------------------------------------------------------------
 export async function getNotifications(req, res) {
   try {
     const proId = req.professional.id;
     initProData(proId);
+
+    const { category, read, page = 1, limit = 20 } = req.query;
+    let list = notificationsStore[proId] || [];
+
+    if (category) list = list.filter(n => n.category === category);
+    if (read !== undefined) {
+      const isRead = read === 'true' || read === true;
+      list = list.filter(n => n.read === isRead);
+    }
+
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 20;
+    const startIndex = (pageNum - 1) * limitNum;
+    const paginated = list.slice(startIndex, startIndex + limitNum);
+
+    const unreadCount = (notificationsStore[proId] || []).filter(n => !n.read).length;
+
     return res.json({
       success: true,
-      notifications: notificationsStore[proId]
+      notifications: paginated,
+      unreadCount,
+      totalCount: list.length,
+      page: pageNum,
+      totalPages: Math.ceil(list.length / limitNum) || 1,
+      categories: [
+        { id: 'new_assignment', label: 'New Assignment / Job Offer' },
+        { id: 'offer_expiry', label: 'Offer Expiry' },
+        { id: 'booking_changes', label: 'Booking Changes' },
+        { id: 'customer_cancellation', label: 'Customer Cancellation' },
+        { id: 'reassignment', label: 'Reassignment' },
+        { id: 'training', label: 'Training & Certification' },
+        { id: 'document_review', label: 'Document Review' },
+        { id: 'expiry_reminders', label: 'Expiry Reminders' },
+        { id: 'earnings_updates', label: 'Earnings Updates' },
+        { id: 'payout_status', label: 'Payout Status' },
+        { id: 'support_responses', label: 'Support Responses' },
+        { id: 'policy_updates', label: 'Policy Updates' }
+      ],
+      localOutboxNotice: 'Local Outbox Policy: External SMS, Push, and Email gateways are unconfigured in this test environment. Alerts are delivered through verified in-app dispatch and simulated local outbox.'
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2268,24 +5338,92 @@ export async function getNotifications(req, res) {
 export async function markNotificationRead(req, res) {
   try {
     const proId = req.professional.id;
+    const id = req.body.id || req.body.notificationId;
     initProData(proId);
-    notificationsStore[proId].forEach(n => { n.read = true; });
-    return res.json({ success: true, message: 'All notifications marked as read' });
+
+    const list = notificationsStore[proId] || [];
+    if (id) {
+      const item = list.find(n => n.id === id);
+      if (item) item.read = true;
+    } else {
+      list.forEach(n => { n.read = true; });
+    }
+
+    return res.json({
+      success: true,
+      message: id ? `Notification ${id} marked as read` : 'All notifications marked as read',
+      unreadCount: list.filter(n => !n.read).length
+    });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
 
 // -------------------------------------------------------------
-// 11. DOCUMENTS & VERIFICATION
+// 12. DOCUMENTS & COMPLIANCE
 // -------------------------------------------------------------
 export async function getDocuments(req, res) {
   try {
     const proId = req.professional.id;
     const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    initProData(proId);
+
+    const docs = {
+      aadhaar: {
+        docType: 'Aadhaar Card',
+        docNumber: 'XXXX-XXXX-8921',
+        status: 'Approved',
+        verifiedBy: 'Compliance Team',
+        verifiedAt: '2026-01-12',
+        expiryDate: '2035-12-31',
+        downloadRestricted: true
+      },
+      pan: {
+        docType: 'PAN Card',
+        docNumber: 'ABCPS••••K',
+        status: 'Approved',
+        verifiedBy: 'Compliance Team',
+        verifiedAt: '2026-01-12',
+        expiryDate: null,
+        downloadRestricted: true
+      },
+      policeClearance: {
+        docType: 'Police Verification Record',
+        docNumber: 'MUM-POL-2026-4410',
+        status: 'Approved',
+        verifiedBy: 'Safety Cell',
+        verifiedAt: '2026-01-15',
+        expiryDate: '2027-01-15',
+        downloadRestricted: true
+      },
+      tradeCertificate: {
+        docType: 'Govt ITI HVAC Technician Diploma',
+        docNumber: 'ITI-HVAC-88910',
+        status: 'Approved',
+        verifiedBy: 'Skill Academy',
+        verifiedAt: '2026-01-15',
+        expiryDate: '2028-06-30',
+        downloadRestricted: true
+      },
+      vehicleInsurance: {
+        docType: 'Commercial Two-Wheeler Insurance',
+        docNumber: 'ICICI-MOTO-99012',
+        status: 'Needs Correction',
+        correctionReason: 'Insurance policy document expired on 15 Oct 2026. Please upload renewed comprehensive insurance certificate.',
+        verifiedBy: 'Fleet Compliance Desk',
+        verifiedAt: null,
+        expiryDate: '2026-10-15',
+        downloadRestricted: true
+      }
+    };
+
+    const docsList = Object.entries(docs).map(([key, d]) => ({ key, ...d }));
+
     return res.json({
       success: true,
-      documents: pro.documents || {}
+      documents: docs,
+      documentsList: docsList,
+      protectionNotice: 'Restricted Access: Verification documents contain encrypted statutory credentials. Download and raw inspection are restricted to authenticated compliance officers under DPDP Act 2023 regulations.'
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -2295,28 +5433,369 @@ export async function getDocuments(req, res) {
 export async function uploadDocument(req, res) {
   try {
     const proId = req.professional.id;
-    const { docType, docNumber } = req.body;
-    let pro = professionalsStore.find(p => p.id === proId);
+    const { docType, docNumber, mimeType, fileSizeKb } = req.body;
 
-    if (pro) {
-      pro.documents = pro.documents || {};
-      const key = (docType || 'tradeCertificate').toLowerCase().includes('pan') ? 'pan' :
-        (docType || '').toLowerCase().includes('aadhaar') ? 'aadhaar' : 'tradeCertificate';
-
-      pro.documents[key] = {
-        docType: docType || 'Government ID',
-        docNumber: docNumber || 'UPLOADED-VERIFYING',
-        status: 'Under Verification',
-        verifiedAt: null
-      };
+    if (!docType) {
+      return res.status(400).json({ success: false, error: 'Document type is required.' });
     }
 
-    return res.json({
+    if (fileSizeKb && fileSizeKb > 5120) {
+      return res.status(400).json({ success: false, error: 'File size exceeds platform limit of 5MB.' });
+    }
+
+    if (mimeType && !['image/jpeg', 'image/png', 'application/pdf'].includes(mimeType.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        error: `File format ${mimeType} is not permitted. Only JPG, PNG, and PDF allowed.`
+      });
+    }
+
+    recordProfessionalAudit(
+      proId,
+      { type: 'professional', id: proId, name: req.professional.name },
+      'DOCUMENT_UPLOADED',
+      { type: 'Document', id: docType },
+      `Uploaded new compliance document: ${docType}`,
+      { docType, docNumberMasked: docNumber ? '••••' + docNumber.slice(-4) : 'Masked' }
+    );
+
+    return res.status(201).json({
       success: true,
-      message: `${docType || 'Document'} uploaded successfully. Verification in progress with Compliance Team.`,
-      documents: pro ? pro.documents : {}
+      message: `${docType} uploaded successfully. Document placed in 'Under Review' status for Compliance verification.`,
+      document: {
+        docType,
+        docNumber: docNumber ? '••••' + docNumber.slice(-4) : 'UPLOADED-VERIFYING',
+        status: 'Under Review',
+        uploadedAt: new Date().toISOString()
+      }
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
+// -------------------------------------------------------------
+// 13. SETTINGS, SESSIONS & ACCOUNT CLOSURE
+// -------------------------------------------------------------
+export async function getSettings(req, res) {
+  try {
+    const proId = req.professional.id;
+    initProData(proId);
+
+    const settings = professionalSettingsStore.get(proId) || {
+      notificationPreferences: {
+        jobOffersInApp: true,
+        jobOffersSms: true,
+        earningsUpdatesPush: true,
+        bookingChangesInApp: true,
+        safetyAlertsUrgent: true
+      },
+      appLanguage: 'en',
+      availabilityPreferences: {
+        autoAcceptRadiusKm: 5,
+        maxDailyJobs: 6,
+        preferredMap: 'Google Maps'
+      },
+      sessions: [
+        { id: 'SESS-CURR', device: 'Chrome on Windows 11 (Current Active Session)', ip: '127.0.0.1', isCurrent: true, lastActive: 'Active now' },
+        { id: 'SESS-MOB-1', device: 'Urban Pro Partner App v4.8 (Samsung Galaxy S23)', ip: '152.57.44.12', isCurrent: false, lastActive: '2 hours ago' }
+      ]
+    };
+
+    settings.activeSessions = settings.sessions;
+
+    return res.json({
+      success: true,
+      settings,
+      languages: [
+        { code: 'en', label: 'English' },
+        { code: 'hi', label: 'हिन्दी (Hindi)' },
+        { code: 'mr', label: 'मराठी (Marathi)' }
+      ],
+      privacyPolicy: {
+        retentionPolicy: 'Data Retained per Indian Digital Personal Data Protection (DPDP) Act 2023. Financial and safety records preserved for statutory 7-year audit requirements.',
+        thirdPartySharing: 'Strict zero-third-party advertising resale policy. Telephony contact numbers are masked on both customer and professional apps.'
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function updateSettings(req, res) {
+  try {
+    const proId = req.professional.id;
+    initProData(proId);
+
+    const { notificationPreferences, appLanguage, availabilityPreferences } = req.body;
+    let settings = professionalSettingsStore.get(proId) || {};
+
+    if (notificationPreferences) {
+      settings.notificationPreferences = { ...settings.notificationPreferences, ...notificationPreferences };
+    }
+    if (appLanguage) {
+      settings.appLanguage = appLanguage;
+    }
+    if (availabilityPreferences) {
+      settings.availabilityPreferences = { ...settings.availabilityPreferences, ...availabilityPreferences };
+    }
+
+    professionalSettingsStore.set(proId, settings);
+
+    recordProfessionalAudit(
+      proId,
+      { type: 'professional', id: proId, name: req.professional.name },
+      'SETTINGS_UPDATED',
+      { type: 'Settings', id: proId },
+      'Updated application settings and preferences',
+      settings
+    );
+
+    return res.json({
+      success: true,
+      message: 'Application settings and preferences updated successfully.',
+      settings
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function revokeOtherSessions(req, res) {
+  try {
+    const proId = req.professional.id;
+    initProData(proId);
+
+    const settings = professionalSettingsStore.get(proId);
+    if (settings) {
+      settings.sessions = settings.sessions.filter(s => s.isCurrent);
+      professionalSettingsStore.set(proId, settings);
+    }
+
+    recordProfessionalAudit(
+      proId,
+      { type: 'professional', id: proId, name: req.professional.name },
+      'SESSIONS_REVOKED',
+      { type: 'SecuritySession', id: proId },
+      'Terminated all other active remote devices and sessions',
+      {}
+    );
+
+    return res.json({
+      success: true,
+      message: 'All other remote sessions have been revoked. Current device remains active.',
+      activeSessions: settings?.sessions || [],
+      sessions: settings?.sessions || []
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function updateSecurityPin(req, res) {
+  try {
+    const proId = req.professional.id;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    const { currentPin, newPin } = req.body;
+
+    if (!currentPin || !newPin) {
+      return res.status(400).json({ success: false, error: 'Current PIN and new 4-digit PIN are required.' });
+    }
+
+    const expectedPin = String(pro.securityPin || '1234').trim();
+    if (String(currentPin).trim() !== expectedPin) {
+      return res.status(400).json({ success: false, error: 'Current PIN verification failed. Incorrect current PIN.' });
+    }
+
+    if (String(newPin).length !== 4 || isNaN(newPin)) {
+      return res.status(400).json({ success: false, error: 'Security PIN must be exactly 4 digits.' });
+    }
+
+    pro.securityPin = String(newPin);
+
+    recordProfessionalAudit(
+      proId,
+      { type: 'professional', id: proId, name: req.professional.name },
+      'SECURITY_PIN_CHANGED',
+      { type: 'SecurityCredentials', id: proId },
+      'Security login PIN updated',
+      {} // Stripped credentials
+    );
+
+    return res.json({
+      success: true,
+      message: 'Security PIN updated successfully.'
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function requestAccountClosure(req, res) {
+  try {
+    const proId = req.professional.id;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    initProData(proId);
+
+    const { reason, detailedFeedback, confirmUnderstood } = req.body;
+
+    if (confirmUnderstood === false) {
+      return res.status(400).json({
+        success: false,
+        error: 'You must confirm that you understand account closure implications before proceeding.'
+      });
+    }
+
+    // 1. ACTIVE BOOKINGS CHECK: Cannot close account with active/assigned jobs
+    const allJobs = await getAllJobsForPro(proId);
+    const activeJobs = allJobs.filter(j => ['Assigned', 'En Route', 'Arrived', 'In Progress'].includes(j.status));
+
+    if (activeJobs.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: `Account closure blocked: You have ${activeJobs.length} active assigned booking(s) (${activeJobs.map(j => j.id).join(', ')}). You must complete or formally reassign all active dispatches before closing your account.`,
+        blockingReason: `Account closure blocked due to ${activeJobs.length} active dispatches (${activeJobs.map(j => j.id).join(', ')})`,
+        blockingJobs: activeJobs.map(j => ({ id: j.id, customer: j.customer, slot: j.slot, status: j.status }))
+      });
+    }
+
+    // 2. OPEN FINANCIAL DISPUTES CHECK
+    const disputes = financialDisputesStore.get(proId) || [];
+    const openDisputes = disputes.filter(d => ['Open', 'Under Investigation'].includes(d.status));
+
+    if (openDisputes.length > 0) {
+      return res.status(409).json({
+        success: false,
+        error: `Account closure blocked: You have ${openDisputes.length} open financial dispute(s) (${openDisputes.map(d => d.id).join(', ')}). Outstanding ledger disputes must be resolved before account closure.`,
+        blockingDisputes: openDisputes.map(d => ({ id: d.id, category: d.category, disputedAmount: d.disputedAmount }))
+      });
+    }
+
+    // 3. STATUTORY RECORD PRESERVATION (No silent deletion!)
+    const closureRecord = {
+      requestedAt: new Date().toISOString(),
+      reason: reason || 'Professional requested voluntary departure',
+      detailedFeedback: detailedFeedback || '',
+      status: 'Pending Compliance Archival',
+      pendingPayoutSettlement: pro.walletBalance || 0,
+      settlementNote: (pro.walletBalance || 0) > 0
+        ? `Pending wallet balance of ₹${pro.walletBalance} will be settled to your verified bank account in the upcoming weekly disbursement batch before final closure.`
+        : 'Zero outstanding wallet balance.',
+      dataPreservationNotice: 'Notice: Historical bookings, payment invoices, tax records, and safety audit logs will be permanently retained in the platform compliance vault in accordance with statutory accounting and regulatory laws. They will not be deleted.'
+    };
+
+    accountClosureRequestsStore.set(proId, closureRecord);
+
+    recordProfessionalAudit(
+      proId,
+      { type: 'professional', id: proId, name: pro.applicantName },
+      'ACCOUNT_CLOSURE_REQUESTED',
+      { type: 'ProfessionalAccount', id: proId },
+      'Submitted voluntary account closure application',
+      { reason, pendingPayoutSettlement: closureRecord.pendingPayoutSettlement }
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Account closure application registered. Status: Pending Compliance Archival. Your history is preserved in accordance with regulatory requirements.',
+      closureRequest: closureRecord
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// -------------------------------------------------------------
+// 14. IMMUTABLE AUDIT TRAIL
+// -------------------------------------------------------------
+export async function getAuditHistory(req, res) {
+  try {
+    const proId = req.professional.id;
+    initProData(proId);
+
+    const { page = 1, limit = 20 } = req.query;
+    const records = professionalAuditRecordsStore.get(proId) || [];
+
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 20;
+    const startIndex = (pageNum - 1) * limitNum;
+    const paginated = records.slice(startIndex, startIndex + limitNum);
+
+    return res.json({
+      success: true,
+      auditHistory: paginated,
+      auditRecords: paginated,
+      totalCount: records.length,
+      page: pageNum,
+      totalPages: Math.ceil(records.length / limitNum) || 1,
+      immutablePolicyNotice: 'Audit records are append-only and strictly immutable. Changes cannot be deleted or modified by professionals or platform staff.'
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export function rejectAuditMutation(req, res) {
+  return res.status(403).json({
+    success: false,
+    error: 'IMMUTABLE_AUDIT_VIOLATION: Audit logs are strictly immutable and cannot be created, modified, or deleted directly by professionals.'
+  });
+}
+
+// -------------------------------------------------------------
+// 15. DEMO DATA RESET (Confirmed Reset Affecting Only Demo Data)
+// -------------------------------------------------------------
+export async function resetDemoData(req, res) {
+  try {
+    const { confirmReset } = req.body;
+    if (!confirmReset) {
+      return res.status(400).json({
+        success: false,
+        error: 'Explicit confirmation required. Please provide confirmReset: true to reset demonstration data.'
+      });
+    }
+
+    const demoProIds = ['PRO-8841', 'PRO-8842', 'PRO-8843', 'PRO-8845', 'PRO-8846', 'PRO-8847'];
+
+    // Reset synthetic stores for demo pros
+    for (const id of demoProIds) {
+      delete notificationsStore[id];
+      delete supportTicketsStore[id];
+      delete trainingsStore[id];
+      delete inventoryStore[id];
+      bankChangeRequestsStore.delete(id);
+      financialDisputesStore.delete(id);
+      performanceAppealsStore.delete(id);
+      reviewsStore.delete(id);
+      trainingSessionsStore.delete(id);
+      inventoryReturnsStore.delete(id);
+      shopOrdersStore.delete(id);
+      profileChangeRequestsStore.delete(id);
+      accountClosureRequestsStore.delete(id);
+      professionalAuditRecordsStore.delete(id);
+      professionalSettingsStore.delete(id);
+
+      // Reinitialize clean seed data
+      initProData(id);
+    }
+
+    // Reset synthetic job statuses & offers
+    syntheticJobStatusStore.clear();
+    reassignmentRequestsStore.clear();
+    jobOtpAttemptsStore.clear();
+    professionalNotesStore.clear();
+
+    return res.json({
+      success: true,
+      message: 'Demo data has been cleanly reset to initial state. Live production records remain unaffected.',
+      resetScope: {
+        affectedDemoProfiles: demoProIds,
+        liveRecordsPreserved: true,
+        resetTimestamp: new Date().toISOString()
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+

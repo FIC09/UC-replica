@@ -22,14 +22,16 @@ import {
   UserCheck,
   Sparkles,
   Zap,
-  HardHat
+  HardHat,
+  ExternalLink
 } from 'lucide-react';
 
 export function ProfessionalDashboardModal({
   isOpen,
   onClose,
   onShowToast,
-  user
+  user,
+  onOpenFullPortal
 }) {
   const [isOnline, setIsOnline] = useState(true);
   const [activeTab, setActiveTab] = useState('jobs'); // 'jobs' | 'wallet' | 'quality'
@@ -129,8 +131,8 @@ export function ProfessionalDashboardModal({
     <div className="professional-modal-overlay" style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(9, 13, 22, 0.88)',
-      backdropFilter: 'blur(10px)',
+      background: 'rgba(15, 23, 42, 0.45)',
+      backdropFilter: 'blur(6px)',
       zIndex: 99999,
       display: 'flex',
       alignItems: 'center',
@@ -138,81 +140,86 @@ export function ProfessionalDashboardModal({
       padding: 16
     }}>
       <div style={{
-        background: '#0F172A',
-        color: '#F8FAFC',
+        background: '#FFFFFF',
+        color: '#0F172A',
         width: '100%',
-        maxWidth: 980,
+        maxWidth: 1040,
         height: '90vh',
-        borderRadius: 20,
-        border: '1px solid #334155',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.65)',
+        borderRadius: 16,
+        border: '1px solid #E2E8F0',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
         display: 'flex',
         flexDirection: 'column',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
       }}>
-        {/* Header */}
+        {/* Header (Clean white toolbar matching admin design) */}
         <div style={{
           padding: '16px 24px',
-          borderBottom: '1px solid #1E293B',
+          borderBottom: '1px solid #E2E8F0',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          background: '#090D16'
+          background: '#FFFFFF',
+          gap: 16,
+          flexWrap: 'wrap'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{
-              width: 46,
-              height: 46,
+              width: 44,
+              height: 44,
               borderRadius: 12,
-              background: 'linear-gradient(135deg, #7C3AED 0%, #9333EA 100%)',
+              background: '#EDE9FE',
+              color: '#6E42E5',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#fff',
               fontWeight: 800,
               fontSize: 18,
-              boxShadow: '0 4px 14px rgba(124, 58, 237, 0.4)'
+              border: '1px solid #DDD6FE'
             }}>
-              <HardHat size={24} />
+              <HardHat size={22} color="#6E42E5" />
             </div>
 
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: '#FFFFFF' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <h3 style={{ fontSize: 17, fontWeight: 800, margin: 0, color: '#0F172A' }}>
                   {proProfile.name}
                 </h3>
                 <span style={{
-                  background: 'rgba(245, 158, 11, 0.15)',
-                  color: '#FBBF24',
+                  background: '#FEF3C7',
+                  color: '#92400E',
                   fontSize: 11,
                   fontWeight: 800,
                   padding: '2px 8px',
                   borderRadius: 999,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 3
+                  gap: 3,
+                  border: '1px solid #FDE68A'
                 }}>
-                  <Star size={12} fill="#FBBF24" />
+                  <Star size={12} fill="#D97706" color="#D97706" />
                   {proProfile.rating} ★
                 </span>
                 <span style={{
-                  background: 'rgba(124, 58, 237, 0.2)',
-                  color: '#C084FC',
+                  background: '#EDE9FE',
+                  color: '#6E42E5',
                   fontSize: 11,
                   fontWeight: 700,
                   padding: '2px 8px',
-                  borderRadius: 999
+                  borderRadius: 999,
+                  border: '1px solid #DDD6FE'
                 }}>
                   {proProfile.level}
                 </span>
               </div>
-              <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
                 {proProfile.trade} • 📍 {proProfile.zone} • ID: {proProfile.id}
               </div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {/* Online / Offline switch */}
             <button
               type="button"
@@ -221,33 +228,62 @@ export function ProfessionalDashboardModal({
                 if (onShowToast) onShowToast(isOnline ? '🔴 You are now Offline' : '🟢 You are now Online & Receiving Dispatches');
               }}
               style={{
-                background: isOnline ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                color: isOnline ? '#10B981' : '#EF4444',
-                border: isOnline ? '1px solid #10B981' : '1px solid #EF4444',
+                background: isOnline ? '#ECFDF5' : '#FEF2F2',
+                color: isOnline ? '#065F46' : '#991B1B',
+                border: `1px solid ${isOnline ? '#86EFAC' : '#FCA5A5'}`,
                 padding: '7px 14px',
-                borderRadius: 999,
+                borderRadius: 8,
                 fontSize: 12,
-                fontWeight: 800,
+                fontWeight: 700,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
                 cursor: 'pointer'
               }}
             >
-              <Power size={13} />
+              <Power size={13} color={isOnline ? '#059669' : '#DC2626'} />
               <span>{isOnline ? '● Online (Ready for Jobs)' : '○ Offline'}</span>
             </button>
+
+            {/* Expand to Full-Page Portal Button */}
+            {onOpenFullPortal && (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenFullPortal();
+                }}
+                style={{
+                  background: '#6E42E5',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '7px 14px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(110,66,229,0.3)'
+                }}
+                title="Open as full dedicated page"
+              >
+                <span>Full Portal</span>
+                <ExternalLink size={12} />
+              </button>
+            )}
 
             <button
               type="button"
               onClick={onClose}
               style={{
-                background: '#1E293B',
-                border: '1px solid #334155',
-                color: '#94A3B8',
+                background: '#F8FAFC',
+                border: '1px solid #CBD5E1',
+                color: '#64748B',
                 width: 34,
                 height: 34,
-                borderRadius: 10,
+                borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -255,22 +291,22 @@ export function ProfessionalDashboardModal({
               }}
               title="Close Portal"
             >
-              <X size={18} />
+              <X size={16} />
             </button>
           </div>
         </div>
 
-        {/* Tab Navigation */}
+        {/* Tab Navigation (Matching Admin/Partner tabs style) */}
         <div style={{
           display: 'flex',
-          gap: 4,
-          padding: '10px 24px',
-          background: '#0B1120',
-          borderBottom: '1px solid #1E293B'
+          gap: 6,
+          padding: '8px 24px',
+          background: '#F8FAFC',
+          borderBottom: '1px solid #E2E8F0'
         }}>
           {[
             { id: 'jobs', label: 'Assigned Jobs & Leads', icon: Wrench, count: activeJob ? 1 : 0 },
-            { id: 'wallet', label: 'Wallet & Daily Payouts', icon: Wallet, count: `₹${walletBalance.toLocaleString()}` },
+            { id: 'wallet', label: 'Wallet & Daily Payouts', icon: Wallet, count: `₹${walletBalance.toLocaleString('en-IN')}` },
             { id: 'quality', label: 'Quality & Rating Score', icon: Award, count: '4.94 ★' },
           ].map(t => {
             const Icon = t.icon;
@@ -280,27 +316,28 @@ export function ProfessionalDashboardModal({
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
                 style={{
-                  background: active ? '#1E293B' : 'transparent',
-                  color: active ? '#A78BFA' : '#94A3B8',
-                  border: active ? '1px solid #334155' : '1px solid transparent',
+                  background: active ? '#FFFFFF' : 'transparent',
+                  color: active ? '#6E42E5' : '#64748B',
+                  border: active ? '1px solid #E2E8F0' : '1px solid transparent',
                   padding: '8px 16px',
-                  borderRadius: 10,
-                  fontSize: 13,
+                  borderRadius: 8,
+                  fontSize: 12.5,
                   fontWeight: 700,
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
                   cursor: 'pointer',
+                  boxShadow: active ? '0 1px 3px rgba(0,0,0,0.03)' : 'none',
                   transition: 'all 0.15s ease'
                 }}
               >
-                <Icon size={15} />
+                <Icon size={14} color={active ? '#6E42E5' : '#94A3B8'} />
                 <span>{t.label}</span>
                 {t.count !== undefined && (
                   <span style={{
                     fontSize: 11,
-                    background: active ? '#7C3AED' : '#1E293B',
-                    color: '#fff',
+                    background: active ? '#EDE9FE' : '#E2E8F0',
+                    color: active ? '#6E42E5' : '#475569',
                     padding: '2px 7px',
                     borderRadius: 999,
                     fontWeight: 800
@@ -313,84 +350,87 @@ export function ProfessionalDashboardModal({
           })}
         </div>
 
-        {/* Tab Content */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+        {/* Tab Content Area with Clean Light Background */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 24, backgroundColor: '#F8FAFC' }}>
           {activeTab === 'jobs' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 20 }}>
               {/* Left Column: Active Job */}
               <div>
-                <h4 style={{ fontSize: 14, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
+                <h4 style={{ fontSize: 13, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 12 }}>
                   Current Active Dispatch
                 </h4>
 
                 {activeJob ? (
                   <div style={{
-                    background: '#1E293B',
-                    borderRadius: 16,
-                    border: '1px solid #334155',
+                    background: '#FFFFFF',
+                    borderRadius: 14,
+                    border: '1px solid #E2E8F0',
                     padding: 20,
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, gap: 12 }}>
                       <div>
                         <span style={{
                           fontSize: 11,
                           fontWeight: 800,
-                          background: isOtpVerified ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                          color: isOtpVerified ? '#34D399' : '#FBBF24',
+                          background: isOtpVerified ? '#DCFCE7' : '#FEF3C7',
+                          color: isOtpVerified ? '#15803D' : '#92400E',
                           padding: '3px 10px',
                           borderRadius: 999,
                           display: 'inline-block',
-                          marginBottom: 6
+                          marginBottom: 6,
+                          border: `1px solid ${isOtpVerified ? '#BBF7D0' : '#FDE68A'}`
                         }}>
                           {activeJob.status === 'In Progress' ? '● IN PROGRESS' : '🕒 DISPATCHED - AWAITING START'}
                         </span>
-                        <h3 style={{ fontSize: 18, fontWeight: 800, color: '#FFFFFF', margin: '0 0 4px 0' }}>
+                        <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: '0 0 4px 0' }}>
                           {activeJob.service}
                         </h3>
-                        <div style={{ fontSize: 13, color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <span>Customer: {activeJob.customer}</span>
+                        <div style={{ fontSize: 13, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span>Customer: <strong style={{ color: '#0F172A' }}>{activeJob.customer}</strong></span>
                           <span>•</span>
-                          <span style={{ color: '#A78BFA' }}>{activeJob.distance}</span>
+                          <span style={{ color: '#6E42E5', fontWeight: 600 }}>{activeJob.distance}</span>
                         </div>
                       </div>
 
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 22, fontWeight: 900, color: '#34D399' }}>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: 24, fontWeight: 900, color: '#16A34A' }}>
                           ₹{activeJob.payout}
                         </div>
-                        <div style={{ fontSize: 11, color: '#94A3B8' }}>Pro Payout</div>
+                        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Pro Payout</div>
                       </div>
                     </div>
 
                     {/* Address & Call */}
                     <div style={{
-                      background: '#0F172A',
-                      borderRadius: 12,
+                      background: '#F8FAFC',
+                      borderRadius: 10,
                       padding: '12px 14px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
                       marginBottom: 16,
-                      border: '1px solid #334155'
+                      border: '1px solid #E2E8F0',
+                      gap: 10
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <MapPin size={18} color="#A78BFA" style={{ flexShrink: 0 }} />
-                        <span style={{ fontSize: 12.5, color: '#E2E8F0' }}>{activeJob.address}</span>
+                        <MapPin size={17} color="#6E42E5" style={{ flexShrink: 0 }} />
+                        <span style={{ fontSize: 12.5, color: '#334155', fontWeight: 500 }}>{activeJob.address}</span>
                       </div>
                       <a
                         href={`tel:${activeJob.phone}`}
                         style={{
-                          background: '#7C3AED',
+                          background: '#6E42E5',
                           color: '#fff',
                           textDecoration: 'none',
                           padding: '6px 12px',
-                          borderRadius: 8,
+                          borderRadius: 6,
                           fontSize: 12,
                           fontWeight: 700,
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 6
+                          gap: 6,
+                          flexShrink: 0
                         }}
                       >
                         <Phone size={13} />
@@ -401,16 +441,16 @@ export function ProfessionalDashboardModal({
                     {/* Customer Start OTP verification */}
                     {!isOtpVerified && (
                       <div style={{
-                        background: 'rgba(124, 58, 237, 0.1)',
-                        border: '1px solid #7C3AED',
+                        background: '#EDE9FE',
+                        border: '1px solid #DDD6FE',
                         borderRadius: 12,
-                        padding: 14,
+                        padding: 16,
                         marginBottom: 16
                       }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#C084FC', marginBottom: 6 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#6E42E5', marginBottom: 6 }}>
                           🔐 Enter Customer 4-Digit Start OTP:
                         </div>
-                        <div style={{ display: 'flex', gap: 10 }}>
+                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                           <input
                             type="text"
                             maxLength={4}
@@ -418,24 +458,25 @@ export function ProfessionalDashboardModal({
                             value={otpInput}
                             onChange={(e) => setOtpInput(e.target.value)}
                             style={{
-                              background: '#0F172A',
-                              border: '1px solid #475569',
-                              color: '#fff',
+                              background: '#FFFFFF',
+                              border: '1px solid #CBD5E1',
+                              color: '#0F172A',
                               borderRadius: 8,
                               padding: '8px 14px',
                               fontSize: 16,
                               fontWeight: 800,
                               letterSpacing: 4,
                               width: 140,
-                              textAlign: 'center'
+                              textAlign: 'center',
+                              outline: 'none'
                             }}
                           />
                           <button
                             type="button"
                             onClick={handleVerifyOtp}
                             style={{
-                              background: '#7C3AED',
-                              color: '#fff',
+                              background: '#6E42E5',
+                              color: '#FFFFFF',
                               border: 'none',
                               borderRadius: 8,
                               padding: '8px 18px',
@@ -447,7 +488,7 @@ export function ProfessionalDashboardModal({
                             Verify & Start Job
                           </button>
                         </div>
-                        <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
+                        <div style={{ fontSize: 11, color: '#64748B', marginTop: 6 }}>
                           Customer receives this OTP via SMS upon booking confirmation (Test OTP: <strong>4829</strong>).
                         </div>
                       </div>
@@ -455,7 +496,7 @@ export function ProfessionalDashboardModal({
 
                     {/* Service Checklist */}
                     <div style={{ marginBottom: 18 }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#CBD5E1', marginBottom: 10 }}>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#334155', marginBottom: 10 }}>
                         Professional Service Standard Checklist:
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -467,17 +508,18 @@ export function ProfessionalDashboardModal({
                               display: 'flex',
                               alignItems: 'center',
                               gap: 10,
-                              padding: '8px 12px',
+                              padding: '9px 12px',
                               borderRadius: 8,
-                              background: item.done ? 'rgba(16, 185, 129, 0.1)' : '#0F172A',
-                              border: `1px solid ${item.done ? '#059669' : '#334155'}`,
+                              background: item.done ? '#ECFDF5' : '#FFFFFF',
+                              border: `1px solid ${item.done ? '#A7F3D0' : '#E2E8F0'}`,
                               cursor: 'pointer',
                               fontSize: 12.5,
-                              color: item.done ? '#34D399' : '#E2E8F0',
+                              color: item.done ? '#065F46' : '#334155',
+                              fontWeight: item.done ? 600 : 500,
                               transition: 'all 0.15s ease'
                             }}
                           >
-                            {item.done ? <CheckSquare size={16} color="#34D399" /> : <Square size={16} color="#94A3B8" />}
+                            {item.done ? <CheckSquare size={16} color="#10B981" /> : <Square size={16} color="#94A3B8" />}
                             <span>{item.text}</span>
                           </div>
                         ))}
@@ -490,19 +532,19 @@ export function ProfessionalDashboardModal({
                       onClick={handleCompleteJob}
                       style={{
                         width: '100%',
-                        background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                        background: '#10B981',
                         border: 'none',
                         color: '#FFFFFF',
-                        borderRadius: 12,
+                        borderRadius: 10,
                         padding: '13px 20px',
-                        fontSize: 14,
+                        fontSize: 13.5,
                         fontWeight: 800,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: 8,
-                        boxShadow: '0 4px 15px rgba(16, 185, 129, 0.3)'
+                        boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)'
                       }}
                     >
                       <CheckCircle2 size={18} />
@@ -511,17 +553,17 @@ export function ProfessionalDashboardModal({
                   </div>
                 ) : (
                   <div style={{
-                    background: '#1E293B',
-                    borderRadius: 16,
-                    padding: 32,
+                    background: '#FFFFFF',
+                    borderRadius: 14,
+                    padding: 36,
                     textAlign: 'center',
-                    border: '1px dashed #334155'
+                    border: '1px dashed #CBD5E1'
                   }}>
                     <CheckCircle2 size={44} color="#10B981" style={{ margin: '0 auto 12px' }} />
-                    <h3 style={{ fontSize: 17, fontWeight: 800, color: '#fff', margin: '0 0 6px 0' }}>
+                    <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0' }}>
                       All Dispatches Completed!
                     </h3>
-                    <p style={{ fontSize: 13, color: '#94A3B8', margin: '0 0 16px 0' }}>
+                    <p style={{ fontSize: 13, color: '#64748B', margin: '0 0 16px 0' }}>
                       Great work Vikram! You have completed all scheduled tasks for this slot. Keep your status online for new incoming leads.
                     </p>
                     <button
@@ -545,13 +587,13 @@ export function ProfessionalDashboardModal({
                         ]
                       })}
                       style={{
-                        background: '#7C3AED',
+                        background: '#6E42E5',
                         color: '#fff',
                         border: 'none',
-                        borderRadius: 10,
+                        borderRadius: 8,
                         padding: '10px 20px',
                         fontSize: 13,
-                        fontWeight: 800,
+                        fontWeight: 700,
                         cursor: 'pointer'
                       }}
                     >
@@ -563,48 +605,50 @@ export function ProfessionalDashboardModal({
 
               {/* Right Column: Incoming Leads & Quick Metrics */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                <h4 style={{ fontSize: 14, fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <h4 style={{ fontSize: 13, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   Available Instant Leads
                 </h4>
 
                 {hasNewLead ? (
                   <div style={{
-                    background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.15) 0%, rgba(147, 51, 234, 0.08) 100%)',
-                    border: '1.5px solid #7C3AED',
-                    borderRadius: 16,
+                    background: '#FFFFFF',
+                    border: '1.5px solid #DDD6FE',
+                    borderRadius: 14,
                     padding: 18,
-                    position: 'relative'
+                    position: 'relative',
+                    boxShadow: '0 4px 12px rgba(110, 66, 229, 0.08)'
                   }}>
                     <span style={{
                       position: 'absolute',
                       top: 14,
                       right: 14,
-                      background: '#7C3AED',
-                      color: '#fff',
+                      background: '#EDE9FE',
+                      color: '#6E42E5',
                       fontSize: 10,
                       fontWeight: 800,
-                      padding: '2px 8px',
+                      padding: '3px 8px',
                       borderRadius: 999,
-                      textTransform: 'uppercase'
+                      textTransform: 'uppercase',
+                      border: '1px solid #DDD6FE'
                     }}>
                       ⚡ Hot Lead (15 Mins)
                     </span>
 
-                    <h4 style={{ fontSize: 16, fontWeight: 800, color: '#FFFFFF', margin: '0 0 6px 0' }}>
+                    <h4 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0' }}>
                       AC Gas Leak Repair & Refill
                     </h4>
-                    <p style={{ fontSize: 12.5, color: '#CBD5E1', margin: '0 0 10px 0' }}>
+                    <p style={{ fontSize: 12.5, color: '#64748B', margin: '0 0 12px 0' }}>
                       📍 Perry Cross Rd, Bandra West • 0.8 km
                     </p>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                       <div>
-                        <div style={{ fontSize: 11, color: '#94A3B8' }}>Guaranteed Payout</div>
-                        <div style={{ fontSize: 18, fontWeight: 900, color: '#34D399' }}>₹1,250</div>
+                        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Guaranteed Payout</div>
+                        <div style={{ fontSize: 20, fontWeight: 900, color: '#16A34A' }}>₹1,250</div>
                       </div>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 11, color: '#94A3B8' }}>Slot</div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: '#E2E8F0' }}>Immediate</div>
+                        <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Slot</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Immediate</div>
                       </div>
                     </div>
 
@@ -614,13 +658,13 @@ export function ProfessionalDashboardModal({
                         onClick={handleAcceptNewLead}
                         style={{
                           flex: 1,
-                          background: '#7C3AED',
+                          background: '#6E42E5',
                           border: 'none',
                           color: '#fff',
-                          borderRadius: 10,
+                          borderRadius: 8,
                           padding: '10px 14px',
                           fontSize: 13,
-                          fontWeight: 800,
+                          fontWeight: 700,
                           cursor: 'pointer'
                         }}
                       >
@@ -630,10 +674,10 @@ export function ProfessionalDashboardModal({
                         type="button"
                         onClick={() => setHasNewLead(false)}
                         style={{
-                          background: '#1E293B',
-                          border: '1px solid #334155',
-                          color: '#94A3B8',
-                          borderRadius: 10,
+                          background: '#FFFFFF',
+                          border: '1px solid #CBD5E1',
+                          color: '#64748B',
+                          borderRadius: 8,
                           padding: '10px 14px',
                           fontSize: 13,
                           fontWeight: 600,
@@ -645,8 +689,8 @@ export function ProfessionalDashboardModal({
                     </div>
                   </div>
                 ) : (
-                  <div style={{ background: '#1E293B', borderRadius: 14, padding: 18, textAlign: 'center', border: '1px solid #334155' }}>
-                    <p style={{ fontSize: 12.5, color: '#94A3B8', margin: 0 }}>
+                  <div style={{ background: '#FFFFFF', borderRadius: 12, padding: 18, textAlign: 'center', border: '1px solid #E2E8F0' }}>
+                    <p style={{ fontSize: 12.5, color: '#64748B', margin: 0 }}>
                       No more pending leads in Bandra Zone. Checking Khar & Santacruz...
                     </p>
                   </div>
@@ -654,25 +698,26 @@ export function ProfessionalDashboardModal({
 
                 {/* Day Summary Card */}
                 <div style={{
-                  background: '#1E293B',
-                  borderRadius: 16,
-                  border: '1px solid #334155',
-                  padding: 18
+                  background: '#FFFFFF',
+                  borderRadius: 14,
+                  border: '1px solid #E2E8F0',
+                  padding: 18,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
                 }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#FFFFFF', marginBottom: 12 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0F172A', marginBottom: 12 }}>
                     📊 Today's Field Activity
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                    <span style={{ color: '#94A3B8' }}>Jobs Completed Today</span>
-                    <span style={{ fontWeight: 800, color: '#fff' }}>{completedJobsCount} jobs</span>
+                    <span style={{ color: '#64748B' }}>Jobs Completed Today</span>
+                    <span style={{ fontWeight: 800, color: '#0F172A' }}>{completedJobsCount} jobs</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13 }}>
-                    <span style={{ color: '#94A3B8' }}>Today's Net Earnings</span>
-                    <span style={{ fontWeight: 800, color: '#34D399' }}>₹{todayEarnings.toLocaleString()}</span>
+                    <span style={{ color: '#64748B' }}>Today's Net Earnings</span>
+                    <span style={{ fontWeight: 800, color: '#16A34A' }}>₹{todayEarnings.toLocaleString('en-IN')}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: '#94A3B8' }}>Customer Rating Avg</span>
-                    <span style={{ fontWeight: 800, color: '#FBBF24' }}>4.96 ★ (5 ratings)</span>
+                    <span style={{ color: '#64748B' }}>Customer Rating Avg</span>
+                    <span style={{ fontWeight: 800, color: '#D97706' }}>4.96 ★ (5 ratings)</span>
                   </div>
                 </div>
               </div>
@@ -682,51 +727,52 @@ export function ProfessionalDashboardModal({
           {activeTab === 'wallet' && (
             <div style={{ maxWidth: 680, margin: '0 auto' }}>
               <div style={{
-                background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)',
-                borderRadius: 20,
-                border: '1px solid #4338CA',
+                background: 'linear-gradient(135deg, #6E42E5 0%, #4F46E5 100%)',
+                borderRadius: 16,
                 padding: 28,
                 marginBottom: 24,
-                boxShadow: '0 12px 30px rgba(0,0,0,0.3)'
+                boxShadow: '0 10px 25px -5px rgba(110, 66, 229, 0.3)',
+                color: '#FFFFFF'
               }}>
-                <div style={{ fontSize: 13, color: '#A5B4FC', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
+                <div style={{ fontSize: 13, color: '#E0E7FF', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
                   Total Withdrawable Balance
                 </div>
                 <div style={{ fontSize: 36, fontWeight: 900, color: '#FFFFFF', marginBottom: 18 }}>
                   ₹{walletBalance.toLocaleString('en-IN')}
                 </div>
 
-                <div style={{ display: 'flex', gap: 14 }}>
+                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     onClick={handleWithdrawFunds}
                     disabled={walletBalance <= 0 || isWithdrawing}
                     style={{
-                      background: walletBalance > 0 ? '#10B981' : '#475569',
+                      background: walletBalance > 0 ? '#10B981' : '#94A3B8',
                       border: 'none',
                       color: '#FFFFFF',
-                      borderRadius: 12,
-                      padding: '12px 24px',
-                      fontSize: 14,
+                      borderRadius: 8,
+                      padding: '11px 22px',
+                      fontSize: 13.5,
                       fontWeight: 800,
                       cursor: walletBalance > 0 ? 'pointer' : 'not-allowed',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 8
+                      gap: 8,
+                      boxShadow: '0 2px 6px rgba(16,185,129,0.3)'
                     }}
                   >
                     <Wallet size={16} />
                     <span>{isWithdrawing ? 'Transferring...' : 'Instant Bank Transfer'}</span>
                   </button>
 
-                  <div style={{ alignSelf: 'center', fontSize: 12, color: '#C7D2FE' }}>
+                  <div style={{ alignSelf: 'center', fontSize: 12, color: '#E0E7FF' }}>
                     Linked: HDFC Bank A/C ending in <strong>*4821</strong>
                   </div>
                 </div>
               </div>
 
               {/* Transactions List */}
-              <h4 style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF', marginBottom: 14 }}>
+              <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', marginBottom: 14 }}>
                 Recent Payout Ledger
               </h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -739,24 +785,25 @@ export function ProfessionalDashboardModal({
                   <div
                     key={tx.id}
                     style={{
-                      background: '#1E293B',
+                      background: '#FFFFFF',
                       borderRadius: 12,
                       padding: '14px 18px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      border: '1px solid #334155'
+                      border: '1px solid #E2E8F0',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>{tx.title}</div>
-                      <div style={{ fontSize: 11.5, color: '#94A3B8' }}>{tx.id} • {tx.date}</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>{tx.title}</div>
+                      <div style={{ fontSize: 11.5, color: '#64748B' }}>{tx.id} • {tx.date}</div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 15, fontWeight: 800, color: tx.amount.startsWith('+') ? '#34D399' : '#F87171' }}>
+                      <div style={{ fontSize: 15, fontWeight: 800, color: tx.amount.startsWith('+') ? '#16A34A' : '#DC2626' }}>
                         {tx.amount}
                       </div>
-                      <div style={{ fontSize: 11, color: '#94A3B8' }}>{tx.status}</div>
+                      <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>{tx.status}</div>
                     </div>
                   </div>
                 ))}
@@ -766,8 +813,8 @@ export function ProfessionalDashboardModal({
 
           {activeTab === 'quality' && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-              <div style={{ background: '#1E293B', borderRadius: 16, padding: 22, border: '1px solid #334155' }}>
-                <h4 style={{ fontSize: 16, fontWeight: 800, color: '#fff', margin: '0 0 16px 0' }}>
+              <div style={{ background: '#FFFFFF', borderRadius: 14, padding: 22, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: '0 0 16px 0' }}>
                   Professional Compliance & Trust Score
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -779,15 +826,15 @@ export function ProfessionalDashboardModal({
                     { label: 'Background Check & Police Clearance', val: 'Verified', status: 'Green' }
                   ].map((m, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 13, color: '#CBD5E1' }}>{m.label}</span>
-                      <span style={{ fontSize: 13, fontWeight: 800, color: '#34D399' }}>{m.val}</span>
+                      <span style={{ fontSize: 13, color: '#64748B' }}>{m.label}</span>
+                      <span style={{ fontSize: 13, fontWeight: 800, color: '#16A34A' }}>{m.val}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <div style={{ background: '#1E293B', borderRadius: 16, padding: 22, border: '1px solid #334155' }}>
-                <h4 style={{ fontSize: 16, fontWeight: 800, color: '#fff', margin: '0 0 16px 0' }}>
+              <div style={{ background: '#FFFFFF', borderRadius: 14, padding: 22, border: '1px solid #E2E8F0', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
+                <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: '0 0 16px 0' }}>
                   Recent Customer Praise
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -796,14 +843,14 @@ export function ProfessionalDashboardModal({
                     { comment: 'Super quick diagnosis of gas pressure. Cooling is 100% restored like brand new.', author: 'Farhan K., Pali Hill', rating: 5 },
                     { comment: 'Punctual, professional tools, mess-free work. Highly recommended pro.', author: 'Sunil M., Khar West', rating: 5 }
                   ].map((c, i) => (
-                    <div key={i} style={{ background: '#0F172A', borderRadius: 10, padding: 12, border: '1px solid #334155' }}>
+                    <div key={i} style={{ background: '#F8FAFC', borderRadius: 10, padding: 12, border: '1px solid #E2E8F0' }}>
                       <div style={{ display: 'flex', gap: 2, marginBottom: 4 }}>
-                        {[...Array(c.rating)].map((_, s) => <Star key={s} size={11} fill="#FBBF24" color="#FBBF24" />)}
+                        {[...Array(c.rating)].map((_, s) => <Star key={s} size={11} fill="#D97706" color="#D97706" />)}
                       </div>
-                      <div style={{ fontSize: 12.5, color: '#E2E8F0', fontStyle: 'italic', marginBottom: 4 }}>
+                      <div style={{ fontSize: 12.5, color: '#334155', fontStyle: 'italic', marginBottom: 4 }}>
                         "{c.comment}"
                       </div>
-                      <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600 }}>
+                      <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>
                         — {c.author}
                       </div>
                     </div>

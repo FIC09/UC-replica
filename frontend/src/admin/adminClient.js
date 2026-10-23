@@ -151,7 +151,7 @@ export const adminClient = {
           unassignedBookings: { value: 8, alert: true, clickTarget: '/admin/bookings?status=Pending' },
           grossBookingValue: { value: 4825000, formatted: '₹48,25,000', change: 18.2, isPositive: true, clickTarget: '/admin/payments' },
           collectedPayments: { value: 4535500, formatted: '₹45,35,500', change: 17.8, isPositive: true, clickTarget: '/admin/payments?status=Success' },
-          platformRevenue: { value: 965000, formatted: '₹9,65,000', takeRate: '20.0%', change: 19.4, isPositive: true, clickTarget: '/admin/reports' },
+          platformRevenue: { value: 965000, formatted: '₹9,65,000', takeRate: '20.0%', change: 19.4, isPositive: true, clickTarget: '/admin/payments' },
           proEarnings: { value: 3860000, formatted: '₹38,60,000', label: 'Pro & Partner Payout Pool' },
           refunds: { value: 24600, formatted: '₹24,600', change: -4.2, clickTarget: '/admin/refunds' },
           outstandingPayouts: { value: 440200, formatted: '₹4,40,200', clickTarget: '/admin/payouts' },
@@ -194,8 +194,7 @@ export const adminClient = {
         },
         operationalAlerts: [
           { id: 'ALT-1', severity: 'warning', title: '8 Unassigned Orders in High-Demand Slots', message: 'Koramangala & Bandra hubs have 8 unassigned bookings starting within 45 minutes.', link: '/admin/bookings?status=Pending', actionText: 'Auto-Dispatch Pros' },
-          { id: 'ALT-2', severity: 'critical', title: 'Low Inventory Alert: Eco-Degreaser Chemical Solution', message: 'Current stock is 38 units (Min Threshold: 50 units) at Krishnagiri Warehouse.', link: '/admin/inventory', actionText: 'Order Restock' },
-          { id: 'ALT-3', severity: 'info', title: 'Monsoon Rain Surge Active in Mumbai Metro', message: 'Weather surge of +₹49 currently compensating 820 active technicians.', link: '/admin/locations', actionText: 'Review Hub Surges' }
+          { id: 'ALT-2', severity: 'critical', title: '6 Pending KYC Applications for Review', message: '4 AC technicians and 2 agency partner applications pending identity clearance.', link: '/admin/professionals', actionText: 'Review Applications' }
         ],
         pendingQueues: {
           pendingWorkerApplications: 4,

@@ -214,6 +214,68 @@ class ProfessionalClient {
     });
   }
 
+  async getJobChecklists(jobId) {
+    return this.request(`/jobs/${jobId}/checklists`);
+  }
+
+  async updateJobChecklistSection(jobId, payload) {
+    return this.request(`/jobs/${jobId}/checklists`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async uploadJobPhotoEvidence(jobId, payload) {
+    return this.request(`/jobs/${jobId}/photos`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async getExtraWorkCatalogue(jobId) {
+    return this.request(`/jobs/${jobId}/extra-work/catalog`);
+  }
+
+  async getExtraWorkRequests(jobId) {
+    return this.request(`/jobs/${jobId}/extra-work`);
+  }
+
+  async proposeExtraWork(jobId, payload) {
+    return this.request(`/jobs/${jobId}/extra-work`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async handleCustomerExtraWorkApproval(jobId, workId, payload) {
+    return this.request(`/jobs/${jobId}/extra-work/${workId}/approval`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async getJobMessages(jobId) {
+    return this.request(`/jobs/${jobId}/messages`);
+  }
+
+  async sendJobMessage(jobId, payload) {
+    return this.request(`/jobs/${jobId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async getCancellationPolicy() {
+    return this.request('/cancellation-policy');
+  }
+
+  async reportJobIncident(jobId, payload) {
+    return this.request(`/jobs/${jobId}/incident-report`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
   async addProfessionalNote(jobId, note) {
     return this.request(`/jobs/${jobId}/notes`, {
       method: 'POST',
@@ -237,13 +299,49 @@ class ProfessionalClient {
     });
   }
 
+  async submitBankChangeRequest(payload) {
+    return this.request('/payouts/bank-change-request', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async getBankChangeHistory() {
+    return this.request('/payouts/bank-change-history');
+  }
+
+  async getFinancialDisputes() {
+    return this.request('/payouts/disputes');
+  }
+
+  async submitFinancialDispute(payload) {
+    return this.request('/payouts/disputes', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
   // Reviews & Performance
   async getReviews() {
     return this.request('/reviews');
   }
 
+  async flagReview(reviewId, payload) {
+    return this.request(`/reviews/${reviewId}/flag`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
   async getPerformance() {
     return this.request('/performance');
+  }
+
+  async submitPerformanceAppeal(payload) {
+    return this.request('/performance/appeal', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
   }
 
   // Training & Academy
@@ -251,9 +349,27 @@ class ProfessionalClient {
     return this.request('/trainings');
   }
 
+  async getTrainingAssessment(courseId) {
+    return this.request(`/trainings/${courseId}/assessment`);
+  }
+
+  async submitTrainingAssessment(courseId, answers) {
+    return this.request(`/trainings/${courseId}/assessment`, {
+      method: 'POST',
+      body: JSON.stringify({ answers })
+    });
+  }
+
   async completeTraining(courseId) {
     return this.request(`/trainings/${courseId}/complete`, {
       method: 'POST'
+    });
+  }
+
+  async bookTrainingSession(payload) {
+    return this.request('/trainings/book-session', {
+      method: 'POST',
+      body: JSON.stringify(payload)
     });
   }
 
@@ -269,14 +385,29 @@ class ProfessionalClient {
     });
   }
 
+  async reportDamagedItem(payload) {
+    return this.request('/inventory/return-report', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
   // Shop
   async getShopItems() {
     return this.request('/shop');
   }
 
-  // Support
-  async getSupportTickets() {
-    return this.request('/support');
+  async placeShopOrder(payload) {
+    return this.request('/shop/order', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  // Support & Safety
+  async getSupportTickets(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/support${query ? `?${query}` : ''}`);
   }
 
   async createSupportTicket(payload) {
@@ -286,15 +417,36 @@ class ProfessionalClient {
     });
   }
 
-  // Notifications
-  async getNotifications() {
-    return this.request('/notifications');
+  async addTicketMessage(ticketId, payload) {
+    return this.request(`/support/${ticketId}/messages`, {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
   }
 
-  async markNotificationsRead() {
-    return this.request('/notifications/read-all', {
-      method: 'POST'
+  async escalateSafetyIncident(payload) {
+    return this.request('/support/safety-escalation', {
+      method: 'POST',
+      body: JSON.stringify(payload)
     });
+  }
+
+  // Notifications
+  async getNotifications(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/notifications${query ? `?${query}` : ''}`);
+  }
+
+  async markNotificationsRead(id = null) {
+    return this.request('/notifications/read-all', {
+      method: 'POST',
+      body: JSON.stringify({ id })
+    });
+  }
+
+  // Profile Change History
+  async getProfileChangeHistory() {
+    return this.request('/profile/change-history');
   }
 
   // Documents
@@ -307,6 +459,74 @@ class ProfessionalClient {
       method: 'POST',
       body: JSON.stringify(payload)
     });
+  }
+
+  // Settings, Sessions & Account Closure
+  async getSettings() {
+    return this.request('/settings');
+  }
+
+  async updateSettings(payload) {
+    return this.request('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async revokeOtherSessions() {
+    return this.request('/settings/sessions/revoke-others', {
+      method: 'POST'
+    });
+  }
+
+  async updateSecurityPin(payload) {
+    return this.request('/settings/security-pin', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  async requestAccountClosure(payload) {
+    return this.request('/settings/account-closure-request', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+  }
+
+  // Immutable Audit History Trail
+  async getAuditHistory(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request(`/audit-history${query ? `?${query}` : ''}`);
+  }
+
+  // Confirmed Demo Data Reset (Affects only demo data)
+  async resetDemoData() {
+    return this.request('/demo/reset', {
+      method: 'POST',
+      body: JSON.stringify({ confirmReset: true })
+    });
+  }
+
+  // Mobile Reliability & Offline Draft Preservation Helpers
+  saveDraft(key, data) {
+    try {
+      localStorage.setItem(`uc_pro_draft_${key}`, JSON.stringify({ data, savedAt: Date.now() }));
+    } catch {}
+  }
+
+  loadDraft(key) {
+    try {
+      const raw = localStorage.getItem(`uc_pro_draft_${key}`);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  clearDraft(key) {
+    try {
+      localStorage.removeItem(`uc_pro_draft_${key}`);
+    } catch {}
   }
 }
 
