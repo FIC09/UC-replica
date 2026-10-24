@@ -337,9 +337,9 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
 
   return (
     <div style={{
-      maxWidth: 1040,
-      margin: '0 auto',
-      padding: '24px 20px 90px 20px',
+      width: '100%',
+      boxSizing: 'border-box',
+      padding: '20px 24px 90px 24px',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
       {/* Top Breadcrumb & Status */}

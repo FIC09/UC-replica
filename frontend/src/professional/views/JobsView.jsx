@@ -147,7 +147,7 @@ export function JobsView({ onNavigate, showToast }) {
   const totalPages = Math.ceil(filteredJobs.length / pageSize) || 1;
 
   return (
-    <div style={{ padding: '24px 20px', maxWidth: 1200, margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ padding: '20px 24px', width: '100%', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
       {/* Title & Search Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 20 }}>

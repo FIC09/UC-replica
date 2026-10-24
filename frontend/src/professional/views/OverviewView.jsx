@@ -100,7 +100,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
   };
 
   return (
-    <div style={{ padding: '20px 16px', maxWidth: 1200, margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{ padding: '20px 24px', width: '100%', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
       {/* Sandbox / Demo Status Pill */}
       <div style={{
