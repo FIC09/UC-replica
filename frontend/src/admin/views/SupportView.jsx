@@ -169,8 +169,11 @@ export function SupportView({ onShowToast }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
       {/* Header & Tabs */}
       <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
         backgroundColor: '#FFFFFF',
-        borderRadius: 12,
+        borderRadius: '0 0 12px 12px',
         padding: '20px 24px',
         border: '1px solid #E2E8F0',
         display: 'flex',

@@ -269,10 +269,10 @@ export function CustomersView({ onShowToast, onNavigate }) {
       {/* Top Header */}
       <div className="admin-page-header">
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
-            Customer Management & Privacy Control
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0', lineHeight: 1.25 }}>
+            Customer Management &amp; Privacy Control
           </h2>
-          <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
+          <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.2 }}>
             Manage verified client accounts, saved address directories, LTV spend summaries, and GDPR privacy workflows
           </p>
         </div>

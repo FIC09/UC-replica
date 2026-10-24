@@ -400,10 +400,10 @@ export function BookingsView({ onShowToast, onNavigate }) {
       {/* Top Header & Fast Action Bar */}
       <div className="admin-page-header">
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: '#0F172A', margin: '0 0 4px 0' }}>
-            Bookings & Dispatch Control
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0', lineHeight: 1.25 }}>
+            Bookings &amp; Dispatch Control
           </h2>
-          <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
+          <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.2 }}>
             Real-time home services scheduling, lifecycle management, technician assignment, and billing
           </p>
         </div>
@@ -628,7 +628,34 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   <td colSpan={11} style={{ textAlign: 'center', padding: '48px 20px', color: '#64748B' }}>
                     <AlertCircle size={28} color="#94A3B8" style={{ marginBottom: 8, display: 'inline-block' }} />
                     <div style={{ fontWeight: 600, color: '#334155' }}>No bookings match the selected criteria</div>
-                    <div style={{ fontSize: 12, marginTop: 4 }}>Try clearing search keywords or filter dropdowns.</div>
+                    <div style={{ fontSize: 12, marginTop: 4, marginBottom: 14 }}>Try clearing search keywords or filter dropdowns.</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearch('');
+                        setStatusFilter('ALL');
+                        setPaymentFilter('ALL');
+                        setCityFilter('ALL');
+                        setCategoryFilter('ALL');
+                        setPartnerFilter('ALL');
+                        setAssignedFilter('ALL');
+                        setDateRangeFilter('ALL');
+                        setPage(1);
+                      }}
+                      style={{
+                        padding: '7px 16px',
+                        borderRadius: 8,
+                        border: 'none',
+                        backgroundColor: '#6E42E5',
+                        color: '#FFFFFF',
+                        fontSize: 12.5,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        boxShadow: '0 2px 6px rgba(110,66,229,0.25)'
+                      }}
+                    >
+                      Reset All Filters & Show All Bookings
+                    </button>
                   </td>
                 </tr>
               ) : (

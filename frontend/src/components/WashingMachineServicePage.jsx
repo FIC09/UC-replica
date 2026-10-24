@@ -301,12 +301,13 @@ export function WashingMachineServicePage({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                letterSpacing: -0.5
+                fontSize: 11.5,
+                letterSpacing: -0.2
               }}>
-                UC
+                FIC
               </div>
               <span style={{ fontSize: 17, fontWeight: 800, color: '#000000', letterSpacing: -0.4 }}>
-                Urban Company
+                Forge India Connect
               </span>
             </div>
           </div>

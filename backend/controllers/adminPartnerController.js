@@ -225,44 +225,62 @@ export async function getPartners(req, res) {
 
     let dbPartners = [];
     try {
-      dbPartners = await PartnerApplication.find().lean();
+      dbPartners = await PartnerApplication.find().sort({ createdAt: -1 }).lean();
     } catch {}
 
-    let list = mockPartners;
-    if (dbPartners.length > 2) {
-      list = dbPartners.map(p => ({
-        id: p.id,
-        _id: p.id,
-        businessName: p.businessName,
-        ownerName: p.ownerName,
-        contactPerson: p.contactPerson || { name: p.ownerName, phone: p.phone, email: p.email },
-        phone: p.phone,
-        email: p.email,
-        businessType: p.businessType || 'LLP',
-        tier: p.tier || 'Gold Franchise',
-        category: p.category,
-        categoryName: p.categoryName,
-        serviceCategories: p.serviceCategories || [p.categoryName],
-        fleetSize: p.fleetSize,
-        techniciansCount: p.techniciansCount || parseInt(p.fleetSize) || 8,
-        city: p.city,
-        coverageZones: p.coverageZones || [p.city],
-        registrationTax: p.registrationTax || { gstNumber: p.gstNumber },
-        gstNumber: p.gstNumber,
-        verificationDocs: p.verificationDocs || {},
-        settlementMode: p.settlementMode || 'ThroughBusiness',
-        settlementAccount: p.settlementAccount || {},
-        commissionRate: p.commissionRate || '18%',
-        monthlyCapacity: p.monthlyCapacity || '200 jobs/mo',
-        contractRef: p.contractRef || {},
-        linkedProfessionals: p.linkedProfessionals || [],
-        internalNotes: p.internalNotes || [],
-        status: p.status || 'Active',
-        statusReason: p.statusReason || '',
-        statusHistory: p.statusHistory || [],
-        metrics: p.metrics || { totalBookings: 100, completedBookings: 95, rating: 4.8, complaintsCount: 0, totalPayouts: 50000 }
-      }));
-    }
+    const mappedDbPartners = dbPartners.map(p => ({
+      id: p.id,
+      _id: p.id,
+      businessName: p.businessName,
+      ownerName: p.ownerName,
+      contactPerson: p.contactPerson || { name: p.ownerName, phone: p.phone, email: p.email },
+      phone: p.phone,
+      email: p.email,
+      businessType: p.businessType || 'LLP',
+      tier: p.tier || 'New Fleet Partner',
+      category: p.category,
+      categoryName: p.categoryName || 'Home Services',
+      serviceCategories: p.serviceCategories && p.serviceCategories.length > 0 ? p.serviceCategories : [p.categoryName || 'Home Services'],
+      fleetSize: p.fleetSize || '6-15 Technicians',
+      techniciansCount: p.techniciansCount || parseInt(p.fleetSize) || 8,
+      city: p.city || 'Mumbai',
+      coverageZones: p.coverageZones && p.coverageZones.length > 0 ? p.coverageZones : [p.city || 'Mumbai'],
+      registrationTax: p.registrationTax || { gstNumber: p.gstNumber },
+      gstNumber: p.gstNumber || 'Applied / Pending',
+      verificationDocs: p.verificationDocs || {
+        incorporationCert: { docName: 'Certificate of Incorporation', status: 'Pending Review' },
+        gstCertificate: { docName: 'GST Registration Certificate', status: 'Pending Review' },
+        companyPan: { docName: 'Company PAN Card', status: 'Pending Review' },
+        franchiseAgreement: { docName: 'Franchise Partner Agreement', status: 'Pending Review' }
+      },
+      settlementMode: p.settlementMode || 'ThroughBusiness',
+      settlementAccount: p.settlementAccount || {
+        bankName: 'HDFC Bank Ltd',
+        accountHolderName: p.businessName,
+        accountNumber: '••••••••1234',
+        ifscCode: 'HDFC0001248',
+        accountType: 'Current Corporate Account',
+        status: 'Pending Review'
+      },
+      commissionRate: p.commissionRate || '18%',
+      monthlyCapacity: p.monthlyCapacity || '200 jobs/mo',
+      contractRef: p.contractRef || {
+        contractId: `CTR-${(p.id || '').replace('PTR-', '')}`,
+        startDate: new Date(),
+        endDate: new Date(Date.now() + 86400000 * 365 * 2),
+        slaAgreementScore: '98.5% Doorstep SLA'
+      },
+      linkedProfessionals: p.linkedProfessionals || [],
+      internalNotes: p.internalNotes || [],
+      status: p.status || 'Pending Review',
+      statusReason: p.statusReason || '',
+      statusHistory: p.statusHistory || [],
+      metrics: p.metrics || { totalBookings: 0, completedBookings: 0, rating: 5.0, complaintsCount: 0, totalPayouts: 0 }
+    }));
+
+    const existingIds = new Set(mappedDbPartners.map(x => x.id));
+    const nonDuplicatedMocks = mockPartners.filter(m => !existingIds.has(m.id));
+    const list = [...mappedDbPartners, ...nonDuplicatedMocks];
 
     // Filter
     let filtered = list.filter(p => {
@@ -274,7 +292,10 @@ export async function getPartners(req, res) {
           (p.id || '').toLowerCase().includes(q);
         if (!matches) return false;
       }
-      if (status !== 'ALL' && p.status !== status) return false;
+      if (status !== 'ALL') {
+        const matchStatus = (status === 'Active' || status === 'Approved') ? ['Active', 'Approved'] : [status];
+        if (!matchStatus.includes(p.status)) return false;
+      }
       if (city !== 'ALL' && (p.city || '').toLowerCase() !== city.toLowerCase()) return false;
       return true;
     });
@@ -426,7 +447,7 @@ export async function updatePartnerStatus(req, res) {
 
     try {
       await PartnerApplication.findOneAndUpdate(
-        { id },
+        { $or: [{ id }, { _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }] },
         {
           $set: { status, statusReason: reason },
           $push: {

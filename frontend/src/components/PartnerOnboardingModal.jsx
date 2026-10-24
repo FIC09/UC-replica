@@ -690,25 +690,66 @@ export function PartnerOnboardingModal({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  handleReset();
-                  onClose();
-                }}
-                style={{
-                  background: '#6E42E5',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: 0,
-                  padding: '12px 28px',
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                Done & Return to Homepage
-              </button>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      localStorage.setItem('uc_partner_token', 'TOKEN-' + submittedPartnerApp.id);
+                      localStorage.setItem('uc_partner_id', submittedPartnerApp.id);
+                      localStorage.setItem('uc_partner_profile', JSON.stringify(submittedPartnerApp));
+                      localStorage.setItem('uc_partner_staff', JSON.stringify({
+                        id: 'STF-OWNER-01',
+                        partnerId: submittedPartnerApp.id,
+                        name: submittedPartnerApp.ownerName,
+                        role: 'Business Owner',
+                        status: 'Pending Review'
+                      }));
+                    } catch {}
+                    handleReset();
+                    onClose();
+                    window.history.pushState({}, '', '/partner');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                  style={{
+                    background: '#6E42E5',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 0,
+                    padding: '12px 24px',
+                    fontSize: 14,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    boxShadow: '0 4px 14px rgba(110, 66, 229, 0.3)'
+                  }}
+                >
+                  <span>Go to Partner Dashboard (Awaiting Approval)</span>
+                  <ArrowRight size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleReset();
+                    onClose();
+                  }}
+                  style={{
+                    background: '#1E293B',
+                    color: '#CBD5E1',
+                    border: '1px solid #334155',
+                    borderRadius: 0,
+                    padding: '12px 20px',
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Done & Return to Homepage
+                </button>
+              </div>
             </div>
           )}
         </div>

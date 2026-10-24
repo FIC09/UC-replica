@@ -23,6 +23,15 @@
   --uc-gray-50: #F8FAFC;
 }
 
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin-animate {
+  animation: spin 1s linear infinite;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -248,17 +257,17 @@ img {
 }
 
 .uc-square-badge {
-  width: 32px;
+  width: 34px;
   height: 32px;
   background: #000000;
   color: #FFFFFF;
   font-weight: 900;
-  font-size: 14px;
+  font-size: 11.5px;
   border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.2px;
   flex-shrink: 0;
 }
 
@@ -965,10 +974,10 @@ img {
 }
 
 .uc-native-showcase-card {
-  background: #F8FAFC;
+  background: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 0;
-  padding: 24px 20px 22px 20px;
+  padding: 28px 24px 26px 24px;
   position: relative;
   display: flex;
   flex-direction: column;
@@ -988,46 +997,47 @@ img {
   position: absolute;
   top: 18px;
   left: 18px;
-  background: #047857;
+  background: #006F44;
   color: #FFFFFF;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 800;
-  padding: 6px 14px;
+  padding: 5px 12px;
   border-radius: 0;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  box-shadow: 0 2px 6px rgba(4, 120, 87, 0.25);
   letter-spacing: -0.2px;
   z-index: 2;
 }
 
 .uc-native-img-box {
   width: 100%;
-  height: 250px;
+  max-width: 360px;
+  height: 215px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-top: 24px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  overflow: hidden;
 }
 
 .uc-native-img {
-  max-width: 240px;
-  max-height: 240px;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   transition: transform 0.3s ease;
 }
 
 .uc-native-showcase-card:hover .uc-native-img {
-  transform: scale(1.04);
+  transform: scale(1.03);
 }
 
 .uc-native-card-title {
   font-size: 26px;
   font-weight: 800;
   color: #0F172A;
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
   text-align: center;
   letter-spacing: -0.5px;
 }
@@ -1036,8 +1046,9 @@ img {
   font-size: 13.5px;
   color: #64748B;
   text-align: center;
-  margin: 0 0 14px 0;
+  margin: 0 0 18px 0;
   max-width: 380px;
+  line-height: 1.45;
 }
 
 .uc-native-card-cta {
@@ -1046,15 +1057,29 @@ img {
   gap: 8px;
   font-size: 13px;
   font-weight: 700;
-  color: #0F172A;
-  background: #FFFFFF;
-  border: 1.5px solid #E2E8F0;
-  padding: 8px 18px;
+  padding: 9px 20px;
   border-radius: 0;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
 
-.uc-native-showcase-card:hover .uc-native-card-cta {
+.uc-native-card-cta.uc-native-cta-primary {
+  background: #0F172A;
+  color: #FFFFFF;
+  border: 1px solid #0F172A;
+}
+
+.uc-native-card-cta.uc-native-cta-primary:hover {
+  background: #1E293B;
+  border-color: #1E293B;
+}
+
+.uc-native-card-cta.uc-native-cta-secondary {
+  background: #FFFFFF;
+  color: #0F172A;
+  border: 1px solid #E2E8F0;
+}
+
+.uc-native-card-cta.uc-native-cta-secondary:hover {
   background: #0F172A;
   color: #FFFFFF;
   border-color: #0F172A;
@@ -4378,11 +4403,17 @@ img {
 /* ADMIN OPERATIONS PORTAL RESPONSIVE ALIGNMENT & GRIDS      */
 /* ========================================================= */
 .admin-overview-filter-bar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
   background-color: #FFFFFF;
   border-radius: 0;
   border: none;
   border-bottom: 1px solid #E2E8F0;
-  padding: 12px 24px;
+  padding: 0 24px;
+  height: 64px;
+  min-height: 64px;
+  box-sizing: border-box;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -4434,17 +4465,45 @@ img {
 }
 
 .admin-page-header {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 40 !important;
   background-color: #FFFFFF;
   border-radius: 0 !important;
   border: none !important;
   border-bottom: 1px solid #E2E8F0 !important;
-  padding: 16px 24px !important;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  padding: 0 24px !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  box-sizing: border-box !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: nowrap !important;
   gap: 16px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.admin-page-header h2,
+.admin-page-header h3 {
+  font-size: 16px !important;
+  font-weight: 800 !important;
+  color: #0F172A !important;
+  margin: 0 0 2px 0 !important;
+  line-height: 1.25 !important;
+  letter-spacing: -0.01em !important;
+  white-space: nowrap !important;
+}
+
+.admin-page-header p {
+  font-size: 12px !important;
+  color: #64748B !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
 }
 
 .admin-page-body {

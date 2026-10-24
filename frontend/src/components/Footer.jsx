@@ -12,10 +12,10 @@ export function Footer({
   return (
     <footer className="uc-footer official-uc">
       <div className="container-custom">
-        {/* Brand Header: Logo + Urban Company */}
+        {/* Brand Header: Logo + Forge India Connect */}
         <div className="footer-uc-brand-header">
-          <div className="footer-uc-logo">UC</div>
-          <span className="footer-uc-title">Urban Company</span>
+          <div className="footer-uc-logo" style={{ fontSize: 13, letterSpacing: -0.2 }}>FIC</div>
+          <span className="footer-uc-title">Forge India Connect</span>
         </div>
 
         {/* 4 Navigation Columns (Matches Screenshot 4) */}
@@ -37,7 +37,7 @@ export function Footer({
           <div className="footer-uc-col">
             <h5 className="footer-uc-heading">For customers</h5>
             <ul className="footer-uc-list">
-              <li><a href="#reviews" onClick={(e) => e.preventDefault()}>UC reviews</a></li>
+              <li><a href="#reviews" onClick={(e) => e.preventDefault()}>FIC reviews</a></li>
               <li><a href="#categories" onClick={(e) => e.preventDefault()}>Categories near you</a></li>
               <li><a href="#contact" onClick={(e) => e.preventDefault()}>Contact us</a></li>
             </ul>

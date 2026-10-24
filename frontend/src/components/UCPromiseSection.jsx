@@ -36,7 +36,7 @@ export function UCPromiseSection() {
             textTransform: 'uppercase',
             letterSpacing: 1
           }}>
-            Why Urban Company
+            Why Forge India Connect
           </span>
           <h2 style={{
             fontFamily: 'var(--font-display)',
@@ -45,7 +45,7 @@ export function UCPromiseSection() {
             color: '#0F172A',
             marginTop: 6
           }}>
-            The Urban Company Promise
+            The Forge India Connect Promise
           </h2>
           <p style={{ fontSize: 14.5, color: '#64748B', marginTop: 8 }}>
             Setting the highest standards of safety, quality, and reliability for home services across India.

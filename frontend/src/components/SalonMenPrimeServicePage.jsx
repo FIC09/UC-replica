@@ -30,11 +30,11 @@ export function SalonMenPrimeServicePage({
 
   // 7 Sidebar Categories (Screenshot 1 of Men's Prime)
   const SIDEBAR_CATEGORIES = [
-    { id: 'packages', title: 'Packages', iconType: 'package' },
+    { id: 'packages', title: 'Packages', img: '/images/men_prime_packages.jpg' },
     { id: 'haircut-beard', title: 'Haircut & beard styling', img: '/images/men_prime_beard_trim.jpg' },
     { id: 'facial-cleanup', title: 'Facial & cleanup', img: '/images/men_prime_brightening_facial.jpg' },
     { id: 'detan', title: 'Detan', img: '/images/men_prime_face_detan.jpg' },
-    { id: 'mani-pedi', title: 'Manicure & pedicure', img: '/images/men_prime_lemon_pedicure.jpg' },
+    { id: 'mani-pedi', title: 'Manicure & pedicure', img: '/images/men_express_pedicure.jpg' },
     { id: 'massage', title: 'Massage', img: '/images/men_prime_head_massage.jpg' },
     { id: 'hair-color', title: 'Hair color', img: '/images/men_prime_matrix_color.jpg' }
   ];
@@ -53,6 +53,7 @@ export function SalonMenPrimeServicePage({
           reviewsCount: '775K reviews',
           price: 388,
           duration: '40 mins',
+          image: '/images/beauty_mens_haircut.jpg',
           packageItems: [
             'Haircut: Haircut for men',
             'Massage: 10 min Relaxing Head massage- with oil'
@@ -69,6 +70,7 @@ export function SalonMenPrimeServicePage({
           price: 532,
           originalPrice: 587,
           duration: '1 hr 5 mins',
+          image: '/images/men_beard_trim_pro.jpg',
           packageItems: [
             'Haircut: Haircut for men',
             'Shave/beard grooming: Beard trimming & styling'
@@ -84,6 +86,7 @@ export function SalonMenPrimeServicePage({
           price: 503,
           originalPrice: 558,
           duration: '1 hr 15 mins',
+          image: '/images/men_prime_matrix_color.jpg',
           packageItems: [
             'Haircut: Haircut for men',
             'Hair color: Hair color (with product)'
@@ -99,6 +102,7 @@ export function SalonMenPrimeServicePage({
           price: 728,
           originalPrice: 808,
           duration: '1 hr 30 mins',
+          image: '/images/men_head_massage_pro.jpg',
           packageItems: [
             'Haircut: Haircut for men',
             'Massage: Head massage',
@@ -115,6 +119,7 @@ export function SalonMenPrimeServicePage({
           price: 788,
           originalPrice: 858,
           duration: '1 hr 15 mins',
+          image: '/images/men_prime_charcoal_cleanup.jpg',
           packageItems: [
             'Facial & cleanup: Charcoal de-toxifying cleanup',
             'Haircut: Haircut for men'
@@ -130,6 +135,7 @@ export function SalonMenPrimeServicePage({
           price: 1386,
           originalPrice: 1606,
           duration: '2 hrs',
+          image: '/images/men_prime_combo.jpg',
           packageItems: [
             'Choose any 3 services across Haircut, Facial, Detan & Massage'
           ]
@@ -585,10 +591,10 @@ export function SalonMenPrimeServicePage({
                   letterSpacing: 0.5
                 }}
               >
-                UC
+                FIC
               </div>
               <span style={{ fontSize: 17, fontWeight: 900, color: '#0F172A', letterSpacing: -0.3 }}>
-                Urban Company
+                Forge India Connect
               </span>
             </div>
           </div>
@@ -616,7 +622,7 @@ export function SalonMenPrimeServicePage({
             >
               <MapPin size={14} color="#7C3AED" style={{ flexShrink: 0 }} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                4744+HMQ, {selectedLocality || selectedCity}
+                {/chennai|poonamalle|adayalampattu|tiruvallur/i.test(selectedLocality) ? 'Rayakottai Road' : (selectedLocality || 'Rayakottai Road')}, {/chennai|poonamalle|adayalampattu|tiruvallur/i.test(selectedCity) ? 'Krishnagiri' : (selectedCity || 'Krishnagiri')}
               </span>
             </button>
 
@@ -779,7 +785,7 @@ export function SalonMenPrimeServicePage({
                         border: isActive ? '2px solid #7C3AED' : '1px solid #E2E8F0'
                       }}
                     >
-                      {cat.iconType === 'package' ? (
+                      {cat.iconType === 'package' && !cat.img ? (
                         <div
                           style={{
                             width: '100%',

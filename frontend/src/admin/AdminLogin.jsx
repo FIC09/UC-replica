@@ -100,6 +100,30 @@ export function AdminLogin({ onLoginSuccess, onNavigateToMarketplace }) {
       padding: '24px 16px',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
+      {/* Top Bar with Return Link */}
+      <div style={{ width: '100%', maxWidth: 480, display: 'flex', justifyContent: 'flex-start', marginBottom: 16 }}>
+        <button
+          type="button"
+          onClick={onNavigateToMarketplace}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            background: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 8,
+            padding: '7px 14px',
+            color: '#475569',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+          }}
+        >
+          ← Back to Main Home Page
+        </button>
+      </div>
+
       {/* Branding Header */}
       <div style={{ textAlign: 'center', marginBottom: 28, maxWidth: 440 }}>
         <div style={{
@@ -116,7 +140,7 @@ export function AdminLogin({ onLoginSuccess, onNavigateToMarketplace }) {
           letterSpacing: 0.3
         }}>
           <ShieldCheck size={16} />
-          <span>URBAN SERVICES OPERATIONS PORTAL</span>
+          <span>FORGE INDIA CONNECT OPERATIONS PORTAL</span>
         </div>
         <h1 style={{
           fontSize: 26,

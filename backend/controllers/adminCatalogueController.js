@@ -197,16 +197,30 @@ export async function getCatalogueServices(req, res) {
     }
 
     let filtered = list.filter(s => {
+      const isArchived = Boolean(s.isArchived || s.status === 'Archived');
+      const currentStatus = s.status || (isArchived ? 'Archived' : 'Active');
+
       // Archive filter
       if (status === 'Archived') {
-        if (!s.isArchived && s.status !== 'Archived') return false;
+        if (!isArchived) return false;
+      } else if (status === 'Active') {
+        if (isArchived || currentStatus !== 'Active') return false;
+      } else if (status === 'Draft') {
+        if (currentStatus !== 'Draft') return false;
       } else if (status !== 'ALL') {
-        if (s.status !== status || s.isArchived) return false;
-      } else {
-        // By default, don't show archived unless specifically requested or ALL
+        if (currentStatus !== status) return false;
       }
 
-      if (category !== 'ALL' && s.category !== category) return false;
+      if (category !== 'ALL') {
+        const catNorm = category.toLowerCase();
+        const sCat = (s.category || '').toLowerCase();
+        if (sCat !== catNorm) {
+          const isWomenMatch = (catNorm === 'salon-women' || catNorm === 'womens-salon') && (sCat === 'womens-salon' || sCat === 'salon-women');
+          const isMenMatch = (catNorm === 'mens-grooming' || catNorm === 'mens-salon') && (sCat === 'mens-salon' || sCat === 'mens-grooming');
+          const isRepairMatch = (catNorm === 'electrician-plumber' || catNorm === 'quick-repairs') && (sCat === 'quick-repairs' || sCat === 'electrician-plumber');
+          if (!isWomenMatch && !isMenMatch && !isRepairMatch) return false;
+        }
+      }
 
       if (city !== 'ALL') {
         const cities = s.applicableCities || ['Mumbai', 'Bengaluru', 'Delhi NCR', 'Krishnagiri'];
@@ -223,7 +237,11 @@ export async function getCatalogueServices(req, res) {
       }
 
       return true;
-    });
+    }).map(s => ({
+      ...s,
+      status: s.status || (s.isArchived ? 'Archived' : 'Active'),
+      isArchived: Boolean(s.isArchived || s.status === 'Archived')
+    }));
 
     return res.json({
       success: true,

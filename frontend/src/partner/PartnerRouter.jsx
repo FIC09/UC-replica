@@ -30,7 +30,7 @@ import { SettingsView } from './views/SettingsView';
 // State views
 import { PermissionDeniedState, SuspendedState, PendingApprovalState } from './views/StateViews';
 
-export function PartnerRouter({ onExitToMarketplace }) {
+export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
   const [currentPath, setCurrentPath] = useState(() => {
     const p = window.location.pathname;
     return p.startsWith('/partner') ? p : '/partner';
@@ -45,7 +45,19 @@ export function PartnerRouter({ onExitToMarketplace }) {
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!sessionStorage.getItem('uc_partner_token') || !!localStorage.getItem('uc_partner_token');
+    if (sessionStorage.getItem('uc_partner_token') || localStorage.getItem('uc_partner_token')) {
+      return true;
+    }
+    try {
+      const u = JSON.parse(localStorage.getItem('uc_user'));
+      if (u && (u.role === 'partner' || (u.email && (u.email.includes('partner') || u.email.includes('apex'))))) {
+        const partner = partnerClient.getStoredPartner();
+        const staff = partnerClient.getStoredStaff();
+        partnerClient.setAuth('simulated-partner-jwt-token', partner, staff);
+        return true;
+      }
+    } catch {}
+    return false;
   });
 
   const [toastMessage, setToastMessage] = useState(null);
@@ -100,10 +112,18 @@ export function PartnerRouter({ onExitToMarketplace }) {
 
   const handleLogout = useCallback(() => {
     partnerClient.logout();
+    localStorage.removeItem('uc_user');
     setIsAuthenticated(false);
-    handleNavigate('/partner/login');
-    showToast('Signed out of partner portal.');
-  }, [handleNavigate, showToast]);
+    window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: null } }));
+    if (onAppLogout) {
+      onAppLogout();
+    } else if (onExitToMarketplace) {
+      onExitToMarketplace();
+    } else {
+      window.history.pushState({}, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  }, [onAppLogout, onExitToMarketplace]);
 
   const handleSwitchDemoRole = useCallback(async (account) => {
     try {
@@ -123,6 +143,15 @@ export function PartnerRouter({ onExitToMarketplace }) {
 
   // Public unauthenticated routes
   if (currentPath === '/partner/login') {
+    if (isAuthenticated) {
+      return (
+        <OverviewView 
+          onNavigate={handleNavigate} 
+          showToast={showToast} 
+          staff={staffUser} 
+        />
+      );
+    }
     return (
       <PartnerLogin
         onLoginSuccess={handleLoginSuccess}
@@ -153,7 +182,8 @@ export function PartnerRouter({ onExitToMarketplace }) {
     );
   }
 
-  const isPending = ['Draft', 'Submitted', 'Under Review', 'Changes Requested', 'Rejected'].includes(partnerUser?.status);
+  const isApproved = partnerUser?.status === 'Approved' || partnerUser?.status === 'Active';
+  const isPending = !isApproved && partnerUser?.status !== 'Suspended';
   const isSuspended = partnerUser?.status === 'Suspended';
 
   // Helper to verify staff permission for route
@@ -170,7 +200,7 @@ export function PartnerRouter({ onExitToMarketplace }) {
     return <Component onNavigate={handleNavigate} showToast={showToast} staff={staffUser} partner={partnerUser} />;
   }
 
-  // Operational privileges guard: pending businesses can access onboarding, profile/settings, and support,
+  // Operational privileges guard: pending businesses can access support,
   // but cannot access live operational dispatch, bookings, team, or finances until approved.
   function renderOperationalModule(requiredPermission, Component) {
     if (isPending) {
@@ -178,15 +208,34 @@ export function PartnerRouter({ onExitToMarketplace }) {
         <PendingApprovalState
           partner={partnerUser}
           onNavigate={handleNavigate}
+          onLogout={handleLogout}
           onRefresh={async () => {
             try {
               const res = await partnerClient.getMe();
-              if (res && res.success) {
+              if (res && res.success && res.partner) {
                 setPartnerUser(res.partner);
-                showToast(`Partner status: ${res.partner.status}`);
+                localStorage.setItem('uc_partner_profile', JSON.stringify(res.partner));
+                if (res.partner.status === 'Approved' || res.partner.status === 'Active') {
+                  showToast(`🎉 Partner fleet APPROVED! Welcome to Urban Company Enterprise ERP.`);
+                } else {
+                  showToast(`Partner status: ${res.partner.status}. Awaiting Admin Approval.`);
+                }
+              } else {
+                const direct = await fetch('/api/partner-applications');
+                const d = await direct.json();
+                const match = d.applications?.find(a => a.id === partnerUser?.id);
+                if (match) {
+                  setPartnerUser(prev => ({ ...prev, ...match }));
+                  localStorage.setItem('uc_partner_profile', JSON.stringify({ ...partnerUser, ...match }));
+                  if (match.status === 'Approved' || match.status === 'Active') {
+                    showToast(`🎉 Partner fleet APPROVED by Admin! Unlocking dashboard.`);
+                  } else {
+                    showToast(`Partner status: ${match.status}. Awaiting Admin Approval.`);
+                  }
+                }
               }
             } catch (e) {
-              showToast(e.message);
+              showToast(e.message || 'Check failed');
             }
           }}
         />
@@ -205,7 +254,42 @@ export function PartnerRouter({ onExitToMarketplace }) {
     switch (path) {
       case '/partner':
         viewContent = isPending
-          ? <PartnerOnboarding partner={partnerUser} onNavigate={handleNavigate} showToast={showToast} />
+          ? (
+            <PendingApprovalState
+              partner={partnerUser}
+              onNavigate={handleNavigate}
+              onLogout={handleLogout}
+              onRefresh={async () => {
+                try {
+                  const res = await partnerClient.getMe();
+                  if (res && res.success && res.partner) {
+                    setPartnerUser(res.partner);
+                    localStorage.setItem('uc_partner_profile', JSON.stringify(res.partner));
+                    if (res.partner.status === 'Approved' || res.partner.status === 'Active') {
+                      showToast(`🎉 Partner fleet APPROVED! Welcome to Urban Company Enterprise ERP.`);
+                    } else {
+                      showToast(`Partner status: ${res.partner.status}. Awaiting Admin Approval.`);
+                    }
+                  } else {
+                    const direct = await fetch('/api/partner-applications');
+                    const d = await direct.json();
+                    const match = d.applications?.find(a => a.id === partnerUser?.id);
+                    if (match) {
+                      setPartnerUser(prev => ({ ...prev, ...match }));
+                      localStorage.setItem('uc_partner_profile', JSON.stringify({ ...partnerUser, ...match }));
+                      if (match.status === 'Approved' || match.status === 'Active') {
+                        showToast(`🎉 Partner fleet APPROVED by Admin! Unlocking dashboard.`);
+                      } else {
+                        showToast(`Partner status: ${match.status}. Awaiting Admin Approval.`);
+                      }
+                    }
+                  }
+                } catch (e) {
+                  showToast(e.message || 'Check failed');
+                }
+              }}
+            />
+          )
           : <OverviewView onNavigate={handleNavigate} showToast={showToast} staff={staffUser} />;
         break;
       case '/partner/onboarding':

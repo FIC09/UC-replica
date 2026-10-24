@@ -57,7 +57,7 @@ app.get('/api/health', (req, res) => {
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    service: 'Urban Company MERN Backend API',
+    service: 'Forge India Connect MERN Backend API',
   });
 });
 
@@ -80,7 +80,7 @@ app.use('/api/*', (req, res) => {
 
 // Root welcome
 app.get('/', (req, res) => {
-  res.send('<h1>Urban Company MERN Stack Backend API</h1><p>Running on Node.js + Express + MongoDB.</p><p>Check health at <a href="/api/health">/api/health</a></p>');
+  res.send('<h1>Forge India Connect MERN Stack Backend API</h1><p>Running on Node.js + Express + MongoDB.</p><p>Check health at <a href="/api/health">/api/health</a></p>');
 });
 
 // Global Error Handler
@@ -94,6 +94,6 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Urban Company MERN Backend Server running on port ${PORT}`);
+  console.log(`🚀 Forge India Connect MERN Backend Server running on port ${PORT}`);
   console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
 });

@@ -428,19 +428,85 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
 
   // =========================================================================
   // =========================================================================
-  // 2. NATIVE TAB: 3-CARD SHOWCASE AT TOP (Matches Native Screenshot exactly)
+  // 2. NATIVE TAB: PRODUCT SHOWCASE AT TOP + ADVANTAGE CARDS BELOW
   // =========================================================================
   if (activeNavTab === 'native') {
     return (
       <section className="uc-exact-hero-section native-store-hero">
         <div className="container-custom uc-native-hero-wrap">
-          {/* Top 3 Advantage Cards (Exact layout from Native Store screenshot) */}
+          {/* Native Product Line Showcase (Water Purifiers & Smart Locks) - AT TOP OF NATIVE */}
+          <div className="uc-native-hero-grid" style={{ marginBottom: 32 }}>
+            {/* 1. Water Purifiers Card */}
+            <div 
+              className="uc-native-showcase-card"
+              style={{ borderRadius: 0 }}
+              onClick={() => {
+                if (onOpenPurifierPage) onOpenPurifierPage();
+                else handleCategoryClick('native-ro', 'Native Water Purifiers');
+              }}
+            >
+              <div className="uc-native-discount-badge" style={{ borderRadius: 0 }}>
+                % ₹4,800 off
+              </div>
+              <div className="uc-native-img-box" style={{ borderRadius: 0 }}>
+                <img 
+                  src="/images/native_purifier.jpg" 
+                  alt="Native Water Purifiers" 
+                  className="uc-native-img"
+                  style={{ borderRadius: 0 }}
+                />
+              </div>
+              <h2 className="uc-native-card-title">Water Purifiers</h2>
+              <p className="uc-native-card-desc">
+                Needs no service for 2 years • In-built RO + UV + Alkaline<br />Copper
+              </p>
+              <div className="uc-native-card-cta uc-native-cta-primary" style={{ borderRadius: 0 }}>
+                <span>Explore Water Purifiers</span>
+                <ArrowRight size={14} />
+              </div>
+            </div>
+
+            {/* 2. Smart Locks Card */}
+            <div 
+              className="uc-native-showcase-card"
+              style={{ borderRadius: 0 }}
+              onClick={() => {
+                if (onOpenSmartLocksPage) onOpenSmartLocksPage();
+                else handleCategoryClick('native-ro', 'Native Smart Locks');
+              }}
+            >
+              <div className="uc-native-discount-badge" style={{ borderRadius: 0 }}>
+                % ₹4,500 off
+              </div>
+              <div className="uc-native-img-box" style={{ borderRadius: 0 }}>
+                <img 
+                  src="/images/native_smart_lock.jpg" 
+                  alt="Native Smart Locks" 
+                  className="uc-native-img"
+                  style={{ borderRadius: 0 }}
+                />
+              </div>
+              <h2 className="uc-native-card-title">Smart Locks</h2>
+              <p className="uc-native-card-desc">
+                6-in-1 Unlocking • Built-in Video Doorbell & Anti-Theft Security
+              </p>
+              <div className="uc-native-card-cta uc-native-cta-secondary" style={{ borderRadius: 0 }}>
+                <span>Explore Smart Locks</span>
+                <ArrowRight size={14} />
+              </div>
+            </div>
+          </div>
+
+          {/* Top 3 Advantage Cards */}
           <div className="uc-native-adv-cards-grid">
             {/* Card 1: Professional Installation */}
             <div 
               className="uc-native-adv-card"
               style={{ borderRadius: 0 }}
-              onClick={() => handleCategoryClick('native-ro')}
+              onClick={() => {
+                if (onOpenPurifierPage) onOpenPurifierPage();
+                else handleCategoryClick('native-ro');
+              }}
             >
               <div className="uc-native-adv-card-text">
                 <h3 className="uc-native-adv-heading">Professional<br />installation</h3>
@@ -460,7 +526,10 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
             <div 
               className="uc-native-adv-card"
               style={{ borderRadius: 0 }}
-              onClick={() => handleCategoryClick('native-ro')}
+              onClick={() => {
+                if (onOpenPurifierPage) onOpenPurifierPage();
+                else handleCategoryClick('native-ro');
+              }}
             >
               <div className="uc-native-adv-card-text">
                 <h3 className="uc-native-adv-heading">24×7 expert<br />support</h3>
@@ -480,7 +549,10 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
             <div 
               className="uc-native-adv-card"
               style={{ borderRadius: 0 }}
-              onClick={() => handleCategoryClick('native-ro')}
+              onClick={() => {
+                if (onOpenPurifierPage) onOpenPurifierPage();
+                else handleCategoryClick('native-ro');
+              }}
             >
               <div className="uc-native-adv-card-text">
                 <h3 className="uc-native-adv-heading">Servicing 14,500+<br />pin codes</h3>
@@ -493,65 +565,6 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
                   className="uc-native-adv-exact-img"
                   style={{ borderRadius: 0 }}
                 />
-              </div>
-            </div>
-          </div>
-
-          {/* Native Product Line Showcase (Water Purifiers & Smart Locks) */}
-          <div className="uc-native-hero-grid" style={{ marginTop: 32 }}>
-            {/* 1. Water Purifiers Card */}
-            <div 
-              className="uc-native-showcase-card"
-              style={{ borderRadius: 0 }}
-              onClick={() => handleCategoryClick('native-ro', 'Native Water Purifiers')}
-            >
-              <div className="uc-native-discount-badge" style={{ borderRadius: 0 }}>
-                <Percent size={15} strokeWidth={3} />
-                <span>₹4,800 off</span>
-              </div>
-              <div className="uc-native-img-box" style={{ borderRadius: 0 }}>
-                <img 
-                  src="/images/native_purifier.jpg" 
-                  alt="Native Water Purifiers" 
-                  className="uc-native-img"
-                  style={{ borderRadius: 0 }}
-                />
-              </div>
-              <h2 className="uc-native-card-title">Water Purifiers</h2>
-              <p className="uc-native-card-desc">
-                Needs no service for 2 years • In-built RO + UV + Alkaline Copper
-              </p>
-              <div className="uc-native-card-cta" style={{ borderRadius: 0 }}>
-                <span>Explore Water Purifiers</span>
-                <ArrowRight size={14} />
-              </div>
-            </div>
-
-            {/* 2. Smart Locks Card */}
-            <div 
-              className="uc-native-showcase-card"
-              style={{ borderRadius: 0 }}
-              onClick={() => handleCategoryClick('native-ro', 'Native Smart Locks')}
-            >
-              <div className="uc-native-discount-badge" style={{ borderRadius: 0 }}>
-                <Percent size={15} strokeWidth={3} />
-                <span>₹4,500 off</span>
-              </div>
-              <div className="uc-native-img-box" style={{ borderRadius: 0 }}>
-                <img 
-                  src="/images/native_smart_lock.jpg" 
-                  alt="Native Smart Locks" 
-                  className="uc-native-img"
-                  style={{ borderRadius: 0 }}
-                />
-              </div>
-              <h2 className="uc-native-card-title">Smart Locks</h2>
-              <p className="uc-native-card-desc">
-                6-in-1 Unlocking • Built-in Video Doorbell & Anti-Theft Security
-              </p>
-              <div className="uc-native-card-cta" style={{ borderRadius: 0 }}>
-                <span>Explore Smart Locks</span>
-                <ArrowRight size={14} />
               </div>
             </div>
           </div>

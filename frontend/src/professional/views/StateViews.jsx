@@ -1,4 +1,5 @@
 import React from 'react';
+import { Clock, RefreshCw, ShieldAlert, CheckCircle2, ArrowRight, User, Phone, MapPin, Briefcase } from 'lucide-react';
 
 // 1. Loading State
 export function LoadingState({ message = 'Loading dispatch data...' }) {
@@ -447,4 +448,177 @@ export function OfflineBanner({ isOffline, onReconnect }) {
     </div>
   );
 }
+
+// 8. Pending Approval State View (Awaiting Admin Dashboard Approval)
+export function PendingApprovalState({ profile, onNavigate, onLogout, onRefreshStatus, isChecking }) {
+  return (
+    <div style={{
+      maxWidth: 680,
+      margin: '40px auto',
+      padding: '0 16px',
+      fontFamily: 'Inter, system-ui, sans-serif'
+    }}>
+      <div style={{
+        background: '#ffffff',
+        borderRadius: 20,
+        border: '1.5px solid #fde68a',
+        padding: '36px 30px',
+        textAlign: 'center',
+        boxShadow: '0 20px 30px -10px rgba(217, 119, 6, 0.1)'
+      }}>
+        <div style={{
+          width: 68,
+          height: 68,
+          borderRadius: '50%',
+          background: '#fef3c7',
+          color: '#d97706',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 18px auto'
+        }}>
+          <Clock size={34} />
+        </div>
+
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          background: '#fffbeb',
+          color: '#b45309',
+          border: '1px solid #fde68a',
+          padding: '4px 14px',
+          borderRadius: 20,
+          fontSize: 12,
+          fontWeight: 800,
+          letterSpacing: 0.5,
+          marginBottom: 12
+        }}>
+          <span>●</span>
+          <span>AWAITING ADMIN APPROVAL</span>
+        </div>
+
+        <h2 style={{ fontSize: 22, fontWeight: 900, color: '#0f172a', margin: '0 0 10px 0' }}>
+          Registration Submitted Successfully
+        </h2>
+
+        <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.55, margin: '0 0 24px 0' }}>
+          Hello <strong>{profile?.applicantName || profile?.name || 'Professional'}</strong>. Your technician registration has been sent to the Urban Company Operations Admin Hub for verification.
+        </p>
+
+        {/* Application Summary Card */}
+        <div style={{
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: 14,
+          padding: '18px 20px',
+          textAlign: 'left',
+          marginBottom: 24,
+          fontSize: 13
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 10, borderBottom: '1px solid #e2e8f0' }}>
+            <span style={{ color: '#64748b' }}>Application ID:</span>
+            <strong style={{ color: '#0f172a', fontFamily: 'monospace', fontSize: 13.5 }}>{profile?.id || 'WRK-PENDING'}</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #e2e8f0' }}>
+            <span style={{ color: '#64748b' }}>Assigned Trade:</span>
+            <strong style={{ color: '#0f172a' }}>{profile?.tradeName || profile?.trade || 'Home Services'}</strong>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #e2e8f0' }}>
+            <span style={{ color: '#64748b' }}>Registered Mobile:</span>
+            <span style={{ color: '#0f172a', fontWeight: 600 }}>{profile?.phone || 'On File'}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #e2e8f0' }}>
+            <span style={{ color: '#64748b' }}>Operating Hub / City:</span>
+            <span style={{ color: '#0f172a' }}>{profile?.locality ? `${profile.locality}, ${profile.city || 'Mumbai'}` : (profile?.city || 'Mumbai')}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 10, alignItems: 'center' }}>
+            <span style={{ color: '#64748b' }}>Current Status:</span>
+            <span style={{
+              background: '#fef3c7',
+              color: '#d97706',
+              border: '1px solid #fde68a',
+              padding: '3px 10px',
+              borderRadius: 12,
+              fontWeight: 800,
+              fontSize: 12
+            }}>
+              ● {profile?.status || 'Pending Review'}
+            </span>
+          </div>
+        </div>
+
+        {/* Access Locked Policy Notice */}
+        <div style={{
+          background: '#fffbeb',
+          border: '1px solid #fde68a',
+          borderRadius: 14,
+          padding: '16px 20px',
+          textAlign: 'left',
+          fontSize: 13,
+          color: '#92400e',
+          lineHeight: 1.5,
+          marginBottom: 26
+        }}>
+          <div style={{ fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>🔒</span>
+            <span>Dashboard Locked Until Admin Approval</span>
+          </div>
+          <div>
+            Per Urban Company safety and quality standards, technicians cannot receive live job dispatches, view customer booking addresses, or access earnings withdrawal until the Operations Admin reviews and approves the application. Once approved, your operational dashboard will be automatically unlocked.
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <button
+            type="button"
+            onClick={onRefreshStatus}
+            disabled={isChecking}
+            style={{
+              width: '100%',
+              background: '#059669',
+              color: '#ffffff',
+              border: 'none',
+              padding: '14px 20px',
+              borderRadius: 10,
+              fontSize: 14.5,
+              fontWeight: 800,
+              cursor: isChecking ? 'wait' : 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              minHeight: 48,
+              boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)'
+            }}
+          >
+            <RefreshCw size={17} style={{ animation: isChecking ? 'spin 1s linear infinite' : 'none' }} />
+            <span>{isChecking ? 'Checking Admin Approval...' : 'Check Approval Status / Refresh'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onLogout}
+            style={{
+              width: '100%',
+              background: '#f1f5f9',
+              color: '#475569',
+              border: 'none',
+              padding: '12px 20px',
+              borderRadius: 10,
+              fontSize: 13.5,
+              fontWeight: 600,
+              cursor: 'pointer',
+              minHeight: 44
+            }}
+          >
+            Sign Out / Back to Marketplace
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 

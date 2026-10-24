@@ -329,71 +329,74 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* HEADER & TABS NAVIGATION */}
+      {/* Top Header Bar aligned to 64px */}
       <div style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        height: 64,
+        boxSizing: 'border-box',
         backgroundColor: '#FFFFFF',
-        borderRadius: 0,
-        border: 'none',
         borderBottom: '1px solid #E2E8F0',
-        padding: '20px 24px 0 24px',
+        padding: '0 24px',
         display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
+        justifyContent: 'space-between',
+        alignItems: 'center',
         boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                Payments, Commissions & Settlements
-              </h2>
-              <span style={{
-                fontSize: 11,
-                fontWeight: 700,
-                padding: '3px 8px',
-                borderRadius: 6,
-                backgroundColor: '#EEF2FF',
-                color: '#4F46E5',
-                border: '1px solid #C7D2FE'
-              }}>
-                Minor Units (Paise) Compliant
-              </span>
-            </div>
-            <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0 0' }}>
-              Manage customer checkout transactions, franchise & technician payouts, dispute refunds, and gateway reconciliation.
-            </p>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: 0, lineHeight: 1.25 }}>
+              Payments, Commissions &amp; Settlements
+            </h2>
+            <span style={{
+              fontSize: 11,
+              fontWeight: 700,
+              padding: '2px 7px',
+              borderRadius: 6,
+              backgroundColor: '#EEF2FF',
+              color: '#4F46E5',
+              border: '1px solid #C7D2FE'
+            }}>
+              Minor Units (Paise) Compliant
+            </span>
           </div>
-
-          {/* Environmental Sandbox Separation Indicator */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '8px 14px',
-            backgroundColor: '#F8FAFC',
-            borderRadius: 8,
-            border: '1px solid #E2E8F0'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10B981' }} />
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>Gateway Prod Verified</span>
-            </div>
-            <div style={{ width: 1, height: 16, backgroundColor: '#CBD5E1' }} />
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <FlaskConical size={14} color="#7C3AED" />
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#7C3AED' }}>Sandbox Isolated ({simTxns.length} sim test)</span>
-            </div>
-          </div>
+          <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0 0', lineHeight: 1.2 }}>
+            Manage customer checkout transactions, franchise &amp; technician payouts, dispute refunds, and gateway reconciliation.
+          </p>
         </div>
 
-        {/* SUB-SCREEN NAVIGATION TABS */}
+        {/* Environmental Sandbox Separation Indicator */}
         <div style={{
           display: 'flex',
-          gap: 8,
-          borderBottom: '1px solid #E2E8F0',
-          paddingBottom: 2,
-          overflowX: 'auto'
+          alignItems: 'center',
+          gap: 12,
+          padding: '6px 12px',
+          backgroundColor: '#F8FAFC',
+          borderRadius: 8,
+          border: '1px solid #E2E8F0'
         }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10B981' }} />
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>Gateway Prod Verified</span>
+          </div>
+          <div style={{ width: 1, height: 16, backgroundColor: '#CBD5E1' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <FlaskConical size={14} color="#7C3AED" />
+            <span style={{ fontSize: 12, fontWeight: 600, color: '#7C3AED' }}>Sandbox Isolated ({simTxns.length} sim test)</span>
+          </div>
+        </div>
+      </div>
+
+      {/* SUB-SCREEN NAVIGATION TABS */}
+      <div style={{
+        backgroundColor: '#FFFFFF',
+        borderBottom: '1px solid #E2E8F0',
+        padding: '0 24px',
+        display: 'flex',
+        gap: 8,
+        overflowX: 'auto'
+      }}>
           <button
             type="button"
             onClick={() => setActiveTab('transactions')}
@@ -518,7 +521,6 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
             </span>
           </button>
         </div>
-      </div>
 
       <div className="admin-page-body">
 

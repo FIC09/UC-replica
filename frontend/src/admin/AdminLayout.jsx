@@ -11,16 +11,11 @@ import {
   Wallet, 
   RotateCcw, 
   HelpCircle, 
-  Star, 
   Tag, 
-  FileText, 
-  Bell, 
   Sliders, 
   Search, 
   ChevronRight, 
-  Menu, 
   LogOut, 
-  ExternalLink, 
   CloudRain, 
   X, 
   Command,
@@ -67,13 +62,25 @@ export function AdminLayout({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  const [bookingBadge, setBookingBadge] = useState('143');
+
+  useEffect(() => {
+    function handleStatsUpdate(e) {
+      if (e.detail?.metrics?.totalBookings?.value) {
+        setBookingBadge(String(e.detail.metrics.totalBookings.value));
+      }
+    }
+    window.addEventListener('uc:admin-stats-updated', handleStatsUpdate);
+    return () => window.removeEventListener('uc:admin-stats-updated', handleStatsUpdate);
+  }, []);
+
   // Navigation Items Grouping
   const NAV_SECTIONS = [
     {
       title: 'CORE OPERATIONS',
       items: [
         { path: '/admin', label: 'Overview', icon: LayoutDashboard },
-        { path: '/admin/bookings', label: 'Bookings', icon: ShoppingBag, badge: '143' },
+        { path: '/admin/bookings', label: 'Bookings', icon: ShoppingBag, badge: bookingBadge },
         { path: '/admin/customers', label: 'Customers', icon: Users },
         { path: '/admin/professionals', label: 'Professionals', icon: HardHat, badge: '5' },
         { path: '/admin/partners', label: 'Business Partners', icon: Building2, badge: '3' }
@@ -97,15 +104,12 @@ export function AdminLayout({
     {
       title: 'QUALITY & SUPPORT',
       items: [
-        { path: '/admin/support', label: 'Support Tickets', icon: HelpCircle, badge: '3' },
-        { path: '/admin/reviews', label: 'Ratings & Reviews', icon: Star }
+        { path: '/admin/support', label: 'Support Tickets', icon: HelpCircle, badge: '3' }
       ]
     },
     {
       title: 'PLATFORM MANAGEMENT',
       items: [
-        { path: '/admin/content', label: 'Marketing Content', icon: FileText },
-        { path: '/admin/notifications', label: 'Notifications', icon: Bell },
         { path: '/admin/settings', label: 'Platform Settings', icon: Sliders }
       ]
     }
@@ -124,7 +128,9 @@ export function AdminLayout({
   return (
     <div style={{
       display: 'flex',
-      minHeight: '100vh',
+      height: '100vh',
+      maxHeight: '100vh',
+      overflow: 'hidden',
       backgroundColor: '#F8FAFC',
       color: '#0F172A',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
@@ -151,6 +157,8 @@ export function AdminLayout({
           {/* Brand Header */}
           <div style={{
             height: 64,
+            boxSizing: 'border-box',
+            flexShrink: 0,
             padding: sidebarCollapsed ? '0 16px' : '0 20px',
             borderBottom: '1px solid #E2E8F0',
             display: 'flex',
@@ -185,7 +193,7 @@ export function AdminLayout({
               {!sidebarCollapsed && (
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
-                    Urban Services
+                    Forge India Connect
                   </div>
                   <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6E42E5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Admin Operations
@@ -287,33 +295,46 @@ export function AdminLayout({
             ))}
           </nav>
 
-          {/* Sidebar Collapse Toggle & Footer */}
+          {/* Sidebar Collapse Toggle & Footer Actions */}
           <div style={{
             padding: sidebarCollapsed ? '12px 8px' : '12px 14px',
             borderTop: '1px solid #E2E8F0',
-            backgroundColor: '#FFFFFF'
+            backgroundColor: '#FFFFFF',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 6
           }}>
             <button
               type="button"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              onClick={onLogout}
+              title="Log Out Session"
               style={{
                 width: '100%',
-                padding: '8px 10px',
+                padding: '9px 12px',
                 borderRadius: 8,
-                border: '1px solid #E2E8F0',
-                backgroundColor: '#F8FAFC',
-                color: '#64748B',
-                fontSize: 12,
+                border: '1px solid #FEE2E2',
+                backgroundColor: '#FEF2F2',
+                color: '#DC2626',
+                fontSize: 12.5,
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                 gap: 8,
-                cursor: 'pointer'
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#FEE2E2';
+                e.currentTarget.style.borderColor = '#FCA5A5';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#FEF2F2';
+                e.currentTarget.style.borderColor = '#FEE2E2';
               }}
             >
-              <Menu size={15} />
-              {!sidebarCollapsed && <span>Collapse Sidebar</span>}
+              <LogOut size={16} color="#DC2626" />
+              {!sidebarCollapsed && <span>Log Out</span>}
             </button>
           </div>
         </div>
@@ -327,345 +348,14 @@ export function AdminLayout({
         display: 'flex',
         flexDirection: 'column',
         minWidth: 0,
+        height: '100vh',
+        maxHeight: '100vh',
         overflow: 'hidden'
       }}>
-        {/* TOP BAR */}
-        <header style={{
-          height: 64,
-          backgroundColor: '#FFFFFF',
-          borderBottom: '1px solid #E2E8F0',
-          padding: '0 20px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          position: 'sticky',
-          top: 0,
-          zIndex: 40,
-          boxSizing: 'border-box'
-        }}>
-          {/* Left: Breadcrumbs */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 13,
-            flexShrink: 0,
-            whiteSpace: 'nowrap'
-          }}>
-            <span style={{ color: '#94A3B8', fontWeight: 600 }}>Admin</span>
-            <ChevronRight size={13} color="#CBD5E1" style={{ flexShrink: 0 }} />
-            <span style={{ color: '#64748B', fontWeight: 600 }}>{currentSection}</span>
-            <ChevronRight size={13} color="#CBD5E1" style={{ flexShrink: 0 }} />
-            <span style={{ color: '#0F172A', fontWeight: 700 }}>{currentItem.label}</span>
-          </div>
-
-          {/* Right Controls */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            flexShrink: 0
-          }}>
-            {/* Global Search Button */}
-            <button
-              type="button"
-              onClick={() => setShowGlobalSearch(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #E2E8F0',
-                borderRadius: 8,
-                padding: '0 10px',
-                height: 36,
-                width: 190,
-                fontSize: 12,
-                color: '#64748B',
-                cursor: 'pointer',
-                flexShrink: 0,
-                boxSizing: 'border-box'
-              }}
-            >
-              <Search size={14} color="#94A3B8" style={{ flexShrink: 0 }} />
-              <span style={{
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                flex: 1,
-                textAlign: 'left'
-              }}>
-                Search modules, users...
-              </span>
-              <kbd style={{
-                fontSize: 10,
-                fontWeight: 700,
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #CBD5E1',
-                borderRadius: 4,
-                padding: '1px 5px',
-                color: '#64748B',
-                flexShrink: 0,
-                lineHeight: '14px'
-              }}>
-                ⌘K
-              </kbd>
-            </button>
-
-            {/* Operating Hub Badge */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              backgroundColor: '#F1F5F9',
-              padding: '0 8px',
-              height: 36,
-              borderRadius: 8,
-              fontSize: 11.5,
-              fontWeight: 600,
-              color: '#334155',
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              boxSizing: 'border-box'
-            }}>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#10B981', flexShrink: 0 }}></span>
-              <span>Krishnagiri & Mumbai</span>
-            </div>
-
-            {/* Rain Surge Quick Toggle */}
-            <button
-              type="button"
-              onClick={onToggleWeatherSurge}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '0 10px',
-                height: 36,
-                borderRadius: 8,
-                border: `1px solid ${weatherSurge ? '#86EFAC' : '#E2E8F0'}`,
-                backgroundColor: weatherSurge ? '#ECFDF5' : '#FFFFFF',
-                color: weatherSurge ? '#065F46' : '#475569',
-                fontSize: 11.5,
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                boxSizing: 'border-box'
-              }}
-            >
-              <CloudRain size={13} color={weatherSurge ? '#059669' : '#64748B'} style={{ flexShrink: 0 }} />
-              <span>Surge: {weatherSurge ? 'ON (+₹49)' : 'OFF'}</span>
-            </button>
-
-            {/* Notifications Bell */}
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <button
-                type="button"
-                onClick={() => setShowNotifications(!showNotifications)}
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 8,
-                  border: '1px solid #E2E8F0',
-                  backgroundColor: '#FFFFFF',
-                  color: '#475569',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  boxSizing: 'border-box'
-                }}
-              >
-                <Bell size={15} />
-                <span style={{
-                  position: 'absolute',
-                  top: 7,
-                  right: 7,
-                  width: 6,
-                  height: 6,
-                  borderRadius: '50%',
-                  backgroundColor: '#EF4444'
-                }}></span>
-              </button>
-
-              {/* Notifications Dropdown Drawer */}
-              {showNotifications && (
-                <div style={{
-                  position: 'absolute',
-                  top: 44,
-                  right: 0,
-                  width: 320,
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: 12,
-                  border: '1px solid #E2E8F0',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                  padding: '14px',
-                  zIndex: 100
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Notifications</div>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#6E42E5', cursor: 'pointer' }}>Mark all read</span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                    {[
-                      { title: 'New Worker Application', sub: 'Ramesh Vishwakarma applied for AC specialist', time: '10m ago' },
-                      { title: 'Payout Batch W42 Ready', sub: '₹3,89,200 pending release to partner fleet', time: '1h ago' },
-                      { title: 'High Priority Ticket TIC-5501', sub: 'Customer dispute on Powerjet service', time: '2h ago' }
-                    ].map((n, i) => (
-                      <div key={i} style={{ padding: '8px 10px', backgroundColor: '#F8FAFC', borderRadius: 8, fontSize: 12 }}>
-                        <div style={{ fontWeight: 700, color: '#0F172A' }}>{n.title}</div>
-                        <div style={{ color: '#64748B', marginTop: 2 }}>{n.sub}</div>
-                        <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 4 }}>{n.time}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Back to Marketplace Link */}
-            <button
-              type="button"
-              onClick={onNavigateToMarketplace}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                padding: '0 10px',
-                height: 36,
-                borderRadius: 8,
-                border: '1px solid #E2E8F0',
-                backgroundColor: '#FFFFFF',
-                color: '#475569',
-                fontSize: 11.5,
-                fontWeight: 600,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                boxSizing: 'border-box'
-              }}
-            >
-              <span>Marketplace</span>
-              <ExternalLink size={12} color="#94A3B8" style={{ flexShrink: 0 }} />
-            </button>
-
-            {/* Signed-in Administrator Menu */}
-            <div style={{ position: 'relative', flexShrink: 0 }}>
-              <div
-                onClick={() => setShowUserDropdown(!showUserDropdown)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  cursor: 'pointer',
-                  padding: '0 8px',
-                  height: 36,
-                  borderRadius: 8,
-                  backgroundColor: '#F8FAFC',
-                  border: '1px solid #E2E8F0',
-                  boxSizing: 'border-box',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                <div style={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: '50%',
-                  backgroundColor: '#EDE9FE',
-                  color: '#6E42E5',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: 11,
-                  flexShrink: 0
-                }}>
-                  {adminUser?.avatarInitials || 'SA'}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>
-                    {adminUser?.name || 'Super Admin'}
-                  </span>
-                  <span style={{ fontSize: 9.5, color: '#64748B', whiteSpace: 'nowrap' }}>
-                    {adminUser?.role || 'Administrator'}
-                  </span>
-                </div>
-                <ChevronDown size={13} color="#64748B" style={{ flexShrink: 0 }} />
-              </div>
-
-              {showUserDropdown && (
-                <div style={{
-                  position: 'absolute',
-                  top: 44,
-                  right: 0,
-                  width: 220,
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: 10,
-                  border: '1px solid #E2E8F0',
-                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1)',
-                  padding: '6px 0',
-                  zIndex: 100
-                }}>
-                  <div style={{ padding: '8px 14px', borderBottom: '1px solid #F1F5F9' }}>
-                    <div style={{ fontSize: 12, color: '#64748B' }}>Signed in as</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{adminUser?.email || 'admin@urbancompany.com'}</div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowUserDropdown(false);
-                      onNavigate('/admin/settings');
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 14px',
-                      border: 'none',
-                      backgroundColor: 'transparent',
-                      textAlign: 'left',
-                      fontSize: 12.5,
-                      color: '#334155',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Platform Settings
-                  </button>
-                  <div style={{ borderTop: '1px solid #F1F5F9', marginTop: 4 }}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowUserDropdown(false);
-                        onLogout();
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '8px 14px',
-                        border: 'none',
-                        backgroundColor: 'transparent',
-                        textAlign: 'left',
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        color: '#DC2626',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 8
-                      }}
-                    >
-                      <LogOut size={14} /> Log Out Session
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </header>
-
         {/* MAIN BODY CONTENT */}
         <main style={{
           flex: 1,
+          minHeight: 0,
           padding: 0,
           overflowY: 'auto',
           backgroundColor: '#F8FAFC'

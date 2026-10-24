@@ -568,9 +568,9 @@ export function WorkerOnboardingModal({
               }}>
                 <div style={{ fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <ShieldCheck size={16} color="#10B981" />
-                  <span>Urban Company Professional Guarantee</span>
+                  <span>Forge India Connect Professional Guarantee</span>
                 </div>
-                By submitting this application, you agree to undergo criminal background verification, adhere to standard transparent pricing, and wear authentic UC safety gear during home services.
+                By submitting this application, you agree to undergo criminal background verification, adhere to standard transparent pricing, and wear authentic FIC safety gear during home services.
               </div>
 
               <div style={{ display: 'flex', gap: 10 }}>
@@ -638,7 +638,7 @@ export function WorkerOnboardingModal({
                 Worker Application Received!
               </h3>
               <p style={{ fontSize: 13.5, color: '#94A3B8', maxWidth: 480, margin: '0 auto 20px', lineHeight: 1.5 }}>
-                Thank you, <strong style={{ color: '#fff' }}>{submittedApp.applicantName}</strong>. Your worker application has been routed directly to the Urban Company Operations Admin Hub for background and skill verification.
+                Thank you, <strong style={{ color: '#fff' }}>{submittedApp.applicantName}</strong>. Your worker application has been routed directly to the Forge India Connect Operations Admin Hub for background and skill verification.
               </p>
 
               {/* Application Details Summary Card */}
@@ -680,25 +680,59 @@ export function WorkerOnboardingModal({
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  handleReset();
-                  onClose();
-                }}
-                style={{
-                  background: '#059669',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: 0,
-                  padding: '12px 28px',
-                  fontSize: 14,
-                  fontWeight: 800,
-                  cursor: 'pointer'
-                }}
-              >
-                Done & Return to Homepage
-              </button>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      localStorage.setItem('uc_pro_token', 'TOKEN-' + submittedApp.id);
+                      localStorage.setItem('uc_pro_id', submittedApp.id);
+                      localStorage.setItem('uc_pro_user', JSON.stringify(submittedApp));
+                    } catch {}
+                    handleReset();
+                    onClose();
+                    window.history.pushState({}, '', '/professional');
+                    window.dispatchEvent(new PopStateEvent('popstate'));
+                  }}
+                  style={{
+                    background: '#059669',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 0,
+                    padding: '12px 24px',
+                    fontSize: 14,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    boxShadow: '0 4px 14px rgba(5, 150, 105, 0.3)'
+                  }}
+                >
+                  <span>Go to Worker Dashboard (Awaiting Approval)</span>
+                  <ArrowRight size={16} />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleReset();
+                    onClose();
+                  }}
+                  style={{
+                    background: '#1E293B',
+                    color: '#CBD5E1',
+                    border: '1px solid #334155',
+                    borderRadius: 0,
+                    padding: '12px 20px',
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Done & Return to Homepage
+                </button>
+              </div>
             </div>
           )}
         </div>

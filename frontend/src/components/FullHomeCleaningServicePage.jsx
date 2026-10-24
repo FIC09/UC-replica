@@ -427,7 +427,7 @@ export function FullHomeCleaningServicePage({
                 justifyContent: 'center',
                 lineHeight: 1
               }}>
-                UC
+                FIC
               </div>
               <div style={{
                 fontSize: 18,
@@ -436,7 +436,7 @@ export function FullHomeCleaningServicePage({
                 letterSpacing: '-0.5px',
                 lineHeight: 1.1
               }}>
-                Urban Company
+                Forge India Connect
               </div>
             </div>
           </div>

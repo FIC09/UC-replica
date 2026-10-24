@@ -1057,15 +1057,15 @@ export function SalonPrimeServicePage({
                 background: '#0F172A',
                 color: '#FFFFFF',
                 fontWeight: 900,
-                fontSize: 14,
-                padding: '4px 7px',
+                fontSize: 12,
+                padding: '4px 6px',
                 borderRadius: 4,
-                letterSpacing: 0.5
+                letterSpacing: 0
               }}>
-                UC
+                FIC
               </div>
               <span style={{ fontSize: 17, fontWeight: 900, color: '#0F172A', letterSpacing: -0.3 }}>
-                Urban Company
+                Forge India Connect
               </span>
             </div>
           </div>

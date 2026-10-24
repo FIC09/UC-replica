@@ -14,6 +14,7 @@ import {
   Check,
   FileText
 } from 'lucide-react';
+import { getAvailableServiceDates } from '../utils/slotDates';
 
 export function MyBookingsModal({
   isOpen,
@@ -28,8 +29,9 @@ export function MyBookingsModal({
   const [filter, setFilter] = useState('all'); // all, active, completed, cancelled
 
   // Reschedule Sub-modal state
+  const availableRescheduleDates = getAvailableServiceDates();
   const [reschedulingBooking, setReschedulingBooking] = useState(null);
-  const [newDate, setNewDate] = useState('Tomorrow (14 Oct)');
+  const [newDate, setNewDate] = useState(() => availableRescheduleDates[0]?.label || 'Today');
   const [newTime, setNewTime] = useState('10:00 AM - 11:00 AM');
 
   // Edit Address / Instructions Sub-modal state
@@ -414,23 +416,23 @@ export function MyBookingsModal({
                   Choose New Date
                 </label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 16 }}>
-                  {['Today (13 Oct)', 'Tomorrow (14 Oct)', 'Wednesday (15 Oct)'].map(d => (
+                  {availableRescheduleDates.map(d => (
                     <button
-                      key={d}
+                      key={d.label}
                       type="button"
-                      onClick={() => setNewDate(d)}
+                      onClick={() => setNewDate(d.label)}
                       style={{
                         padding: '8px 6px',
                         borderRadius: 8,
                         fontSize: 11.5,
                         fontWeight: 700,
-                        border: `1.5px solid ${newDate === d ? '#6E42E5' : '#E2E8F0'}`,
-                        background: newDate === d ? '#F4F0FF' : '#fff',
-                        color: newDate === d ? '#6E42E5' : '#4B5563'
+                        border: `1.5px solid ${newDate === d.label ? '#6E42E5' : '#E2E8F0'}`,
+                        background: newDate === d.label ? '#F4F0FF' : '#fff',
+                        color: newDate === d.label ? '#6E42E5' : '#4B5563'
                       }}
                     >
-                      {d.split(' ')[0]}
-                      <div style={{ fontSize: 10, color: '#64748B' }}>{d.split(' ')[1]}</div>
+                      {d.prefix}
+                      <div style={{ fontSize: 10, color: '#64748B' }}>({d.sub})</div>
                     </button>
                   ))}
                 </div>

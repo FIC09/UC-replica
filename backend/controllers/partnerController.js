@@ -1878,17 +1878,53 @@ export async function loginPartner(req, res) {
 
     // Find associated business
     let business = null;
-    if (staff) {
+    if (cleanInput === 'partner@urbancompany.com' || cleanInput === 'partner') {
+      business = partnerBusinesses.find(p => p.id === 'PTR-90142') || partnerBusinesses[0];
+    } else if (staff) {
       business = partnerBusinesses.find(p => p.id === staff.partnerId);
     } else {
       business = partnerBusinesses.find(p => 
         (p.email && p.email.toLowerCase() === cleanInput) ||
-        (p.phone && p.phone.replace(/\s+/g, '') === cleanInput.replace(/\s+/g, ''))
+        (p.phone && p.phone.replace(/\s+/g, '') === cleanInput.replace(/\s+/g, '')) ||
+        (p.id && p.id.toLowerCase() === cleanInput)
       );
     }
 
+    if (!business) {
+      try {
+        const cleanDigits = cleanInput.replace(/\D/g, '');
+        const dbPartner = await PartnerApplication.findOne({
+          $or: [
+            { id: cleanInput.toUpperCase() },
+            { id: cleanInput },
+            { phone: cleanInput },
+            ...(cleanDigits.length >= 8 ? [{ phone: { $regex: cleanDigits } }] : []),
+            { email: cleanInput }
+          ]
+        }).lean();
+        if (dbPartner) {
+          business = {
+            id: dbPartner.id,
+            businessName: dbPartner.businessName,
+            ownerName: dbPartner.ownerName,
+            phone: dbPartner.phone,
+            email: dbPartner.email,
+            status: dbPartner.status || 'Pending Review',
+            category: dbPartner.category,
+            categoryName: dbPartner.categoryName,
+            city: dbPartner.city,
+            fleetSize: dbPartner.fleetSize,
+            tier: dbPartner.tier || 'New Fleet Partner'
+          };
+        }
+      } catch {}
+    }
+
     // Generic error for security
-    if (!business || (password !== 'Partner@2026' && password !== 'Admin@2026' && password !== 'Apex@2026')) {
+    const cleanPwd = (password || '').trim().toLowerCase();
+    const isValidPwd = cleanPwd === 'partner@2026' || cleanPwd === 'partner123' || cleanPwd === 'admin@2026' || cleanPwd === 'apex@2026' || cleanPwd === 'demo' || cleanPwd === 'admin123';
+
+    if (!business || !isValidPwd) {
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials. Please verify your business email/phone and password.'
@@ -2086,7 +2122,27 @@ export async function registerPartner(req, res) {
 export async function getPartnerMe(req, res) {
   try {
     const { partnerId, staffId } = req.partner;
-    const business = partnerBusinesses.find(p => p.id === partnerId);
+    let business = partnerBusinesses.find(p => p.id === partnerId);
+    if (!business) {
+      try {
+        const dbPartner = await PartnerApplication.findOne({ id: partnerId }).lean();
+        if (dbPartner) {
+          business = {
+            id: dbPartner.id,
+            businessName: dbPartner.businessName,
+            ownerName: dbPartner.ownerName,
+            phone: dbPartner.phone,
+            email: dbPartner.email,
+            status: dbPartner.status || 'Pending Review',
+            category: dbPartner.category,
+            categoryName: dbPartner.categoryName,
+            city: dbPartner.city,
+            fleetSize: dbPartner.fleetSize,
+            tier: dbPartner.tier || 'New Fleet Partner'
+          };
+        }
+      } catch {}
+    }
     if (!business) {
       return res.status(404).json({ success: false, error: 'Business partner profile not found.' });
     }

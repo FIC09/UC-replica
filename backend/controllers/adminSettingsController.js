@@ -4,10 +4,10 @@ import { recordAuditTrail } from './adminAuditController.js';
 // Default platform governance configuration
 let platformSettings = {
   // 1. Brand and Business Information
-  platformName: 'Urban Company Marketplace',
-  companyLegalName: 'Urban Marketplace Services India Pvt. Ltd.',
+  platformName: 'Forge India Connect Marketplace',
+  companyLegalName: 'Forge India Connect Technologies Pvt. Ltd.',
   supportHelpline: '+91 1800 200 4567',
-  supportEmail: 'corporate-ops@urbancompany.com',
+  supportEmail: 'corporate-ops@forgeindiaconnect.com',
   headquartersAddress: 'Plot 19, Udyog Vihar Phase IV, Gurugram, Haryana - 122015, India',
   gstinNumber: '07AAACU9812K1Z5',
 

@@ -18,6 +18,8 @@ import {
   Zap,
   KeyRound
 } from 'lucide-react';
+import { partnerClient } from '../partner/partnerClient';
+import { professionalClient } from '../professional/professionalClient';
 
 export function AuthModal({ 
   isOpen, 
@@ -96,8 +98,8 @@ export function AuthModal({
       label: 'Business Partner',
       icon: Building2,
       color: '#2563EB',
-      email: 'partner@urbancompany.com',
-      password: 'partner123',
+      email: 'contact@apexhome.in',
+      password: 'Partner@2026',
       name: 'Sandeep Patil (Agency Owner)',
       phone: '+91 98210 33411',
       agencyName: 'Apex Home Solutions LLP',
@@ -105,6 +107,72 @@ export function AuthModal({
       targetDashboard: 'Partner Fleet Dashboard'
     }
   };
+
+  function setupRoleAuth(role, userObj) {
+    if (role === 'partner') {
+      const partnerData = {
+        id: 'PTR-90142',
+        businessName: userObj.agencyName || 'Apex Home Solutions LLP',
+        ownerName: userObj.name || 'Sandeep Patil',
+        email: userObj.email || 'contact@apexhome.in',
+        phone: userObj.phone || '+91 98210 33411',
+        tier: 'Platinum Enterprise Fleet',
+        status: 'Active',
+        category: 'ac-appliances',
+        categoryName: 'AC & Appliance Care',
+        city: 'Mumbai',
+        settlementMode: 'settle_to_business',
+        metrics: {
+          totalBookings: 840,
+          completedBookings: 820,
+          rating: 4.88,
+          complaintsCount: 2,
+          totalPayouts: 389200
+        }
+      };
+      const staffData = {
+        id: 'STF-APX-01',
+        name: userObj.name || 'Sandeep Patil',
+        email: userObj.email || 'contact@apexhome.in',
+        phone: userObj.phone || '+91 98210 33411',
+        role: 'Business Owner',
+        permissions: {
+          viewing: true,
+          editing: true,
+          assigning_jobs: true,
+          managing_team: true,
+          viewing_finances: true,
+          exporting: true,
+          managing_staff: true,
+          updating_documents: true,
+          requesting_bank_changes: true
+        }
+      };
+      partnerClient.setAuth('simulated-partner-jwt-token', partnerData, staffData);
+      sessionStorage.setItem('uc_partner_token', 'simulated-partner-jwt-token');
+      localStorage.setItem('uc_partner_token', 'simulated-partner-jwt-token');
+    } else if (role === 'professional') {
+      const proData = {
+        id: 'PRO-8841',
+        applicantName: userObj.name || 'Vikram Salvi',
+        phone: userObj.phone || '+91 98205 11982',
+        email: userObj.email || 'vikram.salvi@urbanpro.com',
+        avatar: 'VS',
+        trade: userObj.trade || 'Master AC Specialist & Electrician',
+        tier: 'Diamond Pro Partner (Level 5)',
+        employmentType: 'Direct Freelance',
+        walletBalance: 15450,
+        isOnline: true,
+        status: 'Active'
+      };
+      professionalClient.setAuth('simulated-pro-jwt-token', proData);
+      sessionStorage.setItem('uc_pro_token', 'simulated-pro-jwt-token');
+      localStorage.setItem('uc_pro_token', 'simulated-pro-jwt-token');
+    } else if (role === 'admin') {
+      sessionStorage.setItem('uc_admin_auth', 'true');
+      localStorage.setItem('uc_admin_token', 'simulated-admin-jwt-token');
+    }
+  }
 
   // Sync preset when role changes
   function selectRole(roleKey) {
@@ -160,7 +228,7 @@ export function AuthModal({
       detectedRole = 'admin';
     } else if (cleanEmail.includes('pro') || cleanEmail.includes('worker') || cleanEmail.includes('technician')) {
       detectedRole = 'professional';
-    } else if (cleanEmail.includes('partner') || cleanEmail.includes('agency')) {
+    } else if (cleanEmail.includes('partner') || cleanEmail.includes('agency') || cleanEmail.includes('apex')) {
       detectedRole = 'partner';
     }
 
@@ -179,6 +247,8 @@ export function AuthModal({
     try {
       localStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
     } catch {}
+
+    setupRoleAuth(detectedRole, authenticatedUser);
 
     setSuccessMsg(`Signing in as ${preset.label}... Opening ${preset.targetDashboard}`);
     setTimeout(() => {
@@ -203,6 +273,8 @@ export function AuthModal({
     try {
       localStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
     } catch {}
+
+    setupRoleAuth(preset.role, authenticatedUser);
 
     setSuccessMsg(`Instant login verified as ${preset.label}!`);
     setTimeout(() => {
@@ -529,8 +601,7 @@ export function AuthModal({
               type="button"
               onClick={() => {
                 onLogout();
-                setMode('login');
-                setIsSwitchingAccount(true);
+                onClose();
               }}
               style={{
                 width: '100%',

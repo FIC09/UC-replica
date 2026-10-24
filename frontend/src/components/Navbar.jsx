@@ -108,10 +108,10 @@ export function Navbar({
               onSelectCategory('all');
             }}
           >
-            <div className="uc-square-badge">UC</div>
+            <div className="uc-square-badge">FIC</div>
             <div className="uc-text-wrap">
-              <span className="uc-exact-name">Urban</span>
-              <span className="uc-exact-sub">Company</span>
+              <span className="uc-exact-name">Forge</span>
+              <span className="uc-exact-sub">India Connect</span>
             </div>
           </div>
 
@@ -273,7 +273,11 @@ export function Navbar({
               type="button" 
               className="uc-profile-btn" 
               onClick={() => {
-                setShowProfileMenu(prev => !prev);
+                if (!user) {
+                  onOpenAuth('login');
+                } else {
+                  setShowProfileMenu(prev => !prev);
+                }
               }}
               title={user ? (user.name || "My Account") : "Login"}
               aria-label="Profile Menu"
@@ -281,7 +285,7 @@ export function Navbar({
               <CircleUserRound size={26} color="#111827" strokeWidth={1.5} />
             </button>
 
-            {/* Profile Dropdown: strictly gives login wordings */}
+            {/* Profile Dropdown: strictly conditional on user state */}
             {showProfileMenu && (
               <div 
                 className="uc-profile-dropdown" 
@@ -289,7 +293,7 @@ export function Navbar({
                   position: 'absolute',
                   top: 'calc(100% + 8px)',
                   right: 0,
-                  minWidth: '140px',
+                  minWidth: user ? '170px' : '140px',
                   background: '#FFFFFF',
                   borderRadius: '10px',
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
@@ -301,61 +305,145 @@ export function Navbar({
                   gap: '4px'
                 }}
               >
-                <button
-                  type="button"
-                  className="uc-dropdown-login-btn"
-                  onClick={() => {
-                    setShowProfileMenu(false);
-                    onOpenAuth('login');
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '9px 14px',
-                    background: '#000000',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    borderRadius: '7px',
-                    fontSize: '13.5px',
-                    fontWeight: '700',
-                    cursor: 'pointer',
-                    textAlign: 'center',
-                    transition: 'background 0.15s ease'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1F2937'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#000000'}
-                >
-                  Login
-                </button>
-                {user && (
+                {!user ? (
                   <button
                     type="button"
+                    className="uc-dropdown-login-btn"
                     onClick={() => {
                       setShowProfileMenu(false);
-                      if (onLogout) {
-                        onLogout();
-                      } else {
-                        localStorage.removeItem('uc_user');
-                        window.location.reload();
-                      }
+                      onOpenAuth('login');
                     }}
                     style={{
                       width: '100%',
-                      padding: '7px 12px',
-                      background: 'none',
-                      color: '#EF4444',
+                      padding: '9px 14px',
+                      background: '#000000',
+                      color: '#FFFFFF',
                       border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: '600',
+                      borderRadius: '7px',
+                      fontSize: '13.5px',
+                      fontWeight: '700',
                       cursor: 'pointer',
                       textAlign: 'center',
-                      borderTop: '1px solid #F1F5F9'
+                      transition: 'background 0.15s ease'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEF2F2'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1F2937'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#000000'}
                   >
-                    Log Out
+                    Login
                   </button>
+                ) : (
+                  <>
+                    <div style={{ padding: '6px 8px 8px', borderBottom: '1px solid #F1F5F9' }}>
+                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {user.name || user.phone || 'My Account'}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#6B7280', textTransform: 'capitalize' }}>
+                        {user.role || 'Customer'}
+                      </div>
+                    </div>
+
+                    {onOpenBookings && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          onOpenBookings();
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '7px 8px',
+                          background: 'none',
+                          color: '#111827',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12.5px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        <span>My Bookings</span>
+                        {bookingsCount > 0 && (
+                          <span style={{
+                            background: '#000000',
+                            color: '#FFFFFF',
+                            borderRadius: '999px',
+                            padding: '1px 6px',
+                            fontSize: '10.5px',
+                            fontWeight: '700'
+                          }}>
+                            {bookingsCount}
+                          </span>
+                        )}
+                      </button>
+                    )}
+
+                    {onOpenAddresses && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          onOpenAddresses();
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '7px 8px',
+                          background: 'none',
+                          color: '#111827',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '12.5px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          textAlign: 'left'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                      >
+                        Manage Addresses
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        if (onLogout) {
+                          onLogout();
+                        } else {
+                          localStorage.removeItem('uc_user');
+                          window.location.reload();
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '7px 8px',
+                        background: 'none',
+                        color: '#EF4444',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        borderTop: '1px solid #F1F5F9',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        marginTop: '2px'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEF2F2'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    >
+                      <LogOut size={13} color="#EF4444" />
+                      <span>Log Out</span>
+                    </button>
+                  </>
                 )}
               </div>
             )}

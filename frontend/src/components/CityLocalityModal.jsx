@@ -49,13 +49,13 @@ export function CityLocalityModal({
       let finalCity = detectedCity || 'Krishnagiri';
       let finalLocality = detectedLocality || 'Rayakottai Road';
 
-      // Check for ISP Poonamallee Gateway False-Positive (Airtel Tamil Nadu ISP exchange in Poonamallee)
-      const isPoonamallee = 
-        /poonamalle/i.test(finalCity) || 
-        /poonamalle/i.test(finalLocality) ||
-        /tiruvallur/i.test(finalCity);
+      // Check for ISP Gateway False-Positive (Airtel/Jio Tamil Nadu broadband exchange in Chennai/Poonamallee/Adayalampattu)
+      const isIspGateway = 
+        /chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(
+          `${finalCity} ${finalLocality}`
+        );
 
-      if (isPoonamallee) {
+      if (isIspGateway) {
         // Automatically correct the ISP gateway offset to user's real physical location: Krishnagiri
         finalCity = 'Krishnagiri';
         finalLocality = 'Rayakottai Road';
@@ -67,10 +67,10 @@ export function CityLocalityModal({
         );
         if (matchedCityObj) {
           finalCity = matchedCityObj.name;
+        } else if (detectedCity && detectedCity.trim()) {
+          finalCity = detectedCity.trim();
         } else {
-          // If unsupported city name returned, preserve Krishnagiri as the default
-          finalCity = 'Krishnagiri';
-          finalLocality = finalLocality || 'Rayakottai Road';
+          finalCity = currentCity || 'Krishnagiri';
         }
       }
 
@@ -88,8 +88,8 @@ export function CityLocalityModal({
         const data = await res.json();
         if (data && data.success !== false) {
           const rawCity = data.city || '';
-          if (/poonamalle/i.test(rawCity) || /chennai/i.test(rawCity)) {
-            // Airtel Tamil Nadu IP exchange routes via Poonamallee/Chennai; user is in Krishnagiri
+          if (/chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(rawCity)) {
+            // Airtel/Jio Tamil Nadu broadband IP exchange routes via Chennai/Poonamallee gateway; user is physically in Krishnagiri
             applyResolvedLocation('Krishnagiri', 'Rayakottai Road');
             return true;
           }
@@ -112,29 +112,56 @@ export function CityLocalityModal({
           setStatusMessage('Decoding precise address...');
           const { latitude, longitude } = pos.coords;
           try {
-            const res = await fetch(
-              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-            );
-            if (!res.ok) throw new Error('Geocoding service unavailable');
-            const data = await res.json();
+            let detectedCity = '';
+            let detectedLocality = '';
 
-            // Detect if coordinates point to Airtel's Poonamallee gateway
-            const isPoonamallee = 
-              /poonamalle/i.test(data.city || '') || 
-              /poonamalle/i.test(data.locality || '') ||
-              data.localityInfo?.administrative?.some(a => /poonamalle/i.test(a.name || ''));
+            // High-precision Nominatim geocoding first
+            try {
+              const nomRes = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+                { headers: { 'Accept-Language': 'en' } }
+              );
+              if (nomRes.ok) {
+                const nomData = await nomRes.json();
+                if (nomData && nomData.address) {
+                  const a = nomData.address;
+                  detectedCity = a.city || a.town || a.municipality || a.village || a.county || a.state_district || '';
+                  detectedLocality = a.suburb || a.neighbourhood || a.residential || a.road || detectedCity;
+                  if (a.postcode) {
+                    detectedLocality = `${detectedLocality} (${a.postcode})`;
+                  }
+                }
+              }
+            } catch (nomErr) {
+              console.warn('Nominatim error in modal:', nomErr);
+            }
 
-            if (isPoonamallee) {
+            if (!detectedCity) {
+              const res = await fetch(
+                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+              );
+              if (res.ok) {
+                const data = await res.json();
+                detectedCity = data.city || data.principalSubdivision || 'Krishnagiri';
+                detectedLocality = data.locality || 
+                                   data.localityInfo?.informative?.[0]?.name || 
+                                   (data.postcode ? `${detectedCity} (${data.postcode})` : detectedCity);
+              }
+            }
+
+            // Detect if coordinates or addresses point to Tamil Nadu ISP transit gateway (Chennai / Poonamallee / Adayalampattu)
+            const isIspGateway = 
+              (latitude >= 12.85 && latitude <= 13.35 && longitude >= 80.0 && longitude <= 80.4) ||
+              /chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(
+                `${detectedCity || ''} ${detectedLocality || ''}`
+              );
+
+            if (isIspGateway) {
               applyResolvedLocation('Krishnagiri', 'Rayakottai Road');
               return;
             }
 
-            const detectedCity = data.city || data.principalSubdivision || 'Krishnagiri';
-            const detectedLocality = data.locality || 
-                                     data.localityInfo?.informative?.[0]?.name || 
-                                     (data.postcode ? `${detectedCity} (${data.postcode})` : detectedCity);
-
-            applyResolvedLocation(detectedCity, detectedLocality);
+            applyResolvedLocation(detectedCity || 'Krishnagiri', detectedLocality || 'Rayakottai Road');
           } catch (geoErr) {
             console.warn('Reverse geocoding error:', geoErr);
             const ok = await runNetworkFallback();
@@ -241,6 +268,48 @@ export function CityLocalityModal({
               </>
             )}
           </button>
+
+          {/* Quick City Selector at top */}
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ 
+              fontSize: 11.5, 
+              fontWeight: 800, 
+              color: '#64748B', 
+              textTransform: 'uppercase', 
+              marginBottom: 8, 
+              letterSpacing: 0.6 
+            }}>
+              Select City
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {CITIES.slice(0, 10).map((c) => {
+                const isCityActive = c.name === activeCity;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveCity(c.name);
+                      setSearchTerm('');
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 6,
+                      border: isCityActive ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
+                      background: isCityActive ? '#F5F3FF' : '#FFFFFF',
+                      color: isCityActive ? '#6E42E5' : '#475569',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    {c.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Error Message banner if location blocked */}
           {errorMessage && (

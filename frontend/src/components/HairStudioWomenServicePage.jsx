@@ -817,15 +817,15 @@ export function HairStudioWomenServicePage({
                 background: '#000000',
                 color: '#FFFFFF',
                 fontWeight: 900,
-                fontSize: 14,
-                padding: '4px 7px',
+                fontSize: 12,
+                padding: '4px 6px',
                 borderRadius: 7,
-                letterSpacing: 0.5
+                letterSpacing: 0
               }}>
-                UC
+                FIC
               </div>
               <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: -0.4, color: '#0F172A' }}>
-                Urban Company
+                Forge India Connect
               </span>
             </div>
           </div>

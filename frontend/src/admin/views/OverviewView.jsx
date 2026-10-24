@@ -28,6 +28,9 @@ import { adminClient } from '../adminClient';
 export function OverviewView({ onNavigate, onShowToast }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [autoSync, setAutoSync] = useState(true);
+  const [lastSyncTime, setLastSyncTime] = useState(null);
 
   // Filter state
   const [dateRange, setDateRange] = useState('30d');
@@ -36,15 +39,39 @@ export function OverviewView({ onNavigate, onShowToast }) {
   const [partner, setPartner] = useState('ALL');
   const [showCalculationGuide, setShowCalculationGuide] = useState(false);
 
-  useEffect(() => {
-    setLoading(true);
-    adminClient.getOverview({ dateRange, city, category, partner })
-      .then(res => {
+  const fetchOverview = React.useCallback(async (isInitial = false) => {
+    if (isInitial) setLoading(true);
+    else setIsRefreshing(true);
+
+    try {
+      const res = await adminClient.getOverview({ dateRange, city, category, partner });
+      if (res && res.data) {
         setData(res.data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
+        const timestamp = res.data.lastUpdated || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+        setLastSyncTime(timestamp);
+        window.dispatchEvent(new CustomEvent('uc:admin-stats-updated', { detail: res.data }));
+      }
+    } catch (err) {
+      console.error('Error fetching real-time admin overview:', err);
+    } finally {
+      if (isInitial) setLoading(false);
+      setIsRefreshing(false);
+    }
   }, [dateRange, city, category, partner]);
+
+  // Initial fetch and re-fetch when filters change
+  useEffect(() => {
+    fetchOverview(true);
+  }, [fetchOverview]);
+
+  // Real-time live background polling interval (every 5 seconds)
+  useEffect(() => {
+    if (!autoSync) return;
+    const interval = setInterval(() => {
+      fetchOverview(false);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [autoSync, fetchOverview]);
 
   const metrics = data?.metrics || {};
   const trends = data?.trends || {};
@@ -174,28 +201,134 @@ export function OverviewView({ onNavigate, onShowToast }) {
           </select>
         </div>
 
-        {/* Calculation Definitions Toggle Button */}
-        <button
-          onClick={() => setShowCalculationGuide(!showCalculationGuide)}
-          style={{
+        {/* Real-time Status Badge & Sync Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
+          {/* Live indicator badge */}
+          <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: 6,
-            background: 'none',
-            border: 'none',
-            fontSize: 12,
+            gap: 7,
+            backgroundColor: '#F0FDF4',
+            border: '1px solid #BBF7D0',
+            padding: '4px 10px',
+            borderRadius: 20,
+            fontSize: 11.5,
             fontWeight: 700,
-            color: '#6E42E5',
-            cursor: 'pointer',
-            padding: '4px 8px',
-            whiteSpace: 'nowrap',
-            flexShrink: 0
-          }}
-        >
-          <Info size={15} />
-          <span>{showCalculationGuide ? 'Hide Rules' : 'Calculation Definitions'}</span>
-        </button>
+            color: '#15803D'
+          }}>
+            <span style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: '#16A34A',
+              boxShadow: autoSync ? '0 0 0 3px rgba(22, 163, 74, 0.25)' : 'none',
+              display: 'inline-block',
+              animation: autoSync ? 'livePulse 2s infinite ease-in-out' : 'none'
+            }} />
+            <span style={{ letterSpacing: '0.02em' }}>{autoSync ? 'LIVE STREAM' : 'PAUSED'}</span>
+            <span style={{ color: '#86EFAC', fontWeight: 400 }}>•</span>
+            <span style={{ color: '#166534', fontWeight: 600 }}>{lastSyncTime || data?.lastUpdated || 'Syncing...'}</span>
+          </div>
+
+          {/* Auto-Sync Toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              const next = !autoSync;
+              setAutoSync(next);
+              if (onShowToast) {
+                onShowToast(next ? '🟢 Real-time sync resumed (5s interval)' : '⏸️ Real-time sync paused');
+              }
+            }}
+            style={{
+              padding: '5px 10px',
+              borderRadius: 8,
+              border: '1px solid #CBD5E1',
+              backgroundColor: autoSync ? '#FFFFFF' : '#FFFBEB',
+              fontSize: 11.5,
+              fontWeight: 700,
+              color: autoSync ? '#475569' : '#B45309',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4
+            }}
+            title={autoSync ? 'Click to pause automatic polling' : 'Click to resume automatic polling'}
+          >
+            <span>Auto:</span>
+            <strong style={{ color: autoSync ? '#16A34A' : '#D97706' }}>{autoSync ? 'ON' : 'OFF'}</strong>
+          </button>
+
+          {/* Refresh Now Button */}
+          <button
+            type="button"
+            onClick={() => {
+              fetchOverview(false);
+              if (onShowToast) onShowToast('⚡ Operational metrics updated in real time');
+            }}
+            disabled={isRefreshing}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '5px 11px',
+              borderRadius: 8,
+              border: '1px solid #CBD5E1',
+              backgroundColor: '#FFFFFF',
+              fontSize: 11.5,
+              fontWeight: 700,
+              color: '#6E42E5',
+              cursor: isRefreshing ? 'wait' : 'pointer'
+            }}
+            title="Recalculate all metrics immediately"
+          >
+            <RotateCcw
+              size={13}
+              style={{
+                animation: isRefreshing ? 'spin 0.7s linear infinite' : 'none'
+              }}
+            />
+            <span>{isRefreshing ? 'Syncing...' : 'Refresh'}</span>
+          </button>
+
+          {/* Calculation Definitions Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setShowCalculationGuide(!showCalculationGuide)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              background: 'none',
+              border: '1px solid #E2E8F0',
+              borderRadius: 8,
+              backgroundColor: showCalculationGuide ? '#EDE9FE' : '#FFFFFF',
+              fontSize: 11.5,
+              fontWeight: 700,
+              color: '#6E42E5',
+              cursor: 'pointer',
+              padding: '5px 10px',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
+            }}
+          >
+            <Info size={14} />
+            <span>{showCalculationGuide ? 'Hide Rules' : 'Definitions'}</span>
+          </button>
+        </div>
       </div>
+
+      <style>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        @keyframes livePulse {
+          0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7); }
+          70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+          100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+        }
+      `}</style>
 
       {/* Main Content Body */}
       <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -255,7 +388,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
             </div>
           </div>
           <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
-            {metrics.grossBookingValue?.formatted || '₹48,25,000'}
+            {metrics.grossBookingValue?.formatted || '₹0'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, fontWeight: 700, color: metrics.grossBookingValue?.isPositive ? '#16A34A' : '#DC2626', whiteSpace: 'nowrap' }}>
             <span>{metrics.grossBookingValue?.isPositive ? '↑' : '↓'} {metrics.grossBookingValue?.change || 18.2}%</span>
@@ -284,7 +417,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
             </div>
           </div>
           <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
-            {metrics.collectedPayments?.formatted || '₹45,35,500'}
+            {metrics.collectedPayments?.formatted || '₹0'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, fontWeight: 700, color: '#16A34A', whiteSpace: 'nowrap' }}>
             <span>↑ {metrics.collectedPayments?.change || 17.8}%</span>
@@ -313,7 +446,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
             </div>
           </div>
           <div style={{ fontSize: 24, fontWeight: 800, color: '#6E42E5', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
-            {metrics.platformRevenue?.formatted || '₹9,65,000'}
+            {metrics.platformRevenue?.formatted || '₹0'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, fontWeight: 600, color: '#64748B', whiteSpace: 'nowrap' }}>
             <span>Take rate: <strong>{metrics.platformRevenue?.takeRate || '20.0%'}</strong></span>
@@ -342,10 +475,10 @@ export function OverviewView({ onNavigate, onShowToast }) {
             </div>
           </div>
           <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
-            {metrics.proEarnings?.formatted || '₹38,60,000'}
+            {metrics.proEarnings?.formatted || '₹0'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, color: '#64748B', whiteSpace: 'nowrap' }}>
-            <span>Ready for payout: <strong>{metrics.outstandingPayouts?.formatted || '₹4,40,200'}</strong></span>
+            <span>Ready for payout: <strong>{metrics.outstandingPayouts?.formatted || '₹0'}</strong></span>
           </div>
         </div>
       </div>
@@ -359,7 +492,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
         >
           <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748B' }}>Total Bookings</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
-            {(metrics.totalBookings?.value || 5040).toLocaleString()}
+            {(metrics.totalBookings?.value ?? 0).toLocaleString()}
           </div>
           <div style={{ fontSize: 11, color: '#16A34A', fontWeight: 700, marginTop: 2 }}>
             ↑ {metrics.totalBookings?.change || 16.4}%
@@ -373,7 +506,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
         >
           <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748B' }}>Today's Orders</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
-            {metrics.todayBookings?.value || 143}
+            {metrics.todayBookings?.value ?? 0}
           </div>
           <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>Scheduled slots</div>
         </div>
@@ -385,7 +518,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
         >
           <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748B' }}>In-Transit / Active</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: '#0284C7', marginTop: 4 }}>
-            {metrics.upcomingAndOngoing?.value || 42}
+            {metrics.upcomingAndOngoing?.value ?? 0}
           </div>
           <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>Ongoing visits</div>
         </div>
@@ -405,7 +538,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
             Unassigned Orders
           </div>
           <div style={{ fontSize: 20, fontWeight: 800, color: (metrics.unassignedBookings?.value || 0) > 0 ? '#DC2626' : '#0F172A', marginTop: 4 }}>
-            {metrics.unassignedBookings?.value || 8}
+            {metrics.unassignedBookings?.value ?? 0}
           </div>
           <div style={{ fontSize: 11, color: (metrics.unassignedBookings?.value || 0) > 0 ? '#DC2626' : '#64748B', fontWeight: 600, marginTop: 2 }}>
             Requires pro assign
@@ -425,7 +558,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
         >
           <div style={{ fontSize: 11.5, fontWeight: 700, color: '#B45309' }}>Pending Applications</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: '#B45309', marginTop: 4 }}>
-            {metrics.pendingApplications?.value || 6}
+            {metrics.pendingApplications?.value ?? 0}
           </div>
           <div style={{ fontSize: 11, color: '#B45309', marginTop: 2 }}>KYC verification</div>
         </div>
@@ -437,7 +570,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
         >
           <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748B' }}>Refunds Issued</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
-            {metrics.refunds?.formatted || '₹24,600'}
+            {metrics.refunds?.formatted || '₹0'}
           </div>
           <div style={{ fontSize: 11, color: '#16A34A', fontWeight: 700, marginTop: 2 }}>-4.2% dispute rate</div>
         </div>
@@ -449,15 +582,14 @@ export function OverviewView({ onNavigate, onShowToast }) {
         >
           <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748B' }}>Open Helpdesk</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
-            {metrics.openSupportTickets?.value || 7}
+            {metrics.openSupportTickets?.value ?? 0}
           </div>
           <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>Under 15m SLA</div>
         </div>
 
         <div
-          onClick={() => handleMetricClick(metrics.averageCustomerRating?.clickTarget)}
-          style={{ backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, border: '1px solid #E2E8F0', cursor: 'pointer' }}
-          title="View customer reviews"
+          style={{ backgroundColor: '#FFFFFF', borderRadius: 10, padding: 14, border: '1px solid #E2E8F0' }}
+          title="Average customer satisfaction rating"
         >
           <div style={{ fontSize: 11.5, fontWeight: 700, color: '#64748B' }}>Average Rating</div>
           <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
@@ -531,18 +663,22 @@ export function OverviewView({ onNavigate, onShowToast }) {
         }}>
           <h4 style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', margin: '0 0 16px 0' }}>Daily Booking Volume Trend</h4>
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 160, gap: 12, paddingTop: 10 }}>
-            {(trends.bookingTrends || []).map(b => {
-              const heightPercent = Math.min(100, Math.round((b.orders / 700) * 100));
-              return (
-                <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#475569' }}>{b.orders}</span>
-                  <div style={{ width: '100%', height: `${heightPercent}%`, backgroundColor: '#EDE9FE', borderRadius: '4px 4px 0 0', position: 'relative' }}>
-                    <div style={{ width: '100%', height: '35%', backgroundColor: '#6E42E5', borderRadius: '4px 4px 0 0' }} />
+            {(() => {
+              const bTrends = trends.bookingTrends || [];
+              const maxOrders = Math.max(1, ...bTrends.map(b => b.orders || 1));
+              return bTrends.map(b => {
+                const heightPercent = Math.max(18, Math.min(100, Math.round(((b.orders || 1) / maxOrders) * 100)));
+                return (
+                  <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#475569' }}>{b.orders}</span>
+                    <div style={{ width: '100%', height: `${heightPercent}%`, backgroundColor: '#EDE9FE', borderRadius: '4px 4px 0 0', position: 'relative' }}>
+                      <div style={{ width: '100%', height: '35%', backgroundColor: '#6E42E5', borderRadius: '4px 4px 0 0' }} />
+                    </div>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#64748B' }}>{b.label}</span>
                   </div>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: '#64748B' }}>{b.label}</span>
-                </div>
-              );
-            })}
+                );
+              });
+            })()}
           </div>
         </div>
 

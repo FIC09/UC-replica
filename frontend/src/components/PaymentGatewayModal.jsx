@@ -1,21 +1,226 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import QRCode from 'qrcode';
 import { 
   X, 
   ShieldCheck, 
   Lock, 
   CreditCard, 
   Smartphone, 
-  Wallet, 
-  Banknote, 
   CheckCircle2, 
   QrCode, 
   ArrowRight, 
   ChevronRight,
+  ChevronLeft,
   Info,
   RefreshCw,
   Sparkles,
-  Check
+  Check,
+  Clock,
+  AlertCircle,
+  ExternalLink,
+  Bell,
+  KeyRound,
+  CheckCheck,
+  Copy,
+  Shield
 } from 'lucide-react';
+
+// =========================================================
+// OFFICIAL AUTHENTIC PAYMENT BRAND ICONS (PIXEL-PERFECT SVGS)
+// =========================================================
+
+export function GPayIcon({ size = 36 }) {
+  return (
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: 10,
+      backgroundColor: '#FFFFFF',
+      border: '1.2px solid #E2E8F0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+    }}>
+      <svg width={size * 0.65} height={size * 0.65} viewBox="0 0 24 24">
+        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+      </svg>
+    </div>
+  );
+}
+
+export function PhonePeIcon({ size = 36 }) {
+  return (
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: 10,
+      backgroundColor: '#5F259F',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      boxShadow: '0 2px 5px rgba(95,37,159,0.25)'
+    }}>
+      <svg width={size * 0.65} height={size * 0.65} viewBox="0 0 24 24" fill="none">
+        <path d="M19.2 6.5c0-2.8-2.2-5-5-5H6.2v3.2h2.4v14.4h3.6V12h1.8c3.8 0 5.2-2.3 5.2-5.5zm-5 2.3h-1.8V4.7h1.8c1.3 0 2 .7 2 2 0 1.4-.7 2.1-2 2.1z" fill="#FFFFFF"/>
+        <path d="M6.5 4L2.2 9.5l2.6 1.7 3-4.1z" fill="#FFFFFF"/>
+      </svg>
+    </div>
+  );
+}
+
+export function PaytmIcon({ size = 36 }) {
+  return (
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: 10,
+      backgroundColor: '#FFFFFF',
+      border: '1.2px solid #E2E8F0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
+    }}>
+      <svg width={size * 0.88} height={size * 0.45} viewBox="0 0 54 22" fill="none">
+        <text x="0" y="16" fontFamily="Arial, Helvetica, sans-serif" fontWeight="900" fontSize="15" fill="#002E6E" letterSpacing="-0.6">Pay</text>
+        <text x="30" y="16" fontFamily="Arial, Helvetica, sans-serif" fontWeight="900" fontSize="15" fill="#00BAF2" letterSpacing="-0.6">tm</text>
+      </svg>
+    </div>
+  );
+}
+
+export function CardBrandIcon({ size = 36 }) {
+  return (
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: 10,
+      backgroundColor: '#1E293B',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      boxShadow: '0 2px 5px rgba(30,41,59,0.25)'
+    }}>
+      <svg width={size * 0.68} height={size * 0.52} viewBox="0 0 28 20" fill="none">
+        <rect width="28" height="20" rx="3.5" fill="#334155" stroke="#64748B" strokeWidth="1"/>
+        <rect y="4" width="28" height="4" fill="#0F172A"/>
+        <rect x="4" y="12" width="6" height="4" rx="1" fill="#F59E0B"/>
+        <circle cx="21" cy="14" r="3" fill="#EF4444" opacity="0.9"/>
+        <circle cx="18" cy="14" r="3" fill="#F59E0B" opacity="0.85"/>
+      </svg>
+    </div>
+  );
+}
+
+export function CODBrandIcon({ size = 36 }) {
+  return (
+    <div style={{
+      width: size,
+      height: size,
+      borderRadius: 10,
+      backgroundColor: '#ECFDF5',
+      border: '1.2px solid #A7F3D0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      flexShrink: 0,
+      boxShadow: '0 1px 3px rgba(16,185,129,0.12)'
+    }}>
+      <svg width={size * 0.68} height={size * 0.6} viewBox="0 0 26 22" fill="none">
+        <rect x="1" y="3" width="24" height="16" rx="3" fill="#10B981"/>
+        <circle cx="13" cy="11" r="4.5" fill="#065F46"/>
+        <text x="13" y="14" fontFamily="Arial, Helvetica, sans-serif" fontWeight="900" fontSize="8" fill="#FFFFFF" textAnchor="middle">₹</text>
+      </svg>
+    </div>
+  );
+}
+
+export function UPILogoBadge() {
+  return (
+    <div style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 5,
+      padding: '2px 8px',
+      borderRadius: 6,
+      backgroundColor: '#F8FAFC',
+      border: '1px solid #CBD5E1',
+      verticalAlign: 'middle'
+    }}>
+      <svg width="18" height="12" viewBox="0 0 28 16" fill="none">
+        <path d="M10 2l-6 12h5l6-12h-5z" fill="#097939"/>
+        <path d="M19 2l-6 12h5l6-12h-5z" fill="#ED7524"/>
+      </svg>
+      <span style={{ fontSize: 10.5, fontWeight: 900, color: '#1E293B', letterSpacing: 0.5 }}>UPI</span>
+    </div>
+  );
+}
+
+export function VisaBadge() {
+  return (
+    <div style={{
+      padding: '3px 8px',
+      borderRadius: 4,
+      backgroundColor: '#1A1F71',
+      color: '#FFFFFF',
+      fontWeight: 900,
+      fontSize: 10,
+      letterSpacing: 0.5,
+      fontStyle: 'italic',
+      display: 'inline-flex',
+      alignItems: 'center'
+    }}>
+      VISA
+    </div>
+  );
+}
+
+export function MastercardBadge() {
+  return (
+    <div style={{
+      padding: '3px 8px',
+      borderRadius: 4,
+      backgroundColor: '#111827',
+      display: 'inline-flex',
+      alignItems: 'center'
+    }}>
+      <svg width="22" height="13" viewBox="0 0 26 16" fill="none">
+        <circle cx="8" cy="8" r="8" fill="#EB001B"/>
+        <circle cx="18" cy="8" r="8" fill="#F79E1B" fillOpacity="0.88"/>
+      </svg>
+    </div>
+  );
+}
+
+export function RuPayBadge() {
+  return (
+    <div style={{
+      padding: '3px 8px',
+      borderRadius: 4,
+      backgroundColor: '#0A2540',
+      color: '#00A4E4',
+      fontWeight: 900,
+      fontSize: 10,
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: 2
+    }}>
+      <span style={{ color: '#FFFFFF' }}>Ru</span><span style={{ color: '#F37021' }}>Pay</span>
+    </div>
+  );
+}
+
+// =========================================================
+// MAIN PAYMENT GATEWAY COMPONENT
+// =========================================================
 
 export function PaymentGatewayModal({
   isOpen,
@@ -29,12 +234,20 @@ export function PaymentGatewayModal({
   onPaymentSuccess,
   hideCOD = false
 }) {
+  // Navigation & Flow State
+  // stages: 'gateway' | 'upi_collect' | 'card_3ds' | 'cod_verify' | 'processing' | 'success'
   const [activeTab, setActiveTab] = useState(initialMethod === 'cod' && hideCOD ? 'gpay' : initialMethod);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [paymentStage, setPaymentStage] = useState('gateway');
+  const [processingStatus, setProcessingStatus] = useState('Connecting to NPCI Payments Switch...');
+  
+  // Transaction Metadata
   const [txnId, setTxnId] = useState('');
+  const [bankUtr, setBankUtr] = useState('');
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
+  const [copiedUpi, setCopiedUpi] = useState(false);
+  const [redirectCount, setRedirectCount] = useState(3);
 
-  // Form states
+  // Form Fields
   const [gpayUpi, setGpayUpi] = useState(() => {
     const prefix = user?.email ? user.email.split('@')[0] : 'customer';
     return `${prefix}@okhdfcbank`;
@@ -46,27 +259,142 @@ export function PaymentGatewayModal({
   const [cardExpiry, setCardExpiry] = useState('08/28');
   const [cardCvv, setCardCvv] = useState('321');
   const [saveCard, setSaveCard] = useState(true);
-  const [selectedWallet, setSelectedWallet] = useState('amazon_pay');
-  const [showQrCode, setShowQrCode] = useState(false);
 
-  // Sync initialMethod when opened
+  // QR & Live Timer States
+  const [showQrCode, setShowQrCode] = useState(false);
+  const [upiTimer, setUpiTimer] = useState(300); // 5:00 minutes
+  const [resendTimer, setResendTimer] = useState(30); // 30s for card OTP
+  const [showPushBanner, setShowPushBanner] = useState(false);
+  const [collectStep, setCollectStep] = useState(1);
+
+  // Card 3D Secure State
+  const [cardOtp, setCardOtp] = useState('');
+  const [cardOtpError, setCardOtpError] = useState('');
+
+  // Cash on Delivery CAPTCHA State
+  const [codCaptcha, setCodCaptcha] = useState(() => Math.floor(1000 + Math.random() * 9000).toString());
+  const [codInput, setCodInput] = useState('');
+  const [codError, setCodError] = useState('');
+
+  // Official NPCI UPI Deep Link Schema
+  const upiUri = useMemo(() => {
+    const bookingRef = Math.floor(100000 + Math.random() * 900000);
+    return `upi://pay?pa=forgeindiaconnect@okhdfcbank&pn=Forge%20India%20Connect&am=${amount}&cu=INR&tn=${encodeURIComponent(`FIC Booking #${bookingRef}`)}`;
+  }, [amount, isOpen]);
+
+  // Generate authentic scannable QR code using qrcode package
+  useEffect(() => {
+    if (isOpen && amount > 0) {
+      QRCode.toDataURL(upiUri, {
+        width: 280,
+        margin: 1,
+        color: {
+          dark: '#0F172A',
+          light: '#FFFFFF'
+        }
+      })
+      .then(url => setQrCodeDataUrl(url))
+      .catch(err => console.error('Failed to generate UPI QR code:', err));
+    }
+  }, [isOpen, amount, upiUri]);
+
+  // Reset and sync initial state when opened
   useEffect(() => {
     if (isOpen) {
       if (initialMethod === 'upi') setActiveTab('gpay');
       else if (initialMethod === 'card') setActiveTab('card');
       else if (initialMethod === 'cod') setActiveTab(hideCOD ? 'gpay' : 'cod');
       else setActiveTab(initialMethod || 'gpay');
-      setIsProcessing(false);
-      setIsSuccess(false);
-      setTxnId('');
+      
+      setPaymentStage('gateway');
       setShowQrCode(false);
+      setUpiTimer(300);
+      setResendTimer(30);
+      setCardOtp('');
+      setCardOtpError('');
+      setCodInput('');
+      setCodError('');
+      setCodCaptcha(Math.floor(1000 + Math.random() * 9000).toString());
+      setShowPushBanner(false);
+      setCollectStep(1);
     }
   }, [isOpen, initialMethod, hideCOD]);
+
+  // UPI Live 5-minute countdown timer
+  useEffect(() => {
+    let interval = null;
+    if (isOpen && (paymentStage === 'upi_collect' || showQrCode) && upiTimer > 0) {
+      interval = setInterval(() => {
+        setUpiTimer(prev => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isOpen, paymentStage, showQrCode, upiTimer]);
+
+  // Card 3D Secure OTP resend timer
+  useEffect(() => {
+    let interval = null;
+    if (isOpen && paymentStage === 'card_3ds' && resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer(prev => Math.max(0, prev - 1));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isOpen, paymentStage, resendTimer]);
+
+  // UPI Collect Step Progression & Mobile Push Simulation
+  useEffect(() => {
+    let t1, t2;
+    if (paymentStage === 'upi_collect') {
+      setShowPushBanner(false);
+      setCollectStep(1);
+
+      t1 = setTimeout(() => {
+        setCollectStep(2);
+        setShowPushBanner(true);
+      }, 700);
+
+      t2 = setTimeout(() => {
+        setCollectStep(3);
+      }, 1500);
+    } else {
+      setShowPushBanner(false);
+    }
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [paymentStage]);
+
+  // Auto-redirect countdown on payment success
+  useEffect(() => {
+    let interval = null;
+    if (paymentStage === 'success') {
+      setRedirectCount(3);
+      interval = setInterval(() => {
+        setRedirectCount(prev => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            triggerFinalSuccessCallback();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [paymentStage]);
 
   // Handle escape key
   useEffect(() => {
     function handleKeyDown(e) {
-      if (e.key === 'Escape' && !isProcessing && isOpen) {
+      if (e.key === 'Escape' && paymentStage === 'gateway' && isOpen) {
         onClose();
       }
     }
@@ -78,64 +406,210 @@ export function PaymentGatewayModal({
       window.removeEventListener('keydown', handleKeyDown);
       document.body.style.overflow = '';
     };
-  }, [isOpen, isProcessing, onClose]);
+  }, [isOpen, paymentStage, onClose]);
 
   if (!isOpen) return null;
 
-  function handleExecutePayment() {
-    setIsProcessing(true);
-
-    const generatedTxn = 'UC_' + Math.floor(1000000000 + Math.random() * 9000000000);
-    setTxnId(generatedTxn);
-
-    // Realistic processing delay
-    setTimeout(() => {
-      setIsProcessing(false);
-      setIsSuccess(true);
-
-      setTimeout(() => {
-        const methodLabels = {
-          gpay: 'Google Pay (UPI)',
-          phonepe: 'PhonePe (UPI)',
-          paytm: 'Paytm Wallet & UPI',
-          card: 'Credit / Debit Card',
-          cod: 'Cash on Delivery (Pay After Service)',
-          wallet: `Wallet (${selectedWallet.toUpperCase()})`
-        };
-
-        if (onPaymentSuccess) {
-          onPaymentSuccess({
-            method: activeTab,
-            methodLabel: methodLabels[activeTab] || 'Online Payment',
-            transactionId: generatedTxn,
-            amount: amount,
-            paidAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-          });
-        }
-      }, 1100);
-    }, 1400);
+  // Format seconds to mm:ss
+  function formatTimer(sec) {
+    const mins = Math.floor(sec / 60);
+    const secs = sec % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
+
+  // Copy UPI Link
+  function handleCopyUpi() {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(upiUri);
+      setCopiedUpi(true);
+      setTimeout(() => setCopiedUpi(false), 2000);
+    }
+  }
+
+  // Generate verified IDs
+  function generateTxnIdentifiers() {
+    const generatedTxn = 'FIC_PAY_' + Date.now().toString().slice(-8) + '_' + Math.floor(1000 + Math.random() * 9000);
+    const generatedUtr = 'NPCI-UTR-' + Math.floor(100000000000 + Math.random() * 900000000000);
+    setTxnId(generatedTxn);
+    setBankUtr(generatedUtr);
+    return { generatedTxn, generatedUtr };
+  }
+
+  // 1. Flow: UPI Collect Request (Google Pay, PhonePe, Paytm)
+  function handleInitiateUPICollect() {
+    generateTxnIdentifiers();
+    setPaymentStage('upi_collect');
+    setUpiTimer(300);
+  }
+
+  // 2. Flow: Approve UPI Payment (Simulating user entering MPIN on phone)
+  function handleAuthorizeUPICollect() {
+    setPaymentStage('processing');
+    setProcessingStatus('Verifying 6-digit UPI MPIN with issuing bank via NPCI Switch...');
+
+    setTimeout(() => {
+      setProcessingStatus(`NPCI UTR ${bankUtr || '482019482019'} generated • Capturing funds...`);
+      setTimeout(() => {
+        setPaymentStage('success');
+      }, 700);
+    }, 1000);
+  }
+
+  // 3. Flow: Confirm QR Code Payment (User scanned or clicked simulate)
+  function handleConfirmQRScanPayment() {
+    generateTxnIdentifiers();
+    setPaymentStage('processing');
+    setProcessingStatus('Detecting incoming UPI credit from mobile banking app...');
+
+    setTimeout(() => {
+      setProcessingStatus('Payment received via NPCI Gateway • Finalizing booking authorization...');
+      setTimeout(() => {
+        setPaymentStage('success');
+      }, 700);
+    }, 1100);
+  }
+
+  // 4. Flow: Initiate Card Payment -> Move to Bank 3D Secure OTP
+  function handleInitiateCardPayment() {
+    if (!cardNumber || cardNumber.replace(/\s+/g, '').length < 15) {
+      alert('Please enter a valid 16-digit card number.');
+      return;
+    }
+    if (!cardExpiry || !cardExpiry.includes('/')) {
+      alert('Please enter card expiry in MM/YY format.');
+      return;
+    }
+    if (!cardCvv || cardCvv.length < 3) {
+      alert('Please enter a valid 3-digit CVV.');
+      return;
+    }
+
+    generateTxnIdentifiers();
+    setCardOtp('');
+    setCardOtpError('');
+    setResendTimer(30);
+    setPaymentStage('card_3ds');
+  }
+
+  // 5. Flow: Submit Bank 3D Secure OTP
+  function handleSubmitCardOTP() {
+    if (!cardOtp || cardOtp.trim().length < 4) {
+      setCardOtpError('Please enter the 6-digit OTP sent to your registered mobile.');
+      return;
+    }
+
+    setCardOtpError('');
+    setPaymentStage('processing');
+    setProcessingStatus('Authenticating 3D Secure 2.0 cryptogram with Issuing Bank...');
+
+    setTimeout(() => {
+      setProcessingStatus('RBI 2-Factor Authentication verified • Capturing payment...');
+      setTimeout(() => {
+        setPaymentStage('success');
+      }, 700);
+    }, 1100);
+  }
+
+  // 6. Flow: Initiate Cash on Delivery -> Security Code Check
+  function handleInitiateCOD() {
+    generateTxnIdentifiers();
+    setCodInput('');
+    setCodError('');
+    setCodCaptcha(Math.floor(1000 + Math.random() * 9000).toString());
+    setPaymentStage('cod_verify');
+  }
+
+  // 7. Flow: Confirm COD Order
+  function handleConfirmCOD() {
+    if (codInput.trim() !== codCaptcha.trim()) {
+      setCodError('Incorrect security code. Please enter the 4-digit number displayed.');
+      return;
+    }
+
+    setCodError('');
+    setPaymentStage('processing');
+    setProcessingStatus('Registering Cash on Delivery booking with partner dispatch...');
+
+    setTimeout(() => {
+      setPaymentStage('success');
+    }, 900);
+  }
+
+  // Final Callback to Parent Checkout / App
+  function triggerFinalSuccessCallback() {
+    const methodLabels = {
+      gpay: 'Google Pay (UPI)',
+      phonepe: 'PhonePe (UPI)',
+      paytm: 'Paytm UPI',
+      card: 'Credit / Debit Card',
+      cod: 'Cash on Delivery (Pay After Service)'
+    };
+
+    if (onPaymentSuccess) {
+      onPaymentSuccess({
+        method: activeTab,
+        methodLabel: methodLabels[activeTab] || 'Online Payment',
+        transactionId: txnId || `FIC_PAY_${Date.now()}`,
+        bankUtr: bankUtr || `NPCI-UTR-${Math.floor(100000000000 + Math.random() * 900000000000)}`,
+        amount: amount,
+        paidAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        status: activeTab === 'cod' ? 'PENDING' : 'PAID'
+      });
+    }
+  }
+
+  // Get current active payment name
+  const currentMethodName = {
+    gpay: 'Google Pay',
+    phonepe: 'PhonePe',
+    paytm: 'Paytm UPI',
+    card: 'Credit/Debit Card',
+    cod: 'Cash on Delivery'
+  }[activeTab] || 'Google Pay';
 
   return (
     <div 
       className="payment-gateway-overlay"
       onClick={() => {
-        if (!isProcessing && !isSuccess) onClose();
+        if (paymentStage === 'gateway') onClose();
       }}
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.75)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
+        backgroundColor: 'rgba(15, 23, 42, 0.78)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
         zIndex: 99999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         padding: 16,
-        animation: 'fadeIn 0.2s ease-out'
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
       }}
     >
+      <style>{`
+        @keyframes pulseGlow {
+          0%, 100% { opacity: 0.8; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.05); }
+        }
+        @keyframes scanLaser {
+          0% { top: 4%; opacity: 0.9; }
+          50% { top: 92%; opacity: 1; }
+          100% { top: 4%; opacity: 0.9; }
+        }
+        @keyframes slideInDown {
+          from { opacity: 0; transform: translateY(-16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes rotateSpinner {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes rippleRing {
+          0% { transform: scale(0.95); opacity: 0.8; }
+          100% { transform: scale(1.4); opacity: 0; }
+        }
+      `}</style>
+
       <div 
         className="payment-gateway-card"
         onClick={(e) => e.stopPropagation()}
@@ -144,12 +618,12 @@ export function PaymentGatewayModal({
           maxWidth: 740,
           backgroundColor: '#FFFFFF',
           borderRadius: 20,
-          boxShadow: '0 25px 65px rgba(0, 0, 0, 0.35)',
+          boxShadow: '0 25px 70px rgba(0, 0, 0, 0.4)',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: '92vh',
-          animation: 'scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1)'
+          maxHeight: '94vh',
+          position: 'relative'
         }}
       >
         {/* ========================================================= */}
@@ -162,13 +636,14 @@ export function PaymentGatewayModal({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid #1E293B'
+          borderBottom: '1px solid #1E293B',
+          position: 'relative'
         }}>
-          {/* Left: Urban Company SafePay Logo */}
+          {/* Left: Forge India Connect SafePay Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{
-              width: 34,
-              height: 34,
+              width: 36,
+              height: 36,
               borderRadius: 10,
               backgroundColor: '#6E42E5',
               display: 'flex',
@@ -176,30 +651,32 @@ export function PaymentGatewayModal({
               justifyContent: 'center',
               color: '#FFFFFF',
               fontWeight: 900,
-              fontSize: 14
+              fontSize: 13,
+              letterSpacing: -0.2,
+              boxShadow: '0 2px 8px rgba(110,66,229,0.4)'
             }}>
-              UC
+              FIC
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 16, fontWeight: 800, letterSpacing: -0.3 }}>
-                  Urban Company SafePay
+                  Forge India Connect SafePay
                 </span>
                 <span style={{
                   fontSize: 10,
                   fontWeight: 800,
                   backgroundColor: '#10B981',
                   color: '#FFFFFF',
-                  padding: '1.5px 6px',
+                  padding: '2px 6px',
                   borderRadius: 4,
                   letterSpacing: 0.5
                 }}>
-                  VERIFIED
+                  NPCI VERIFIED
                 </span>
               </div>
-              <div style={{ fontSize: 11, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Lock size={10} color="#10B981" />
-                <span>256-Bit SSL Bank Encrypted Checkout</span>
+              <div style={{ fontSize: 11, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 5 }}>
+                <Lock size={11} color="#10B981" />
+                <span>256-Bit SSL Bank Encrypted Real-Time Gateway</span>
               </div>
             </div>
           </div>
@@ -207,7 +684,7 @@ export function PaymentGatewayModal({
           {/* Right: Amount to Pay & Close Button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 11, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 700 }}>
+              <div style={{ fontSize: 10.5, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5, fontWeight: 700 }}>
                 Amount to Pay
               </div>
               <div style={{ fontSize: 20, fontWeight: 900, color: '#38BDF8', letterSpacing: -0.5 }}>
@@ -215,44 +692,680 @@ export function PaymentGatewayModal({
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isProcessing}
-              title="Close payment gateway"
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: '50%',
-                backgroundColor: '#1E293B',
-                border: 'none',
-                color: '#94A3B8',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: isProcessing ? 'not-allowed' : 'pointer',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={(e) => {
-                if (!isProcessing) {
+            {paymentStage === 'gateway' ? (
+              <button
+                type="button"
+                onClick={onClose}
+                title="Close payment gateway"
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: '50%',
+                  backgroundColor: '#1E293B',
+                  border: 'none',
+                  color: '#94A3B8',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s'
+                }}
+                onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#334155';
                   e.currentTarget.style.color = '#FFFFFF';
-                }
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#1E293B';
-                e.currentTarget.style.color = '#94A3B8';
-              }}
-            >
-              <X size={18} />
-            </button>
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#1E293B';
+                  e.currentTarget.style.color = '#94A3B8';
+                }}
+              >
+                <X size={18} />
+              </button>
+            ) : (paymentStage === 'upi_collect' || paymentStage === 'card_3ds' || paymentStage === 'cod_verify') ? (
+              <button
+                type="button"
+                onClick={() => setPaymentStage('gateway')}
+                title="Return to payment options"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  backgroundColor: '#1E293B',
+                  border: '1px solid #334155',
+                  color: '#CBD5E1',
+                  borderRadius: 8,
+                  padding: '6px 10px',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <ChevronLeft size={14} />
+                <span>Change</span>
+              </button>
+            ) : null}
           </div>
         </div>
 
         {/* ========================================================= */}
-        {/* PROCESSING & SUCCESS ANIMATION OVERLAY                    */}
+        {/* STAGE 1: LIVE UPI COLLECT AUTHORIZATION SCREEN           */}
         {/* ========================================================= */}
-        {isProcessing && (
+        {paymentStage === 'upi_collect' && (
+          <div style={{
+            padding: '24px 28px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            minHeight: 460,
+            justifyContent: 'space-between',
+            backgroundColor: '#F8FAFC',
+            position: 'relative'
+          }}>
+            {/* Real-time Phone Push Notification Mockup Banner */}
+            {showPushBanner && (
+              <div 
+                style={{
+                  width: '100%',
+                  maxWidth: 520,
+                  backgroundColor: '#0F172A',
+                  color: '#FFFFFF',
+                  borderRadius: 14,
+                  padding: '12px 16px',
+                  boxShadow: '0 10px 25px rgba(15, 23, 42, 0.45)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
+                  animation: 'slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                  marginBottom: 16,
+                  border: '1px solid #334155'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                  {activeTab === 'gpay' && <GPayIcon size={30} />}
+                  {activeTab === 'phonepe' && <PhonePeIcon size={30} />}
+                  {activeTab === 'paytm' && <PaytmIcon size={30} />}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: '#F8FAFC' }}>
+                        {activeTab === 'gpay' ? 'Google Pay' : activeTab === 'phonepe' ? 'PhonePe' : 'Paytm'}
+                      </span>
+                      <span style={{ fontSize: 10, color: '#94A3B8' }}>• Just now</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: '#E2E8F0', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      Payment request: <strong>₹{amount.toLocaleString('en-IN')}</strong> from Forge India Connect
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleAuthorizeUPICollect}
+                  style={{
+                    backgroundColor: '#10B981',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '7px 12px',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}
+                >
+                  <Check size={14} />
+                  <span>Approve</span>
+                </button>
+              </div>
+            )}
+
+            {/* Central Animated Collect Status Card */}
+            <div style={{
+              width: '100%',
+              maxWidth: 520,
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              border: '1.5px solid #E2E8F0',
+              padding: '24px 20px',
+              textAlign: 'center',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.04)'
+            }}>
+              {/* Radar Pulse Icon */}
+              <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 16px' }}>
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  borderRadius: '50%',
+                  border: '2px solid #3B82F6',
+                  animation: 'rippleRing 1.8s cubic-bezier(0, 0.2, 0.8, 1) infinite'
+                }} />
+                <div style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: '50%',
+                  backgroundColor: '#EFF6FF',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid #BFDBFE'
+                }}>
+                  {activeTab === 'gpay' && <GPayIcon size={42} />}
+                  {activeTab === 'phonepe' && <PhonePeIcon size={42} />}
+                  {activeTab === 'paytm' && <PaytmIcon size={42} />}
+                </div>
+              </div>
+
+              <h3 style={{ fontSize: 19, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0' }}>
+                Collect Request Dispatched!
+              </h3>
+              <p style={{ fontSize: 13, color: '#64748B', margin: '0 0 14px 0' }}>
+                Open your <strong>{currentMethodName}</strong> app on your mobile phone to approve the payment.
+              </p>
+
+              {/* UPI ID Pill & Timer */}
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 12,
+                backgroundColor: '#F1F5F9',
+                borderRadius: 999,
+                padding: '6px 14px',
+                marginBottom: 20
+              }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#334155' }}>
+                  Target: {activeTab === 'gpay' ? gpayUpi : activeTab === 'phonepe' ? phonePeNumber : paytmNumber}
+                </span>
+                <span style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: upiTimer < 60 ? '#EF4444' : '#2563EB',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}>
+                  <Clock size={13} />
+                  <span>{formatTimer(upiTimer)}</span>
+                </span>
+              </div>
+
+              {/* 3-Step Live Stepper */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                textAlign: 'left',
+                backgroundColor: '#F8FAFC',
+                borderRadius: 12,
+                padding: '14px 16px',
+                border: '1px solid #E2E8F0',
+                marginBottom: 10
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5 }}>
+                  <CheckCircle2 size={16} color="#10B981" />
+                  <span style={{ color: '#0F172A', fontWeight: 600 }}>1. Request initiated on NPCI UPI Switch</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5 }}>
+                  {collectStep >= 2 ? (
+                    <CheckCircle2 size={16} color="#10B981" />
+                  ) : (
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid #CBD5E1' }} />
+                  )}
+                  <span style={{ color: collectStep >= 2 ? '#0F172A' : '#64748B', fontWeight: 600 }}>
+                    2. Notification delivered to mobile device
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5 }}>
+                  {collectStep >= 3 ? (
+                    <div style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: '50%',
+                      border: '2px solid #2563EB',
+                      borderTopColor: 'transparent',
+                      animation: 'rotateSpinner 0.8s linear infinite'
+                    }} />
+                  ) : (
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid #CBD5E1' }} />
+                  )}
+                  <span style={{ color: collectStep >= 3 ? '#2563EB' : '#64748B', fontWeight: 700 }}>
+                    3. Awaiting UPI MPIN entry on your mobile...
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div style={{ width: '100%', maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+              <button
+                type="button"
+                onClick={handleAuthorizeUPICollect}
+                style={{
+                  width: '100%',
+                  padding: '13px 20px',
+                  backgroundColor: '#10B981',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 12,
+                  fontSize: 14.5,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)'
+                }}
+              >
+                <CheckCircle2 size={18} />
+                <span>Approve &amp; Authorize Payment (Simulate Phone PIN)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setPaymentStage('gateway')}
+                style={{
+                  width: '100%',
+                  padding: '10px 16px',
+                  backgroundColor: 'transparent',
+                  color: '#64748B',
+                  border: 'none',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel Request &amp; Choose Another Method
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* STAGE 2: AUTHENTIC BANK 3D SECURE (3DS2 / OTP) SCREEN    */}
+        {/* ========================================================= */}
+        {paymentStage === 'card_3ds' && (
+          <div style={{
+            padding: '24px 30px',
+            backgroundColor: '#F8FAFC',
+            minHeight: 460,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              {/* Bank Header Bar */}
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 12,
+                padding: '14px 18px',
+                border: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: 20,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 8,
+                    backgroundColor: '#1E3A8A',
+                    color: '#FFFFFF',
+                    fontWeight: 900,
+                    fontSize: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    HDFC
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>
+                      HDFC Bank SafePay • 3D Secure 2.0
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748B' }}>
+                      Verified by Visa &amp; Mastercard Identity Check
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#059669', fontSize: 11.5, fontWeight: 700 }}>
+                  <ShieldCheck size={16} />
+                  <span>256-Bit SSL Secured</span>
+                </div>
+              </div>
+
+              {/* Transaction Details Table */}
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 12,
+                border: '1px solid #E2E8F0',
+                padding: '16px 20px',
+                marginBottom: 20
+              }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, fontSize: 12.5 }}>
+                  <div>
+                    <span style={{ color: '#64748B', display: 'block' }}>Merchant Name:</span>
+                    <strong style={{ color: '#0F172A' }}>Forge India Connect (Urban Co)</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748B', display: 'block' }}>Transaction Amount:</span>
+                    <strong style={{ color: '#2563EB', fontSize: 14 }}>₹{amount.toLocaleString('en-IN')}</strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748B', display: 'block' }}>Card Number:</span>
+                    <strong style={{ color: '#0F172A', letterSpacing: 0.5 }}>
+                      •••• •••• •••• {cardNumber.replace(/\s+/g, '').slice(-4) || '8849'}
+                    </strong>
+                  </div>
+                  <div>
+                    <span style={{ color: '#64748B', display: 'block' }}>Registered Mobile:</span>
+                    <strong style={{ color: '#0F172A' }}>
+                      +91 {user?.phone ? user.phone.slice(0, 2) + '******' + user.phone.slice(-2) : '98******10'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Demo OTP Helper Notice */}
+              <div style={{
+                backgroundColor: '#EFF6FF',
+                border: '1px solid #BFDBFE',
+                borderRadius: 12,
+                padding: '12px 16px',
+                marginBottom: 20,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#1E40AF' }}>
+                  <Bell size={16} color="#2563EB" />
+                  <span>One-Time Password (OTP) sent to your phone. <strong>Demo OTP: 482910</strong></span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCardOtp('482910')}
+                  style={{
+                    backgroundColor: '#2563EB',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '5px 10px',
+                    fontSize: 11.5,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  Auto-fill 482910
+                </button>
+              </div>
+
+              {/* OTP Input Field */}
+              <div style={{ textAlign: 'center', marginBottom: 20 }}>
+                <label style={{ fontSize: 13, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 8 }}>
+                  Enter 6-Digit Bank One-Time Password (OTP)
+                </label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={cardOtp}
+                  onChange={(e) => {
+                    setCardOtp(e.target.value.replace(/\D/g, ''));
+                    setCardOtpError('');
+                  }}
+                  placeholder="• • • • • •"
+                  style={{
+                    width: 200,
+                    textAlign: 'center',
+                    fontSize: 24,
+                    fontWeight: 900,
+                    letterSpacing: 10,
+                    padding: '10px 14px',
+                    borderRadius: 10,
+                    border: cardOtpError ? '2px solid #EF4444' : '2px solid #CBD5E1',
+                    outline: 'none',
+                    color: '#0F172A',
+                    backgroundColor: '#FFFFFF'
+                  }}
+                  autoFocus
+                />
+                {cardOtpError && (
+                  <div style={{ color: '#EF4444', fontSize: 12, fontWeight: 600, marginTop: 6 }}>
+                    {cardOtpError}
+                  </div>
+                )}
+                <div style={{ fontSize: 12, color: '#64748B', marginTop: 10 }}>
+                  Didn't receive OTP? {resendTimer > 0 ? (
+                    <span>Resend in <strong>{resendTimer}s</strong></span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResendTimer(30);
+                        setCardOtp('482910');
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#2563EB', fontWeight: 700, cursor: 'pointer', padding: 0 }}
+                    >
+                      Resend OTP Now
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setPaymentStage('gateway')}
+                style={{
+                  flex: 1,
+                  padding: '13px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#475569',
+                  border: '1.5px solid #CBD5E1',
+                  borderRadius: 12,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmitCardOTP}
+                style={{
+                  flex: 2,
+                  padding: '13px',
+                  backgroundColor: '#2563EB',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 12,
+                  fontSize: 14.5,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 14px rgba(37, 99, 235, 0.35)'
+                }}
+              >
+                <Lock size={16} />
+                <span>Submit OTP &amp; Authorize ₹{amount.toLocaleString('en-IN')}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* STAGE 3: CASH ON DELIVERY BOT-PROTECTION CAPTCHA         */}
+        {/* ========================================================= */}
+        {paymentStage === 'cod_verify' && (
+          <div style={{
+            padding: '28px 30px',
+            backgroundColor: '#F8FAFC',
+            minHeight: 440,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                <CODBrandIcon size={38} />
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                    Confirm Cash on Delivery Order
+                  </h3>
+                  <div style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>
+                    Pay ₹{amount.toLocaleString('en-IN')} in Cash or UPI when the service is completed
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: 14,
+                border: '1px solid #E2E8F0',
+                padding: '20px',
+                textAlign: 'center',
+                marginBottom: 20
+              }}>
+                <div style={{ fontSize: 13, color: '#475569', marginBottom: 12, fontWeight: 600 }}>
+                  Enter the 4-digit security confirmation code to confirm your booking:
+                </div>
+
+                {/* Styled Security Captcha Badge */}
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  backgroundColor: '#0F172A',
+                  color: '#38BDF8',
+                  padding: '10px 24px',
+                  borderRadius: 10,
+                  fontSize: 26,
+                  fontWeight: 900,
+                  letterSpacing: 10,
+                  marginBottom: 14,
+                  userSelect: 'none',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
+                }}>
+                  <span>{codCaptcha}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCodCaptcha(Math.floor(1000 + Math.random() * 9000).toString())}
+                    title="Refresh code"
+                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 2 }}
+                  >
+                    <RefreshCw size={16} />
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+                  <input
+                    type="text"
+                    maxLength={4}
+                    value={codInput}
+                    onChange={(e) => {
+                      setCodInput(e.target.value.replace(/\D/g, ''));
+                      setCodError('');
+                    }}
+                    placeholder="Enter code"
+                    style={{
+                      width: 140,
+                      textAlign: 'center',
+                      fontSize: 18,
+                      fontWeight: 800,
+                      letterSpacing: 4,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: codError ? '2px solid #EF4444' : '2px solid #CBD5E1',
+                      outline: 'none'
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setCodInput(codCaptcha)}
+                    style={{
+                      backgroundColor: '#F1F5F9',
+                      border: '1px solid #CBD5E1',
+                      borderRadius: 8,
+                      padding: '8px 12px',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#334155',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Auto-fill
+                  </button>
+                </div>
+
+                {codError && (
+                  <div style={{ color: '#EF4444', fontSize: 12, fontWeight: 600 }}>
+                    {codError}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setPaymentStage('gateway')}
+                style={{
+                  flex: 1,
+                  padding: '13px',
+                  backgroundColor: '#FFFFFF',
+                  color: '#475569',
+                  border: '1.5px solid #CBD5E1',
+                  borderRadius: 12,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCOD}
+                style={{
+                  flex: 2,
+                  padding: '13px',
+                  backgroundColor: '#059669',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 12,
+                  fontSize: 14.5,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 14px rgba(5, 150, 105, 0.35)'
+                }}
+              >
+                <CheckCircle2 size={18} />
+                <span>Confirm Order with Cash on Delivery</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* STAGE 4: PROCESSING & ENCRYPTION HANDSHAKE               */}
+        {/* ========================================================= */}
+        {paymentStage === 'processing' && (
           <div style={{
             padding: '60px 24px',
             display: 'flex',
@@ -260,7 +1373,7 @@ export function PaymentGatewayModal({
             alignItems: 'center',
             justifyContent: 'center',
             textAlign: 'center',
-            minHeight: 380
+            minHeight: 440
           }}>
             <div style={{
               width: 64,
@@ -268,74 +1381,145 @@ export function PaymentGatewayModal({
               borderRadius: '50%',
               border: '4px solid #F1F5F9',
               borderTopColor: '#6E42E5',
-              animation: 'spin 0.8s linear infinite',
+              animation: 'rotateSpinner 0.8s linear infinite',
               marginBottom: 20
             }} />
             <h3 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: '0 0 8px 0' }}>
-              Connecting to Secure Payment Gateway...
+              Authorizing Secure Payment...
             </h3>
-            <p style={{ fontSize: 13.5, color: '#64748B', maxWidth: 360, margin: 0 }}>
-              Authorizing transaction of <strong>₹{amount.toLocaleString('en-IN')}</strong>. Please do not refresh or close this window.
+            <p style={{ fontSize: 13.5, color: '#64748B', maxWidth: 420, margin: '0 0 16px 0' }}>
+              {processingStatus}
             </p>
+            <div style={{
+              fontSize: 11.5,
+              color: '#059669',
+              backgroundColor: '#ECFDF5',
+              padding: '4px 12px',
+              borderRadius: 999,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6
+            }}>
+              <ShieldCheck size={14} />
+              <span>256-Bit SSL Secured • Do not close or refresh</span>
+            </div>
           </div>
         )}
 
-        {isSuccess && (
+        {/* ========================================================= */}
+        {/* STAGE 5: OFFICIAL PAYMENT SUCCESS RECEIPT                */}
+        {/* ========================================================= */}
+        {paymentStage === 'success' && (
           <div style={{
-            padding: '60px 24px',
+            padding: '40px 32px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
             textAlign: 'center',
-            minHeight: 380,
-            animation: 'fadeIn 0.25s ease-out'
+            minHeight: 440
           }}>
+            {/* Animated Green Tick */}
             <div style={{
-              width: 68,
-              height: 68,
+              width: 72,
+              height: 72,
               borderRadius: '50%',
               backgroundColor: '#ECFDF5',
               color: '#059669',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: 18,
-              boxShadow: '0 8px 24px rgba(16, 185, 129, 0.2)'
+              marginBottom: 16,
+              boxShadow: '0 8px 25px rgba(16, 185, 129, 0.25)',
+              animation: 'pulseGlow 2s ease-in-out infinite'
             }}>
-              <CheckCircle2 size={42} strokeWidth={2.4} />
+              <CheckCircle2 size={46} strokeWidth={2.4} />
             </div>
-            <h3 style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', margin: '0 0 6px 0' }}>
+
+            <h3 style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', margin: '0 0 4px 0' }}>
               {activeTab === 'cod' ? 'Booking Confirmed with Cash on Delivery!' : 'Payment Authorized Successfully!'}
             </h3>
-            <p style={{ fontSize: 13, color: '#64748B', margin: '0 0 14px 0' }}>
-              Transaction ID: <strong style={{ color: '#0F172A', fontFamily: 'monospace' }}>{txnId}</strong>
-            </p>
+            <div style={{ fontSize: 13, color: '#059669', fontWeight: 700, marginBottom: 18 }}>
+              Amount: ₹{amount.toLocaleString('en-IN')} • Status: Confirmed
+            </div>
+
+            {/* Official Bank Receipt Card */}
             <div style={{
+              width: '100%',
+              maxWidth: 480,
               backgroundColor: '#F8FAFC',
-              borderRadius: 12,
-              padding: '10px 18px',
+              borderRadius: 14,
               border: '1px solid #E2E8F0',
-              fontSize: 13,
-              color: '#334155',
+              padding: '16px 20px',
+              marginBottom: 20,
+              textAlign: 'left',
+              fontSize: 12.5
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid #E2E8F0' }}>
+                <span style={{ color: '#64748B' }}>Transaction ID:</span>
+                <strong style={{ color: '#0F172A', fontFamily: 'monospace' }}>{txnId}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
+                <span style={{ color: '#64748B' }}>NPCI / Bank UTR:</span>
+                <strong style={{ color: '#0F172A', fontFamily: 'monospace' }}>{bankUtr || 'NPCI-UTR-849201948271'}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
+                <span style={{ color: '#64748B' }}>Payment Method:</span>
+                <strong style={{ color: '#0F172A' }}>{currentMethodName}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8 }}>
+                <span style={{ color: '#64748B' }}>Timestamp:</span>
+                <strong style={{ color: '#0F172A' }}>
+                  {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} at {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                </strong>
+              </div>
+            </div>
+
+            {/* Auto Redirect Progress */}
+            <div style={{
+              width: '100%',
+              maxWidth: 480,
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              justifyContent: 'space-between',
+              gap: 12
             }}>
-              <Sparkles size={16} color="#6E42E5" />
-              <span>Redirecting you to live booking tracking...</span>
+              <div style={{ fontSize: 12.5, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Sparkles size={16} color="#6E42E5" />
+                <span>Redirecting to your booking tracking in <strong>{redirectCount}s</strong>...</span>
+              </div>
+              <button
+                type="button"
+                onClick={triggerFinalSuccessCallback}
+                style={{
+                  backgroundColor: '#6E42E5',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '8px 14px',
+                  fontSize: 12.5,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span>View Booking Now</span>
+                <ArrowRight size={14} />
+              </button>
             </div>
           </div>
         )}
 
         {/* ========================================================= */}
-        {/* MAIN GATEWAY INTERFACE (SIDEBAR TABS + PAYMENT PANEL)     */}
+        {/* STAGE 0: MAIN PAYMENT GATEWAY INTERFACE (DEFAULT)         */}
         {/* ========================================================= */}
-        {!isProcessing && !isSuccess && (
+        {paymentStage === 'gateway' && (
           <div style={{
             display: 'grid',
             gridTemplateColumns: '260px 1fr',
-            minHeight: 440,
+            minHeight: 460,
             flex: 1,
             overflow: 'hidden'
           }}>
@@ -354,250 +1538,74 @@ export function PaymentGatewayModal({
                 Payment Options
               </div>
 
-              {/* 1. Google Pay (GPay) */}
-              <button
-                type="button"
-                onClick={() => { setActiveTab('gpay'); setShowQrCode(false); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '11px 12px',
-                  borderRadius: 12,
-                  border: activeTab === 'gpay' ? '1.5px solid #6E42E5' : '1px solid transparent',
-                  backgroundColor: activeTab === 'gpay' ? '#FFFFFF' : 'transparent',
-                  boxShadow: activeTab === 'gpay' ? '0 3px 10px rgba(110, 66, 229, 0.1)' : 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E2E8F0',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 900,
-                    fontSize: 13,
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                  }}>
-                    <span style={{ color: '#4285F4' }}>G</span>
-                    <span style={{ color: '#EA4335' }}>P</span>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>Google Pay (GPay)</div>
-                    <div style={{ fontSize: 11, color: '#64748B' }}>Instant UPI Pay</div>
-                  </div>
-                </div>
-                {activeTab === 'gpay' && <ChevronRight size={16} color="#6E42E5" />}
-              </button>
-
-              {/* 2. PhonePe */}
-              <button
-                type="button"
-                onClick={() => { setActiveTab('phonepe'); setShowQrCode(false); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '11px 12px',
-                  borderRadius: 12,
-                  border: activeTab === 'phonepe' ? '1.5px solid #6E42E5' : '1px solid transparent',
-                  backgroundColor: activeTab === 'phonepe' ? '#FFFFFF' : 'transparent',
-                  boxShadow: activeTab === 'phonepe' ? '0 3px 10px rgba(110, 66, 229, 0.1)' : 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    backgroundColor: '#5F259F',
-                    color: '#FFFFFF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 900,
-                    fontSize: 13
-                  }}>
-                    पे
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>PhonePe</div>
-                    <div style={{ fontSize: 11, color: '#64748B' }}>UPI &amp; Wallet</div>
-                  </div>
-                </div>
-                {activeTab === 'phonepe' && <ChevronRight size={16} color="#6E42E5" />}
-              </button>
-
-              {/* 3. Paytm */}
-              <button
-                type="button"
-                onClick={() => { setActiveTab('paytm'); setShowQrCode(false); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '11px 12px',
-                  borderRadius: 12,
-                  border: activeTab === 'paytm' ? '1.5px solid #6E42E5' : '1px solid transparent',
-                  backgroundColor: activeTab === 'paytm' ? '#FFFFFF' : 'transparent',
-                  boxShadow: activeTab === 'paytm' ? '0 3px 10px rgba(110, 66, 229, 0.1)' : 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    backgroundColor: '#00BAF2',
-                    color: '#FFFFFF',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontWeight: 900,
-                    fontSize: 10,
-                    letterSpacing: -0.5
-                  }}>
-                    paytm
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>Paytm</div>
-                    <div style={{ fontSize: 11, color: '#64748B' }}>Wallet &amp; UPI</div>
-                  </div>
-                </div>
-                {activeTab === 'paytm' && <ChevronRight size={16} color="#6E42E5" />}
-              </button>
-
-              {/* 4. Credit / Debit Card */}
-              <button
-                type="button"
-                onClick={() => { setActiveTab('card'); setShowQrCode(false); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '11px 12px',
-                  borderRadius: 12,
-                  border: activeTab === 'card' ? '1.5px solid #6E42E5' : '1px solid transparent',
-                  backgroundColor: activeTab === 'card' ? '#FFFFFF' : 'transparent',
-                  boxShadow: activeTab === 'card' ? '0 3px 10px rgba(110, 66, 229, 0.1)' : 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    backgroundColor: '#F1F5F9',
-                    color: '#1E293B',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <CreditCard size={17} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>Credit / Debit Card</div>
-                    <div style={{ fontSize: 11, color: '#64748B' }}>Visa, Master, RuPay</div>
-                  </div>
-                </div>
-                {activeTab === 'card' && <ChevronRight size={16} color="#6E42E5" />}
-              </button>
-
-              {/* 5. Cash on Delivery (COD) */}
-              {!hideCOD && (
-                <button
-                  type="button"
-                  onClick={() => { setActiveTab('cod'); setShowQrCode(false); }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '11px 12px',
-                    borderRadius: 12,
-                    border: activeTab === 'cod' ? '1.5px solid #10B981' : '1px solid transparent',
-                    backgroundColor: activeTab === 'cod' ? '#FFFFFF' : 'transparent',
-                    boxShadow: activeTab === 'cod' ? '0 3px 10px rgba(16, 185, 129, 0.12)' : 'none',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.15s'
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 8,
-                      backgroundColor: '#ECFDF5',
-                      color: '#059669',
+              {[
+                {
+                  id: 'gpay',
+                  name: 'Google Pay (GPay)',
+                  desc: 'Instant UPI Pay & QR',
+                  icon: <GPayIcon size={36} />
+                },
+                {
+                  id: 'phonepe',
+                  name: 'PhonePe',
+                  desc: 'Instant UPI & QR',
+                  icon: <PhonePeIcon size={36} />
+                },
+                {
+                  id: 'paytm',
+                  name: 'Paytm',
+                  desc: 'Instant UPI & QR',
+                  icon: <PaytmIcon size={36} />
+                },
+                {
+                  id: 'card',
+                  name: 'Credit / Debit Card',
+                  desc: 'Visa, Master, RuPay',
+                  icon: <CardBrandIcon size={36} />
+                },
+                ...(!hideCOD ? [{
+                  id: 'cod',
+                  name: 'Cash on Delivery',
+                  desc: 'COD (Pay after service)',
+                  descColor: '#059669',
+                  icon: <CODBrandIcon size={36} />
+                }] : [])
+              ].map(method => {
+                const isSelected = activeTab === method.id;
+                return (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => { setActiveTab(method.id); setShowQrCode(false); }}
+                    style={{
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      <Banknote size={17} />
+                      justifyContent: 'space-between',
+                      padding: '10px 12px',
+                      borderRadius: 12,
+                      border: isSelected ? '1.5px solid #6E42E5' : '1px solid transparent',
+                      backgroundColor: isSelected ? '#FFFFFF' : 'transparent',
+                      boxShadow: isSelected ? '0 3px 10px rgba(110, 66, 229, 0.12)' : 'none',
+                      cursor: 'pointer',
+                      textAlign: 'left',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+                      {method.icon}
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A', lineHeight: 1.25 }}>
+                          {method.name}
+                        </div>
+                        <div style={{ fontSize: 11, color: method.descColor || '#64748B', fontWeight: method.descColor ? 700 : 500, marginTop: 2, lineHeight: 1.2 }}>
+                          {method.desc}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>Cash on Delivery</div>
-                      <div style={{ fontSize: 11, color: '#059669', fontWeight: 700 }}>COD (Pay after service)</div>
-                    </div>
-                  </div>
-                  {activeTab === 'cod' && <ChevronRight size={16} color="#059669" />}
-                </button>
-              )}
-
-              {/* 6. Wallets */}
-              <button
-                type="button"
-                onClick={() => { setActiveTab('wallet'); setShowQrCode(false); }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '11px 12px',
-                  borderRadius: 12,
-                  border: activeTab === 'wallet' ? '1.5px solid #6E42E5' : '1px solid transparent',
-                  backgroundColor: activeTab === 'wallet' ? '#FFFFFF' : 'transparent',
-                  boxShadow: activeTab === 'wallet' ? '0 3px 10px rgba(110, 66, 229, 0.1)' : 'none',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  transition: 'all 0.15s'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{
-                    width: 32,
-                    height: 32,
-                    borderRadius: 8,
-                    backgroundColor: '#FEF3C7',
-                    color: '#D97706',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <Wallet size={17} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>Wallets</div>
-                    <div style={{ fontSize: 11, color: '#64748B' }}>Amazon, Mobikwik</div>
-                  </div>
-                </div>
-                {activeTab === 'wallet' && <ChevronRight size={16} color="#6E42E5" />}
-              </button>
+                    {isSelected && <ChevronRight size={16} color="#6E42E5" style={{ flexShrink: 0, marginLeft: 6 }} />}
+                  </button>
+                );
+              })}
 
               <div style={{ marginTop: 'auto', padding: '12px 10px 4px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#64748B' }}>
@@ -622,40 +1630,31 @@ export function PaymentGatewayModal({
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        padding: '4px 10px',
-                        borderRadius: 8,
-                        backgroundColor: '#FFFFFF',
-                        border: '1px solid #E2E8F0',
-                        fontSize: 16,
-                        fontWeight: 900
-                      }}>
-                        <span style={{ color: '#4285F4' }}>G</span>
-                        <span style={{ color: '#EA4335' }}>o</span>
-                        <span style={{ color: '#FBBC05' }}>o</span>
-                        <span style={{ color: '#4285F4' }}>g</span>
-                        <span style={{ color: '#34A853' }}>l</span>
-                        <span style={{ color: '#EA4335' }}>e</span>
-                        <span style={{ color: '#5F6368', marginLeft: 4 }}>Pay</span>
+                      <GPayIcon size={34} />
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>Google Pay</span>
+                          <UPILogoBadge />
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#059669', fontWeight: 600 }}>Zero Gateway Surcharge</div>
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#059669', backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: 999 }}>
-                        Zero Gateway Surcharge
-                      </span>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => setShowQrCode(!showQrCode)}
                       style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#6E42E5',
+                        backgroundColor: showQrCode ? '#6E42E5' : '#F1F5F9',
+                        border: '1px solid #CBD5E1',
+                        color: showQrCode ? '#FFFFFF' : '#6E42E5',
                         fontSize: 12,
                         fontWeight: 700,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 4
+                        gap: 5,
+                        padding: '6px 12px',
+                        borderRadius: 8
                       }}
                     >
                       <QrCode size={14} />
@@ -664,40 +1663,121 @@ export function PaymentGatewayModal({
                   </div>
 
                   {showQrCode ? (
+                    /* Real-time Dynamic Scannable UPI QR Code */
                     <div style={{
                       backgroundColor: '#F8FAFC',
-                      border: '1px solid #E2E8F0',
+                      border: '1.5px solid #E2E8F0',
                       borderRadius: 16,
-                      padding: 20,
+                      padding: '18px 20px',
                       textAlign: 'center',
-                      marginBottom: 20
+                      marginBottom: 16
                     }}>
                       <div style={{
-                        width: 140,
-                        height: 140,
+                        position: 'relative',
+                        width: 190,
+                        height: 190,
                         backgroundColor: '#FFFFFF',
-                        borderRadius: 12,
+                        borderRadius: 14,
                         margin: '0 auto 12px',
                         padding: 10,
-                        border: '1px solid #CBD5E1',
+                        border: '1.5px solid #CBD5E1',
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.06)',
+                        overflow: 'hidden'
                       }}>
-                        <div style={{ width: '100%', height: '100%', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 3 }}>
-                          {[1,1,1,0,1, 1,0,1,1,1, 1,1,0,1,0, 0,1,1,0,1, 1,1,0,1,1].map((val, idx) => (
-                            <div key={idx} style={{ backgroundColor: val ? '#0F172A' : 'transparent', borderRadius: 2 }} />
-                          ))}
-                        </div>
+                        {/* Animated Laser Scan Bar */}
+                        <div style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          height: 3,
+                          backgroundColor: '#10B981',
+                          boxShadow: '0 0 8px #10B981',
+                          animation: 'scanLaser 2.4s ease-in-out infinite',
+                          zIndex: 2
+                        }} />
+
+                        {qrCodeDataUrl ? (
+                          <img 
+                            src={qrCodeDataUrl} 
+                            alt="Scan GPay UPI QR" 
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <div style={{ fontSize: 12, color: '#64748B' }}>Generating real QR code...</div>
+                        )}
                       </div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
-                        Scan using Google Pay on any mobile
+
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, marginBottom: 4 }}>
+                        <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>
+                          Scan using Google Pay on any mobile phone
+                        </span>
                       </div>
-                      <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                        UPI ID: urbancompany@okhdfcbank
+
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        backgroundColor: '#EFF6FF',
+                        color: '#1D4ED8',
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        marginBottom: 12
+                      }}>
+                        <Clock size={12} />
+                        <span>QR Code active for: <strong>{formatTimer(upiTimer)}</strong></span>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={handleConfirmQRScanPayment}
+                          style={{
+                            backgroundColor: '#10B981',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '8px 14px',
+                            fontSize: 12.5,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6
+                          }}
+                        >
+                          <CheckCircle2 size={15} />
+                          <span>Simulate App Scan &amp; Authorize</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleCopyUpi}
+                          style={{
+                            backgroundColor: '#FFFFFF',
+                            border: '1px solid #CBD5E1',
+                            color: '#334155',
+                            borderRadius: 8,
+                            padding: '8px 12px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5
+                          }}
+                        >
+                          {copiedUpi ? <CheckCheck size={14} color="#10B981" /> : <Copy size={14} />}
+                          <span>{copiedUpi ? 'Copied Link!' : 'Copy UPI Link'}</span>
+                        </button>
                       </div>
                     </div>
                   ) : (
+                    /* UPI ID Input Flow */
                     <div>
                       <label style={{ fontSize: 13, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 8 }}>
                         Enter your Google Pay UPI ID
@@ -729,7 +1809,7 @@ export function PaymentGatewayModal({
                       </div>
 
                       {/* Quick Bank UPI Suffix Buttons */}
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 20 }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
                         {['@okhdfcbank', '@okaxis', '@oksbi', '@okicici'].map(suffix => (
                           <button
                             key={suffix}
@@ -768,38 +1848,36 @@ export function PaymentGatewayModal({
                       }}>
                         <Check size={16} style={{ marginTop: 2, flexShrink: 0 }} />
                         <span>
-                          A collect request of <strong>₹{amount}</strong> will be sent to your Google Pay app. Simply open GPay and approve the PIN.
+                          A collect request of <strong>₹{amount.toLocaleString('en-IN')}</strong> will be sent to your Google Pay app. Simply open GPay and approve the PIN.
                         </span>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={handleInitiateUPICollect}
+                        style={{
+                          width: '100%',
+                          padding: '14px 20px',
+                          backgroundColor: '#1E40AF',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: 12,
+                          fontSize: 15,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          boxShadow: '0 4px 14px rgba(30, 64, 175, 0.3)',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <span>Pay ₹{amount.toLocaleString('en-IN')} with Google Pay</span>
+                        <ArrowRight size={16} />
+                      </button>
                     </div>
                   )}
-
-                  <button
-                    type="button"
-                    onClick={handleExecutePayment}
-                    style={{
-                      width: '100%',
-                      padding: '14px 20px',
-                      backgroundColor: '#1E40AF',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: 12,
-                      fontSize: 15,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      boxShadow: '0 4px 14px rgba(30, 64, 175, 0.3)',
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1D4ED8'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#1E40AF'}
-                  >
-                    <span>Pay ₹{amount.toLocaleString('en-IN')} with Google Pay</span>
-                    <ArrowRight size={16} />
-                  </button>
                 </div>
               )}
 
@@ -808,114 +1886,202 @@ export function PaymentGatewayModal({
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div style={{
-                        padding: '4px 12px',
-                        borderRadius: 8,
-                        backgroundColor: '#5F259F',
-                        color: '#FFFFFF',
-                        fontSize: 15,
-                        fontWeight: 900
-                      }}>
-                        PhonePe
+                      <PhonePeIcon size={34} />
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>PhonePe</span>
+                          <UPILogoBadge />
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#059669', fontWeight: 600 }}>Instant UPI &amp; QR</div>
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#059669', backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: 999 }}>
-                        Fast &amp; Secure
-                      </span>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => setShowQrCode(!showQrCode)}
                       style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#5F259F',
+                        backgroundColor: showQrCode ? '#5F259F' : '#F8FAFC',
+                        border: '1px solid #CBD5E1',
+                        color: showQrCode ? '#FFFFFF' : '#5F259F',
                         fontSize: 12,
                         fontWeight: 700,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 4
+                        gap: 5,
+                        padding: '6px 12px',
+                        borderRadius: 8
                       }}
                     >
                       <QrCode size={14} />
-                      <span>{showQrCode ? 'Hide QR' : 'Scan PhonePe QR'}</span>
+                      <span>{showQrCode ? 'Hide QR' : 'Show PhonePe QR'}</span>
                     </button>
                   </div>
 
-                  <label style={{ fontSize: 13, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 8 }}>
-                    Enter PhonePe Mobile Number or UPI ID
-                  </label>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    border: '1.5px solid #CBD5E1',
-                    borderRadius: 12,
-                    padding: '10px 14px',
-                    backgroundColor: '#FFFFFF',
-                    marginBottom: 14
-                  }}>
-                    <input
-                      type="text"
-                      value={phonePeNumber}
-                      onChange={(e) => setPhonePeNumber(e.target.value)}
-                      placeholder="9876543210 or yourname@ybl"
-                      style={{
-                        border: 'none',
-                        outline: 'none',
-                        width: '100%',
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: '#0F172A'
-                      }}
-                    />
-                    <Smartphone size={18} color="#5F259F" />
-                  </div>
+                  {showQrCode ? (
+                    <div style={{
+                      backgroundColor: '#FAF5FF',
+                      border: '1.5px solid #E9D5FF',
+                      borderRadius: 16,
+                      padding: '18px 20px',
+                      textAlign: 'center',
+                      marginBottom: 16
+                    }}>
+                      <div style={{
+                        position: 'relative',
+                        width: 190,
+                        height: 190,
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 14,
+                        margin: '0 auto 12px',
+                        padding: 10,
+                        border: '1.5px solid #D8B4FE',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 15px rgba(95, 37, 159, 0.08)',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          height: 3,
+                          backgroundColor: '#9333EA',
+                          boxShadow: '0 0 8px #9333EA',
+                          animation: 'scanLaser 2.4s ease-in-out infinite',
+                          zIndex: 2
+                        }} />
 
-                  <div style={{
-                    backgroundColor: '#FAF5FF',
-                    border: '1px solid #E9D5FF',
-                    borderRadius: 12,
-                    padding: '12px 14px',
-                    fontSize: 12.5,
-                    color: '#6B21A8',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 10,
-                    marginBottom: 24
-                  }}>
-                    <Info size={16} style={{ marginTop: 2, flexShrink: 0 }} />
-                    <span>
-                      Open your <strong>PhonePe app</strong> and check notification for <strong>₹{amount}</strong> from Urban Company.
-                    </span>
-                  </div>
+                        {qrCodeDataUrl ? (
+                          <img 
+                            src={qrCodeDataUrl} 
+                            alt="Scan PhonePe QR" 
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <div style={{ fontSize: 12, color: '#64748B' }}>Generating real QR code...</div>
+                        )}
+                      </div>
 
-                  <button
-                    type="button"
-                    onClick={handleExecutePayment}
-                    style={{
-                      width: '100%',
-                      padding: '14px 20px',
-                      backgroundColor: '#5F259F',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: 12,
-                      fontSize: 15,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      boxShadow: '0 4px 14px rgba(95, 37, 159, 0.35)',
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4C1D95'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#5F259F'}
-                  >
-                    <span>Pay ₹{amount.toLocaleString('en-IN')} with PhonePe</span>
-                    <ArrowRight size={16} />
-                  </button>
+                      <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>
+                        Scan using PhonePe App on mobile
+                      </div>
+
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        backgroundColor: '#F3E8FF',
+                        color: '#6B21A8',
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        marginBottom: 12
+                      }}>
+                        <Clock size={12} />
+                        <span>Expires in: <strong>{formatTimer(upiTimer)}</strong></span>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={handleConfirmQRScanPayment}
+                          style={{
+                            backgroundColor: '#5F259F',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '8px 14px',
+                            fontSize: 12.5,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6
+                          }}
+                        >
+                          <CheckCircle2 size={15} />
+                          <span>Simulate App Scan &amp; Authorize</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label style={{ fontSize: 13, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 8 }}>
+                        Enter PhonePe Mobile Number or UPI ID
+                      </label>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        border: '1.5px solid #CBD5E1',
+                        borderRadius: 12,
+                        padding: '10px 14px',
+                        backgroundColor: '#FFFFFF',
+                        marginBottom: 14
+                      }}>
+                        <input
+                          type="text"
+                          value={phonePeNumber}
+                          onChange={(e) => setPhonePeNumber(e.target.value)}
+                          placeholder="9876543210 or yourname@ybl"
+                          style={{
+                            border: 'none',
+                            outline: 'none',
+                            width: '100%',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: '#0F172A'
+                          }}
+                        />
+                        <Smartphone size={18} color="#5F259F" />
+                      </div>
+
+                      <div style={{
+                        backgroundColor: '#FAF5FF',
+                        border: '1px solid #E9D5FF',
+                        borderRadius: 12,
+                        padding: '12px 14px',
+                        fontSize: 12.5,
+                        color: '#6B21A8',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: 10,
+                        marginBottom: 24
+                      }}>
+                        <Info size={16} style={{ marginTop: 2, flexShrink: 0 }} />
+                        <span>
+                          Open your <strong>PhonePe app</strong> and approve the collect request for <strong>₹{amount.toLocaleString('en-IN')}</strong>.
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleInitiateUPICollect}
+                        style={{
+                          width: '100%',
+                          padding: '14px 20px',
+                          backgroundColor: '#5F259F',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: 12,
+                          fontSize: 15,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          boxShadow: '0 4px 14px rgba(95, 37, 159, 0.35)',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <span>Pay ₹{amount.toLocaleString('en-IN')} with PhonePe</span>
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -923,111 +2089,218 @@ export function PaymentGatewayModal({
               {activeTab === 'paytm' && (
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
-                    <div style={{
-                      padding: '4px 12px',
-                      borderRadius: 8,
-                      backgroundColor: '#00BAF2',
-                      color: '#FFFFFF',
-                      fontSize: 15,
-                      fontWeight: 900
-                    }}>
-                      paytm
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <PaytmIcon size={34} />
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>Paytm</span>
+                          <UPILogoBadge />
+                        </div>
+                        <div style={{ fontSize: 11.5, color: '#00BAF2', fontWeight: 700 }}>Instant UPI &amp; QR</div>
+                      </div>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0369A1', backgroundColor: '#E0F2FE', padding: '2px 8px', borderRadius: 999 }}>
-                      Paytm Wallet / UPI
-                    </span>
-                  </div>
 
-                  <label style={{ fontSize: 13, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 8 }}>
-                    Paytm Registered Mobile Number or UPI ID
-                  </label>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    border: '1.5px solid #CBD5E1',
-                    borderRadius: 12,
-                    padding: '10px 14px',
-                    backgroundColor: '#FFFFFF',
-                    marginBottom: 16
-                  }}>
-                    <input
-                      type="text"
-                      value={paytmNumber}
-                      onChange={(e) => setPaytmNumber(e.target.value)}
-                      placeholder="9876543210 or yourname@paytm"
+                    <button
+                      type="button"
+                      onClick={() => setShowQrCode(!showQrCode)}
                       style={{
-                        border: 'none',
-                        outline: 'none',
-                        width: '100%',
-                        fontSize: 14,
-                        fontWeight: 600,
-                        color: '#0F172A'
+                        backgroundColor: showQrCode ? '#002E6E' : '#F0F9FF',
+                        border: '1px solid #BAE6FD',
+                        color: showQrCode ? '#FFFFFF' : '#002E6E',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        padding: '6px 12px',
+                        borderRadius: 8
                       }}
-                    />
-                    <Wallet size={18} color="#00BAF2" />
+                    >
+                      <QrCode size={14} />
+                      <span>{showQrCode ? 'Hide QR' : 'Show Paytm QR'}</span>
+                    </button>
                   </div>
 
-                  <div style={{
-                    backgroundColor: '#F0F9FF',
-                    border: '1px solid #BAE6FD',
-                    borderRadius: 12,
-                    padding: '12px 14px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginBottom: 24
-                  }}>
-                    <div>
-                      <div style={{ fontSize: 12, color: '#0369A1', fontWeight: 600 }}>Linked Paytm Wallet</div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#0C4A6E' }}>Available: ₹1,850.00</div>
+                  {showQrCode ? (
+                    <div style={{
+                      backgroundColor: '#F0F9FF',
+                      border: '1.5px solid #BAE6FD',
+                      borderRadius: 16,
+                      padding: '18px 20px',
+                      textAlign: 'center',
+                      marginBottom: 16
+                    }}>
+                      <div style={{
+                        position: 'relative',
+                        width: 190,
+                        height: 190,
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 14,
+                        margin: '0 auto 12px',
+                        padding: 10,
+                        border: '1.5px solid #7DD3FC',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          height: 3,
+                          backgroundColor: '#0284C7',
+                          boxShadow: '0 0 8px #0284C7',
+                          animation: 'scanLaser 2.4s ease-in-out infinite',
+                          zIndex: 2
+                        }} />
+
+                        {qrCodeDataUrl ? (
+                          <img 
+                            src={qrCodeDataUrl} 
+                            alt="Scan Paytm QR" 
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <div style={{ fontSize: 12, color: '#64748B' }}>Generating real QR code...</div>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A', marginBottom: 4 }}>
+                        Scan using Paytm App
+                      </div>
+
+                      <div style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        backgroundColor: '#E0F2FE',
+                        color: '#0369A1',
+                        padding: '4px 10px',
+                        borderRadius: 999,
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        marginBottom: 12
+                      }}>
+                        <Clock size={12} />
+                        <span>Expires in: <strong>{formatTimer(upiTimer)}</strong></span>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={handleConfirmQRScanPayment}
+                          style={{
+                            backgroundColor: '#002E6E',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '8px 14px',
+                            fontSize: 12.5,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6
+                          }}
+                        >
+                          <CheckCircle2 size={15} />
+                          <span>Simulate App Scan &amp; Authorize</span>
+                        </button>
+                      </div>
                     </div>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#059669', backgroundColor: '#ECFDF5', padding: '2px 8px', borderRadius: 999 }}>
-                      Sufficient Balance
-                    </span>
-                  </div>
+                  ) : (
+                    <div>
+                      <label style={{ fontSize: 13, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 8 }}>
+                        Paytm Mobile Number or UPI ID
+                      </label>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        border: '1.5px solid #CBD5E1',
+                        borderRadius: 12,
+                        padding: '10px 14px',
+                        backgroundColor: '#FFFFFF',
+                        marginBottom: 16
+                      }}>
+                        <input
+                          type="text"
+                          value={paytmNumber}
+                          onChange={(e) => setPaytmNumber(e.target.value)}
+                          placeholder="9876543210 or yourname@paytm"
+                          style={{
+                            border: 'none',
+                            outline: 'none',
+                            width: '100%',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            color: '#0F172A'
+                          }}
+                        />
+                        <Smartphone size={18} color="#00BAF2" />
+                      </div>
 
-                  <button
-                    type="button"
-                    onClick={handleExecutePayment}
-                    style={{
-                      width: '100%',
-                      padding: '14px 20px',
-                      backgroundColor: '#002E6E',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: 12,
-                      fontSize: 15,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      boxShadow: '0 4px 14px rgba(0, 46, 110, 0.35)',
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#001E4D'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#002E6E'}
-                  >
-                    <span>Pay ₹{amount.toLocaleString('en-IN')} with Paytm</span>
-                    <ArrowRight size={16} />
-                  </button>
+                      <div style={{
+                        backgroundColor: '#F0F9FF',
+                        border: '1px solid #BAE6FD',
+                        borderRadius: 12,
+                        padding: '12px 14px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        marginBottom: 24
+                      }}>
+                        <CheckCircle2 size={18} color="#0284C7" />
+                        <div style={{ fontSize: 12.5, color: '#0369A1', fontWeight: 600 }}>
+                          Pay securely using Paytm UPI or linked bank account.
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleInitiateUPICollect}
+                        style={{
+                          width: '100%',
+                          padding: '14px 20px',
+                          backgroundColor: '#002E6E',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: 12,
+                          fontSize: 15,
+                          fontWeight: 800,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          boxShadow: '0 4px 14px rgba(0, 46, 110, 0.35)',
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <span>Pay ₹{amount.toLocaleString('en-IN')} via Paytm UPI</span>
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* ==================== 4. CARD PANEL ==================== */}
               {activeTab === 'card' && (
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>
-                      Credit or Debit Card
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <CardBrandIcon size={34} />
+                      <div>
+                        <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>Credit or Debit Card</div>
+                        <div style={{ fontSize: 11, color: '#64748B' }}>RBI 3D Secure 2.0 Compliant</div>
+                      </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 6 }}>
-                      {['VISA', 'MC', 'RuPay'].map(brand => (
-                        <span key={brand} style={{ fontSize: 10, fontWeight: 900, backgroundColor: '#F1F5F9', color: '#334155', padding: '2px 6px', borderRadius: 4 }}>
-                          {brand}
-                        </span>
-                      ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <VisaBadge />
+                      <MastercardBadge />
+                      <RuPayBadge />
                     </div>
                   </div>
 
@@ -1038,6 +2311,7 @@ export function PaymentGatewayModal({
                       </label>
                       <input
                         type="text"
+                        maxLength={19}
                         value={cardNumber}
                         onChange={(e) => setCardNumber(e.target.value)}
                         placeholder="4532 8920 1142 8849"
@@ -1084,6 +2358,7 @@ export function PaymentGatewayModal({
                           </label>
                           <input
                             type="text"
+                            maxLength={5}
                             value={cardExpiry}
                             onChange={(e) => setCardExpiry(e.target.value)}
                             placeholder="MM/YY"
@@ -1134,13 +2409,13 @@ export function PaymentGatewayModal({
                         onChange={(e) => setSaveCard(e.target.checked)}
                         style={{ accentColor: '#6E42E5' }}
                       />
-                      <span>Save card securely as per RBI guidelines</span>
+                      <span>Save card securely via tokenization as per RBI norms</span>
                     </label>
                   </div>
 
                   <button
                     type="button"
-                    onClick={handleExecutePayment}
+                    onClick={handleInitiateCardPayment}
                     style={{
                       width: '100%',
                       padding: '14px 20px',
@@ -1158,10 +2433,8 @@ export function PaymentGatewayModal({
                       boxShadow: '0 4px 14px rgba(110, 66, 229, 0.35)',
                       transition: 'all 0.15s'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#582AD1'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6E42E5'}
                   >
-                    <span>Pay ₹{amount.toLocaleString('en-IN')} Securely</span>
+                    <span>Proceed to 3D Secure OTP • ₹{amount.toLocaleString('en-IN')}</span>
                     <ArrowRight size={16} />
                   </button>
                 </div>
@@ -1170,20 +2443,17 @@ export function PaymentGatewayModal({
               {/* ==================== 5. COD PANEL ==================== */}
               {activeTab === 'cod' && (
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                    <div style={{
-                      padding: '4px 12px',
-                      borderRadius: 8,
-                      backgroundColor: '#ECFDF5',
-                      color: '#059669',
-                      fontSize: 15,
-                      fontWeight: 900
-                    }}>
-                      Cash on Delivery
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+                    <CODBrandIcon size={36} />
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>Cash on Delivery</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#047857', backgroundColor: '#D1FAE5', padding: '2px 8px', borderRadius: 999 }}>
+                          Pay After Service
+                        </span>
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#059669', fontWeight: 600 }}>Zero advance payment required</div>
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#047857', backgroundColor: '#D1FAE5', padding: '2px 8px', borderRadius: 999 }}>
-                      Pay After Service
-                    </span>
                   </div>
 
                   <div style={{
@@ -1213,14 +2483,14 @@ export function PaymentGatewayModal({
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                       <CheckCircle2 size={18} color="#10B981" style={{ marginTop: 2, flexShrink: 0 }} />
                       <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.4 }}>
-                        <strong>Urban Company 30-Day Warranty:</strong> Covers all spare parts and service quality.
+                        <strong>Forge India Connect 30-Day Warranty:</strong> Covers all spare parts and service quality.
                       </div>
                     </div>
                   </div>
 
                   <button
                     type="button"
-                    onClick={handleExecutePayment}
+                    onClick={handleInitiateCOD}
                     style={{
                       width: '100%',
                       padding: '14px 20px',
@@ -1238,85 +2508,8 @@ export function PaymentGatewayModal({
                       boxShadow: '0 4px 14px rgba(5, 150, 105, 0.35)',
                       transition: 'all 0.15s'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#047857'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#059669'}
                   >
                     <span>Confirm Booking with Cash on Delivery • ₹{amount.toLocaleString('en-IN')}</span>
-                    <ArrowRight size={16} />
-                  </button>
-                </div>
-              )}
-
-              {/* ==================== 6. WALLETS PANEL ==================== */}
-              {activeTab === 'wallet' && (
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', marginBottom: 14 }}>
-                    Select Digital Wallet
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
-                    {[
-                      { id: 'amazon_pay', name: 'Amazon Pay', balance: '₹450.00', color: '#FF9900' },
-                      { id: 'mobikwik', name: 'Mobikwik Wallet', balance: '₹210.00', color: '#0084FF' },
-                      { id: 'airtel_money', name: 'Airtel Money', balance: '₹120.00', color: '#ED1C24' },
-                      { id: 'jiomoney', name: 'JioMoney', balance: '₹80.00', color: '#0066A2' }
-                    ].map(w => (
-                      <label
-                        key={w.id}
-                        onClick={() => setSelectedWallet(w.id)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '12px 14px',
-                          borderRadius: 10,
-                          border: selectedWallet === w.id ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
-                          backgroundColor: selectedWallet === w.id ? '#FAF5FF' : '#FFFFFF',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <input
-                            type="radio"
-                            name="gatewayWallet"
-                            checked={selectedWallet === w.id}
-                            onChange={() => setSelectedWallet(w.id)}
-                            style={{ accentColor: '#6E42E5' }}
-                          />
-                          <div>
-                            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>{w.name}</div>
-                            <div style={{ fontSize: 11, color: '#64748B' }}>Available Balance: {w.balance}</div>
-                          </div>
-                        </div>
-                        <Wallet size={16} color={w.color} />
-                      </label>
-                    ))}
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleExecutePayment}
-                    style={{
-                      width: '100%',
-                      padding: '14px 20px',
-                      backgroundColor: '#D97706',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: 12,
-                      fontSize: 15,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      boxShadow: '0 4px 14px rgba(217, 119, 6, 0.35)',
-                      transition: 'all 0.15s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B45309'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#D97706'}
-                  >
-                    <span>Pay ₹{amount.toLocaleString('en-IN')} via Wallet</span>
                     <ArrowRight size={16} />
                   </button>
                 </div>
@@ -1337,7 +2530,7 @@ export function PaymentGatewayModal({
                   <ShieldCheck size={13} color="#10B981" />
                   <span>Safe &amp; Secure Payment</span>
                 </div>
-                <div>PCI-DSS Level 1 Compliant</div>
+                <div>PCI-DSS Level 1 Compliant • NPCI Switch</div>
               </div>
             </div>
           </div>
@@ -1346,4 +2539,5 @@ export function PaymentGatewayModal({
     </div>
   );
 }
+
 export default PaymentGatewayModal;

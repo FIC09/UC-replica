@@ -14,10 +14,7 @@ import { PaymentsView } from './views/PaymentsView';
 import { PayoutsView } from './views/PayoutsView';
 import { RefundsView } from './views/RefundsView';
 import { SupportView } from './views/SupportView';
-import { ReviewsView } from './views/ReviewsView';
 import { PromotionsView } from './views/PromotionsView';
-import { ContentView } from './views/ContentView';
-import { NotificationsView } from './views/NotificationsView';
 import { SettingsView } from './views/SettingsView';
 
 const REMOVED_ADMIN_PATHS = [
@@ -26,10 +23,13 @@ const REMOVED_ADMIN_PATHS = [
   '/admin/training',
   '/admin/reports',
   '/admin/team',
-  '/admin/audit-logs'
+  '/admin/audit-logs',
+  '/admin/reviews',
+  '/admin/content',
+  '/admin/notifications'
 ];
 
-export function AdminRouter({ onExitToMarketplace }) {
+export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
   const [currentPath, setCurrentPath] = useState(() => {
     const path = window.location.pathname;
     if (REMOVED_ADMIN_PATHS.includes(path)) {
@@ -119,10 +119,21 @@ export function AdminRouter({ onExitToMarketplace }) {
     sessionStorage.removeItem('uc_admin_user');
     localStorage.removeItem('uc_admin_token');
     localStorage.removeItem('uc_admin_user');
+    localStorage.removeItem('uc_user');
     setIsAuthenticated(false);
-    handleNavigate('/admin/login');
-    showToast('Signed out of Operations Dashboard');
-  }, [handleNavigate, showToast]);
+    
+    // Broadcast event across app
+    window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: null } }));
+
+    if (onAppLogout) {
+      onAppLogout();
+    } else if (onExitToMarketplace) {
+      onExitToMarketplace();
+    } else {
+      window.history.pushState({}, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  }, [onAppLogout, onExitToMarketplace]);
 
   const handleToggleWeatherSurge = useCallback((active) => {
     setWeatherSurge(active);
@@ -181,14 +192,8 @@ export function AdminRouter({ onExitToMarketplace }) {
         return <RefundsView onShowToast={showToast} />;
       case '/admin/support':
         return <SupportView onShowToast={showToast} />;
-      case '/admin/reviews':
-        return <ReviewsView onShowToast={showToast} />;
       case '/admin/promotions':
         return <PromotionsView onShowToast={showToast} />;
-      case '/admin/content':
-        return <ContentView onShowToast={showToast} />;
-      case '/admin/notifications':
-        return <NotificationsView onShowToast={showToast} />;
       case '/admin/settings':
         return <SettingsView onShowToast={showToast} />;
       default:

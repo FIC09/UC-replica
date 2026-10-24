@@ -105,26 +105,128 @@ export async function getCustomers(req, res) {
     let dbUsers = [];
     try {
       dbUsers = await User.find({ role: 'user' }).select('-password').lean();
-    } catch {}
+    } catch (e) {
+      console.warn('User.find error:', e.message);
+    }
 
-    let list = mockCustomers;
-    if (dbUsers.length > 1) {
-      list = dbUsers.map(u => ({
+    let allBookings = [];
+    try {
+      allBookings = await Booking.find().sort({ createdAt: -1 }).lean();
+    } catch (e) {
+      console.warn('Booking.find in getCustomers error:', e.message);
+    }
+
+    // Index booking statistics by phone (last 10 digits) and by customerId
+    const statsByPhone = {};
+    const statsByCustId = {};
+
+    for (const b of allBookings) {
+      const phoneDigits = (b.userPhone || '').replace(/\D/g, '').slice(-10);
+      if (phoneDigits) {
+        if (!statsByPhone[phoneDigits]) {
+          statsByPhone[phoneDigits] = { count: 0, totalSpend: 0, bookings: [], latest: b };
+        }
+        statsByPhone[phoneDigits].count++;
+        if (b.status !== 'Cancelled') {
+          statsByPhone[phoneDigits].totalSpend += (b.totalAmount || 0);
+        }
+        statsByPhone[phoneDigits].bookings.push(b);
+      }
+
+      if (b.customerId) {
+        if (!statsByCustId[b.customerId]) {
+          statsByCustId[b.customerId] = { count: 0, totalSpend: 0, bookings: [], latest: b };
+        }
+        statsByCustId[b.customerId].count++;
+        if (b.status !== 'Cancelled') {
+          statsByCustId[b.customerId].totalSpend += (b.totalAmount || 0);
+        }
+        statsByCustId[b.customerId].bookings.push(b);
+      }
+    }
+
+    // 1. Map registered DB users
+    const realUsers = dbUsers.map(u => {
+      const phoneDigits = (u.phone || '').replace(/\D/g, '').slice(-10);
+      const stats = statsByCustId[u._id.toString()] || statsByPhone[phoneDigits] || { count: 0, totalSpend: 0, bookings: [] };
+
+      let addresses = u.savedAddresses || [];
+      if (addresses.length === 0 && stats.latest && stats.latest.address) {
+        addresses = [{
+          id: `addr-${stats.latest.id || '1'}`,
+          type: 'Home',
+          streetAddress: stats.latest.address,
+          locality: stats.latest.serviceZone || u.locality || 'Bandra West',
+          city: stats.latest.city || u.city || 'Mumbai',
+          pincode: stats.latest.addressDetails?.pincode || '',
+          isDefault: true
+        }];
+      }
+
+      return {
         id: u._id.toString(),
+        _id: u._id.toString(),
         name: u.name,
         phone: u.phone,
         email: u.email || `${u.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-        city: u.city || 'Mumbai',
-        locality: u.locality || 'Bandra West',
+        city: u.city || stats.latest?.city || 'Mumbai',
+        locality: u.locality || stats.latest?.serviceZone || 'Bandra West',
         status: u.status || 'Active',
-        isPlusMember: u.hasUCPlus || false,
-        joinedDate: new Date(u.createdAt || Date.now()).toLocaleDateString(),
-        savedAddresses: u.savedAddresses || [],
+        isPlusMember: !!u.hasUCPlus,
+        joinedDate: new Date(u.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        savedAddresses: addresses,
         internalNotes: u.internalNotes || [],
         suspendReason: u.suspendReason || '',
-        suspendHistory: u.suspendHistory || []
-      }));
+        suspendHistory: u.suspendHistory || [],
+        totalBookings: stats.count,
+        totalSpend: stats.totalSpend
+      };
+    });
+
+    // 2. Synthesize customer records for any bookings placed where User record wasn't pre-created
+    const registeredPhoneDigits = new Set(realUsers.map(u => (u.phone || '').replace(/\D/g, '').slice(-10)).filter(Boolean));
+    const extraCustomersFromBookings = [];
+
+    for (const b of allBookings) {
+      const phoneDigits = (b.userPhone || '').replace(/\D/g, '').slice(-10);
+      if (phoneDigits && !registeredPhoneDigits.has(phoneDigits)) {
+        registeredPhoneDigits.add(phoneDigits);
+        const stats = statsByPhone[phoneDigits] || { count: 1, totalSpend: b.totalAmount || 0, bookings: [b] };
+        extraCustomersFromBookings.push({
+          id: b.customerId || `CUST-${phoneDigits.slice(-4) || '9999'}`,
+          _id: b.customerId || `CUST-${phoneDigits.slice(-4) || '9999'}`,
+          name: b.userName || 'Customer',
+          phone: b.userPhone,
+          email: b.userEmail || `${(b.userName || 'customer').toLowerCase().replace(/\s+/g, '.')}@example.com`,
+          city: b.city || 'Mumbai',
+          locality: b.serviceZone || (b.addressDetails?.locality) || 'Bandra West',
+          status: 'Active',
+          isPlusMember: false,
+          joinedDate: new Date(b.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+          savedAddresses: b.address ? [{
+            id: `addr-${b.id || '1'}`,
+            type: 'Home',
+            streetAddress: b.address,
+            locality: b.serviceZone || 'Bandra West',
+            city: b.city || 'Mumbai',
+            pincode: b.addressDetails?.pincode || '',
+            isDefault: true
+          }] : [],
+          internalNotes: [],
+          suspendReason: '',
+          suspendHistory: [],
+          totalBookings: stats.count,
+          totalSpend: stats.totalSpend
+        });
+      }
     }
+
+    // Real DB customers at the top, then fallback mock records (filtered to avoid duplicate phones)
+    const realCustomers = [...realUsers, ...extraCustomersFromBookings];
+    const realPhones = new Set(realCustomers.map(c => (c.phone || '').replace(/\D/g, '').slice(-10)).filter(Boolean));
+    const nonDupeMocks = mockCustomers.filter(m => !realPhones.has((m.phone || '').replace(/\D/g, '').slice(-10)));
+
+    let list = [...realCustomers, ...nonDupeMocks];
 
     // Filter
     let filtered = list.filter(c => {
@@ -169,24 +271,72 @@ export async function getCustomerDetail(req, res) {
     } catch {}
 
     if (!user) {
+      try {
+        const cleanDigits = id.replace(/\D/g, '').slice(-10);
+        user = await User.findOne({
+          $or: [
+            { phone: id },
+            { phone: cleanDigits },
+            { phone: `+91 ${cleanDigits}` },
+            { email: id }
+          ]
+        }).select('-password').lean();
+      } catch {}
+    }
+
+    // Fetch all bookings for this customer from MongoDB
+    let customerBookings = [];
+    try {
+      const searchQueries = [{ customerId: id }, { userPhone: id }];
+      if (user?.phone) searchQueries.push({ userPhone: user.phone });
+      if (user?.name) searchQueries.push({ userName: user.name });
+
+      const cleanDigits = id.replace(/\D/g, '').slice(-10);
+      if (cleanDigits) {
+        searchQueries.push({ userPhone: new RegExp(cleanDigits) });
+      }
+
+      customerBookings = await Booking.find({ $or: searchQueries }).sort({ createdAt: -1 }).lean();
+    } catch (e) {
+      console.warn('Booking.find in getCustomerDetail:', e.message);
+    }
+
+    // Synthesize customer profile from bookings if user record wasn't in DB
+    if (!user && customerBookings.length > 0) {
+      const primary = customerBookings[0];
+      user = {
+        _id: primary.customerId || id,
+        id: primary.customerId || id,
+        name: primary.userName || 'Customer',
+        phone: primary.userPhone,
+        email: primary.userEmail || `${(primary.userName || 'customer').toLowerCase().replace(/\s+/g, '.')}@example.com`,
+        city: primary.city || 'Mumbai',
+        locality: primary.serviceZone || (primary.addressDetails?.locality) || 'Bandra West',
+        status: 'Active',
+        isPlusMember: false,
+        joinedDate: new Date(primary.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        savedAddresses: primary.address ? [{
+          id: `addr-${primary.id || '1'}`,
+          type: 'Home',
+          streetAddress: primary.address,
+          locality: primary.serviceZone || 'Bandra West',
+          city: primary.city || 'Mumbai',
+          pincode: primary.addressDetails?.pincode || '',
+          isDefault: true
+        }] : [],
+        internalNotes: [],
+        suspendReason: '',
+        suspendHistory: []
+      };
+    }
+
+    if (!user) {
       user = mockCustomers.find(c => c.id === id || c._id === id);
     }
 
     if (!user) {
       return res.status(404).json({ success: false, error: `Customer ${id} not found.` });
     }
-
-    // Get bookings associated with this customer
-    let customerBookings = [];
-    try {
-      customerBookings = await Booking.find({
-        $or: [
-          { customerId: id },
-          { userPhone: user.phone },
-          { userName: user.name }
-        ]
-      }).sort({ createdAt: -1 }).lean();
-    } catch {}
 
     if (customerBookings.length === 0) {
       customerBookings = [
@@ -198,7 +348,7 @@ export async function getCustomerDetail(req, res) {
     // Compute Spending summary
     const completedOrders = customerBookings.filter(b => b.status === 'Completed').length;
     const cancelledOrders = customerBookings.filter(b => b.status === 'Cancelled').length;
-    const lifetimeValue = customerBookings.reduce((sum, b) => b.status !== 'Cancelled' ? sum + (b.totalAmount || 0) : sum, 0) || 8450;
+    const lifetimeValue = customerBookings.reduce((sum, b) => b.status !== 'Cancelled' ? sum + (b.totalAmount || 0) : sum, 0) || (user.totalSpend || 8450);
     const avgOrderValue = Math.round(lifetimeValue / (customerBookings.length || 1));
 
     // Linked support tickets
@@ -222,7 +372,7 @@ export async function getCustomerDetail(req, res) {
         locality: user.locality || 'Bandra West',
         status: user.status || 'Active',
         isPlusMember: user.hasUCPlus || user.isPlusMember || false,
-        joinedDate: user.joinedDate || new Date(user.createdAt || Date.now()).toLocaleDateString(),
+        joinedDate: user.joinedDate || new Date(user.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         savedAddresses: user.savedAddresses || [],
         internalNotes: user.internalNotes || [],
         suspendReason: user.suspendReason || '',
@@ -231,7 +381,7 @@ export async function getCustomerDetail(req, res) {
       spendingSummary: {
         lifetimeValue,
         avgOrderValue,
-        totalBookings: customerBookings.length || 4,
+        totalBookings: customerBookings.length,
         completedOrders,
         cancelledOrders
       },

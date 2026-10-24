@@ -1,7 +1,7 @@
 {
-  "name": "urban-company-mern",
+  "name": "forge-india-connect",
   "version": "1.0.0",
-  "description": "Urban Company Full-Stack MERN Replica (MongoDB, Express, React, Node.js)",
+  "description": "Forge India Connect Full-Stack MERN Application (MongoDB, Express, React, Node.js)",
   "private": true,
   "scripts": {
     "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"blue,magenta\" \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",

@@ -16,6 +16,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { MUMBAI_LOCALITIES, CITY_LOCALITIES } from '../data/servicesData';
+import { getAvailableServiceDates } from '../utils/slotDates';
 
 export function CheckoutModal({
   isOpen,
@@ -52,8 +53,10 @@ export function CheckoutModal({
   );
   const [deliveryNotes, setDeliveryNotes] = useState('');
 
+  const availableDates = getAvailableServiceDates();
+
   // Slot state
-  const [selectedDate, setSelectedDate] = useState('Today (13 Oct)');
+  const [selectedDate, setSelectedDate] = useState(() => availableDates[0]?.label || 'Today');
   const [selectedTime, setSelectedTime] = useState('10:00 AM - 11:00 AM');
 
   // Payment state
@@ -61,11 +64,10 @@ export function CheckoutModal({
 
   if (!isOpen) return null;
 
-  const dates = [
-    { label: 'Today', sub: '13 Oct' },
-    { label: 'Tomorrow', sub: '14 Oct' },
-    { label: 'Wednesday', sub: '15 Oct' },
-  ];
+  const dates = availableDates.map(d => ({
+    label: d.prefix,
+    sub: d.sub
+  }));
 
   const timeSlots = [
     '08:00 AM - 09:00 AM',
@@ -87,16 +89,57 @@ export function CheckoutModal({
       }
     }
 
+    const bookingId = 'UC-' + Math.floor(100000 + Math.random() * 900000);
+    const cartList = Object.values(cart);
+    const firstItem = cartList[0] || {};
+    const rawPhone = (userPhone || user?.phone || '9820144521').toString().trim();
+    const formattedPhone = rawPhone.startsWith('+91') ? rawPhone : `+91 ${rawPhone.replace(/\D/g, '').slice(-10) || rawPhone}`;
+    const custName = userName || user?.name || 'Customer';
+
     const bookingDetails = {
-      id: 'UC-' + Math.floor(100000 + Math.random() * 900000),
-      items: Object.values(cart),
+      id: bookingId,
+      bookingReference: bookingId,
+      customerId: user?._id || user?.id || '',
+      userName: custName,
+      userPhone: formattedPhone,
+      userEmail: user?.email || '',
+      city: selectedCity || 'Mumbai',
+      serviceZone: locality || selectedLocality || 'Bandra West',
+      serviceName: firstItem.title || firstItem.name || 'Home Service',
+      serviceCategory: firstItem.category || 'Home Services',
+      items: cartList.map(item => ({
+        id: item.id || `item-${Math.random()}`,
+        title: item.title || item.name || 'Service',
+        name: item.title || item.name || 'Service',
+        price: item.price || 0,
+        qty: item.qty || 1,
+        image: item.image || ''
+      })),
       totalAmount,
+      pricingBreakdown: {
+        subtotal: totalAmount,
+        discount: 0,
+        convenienceFee: 49,
+        taxes: Math.round(totalAmount * 0.18),
+        surgeFee: 0,
+        total: totalAmount
+      },
       address: finalAddressText,
+      addressDetails: {
+        fullAddress: finalAddressText,
+        flat: flatNumber,
+        locality: locality || selectedLocality || 'Bandra West',
+        city: selectedCity || 'Mumbai',
+        pincode: pincode || '',
+        contactPhone: formattedPhone
+      },
       notes: deliveryNotes.trim() || undefined,
       slot: `${selectedDate}, ${selectedTime}`,
-      contact: `${userName} (${userPhone})`,
+      contact: `${custName} (${formattedPhone})`,
       paymentMethod: paymentMethod.toUpperCase(),
+      paymentStatus: 'Paid',
       createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      createdAtFormatted: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
       status: 'Confirmed',
     };
 

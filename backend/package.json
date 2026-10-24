@@ -1,7 +1,7 @@
 {
-  "name": "urban-backend",
+  "name": "forge-india-connect-backend",
   "version": "1.0.0",
-  "description": "Urban Company MERN Stack Backend API with Express, Node.js and MongoDB",
+  "description": "Forge India Connect MERN Stack Backend API with Express, Node.js and MongoDB",
   "main": "server.js",
   "type": "module",
   "scripts": {

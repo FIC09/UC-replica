@@ -196,7 +196,7 @@ function App() {
   const [selectedCity, setSelectedCity] = useState(() => {
     try {
       const saved = localStorage.getItem('uc_selected_city');
-      if (saved && !saved.includes('Mumbai') && !/poonamalle/i.test(saved)) return saved;
+      if (saved && !/chennai|poonamalle|adayalampattu|tiruvallur/i.test(saved)) return saved;
       return 'Krishnagiri';
     } catch {
       return 'Krishnagiri';
@@ -205,7 +205,7 @@ function App() {
   const [selectedLocality, setSelectedLocality] = useState(() => {
     try {
       const saved = localStorage.getItem('uc_selected_locality');
-      if (saved && !saved.includes('Bandra') && !/poonamalle/i.test(saved)) return saved;
+      if (saved && !/chennai|poonamalle|adayalampattu|tiruvallur/i.test(saved)) return saved;
       return 'Rayakottai Road';
     } catch {
       return 'Rayakottai Road';
@@ -482,30 +482,52 @@ function App() {
   const [savedAddresses, setSavedAddresses] = useState(() => {
     try {
       const saved = localStorage.getItem('uc_addresses');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Sanitize any false-positive Chennai ISP gateway addresses to Krishnagiri
+          return parsed.map(addr => {
+            const isIspGateway = /chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(
+              `${addr.city} ${addr.locality} ${addr.formatted || ''} ${addr.flat || ''}`
+            );
+            if (isIspGateway) {
+              return {
+                ...addr,
+                city: 'Krishnagiri',
+                locality: 'Rayakottai Road',
+                pincode: '635001',
+                flat: addr.flat && !/adayalampattu|chennai/i.test(addr.flat) ? addr.flat : 'Door 14/2, Rayakottai Road',
+                landmark: 'GPS Verified (Krishnagiri)',
+                formatted: `Door 14/2, Rayakottai Road, Krishnagiri - 635001 (GPS Verified)`
+              };
+            }
+            return addr;
+          });
+        }
+      }
     } catch {}
     return [
       {
-        id: 'ADDR-1',
+        id: 'ADDR-KG-1',
         label: 'Home',
-        flat: 'Flat 402, Sea Green Heights, Bandra West',
+        flat: 'Door 14/2, Rayakottai Road',
+        locality: 'Rayakottai Road',
+        city: 'Krishnagiri',
+        pincode: '635001',
+        landmark: 'Near New Bus Stand',
+        isDefault: true,
+        formatted: 'Door 14/2, Rayakottai Road, Krishnagiri - 635001 (Near New Bus Stand)'
+      },
+      {
+        id: 'ADDR-1',
+        label: 'Work',
+        flat: 'Flat 402, Sea Green Heights',
         locality: 'Bandra West',
         city: 'Mumbai',
         pincode: '400050',
         landmark: 'Opposite Mehboob Studio',
-        isDefault: true,
-        formatted: 'Flat 402, Sea Green Heights, Bandra West, Mumbai - 400050 (Opposite Mehboob Studio)'
-      },
-      {
-        id: 'ADDR-2',
-        label: 'Work',
-        flat: 'Unit 802, One BKC, G Block, BKC',
-        locality: 'Bandra West',
-        city: 'Mumbai',
-        pincode: '400051',
-        landmark: 'Near MCA Club',
         isDefault: false,
-        formatted: 'Unit 802, One BKC, G Block, BKC, Mumbai - 400051'
+        formatted: 'Flat 402, Sea Green Heights, Bandra West, Mumbai - 400050 (Opposite Mehboob Studio)'
       }
     ];
   });
@@ -514,6 +536,34 @@ function App() {
     try {
       localStorage.setItem('uc_addresses', JSON.stringify(savedAddresses));
     } catch {}
+  }, [savedAddresses]);
+
+  // Proactively auto-heal any existing saved addresses holding Chennai ISP exchange false-positives
+  useEffect(() => {
+    const hasStaleIsp = savedAddresses.some(addr => 
+      /chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(
+        `${addr.city} ${addr.locality} ${addr.formatted || ''} ${addr.flat || ''}`
+      )
+    );
+    if (hasStaleIsp) {
+      setSavedAddresses(prev => prev.map(addr => {
+        const isIsp = /chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(
+          `${addr.city} ${addr.locality} ${addr.formatted || ''} ${addr.flat || ''}`
+        );
+        if (isIsp) {
+          return {
+            ...addr,
+            city: 'Krishnagiri',
+            locality: 'Rayakottai Road',
+            pincode: '635001',
+            flat: addr.flat && !/adayalampattu|chennai/i.test(addr.flat) ? addr.flat : 'Door 14/2, Rayakottai Road',
+            landmark: 'GPS Verified (Krishnagiri)',
+            formatted: 'Door 14/2, Rayakottai Road, Krishnagiri - 635001 (GPS Verified)'
+          };
+        }
+        return addr;
+      }));
+    }
   }, [savedAddresses]);
 
   function handleAddAddress(newAddr) {
@@ -574,14 +624,27 @@ function App() {
   }, [bookings]);
 
   function handleConfirmOrder(bookingDetails) {
-    setBookings(prev => [bookingDetails, ...prev]);
+    const rawPhone = (bookingDetails.userPhone || user?.phone || '9820144521').toString().trim();
+    const formattedPhone = rawPhone.startsWith('+91') ? rawPhone : `+91 ${rawPhone.replace(/\D/g, '').slice(-10) || rawPhone}`;
+    const enriched = {
+      ...bookingDetails,
+      userName: bookingDetails.userName || user?.name || 'Customer',
+      userPhone: formattedPhone,
+      userEmail: bookingDetails.userEmail || user?.email || '',
+      customerId: bookingDetails.customerId || user?._id || user?.id || '',
+      city: bookingDetails.city || selectedCity || 'Mumbai',
+      serviceZone: bookingDetails.serviceZone || selectedLocality || 'Bandra West',
+      status: bookingDetails.status || 'Confirmed',
+      paymentStatus: bookingDetails.paymentStatus || 'Paid'
+    };
+    setBookings(prev => [enriched, ...prev]);
     setCart({}); // clear cart
     setIsCheckoutModalOpen(false);
     setCurrentView('home');
-    setActiveTrackingBooking(bookingDetails);
-    setLatestLiveBooking(bookingDetails);
-    bookingsApi.create(bookingDetails).catch(err => console.warn('Backend booking sync failed:', err));
-    showToast(`🎉 Booking ${bookingDetails.id} confirmed!`);
+    setActiveTrackingBooking(enriched);
+    setLatestLiveBooking(enriched);
+    bookingsApi.create(enriched).catch(err => console.warn('Backend booking sync failed:', err));
+    showToast(`🎉 Booking ${enriched.id} confirmed!`);
   }
 
   function handleUpdateBookingSlot(id, newSlot) {
@@ -736,6 +799,25 @@ function App() {
       }
     } catch {}
   }, [user]);
+
+  useEffect(() => {
+    function handleAuthEvent(e) {
+      if (e.detail?.user === null) {
+        setUser(null);
+      }
+    }
+    function handleStorageEvent(e) {
+      if (e.key === 'uc_user' && !e.newValue) {
+        setUser(null);
+      }
+    }
+    window.addEventListener('uc:auth-changed', handleAuthEvent);
+    window.addEventListener('storage', handleStorageEvent);
+    return () => {
+      window.removeEventListener('uc:auth-changed', handleAuthEvent);
+      window.removeEventListener('storage', handleStorageEvent);
+    };
+  }, []);
 
   // Modals Visibility
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -955,6 +1037,10 @@ function App() {
       professionalClient.setAuth('demo_pro_token', professionalClient.getStoredUser());
     } catch {}
     setIsProfessionalDashboardOpen(false);
+    try {
+      sessionStorage.setItem('uc_pro_token', 'simulated-pro-jwt-token');
+      localStorage.setItem('uc_pro_token', 'simulated-pro-jwt-token');
+    } catch {}
     window.history.pushState({}, '', '/professional');
     setIsProfessionalRoute(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -962,6 +1048,10 @@ function App() {
 
   function handleOpenPartnerPortal() {
     setIsPartnerDashboardOpen(false);
+    try {
+      sessionStorage.setItem('uc_partner_token', 'simulated-partner-jwt-token');
+      localStorage.setItem('uc_partner_token', 'simulated-partner-jwt-token');
+    } catch {}
     window.history.pushState({}, '', '/partner');
     setIsPartnerRoute(true);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -998,8 +1088,30 @@ function App() {
     try {
       localStorage.removeItem('uc_user');
       sessionStorage.removeItem('uc_admin_auth');
+      sessionStorage.removeItem('uc_admin_token');
+      sessionStorage.removeItem('uc_admin_user');
+      localStorage.removeItem('uc_admin_token');
+      localStorage.removeItem('uc_admin_user');
+      localStorage.removeItem('uc_open_portal');
+      localStorage.removeItem('uc_partner_token');
+      localStorage.removeItem('uc_partner_id');
+      localStorage.removeItem('uc_partner_profile');
+      localStorage.removeItem('uc_partner_staff');
+      localStorage.removeItem('uc_pro_token');
+      localStorage.removeItem('uc_pro_id');
+      localStorage.removeItem('uc_pro_user');
     } catch {}
-    showToast(`👋 Logged out successfully.`);
+    setIsAdminRoute(false);
+    setIsProfessionalRoute(false);
+    setIsPartnerRoute(false);
+    setCurrentView('home');
+    setActiveNavTab('homes');
+    if (window.location.pathname !== '/') {
+      window.history.pushState({}, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast(`👋 Logged out successfully. Returning to Home.`);
   }
 
   // ==========================================
@@ -1172,8 +1284,9 @@ function App() {
   const totalCartCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
 
   function handleLocationSelect(city, locality) {
-    const finalCity = /poonamalle/i.test(city) ? 'Krishnagiri' : city;
-    const finalLocality = /poonamalle/i.test(locality) ? 'Rayakottai Road' : locality;
+    const isIspGateway = /chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(`${city} ${locality}`);
+    const finalCity = isIspGateway ? 'Krishnagiri' : city;
+    const finalLocality = isIspGateway ? 'Rayakottai Road' : locality;
     setSelectedCity(finalCity);
     setSelectedLocality(finalLocality);
     showToast(`📍 Delivering to ${finalLocality}, ${finalCity}`);
@@ -1220,6 +1333,7 @@ function App() {
   if (isAdminRoute) {
     return (
       <AdminRouter
+        onLogout={handleLogout}
         onExitToMarketplace={() => {
           window.history.pushState({}, '', '/');
           setIsAdminRoute(false);
@@ -1234,6 +1348,7 @@ function App() {
   if (isProfessionalRoute) {
     return (
       <ProfessionalRouter
+        onLogout={handleLogout}
         onExitToMarketplace={() => {
           window.history.pushState({}, '', '/');
           setIsProfessionalRoute(false);
@@ -1248,6 +1363,7 @@ function App() {
   if (isPartnerRoute) {
     return (
       <PartnerRouter
+        onLogout={handleLogout}
         onExitToMarketplace={() => {
           window.history.pushState({}, '', '/');
           setIsPartnerRoute(false);
@@ -1667,9 +1783,12 @@ function App() {
           onClearCart={handleClearCart}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
+          onSelectLocation={handleLocationSelect}
+          onOpenLocationModal={() => setIsLocationModalOpen(true)}
           user={user}
           onOpenAuth={handleOpenAuth}
           savedAddresses={savedAddresses}
+          onAddAddress={handleAddAddress}
           onConfirmOrder={handleConfirmOrder}
           showToast={showToast}
           hasUCPlus={hasUCPlus}
@@ -1921,11 +2040,6 @@ function App() {
               }}
             />
 
-            {/* UC Plus Membership Section */}
-            <UCPlusSection
-              hasUCPlus={hasUCPlus}
-              onToggleUCPlus={handleOpenUCPlusPayment}
-            />
 
             {/* The Urban Company Promise */}
             <UCPromiseSection />
@@ -1967,52 +2081,6 @@ function App() {
         }}
         onOpenWorkerOnboarding={() => setIsWorkerOnboardingOpen(true)}
       />
-
-          {/* Universal Sticky Floating Cart Bar (Desktop & Mobile) */}
-          {totalCartCount > 0 && (
-            <div 
-              className="universal-floating-cart-bar"
-              onClick={handleOpenCartView}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 10,
-                  background: '#1E293B',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <ShoppingBag size={20} color="#A78BFA" />
-                </div>
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 800 }}>
-                    {totalCartCount} {totalCartCount === 1 ? 'service' : 'services'} added • ₹{cartSubtotal}
-                  </div>
-                  <div style={{ fontSize: 11.5, opacity: 0.9, color: '#A7F3D0' }}>
-                    🎉 Saving extra ₹100 with auto-coupon at checkout
-                  </div>
-                </div>
-              </div>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                background: '#5E3BEE',
-                color: '#FFFFFF',
-                padding: '9px 18px',
-                borderRadius: 10,
-                fontSize: 13.5,
-                fontWeight: 800,
-                boxShadow: '0 4px 12px rgba(94, 59, 238, 0.35)'
-              }}>
-                <span>View Cart</span>
-                <ArrowRight size={16} />
-              </div>
-            </div>
-          )}
         </>
       )}
 

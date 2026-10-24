@@ -1,6 +1,6 @@
-# Urban Company Replica - Full-Stack MERN Application
+# Forge India Connect - Full-Stack MERN Application
 
-A production-grade Urban Company web application built with the complete **MERN Stack** (**M**ongoDB, **E**xpress.js, **R**eact 19, and **N**ode.js). The project is cleanly partitioned into independent `frontend` and `backend` directories.
+A production-grade Forge India Connect web application built with the complete **MERN Stack** (**M**ongoDB, **E**xpress.js, **R**eact 19, and **N**ode.js). The project is cleanly partitioned into independent `frontend` and `backend` directories.
 
 ---
 

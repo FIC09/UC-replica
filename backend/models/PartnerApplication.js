@@ -182,7 +182,7 @@ const partnerApplicationSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['Pending Review', 'Approved', 'Active', 'Rejected', 'Suspended'],
-    default: 'Active',
+    default: 'Pending Review',
   },
   statusReason: {
     type: String,
@@ -190,11 +190,11 @@ const partnerApplicationSchema = new mongoose.Schema({
   },
   statusHistory: [statusEventSchema],
   metrics: {
-    totalBookings: { type: Number, default: 840 },
-    completedBookings: { type: Number, default: 820 },
-    rating: { type: Number, default: 4.88 },
-    complaintsCount: { type: Number, default: 2 },
-    totalPayouts: { type: Number, default: 389200 }
+    totalBookings: { type: Number, default: 0 },
+    completedBookings: { type: Number, default: 0 },
+    rating: { type: Number, default: 5.0 },
+    complaintsCount: { type: Number, default: 0 },
+    totalPayouts: { type: Number, default: 0 }
   }
 }, {
   timestamps: true,

@@ -26,9 +26,9 @@ import { ProfileView } from './views/ProfileView';
 import { SettingsView } from './views/SettingsView';
 
 // State & Feedback Components
-import { SuspendedState, SessionExpiredModal, PermissionDeniedState } from './views/StateViews';
+import { SuspendedState, SessionExpiredModal, PermissionDeniedState, PendingApprovalState } from './views/StateViews';
 
-export function ProfessionalRouter({ onExitToMarketplace }) {
+export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
   const [currentPath, setCurrentPath] = useState(() => {
     const p = window.location.pathname;
     return p.startsWith('/professional') ? p : '/professional';
@@ -39,11 +39,69 @@ export function ProfessionalRouter({ onExitToMarketplace }) {
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!sessionStorage.getItem('uc_pro_token') || !!localStorage.getItem('uc_pro_token');
+    if (sessionStorage.getItem('uc_pro_token') || localStorage.getItem('uc_pro_token')) {
+      return true;
+    }
+    try {
+      const u = JSON.parse(localStorage.getItem('uc_user'));
+      if (u && (u.role === 'professional' || (u.email && u.email.includes('pro')))) {
+        const pro = professionalClient.getStoredUser();
+        professionalClient.setAuth('simulated-pro-jwt-token', pro);
+        return true;
+      }
+    } catch {}
+    return false;
   });
 
   const [toastMessage, setToastMessage] = useState(null);
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [isCheckingApproval, setIsCheckingApproval] = useState(false);
+
+  const showToast = useCallback((msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(prev => prev === msg ? null : prev);
+    }, 3200);
+  }, []);
+
+  // Re-check application approval status against backend
+  const handleCheckApprovalStatus = useCallback(async () => {
+    setIsCheckingApproval(true);
+    try {
+      const res = await professionalClient.getProfile();
+      if (res && res.success && res.profile) {
+        setProfessionalUser(res.profile);
+        localStorage.setItem('uc_pro_user', JSON.stringify(res.profile));
+        if (res.profile.status === 'Approved' || res.profile.status === 'Active') {
+          showToast(`🎉 Application APPROVED! Welcome to the Urban Company Professional Dashboard.`);
+        } else {
+          showToast(`Application status: "${res.profile.status || 'Pending Review'}". Awaiting Admin Approval.`);
+        }
+      } else {
+        // Fallback: ping worker-applications endpoint directly
+        const storedUser = professionalClient.getStoredUser();
+        const targetId = storedUser?.id || professionalUser?.id;
+        if (targetId) {
+          const directRes = await fetch(`/api/worker-applications`);
+          const data = await directRes.json();
+          const match = data.applications?.find(a => a.id === targetId);
+          if (match) {
+            setProfessionalUser(prev => ({ ...prev, ...match }));
+            localStorage.setItem('uc_pro_user', JSON.stringify({ ...storedUser, ...match }));
+            if (match.status === 'Approved' || match.status === 'Active') {
+              showToast(`🎉 Application APPROVED by Admin! Operational dashboard unlocked.`);
+            } else {
+              showToast(`Application status: "${match.status}". Awaiting Admin Approval.`);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      showToast(err.message || 'Status check failed');
+    } finally {
+      setIsCheckingApproval(false);
+    }
+  }, [showToast, professionalUser?.id]);
 
   // Sync with browser back/forward buttons
   useEffect(() => {
@@ -55,13 +113,6 @@ export function ProfessionalRouter({ onExitToMarketplace }) {
     }
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  const showToast = useCallback((msg) => {
-    setToastMessage(msg);
-    setTimeout(() => {
-      setToastMessage(prev => prev === msg ? null : prev);
-    }, 3200);
   }, []);
 
   const handleNavigate = useCallback((path) => {
@@ -87,10 +138,18 @@ export function ProfessionalRouter({ onExitToMarketplace }) {
 
   const handleLogout = useCallback(() => {
     professionalClient.logout();
+    localStorage.removeItem('uc_user');
     setIsAuthenticated(false);
-    handleNavigate('/professional/login');
-    showToast('Signed out of professional portal.');
-  }, [handleNavigate, showToast]);
+    window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: null } }));
+    if (onAppLogout) {
+      onAppLogout();
+    } else if (onExitToMarketplace) {
+      onExitToMarketplace();
+    } else {
+      window.history.pushState({}, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
+  }, [onAppLogout, onExitToMarketplace]);
 
   const handleToggleOnline = useCallback(async () => {
     if (professionalUser?.status !== 'Approved') {
@@ -165,7 +224,34 @@ export function ProfessionalRouter({ onExitToMarketplace }) {
       }
     }
 
-    // 2. Onboarding Status View
+    // 2. Check if Pending Admin Approval (Block operational dashboard until approved)
+    const isApproved = professionalUser?.status === 'Approved' || professionalUser?.status === 'Active';
+    const isPending = !isApproved && professionalUser?.status !== 'Suspended';
+
+    if (isPending) {
+      if (currentPath === '/professional/onboarding') {
+        return (
+          <OnboardingStatusView
+            profile={professionalUser}
+            onNavigate={handleNavigate}
+            onUpdateProfile={(up) => setProfessionalUser(p => ({ ...p, ...up }))}
+            showToast={showToast}
+            onLogout={handleLogout}
+          />
+        );
+      }
+      return (
+        <PendingApprovalState
+          profile={professionalUser}
+          onNavigate={handleNavigate}
+          onLogout={handleLogout}
+          onRefreshStatus={handleCheckApprovalStatus}
+          isChecking={isCheckingApproval}
+        />
+      );
+    }
+
+    // 3. Onboarding Status View (for approved pro visiting onboarding)
     if (currentPath === '/professional/onboarding') {
       return (
         <OnboardingStatusView
@@ -187,6 +273,13 @@ export function ProfessionalRouter({ onExitToMarketplace }) {
           onLogout={handleLogout}
           onToggleOnline={handleToggleOnline}
           showToast={showToast}
+          onUpdateProfile={(up) => {
+            setProfessionalUser(prev => {
+              const updated = { ...prev, ...up };
+              localStorage.setItem('uc_pro_user', JSON.stringify(updated));
+              return updated;
+            });
+          }}
         />
       );
     }

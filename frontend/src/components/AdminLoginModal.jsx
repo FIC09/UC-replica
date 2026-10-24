@@ -92,7 +92,7 @@ export function AdminLoginModal({
                 Admin Portal Login
               </div>
               <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 600 }}>
-                Urban Company Operations & Control Hub
+                Forge India Connect Operations & Control Hub
               </div>
             </div>
           </div>
@@ -316,7 +316,7 @@ export function AdminLoginModal({
             gap: 5
           }}>
             <ShieldCheck size={13} color="#10B981" />
-            <span>Authorized Administrator Access Only • Urban Company Ops</span>
+            <span>Authorized Administrator Access Only • Forge India Connect Ops</span>
           </div>
         </div>
       </div>

@@ -261,47 +261,60 @@ export async function getProfessionals(req, res) {
 
     let dbWorkers = [];
     try {
-      dbWorkers = await WorkerApplication.find().lean();
+      dbWorkers = await WorkerApplication.find().sort({ createdAt: -1 }).lean();
     } catch {}
 
-    let list = mockProfessionals;
-    if (dbWorkers.length > 0) {
-      list = dbWorkers.map(w => ({
-        id: w.id || w._id.toString(),
-        applicantName: w.applicantName,
-        phone: w.phone,
-        email: w.email || `${w.applicantName.toLowerCase().replace(/\s+/g, '.')}@urbanpro.com`,
-        avatar: w.avatar || w.applicantName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase(),
-        trade: w.tradeName || w.trade,
-        tradeName: w.tradeName || w.trade,
-        categories: w.categories || [w.trade],
-        skills: w.skills || ['General Service Specialist'],
-        experience: w.experience || '2 years',
-        city: w.city || 'Mumbai',
-        locality: w.locality,
-        operationalHub: w.operationalHub || 'Central Logistics Hub',
-        serviceAreas: w.serviceAreas || [w.locality],
-        status: w.status === 'Approved' ? 'Active' : w.status,
-        tier: w.tier || 'Gold Pro (Level 3)',
-        employmentType: w.employmentType || 'Direct Freelance',
-        partnerAgencyName: w.partnerAgencyName || '',
-        rating: w.rating || 4.85,
-        jobsCompleted: w.jobsCompleted || 45,
-        cancellationRate: w.cancellationRate || 1.2,
-        revisitRate: w.revisitRate || 0.8,
-        onTimeArrivalRate: w.onTimeArrivalRate || 98.4,
-        walletBalance: w.walletBalance || 2400,
-        lifetimeEarnings: w.lifetimeEarnings || 75000,
-        documents: w.documents || {},
-        bankDetails: w.bankDetails || {},
-        workingHours: w.workingHours || { start: '08:00', end: '20:00' },
-        workingDays: w.workingDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-        leaves: w.leaves || [],
-        trainings: w.trainings || [],
-        settlements: w.settlements || [],
-        internalNotes: w.internalNotes || []
-      }));
-    }
+    const mappedDbWorkers = dbWorkers.map(w => ({
+      id: w.id || w._id.toString(),
+      _id: w.id || w._id.toString(),
+      applicantName: w.applicantName,
+      phone: w.phone,
+      email: w.email || `${(w.applicantName || 'worker').toLowerCase().replace(/\s+/g, '.')}@urbanpro.com`,
+      avatar: w.avatar || (w.applicantName ? w.applicantName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'WR'),
+      trade: w.tradeName || w.trade,
+      tradeName: w.tradeName || w.trade,
+      categories: w.categories && w.categories.length > 0 ? w.categories : [w.tradeName || w.trade],
+      skills: w.skills && w.skills.length > 0 ? w.skills : ['Verified Service Specialist'],
+      experience: w.experience || '2 years',
+      city: w.city || 'Mumbai',
+      locality: w.locality || 'Mumbai Metro',
+      operationalHub: w.operationalHub || 'Central Logistics Hub',
+      serviceAreas: w.serviceAreas && w.serviceAreas.length > 0 ? w.serviceAreas : [w.locality || 'Mumbai'],
+      status: w.status || 'Pending Review',
+      tier: w.tier || 'New Professional',
+      employmentType: w.employmentType || 'Direct Freelance',
+      partnerAgencyName: w.partnerAgencyName || '',
+      rating: w.rating || 5.0,
+      jobsCompleted: w.jobsCompleted || 0,
+      cancellationRate: w.cancellationRate || 0,
+      revisitRate: w.revisitRate || 0,
+      onTimeArrivalRate: w.onTimeArrivalRate || 100,
+      walletBalance: w.walletBalance || 0,
+      lifetimeEarnings: w.lifetimeEarnings || 0,
+      documents: w.documents || {
+        aadhaar: { docNumber: w.aadhaarNumber || 'Pending Upload', docType: 'Aadhaar Card', status: 'Pending Review' },
+        pan: { docNumber: 'Pending Upload', docType: 'PAN Card', status: 'Pending Review' },
+        policeClearance: { docType: 'Police Verification Clearance', status: 'Pending Review' },
+        tradeCertificate: { docType: 'Skill Certification', status: 'Pending Review' }
+      },
+      bankDetails: w.bankDetails || {
+        accountHolderName: w.applicantName,
+        accountNumber: '••••••••1234',
+        ifscCode: 'HDFC0001248',
+        bankName: 'HDFC Bank',
+        status: 'Pending Review'
+      },
+      workingHours: w.workingHours || { start: '08:00', end: '20:00' },
+      workingDays: w.workingDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+      leaves: w.leaves || [],
+      trainings: w.trainings || [],
+      settlements: w.settlements || [],
+      internalNotes: w.internalNotes || []
+    }));
+
+    const existingIds = new Set(mappedDbWorkers.map(x => x.id));
+    const nonDuplicatedMocks = mockProfessionals.filter(m => !existingIds.has(m.id));
+    const list = [...mappedDbWorkers, ...nonDuplicatedMocks];
 
     // Filter
     let filtered = list.filter(p => {
@@ -316,7 +329,7 @@ export async function getProfessionals(req, res) {
       }
       if (trade !== 'ALL' && !p.trade.toLowerCase().includes(trade.toLowerCase())) return false;
       if (status !== 'ALL') {
-        const matchStatus = status === 'Active' ? ['Active', 'Approved'] : [status];
+        const matchStatus = (status === 'Active' || status === 'Approved') ? ['Active', 'Approved'] : [status];
         if (!matchStatus.includes(p.status)) return false;
       }
       if (city !== 'ALL' && (p.city || '').toLowerCase() !== city.toLowerCase()) return false;
