@@ -22,7 +22,9 @@ import {
   Menu,
   X,
   Zap,
-  ChevronRight
+  ChevronRight,
+  Search,
+  Shield
 } from 'lucide-react';
 import { OfflineBanner } from './views/StateViews';
 
@@ -39,6 +41,7 @@ export function ProfessionalLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -193,8 +196,153 @@ export function ProfessionalLayout({
           </div>
         </div>
 
-        {/* Center / Right: Duty Status, Wallet, & Profile */}
+        {/* Center Section: Quick Search & Operational Hub Badge */}
+        <div className="pro-header-center" style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          flex: 1,
+          maxWidth: 600,
+          margin: '0 24px'
+        }}>
+          {/* Quick Search */}
+          <div style={{
+            position: 'relative',
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center'
+          }}>
+            <Search size={16} color="#94a3b8" style={{ position: 'absolute', left: 12, pointerEvents: 'none' }} />
+            <input
+              type="text"
+              placeholder="Search bookings, customer, locality, OTP..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && searchQuery.trim()) {
+                  handleNav(`/professional/jobs?search=${encodeURIComponent(searchQuery.trim())}`);
+                }
+              }}
+              style={{
+                width: '100%',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: 20,
+                padding: '7px 14px 7px 36px',
+                fontSize: 13,
+                color: '#0f172a',
+                outline: 'none',
+                transition: 'all 0.15s ease'
+              }}
+              onFocus={(e) => {
+                e.target.style.background = '#ffffff';
+                e.target.style.borderColor = '#7c3aed';
+                e.target.style.boxShadow = '0 0 0 3px rgba(124, 58, 237, 0.12)';
+              }}
+              onBlur={(e) => {
+                e.target.style.background = '#f8fafc';
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+          </div>
+
+          {/* Operational Hub & Location Badge */}
+          <div
+            title="Operational Base Hub"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              background: '#faf5ff',
+              border: '1px solid #ede9fe',
+              padding: '6px 14px',
+              borderRadius: 20,
+              fontSize: 12,
+              fontWeight: 700,
+              color: '#6b21a8',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 1px 2px rgba(124, 58, 237, 0.05)'
+            }}
+          >
+            <MapPin size={14} color="#7c3aed" />
+            <span>{profile?.operationalHub || 'Bandra West Central, Mumbai'}</span>
+          </div>
+        </div>
+
+        {/* Right Section: SOS + Alerts + Duty Status + Wallet + Profile */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* 24x7 Safety SOS Hotline Trigger */}
+          <button
+            onClick={() => {
+              alert('🚨 24x7 Partner Safety Desk activated! Priority hotline: 1800-URBAN-SOS. Dedicated supervisor on standby.');
+            }}
+            title="24x7 Emergency Partner Safety Hotline"
+            style={{
+              background: '#fff1f2',
+              border: '1px solid #fecdd3',
+              color: '#e11d48',
+              padding: '7px 12px',
+              borderRadius: 20,
+              fontSize: 12,
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              cursor: 'pointer',
+              minHeight: 38,
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = '#ffe4e6'}
+            onMouseLeave={(e) => e.currentTarget.style.background = '#fff1f2'}
+          >
+            <Shield size={14} color="#e11d48" />
+            <span>SOS</span>
+          </button>
+
+          {/* Alerts / Broadcasts Bell */}
+          <button
+            onClick={() => handleNav('/professional/notifications')}
+            title="Dispatch Broadcasts & Alerts (3 new)"
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: '50%',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              position: 'relative',
+              color: '#64748b',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = '#faf5ff';
+              e.currentTarget.style.borderColor = '#ede9fe';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = '#f8fafc';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+            }}
+          >
+            <Bell size={17} color="#475569" />
+            <span style={{
+              position: 'absolute',
+              top: -2,
+              right: -2,
+              background: '#ef4444',
+              color: '#ffffff',
+              fontSize: 10,
+              fontWeight: 800,
+              borderRadius: 10,
+              padding: '1px 5px',
+              border: '2px solid #ffffff'
+            }}>
+              3
+            </span>
+          </button>
           {/* Duty Online / Offline Toggle */}
           {isApproved && (
             <button
@@ -351,22 +499,13 @@ export function ProfessionalLayout({
                 <div style={{ borderTop: '1px solid #f1f5f9', margin: '6px 0' }} />
 
                 <div
-                  onClick={onExitToMarketplace}
-                  style={{ padding: '10px 16px', fontSize: 13, color: '#475569', cursor: 'pointer', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 10 }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                >
-                  <ExternalLink size={16} color="#64748b" />
-                  <span>Exit to Marketplace</span>
-                </div>
-                <div
                   onClick={onLogout}
                   style={{ padding: '10px 16px', fontSize: 13, color: '#dc2626', cursor: 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10 }}
                   onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                 >
                   <LogOut size={16} color="#dc2626" />
-                  <span>Sign Out</span>
+                  <span>Log Out</span>
                 </div>
               </div>
             )}
@@ -498,85 +637,34 @@ export function ProfessionalLayout({
             </div>
           </div>
 
-          {/* Sticky Sidebar Footer */}
+          {/* Sticky Sidebar Footer - Only Log Out Option */}
           <div style={{
-            padding: '12px 14px 14px 14px',
+            padding: '14px',
             borderTop: '1px solid #f1f5f9',
-            background: '#ffffff',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8
+            background: '#ffffff'
           }}>
-            {/* Hub Summary Box */}
-            <div style={{
-              background: '#f8fafc',
-              borderRadius: 10,
-              padding: '10px 12px',
-              border: '1px solid #e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8
-            }}>
-              <MapPin size={16} color="#7c3aed" />
-              <div style={{ overflow: 'hidden' }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase' }}>
-                  Operational Hub
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                  {profile?.operationalHub || 'Bandra West Central'}
-                </div>
-              </div>
-            </div>
-
-            {/* Exit to Marketplace Button */}
-            <button
-              onClick={onExitToMarketplace}
-              style={{
-                width: '100%',
-                background: '#ffffff',
-                border: '1px solid #cbd5e1',
-                padding: '7px 0',
-                borderRadius: 8,
-                fontSize: 12,
-                fontWeight: 600,
-                color: '#475569',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
-            >
-              <ExternalLink size={14} color="#64748b" />
-              <span>Exit to Marketplace</span>
-            </button>
-
-            {/* Prominent Red Log Out Button */}
             <button
               onClick={onLogout}
               style={{
                 width: '100%',
                 background: '#fef2f2',
                 border: '1px solid #fecaca',
-                padding: '7px 0',
+                padding: '10px 0',
                 borderRadius: 8,
-                fontSize: 12,
+                fontSize: 13,
                 fontWeight: 700,
                 color: '#dc2626',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 6,
+                gap: 8,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease'
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
               onMouseLeave={(e) => e.currentTarget.style.background = '#fef2f2'}
             >
-              <LogOut size={14} color="#dc2626" />
+              <LogOut size={16} color="#dc2626" />
               <span>Log Out</span>
             </button>
           </div>
@@ -665,6 +753,9 @@ export function ProfessionalLayout({
           background: #94a3b8;
         }
         @media (max-width: 899px) {
+          .pro-header-center {
+            display: none !important;
+          }
           .pro-desktop-sidebar {
             position: fixed !important;
             top: 64px !important;

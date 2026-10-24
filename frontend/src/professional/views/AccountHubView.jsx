@@ -1024,47 +1024,19 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
           })}
         </div>
 
-        {/* Action Controls */}
+        {/* Action Controls - Only Log Out Option */}
         <div style={{
-          display: 'flex',
-          gap: 12,
           paddingTop: 16,
           borderTop: '1px solid #f1f5f9'
         }}>
           <button
-            onClick={() => onNavigate('/professional/login')}
-            style={{
-              flex: 1,
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              color: '#334155',
-              padding: '11px 16px',
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-              minHeight: 44,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#f8fafc'}
-          >
-            <UserCheck size={16} color="#475569" />
-            <span>Open Login Portal</span>
-          </button>
-
-          <button
             onClick={onLogout}
             style={{
-              flex: 1,
+              width: '100%',
               background: '#fef2f2',
               border: '1px solid #fecaca',
               color: '#b91c1c',
-              padding: '11px 16px',
+              padding: '12px 16px',
               borderRadius: 10,
               fontSize: 13,
               fontWeight: 700,
