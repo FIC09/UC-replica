@@ -31,11 +31,13 @@ class ProfessionalClient {
     return {
       id: 'PRO-8841',
       applicantName: 'Vikram Salvi',
+      status: 'Approved',
       phone: '+91 98205 11982',
       email: 'vikram.salvi@urbanpro.com',
       avatar: 'VS',
       trade: 'Master AC Specialist & Electrician',
       tier: 'Diamond Pro Partner (Level 5)',
+      operationalHub: 'Bandra West Central Hub',
       employmentType: 'Direct Freelance',
       walletBalance: 15450,
       isOnline: true

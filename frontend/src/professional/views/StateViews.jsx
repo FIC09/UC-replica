@@ -528,6 +528,12 @@ export function PendingApprovalState({ profile, onNavigate, onLogout, onRefreshS
             <span style={{ color: '#64748b' }}>Registered Mobile:</span>
             <span style={{ color: '#0f172a', fontWeight: 600 }}>{profile?.phone || 'On File'}</span>
           </div>
+          {profile?.email && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #e2e8f0' }}>
+              <span style={{ color: '#64748b' }}>Login Email:</span>
+              <strong style={{ color: '#0f172a' }}>{profile.email}</strong>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderBottom: '1px solid #e2e8f0' }}>
             <span style={{ color: '#64748b' }}>Operating Hub / City:</span>
             <span style={{ color: '#0f172a' }}>{profile?.locality ? `${profile.locality}, ${profile.city || 'Mumbai'}` : (profile?.city || 'Mumbai')}</span>

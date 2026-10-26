@@ -48,7 +48,7 @@ export function CustomerReviewsSection() {
             background: '#F0FDF4',
             border: '1px solid #BBF7D0',
             padding: '6px 14px',
-            borderRadius: 0
+            borderRadius: 20
           }}>
             <Star size={15} fill="#16A34A" color="#16A34A" />
             <span style={{ fontSize: 13.5, fontWeight: 800, color: '#166534' }}>4.82 / 5</span>

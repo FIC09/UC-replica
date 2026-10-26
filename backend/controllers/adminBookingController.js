@@ -1,6 +1,7 @@
 import { Booking, canTransitionLifecycle, VALID_LIFECYCLE_TRANSITIONS } from '../models/Booking.js';
 import { WorkerApplication } from '../models/WorkerApplication.js';
 import { generate143Bookings } from '../data/initialBookingsData.js';
+import { getOrCreateConversation } from '../services/chatService.js';
 
 // In-memory fallback dataset for offline/demo resilience (143 real-world home services dispatches)
 let mockBookings = generate143Bookings();
@@ -175,7 +176,7 @@ export async function createBookingOnBehalf(req, res) {
       });
     }
 
-    const newId = `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newId = req.body.id || `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
     const calculatedSubtotal = totalAmount || 699;
 
     const newBooking = {
@@ -400,6 +401,12 @@ export async function assignProfessional(req, res) {
         mockBooking.status = 'Assigned';
       }
       mockBooking.timeline.push(timelineEvent);
+    }
+
+    try {
+      await getOrCreateConversation(id, assignedProData);
+    } catch (chatErr) {
+      console.warn('Chat sync on assignment warning:', chatErr.message);
     }
 
     return res.json({

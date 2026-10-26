@@ -4,7 +4,6 @@ import { professionalClient } from '../professionalClient';
 export function EarningsView({ onNavigate, showToast }) {
   const [earnings, setEarnings] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [currencyMode, setCurrencyMode] = useState('inr'); // 'inr' | 'paisa'
 
   useEffect(() => {
     loadEarnings();
@@ -27,11 +26,7 @@ export function EarningsView({ onNavigate, showToast }) {
     return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading comprehensive earnings ledger...</div>;
   }
 
-  const formatAmount = (rupees, paisa) => {
-    if (currencyMode === 'paisa') {
-      const p = paisa !== undefined ? paisa : Math.round((rupees || 0) * 100);
-      return `${p.toLocaleString('en-IN')} Paisa`;
-    }
+  const formatAmount = (rupees) => {
     return `₹${(rupees || 0).toLocaleString('en-IN')}`;
   };
 
@@ -53,7 +48,7 @@ export function EarningsView({ onNavigate, showToast }) {
   return (
     <div style={{ padding: '20px 24px', width: '100%', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
       
-      {/* Title & Mode Switch */}
+      {/* Title & Actions */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14, marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '0 0 4px 0' }}>
@@ -65,42 +60,6 @@ export function EarningsView({ onNavigate, showToast }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Minor Currency Units Switch */}
-          <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 8 }}>
-            <button
-              onClick={() => setCurrencyMode('inr')}
-              style={{
-                background: currencyMode === 'inr' ? '#ffffff' : 'none',
-                color: currencyMode === 'inr' ? '#0f172a' : '#64748b',
-                border: 'none',
-                padding: '6px 12px',
-                borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: currencyMode === 'inr' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-              }}
-            >
-              Rupees (₹)
-            </button>
-            <button
-              onClick={() => setCurrencyMode('paisa')}
-              style={{
-                background: currencyMode === 'paisa' ? '#ffffff' : 'none',
-                color: currencyMode === 'paisa' ? '#0f172a' : '#64748b',
-                border: 'none',
-                padding: '6px 12px',
-                borderRadius: 6,
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: currencyMode === 'paisa' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-              }}
-            >
-              Integer Minor Units (Paisa)
-            </button>
-          </div>
-
           <button
             onClick={() => onNavigate('/professional/payouts')}
             style={{

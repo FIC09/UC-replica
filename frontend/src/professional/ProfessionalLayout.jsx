@@ -26,15 +26,11 @@ import { OfflineBanner } from './views/StateViews';
 const PAGE_METADATA = {
   '/professional': {
     title: "Today's Operations & Live Dispatches",
-    subtitle: "Real-time DB synced appointments, OTP verification lifecycle, and duty status"
+    subtitle: "Bandra West Hub dispatches, customer OTP verification lifecycle, and shift duty"
   },
   '/professional/jobs': {
     title: "Jobs & Dispatches Management",
     subtitle: "Track upcoming orders, in-progress jobs, and doorstep customer details"
-  },
-  '/professional/calendar': {
-    title: "Calendar & Slot Management",
-    subtitle: "Weekly schedule, booked appointments, and shift availability"
   },
   '/professional/earnings': {
     title: "Money & Financial Ledgers",
@@ -52,17 +48,9 @@ const PAGE_METADATA = {
     title: "KYC Documents & Verification",
     subtitle: "Aadhaar, PAN card, police verification, and trade certifications"
   },
-  '/professional/training': {
-    title: "Academy & Safety SOPs",
-    subtitle: "Mandatory hygiene protocols, electrical safety, and skill certifications"
-  },
   '/professional/performance': {
     title: "Partner Scorecard & Quality Tier",
     subtitle: "Customer satisfaction, SLA punctuality rate, and Diamond Pro metrics"
-  },
-  '/professional/reviews': {
-    title: "Customer Ratings & Reviews",
-    subtitle: "Doorstep feedback, verified customer ratings, and bonus tips"
   },
   '/professional/availability': {
     title: "Shift Availability & Working Hours",
@@ -71,10 +59,6 @@ const PAGE_METADATA = {
   '/professional/payouts': {
     title: "Payouts & Bank Accounts",
     subtitle: "Weekly bank settlements, instant wallet withdrawals, and UTR logs"
-  },
-  '/professional/inventory': {
-    title: "Inventory & Spare Parts",
-    subtitle: "Consumables, tools, chemical kits, and UC approved materials"
   },
   '/professional/notifications': {
     title: "Dispatch Broadcasts & Alerts",
@@ -123,13 +107,12 @@ export function ProfessionalLayout({
   }, [showProfileDropdown]);
 
   const isOnline = profile?.isOnline !== false;
-  const isApproved = profile?.status === 'Approved' || profile?.status === 'Active';
+  const isApproved = !profile?.status || profile?.status === 'Approved' || profile?.status === 'Active';
 
   // Desktop Navigation Menu
   const primaryNavItems = [
     { path: '/professional', label: 'Today (Dashboard)', icon: LayoutDashboard },
     { path: '/professional/jobs', label: 'Jobs & Dispatches', icon: Briefcase },
-    { path: '/professional/calendar', label: 'Calendar & Slots', icon: Calendar },
     { path: '/professional/earnings', label: 'Money & Ledgers', icon: Wallet },
     { path: '/professional/account', label: 'Account & Hub', icon: UserCheck }
   ];
@@ -137,21 +120,17 @@ export function ProfessionalLayout({
   const secondaryNavItems = [
     { path: '/professional/onboarding', label: 'Onboarding Status', icon: FileCheck },
     { path: '/professional/documents', label: 'KYC & Documents', icon: ShieldCheck },
-    { path: '/professional/training', label: 'Academy & Safety SOPs', icon: GraduationCap },
     { path: '/professional/performance', label: 'Partner Scorecard', icon: Award },
-    { path: '/professional/reviews', label: 'Customer Reviews', icon: Star },
     { path: '/professional/availability', label: 'Shift Availability', icon: Clock },
     { path: '/professional/payouts', label: 'Payouts & Banking', icon: Landmark },
-    { path: '/professional/inventory', label: 'Inventory & Parts', icon: Package },
     { path: '/professional/notifications', label: 'Alerts & Broadcasts', icon: Bell },
     { path: '/professional/settings', label: 'App Settings', icon: Settings }
   ];
 
-  // Mobile Bottom Navigation Tabs (5 Primary Tabs)
+  // Mobile Bottom Navigation Tabs (Primary Tabs)
   const mobileTabs = [
     { path: '/professional', label: 'Today', icon: LayoutDashboard, exact: true },
     { path: '/professional/jobs', label: 'Jobs', icon: Briefcase },
-    { path: '/professional/calendar', label: 'Calendar', icon: Calendar },
     { path: '/professional/earnings', label: 'Money', icon: Wallet },
     { path: '/professional/account', label: 'Account', icon: UserCheck }
   ];

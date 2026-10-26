@@ -14,6 +14,8 @@ import couponRoutes from './routes/couponRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import professionalRoutes from './routes/professionalRoutes.js';
 import partnerApiRoutes from './routes/partnerApiRoutes.js';
+import trackingRoutes from './routes/trackingRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 
 // Load environment variables
 dotenv.config();
@@ -72,6 +74,8 @@ app.use('/api/coupons', couponRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/professional', professionalRoutes);
 app.use('/api/partner', partnerApiRoutes);
+app.use('/api/tracking', trackingRoutes);
+app.use('/api/chat', chatRoutes);
 
 // 404 handler for API routes
 app.use('/api/*', (req, res) => {

@@ -28,13 +28,10 @@ export function PartnerLogin({ onLoginSuccess, onNavigate, onExitToMarketplace }
         onLoginSuccess(res.partner, res.staff);
         return;
       }
+      setError(res?.error || 'Invalid credentials. Please verify your business email/phone and password.');
     } catch (err) {
-      console.warn('API partner login failed, falling back to verified partner auth:', err.message);
-      const demoPartner = partnerClient.getStoredPartner();
-      const demoStaff = partnerClient.getStoredStaff();
-      partnerClient.setAuth('simulated-partner-jwt-token', demoPartner, demoStaff);
-      onLoginSuccess(demoPartner, demoStaff);
-      return;
+      console.warn('Partner login error:', err.message);
+      setError(err.message || 'Invalid login credentials. Please check your email and password.');
     } finally {
       setLoading(false);
     }

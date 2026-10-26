@@ -104,22 +104,11 @@ export function SettingsView({ onShowToast }) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 40,
-        backgroundColor: '#F8FAFC',
-        padding: '10px 0',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        flexWrap: 'wrap',
-        gap: 12
-      }}>
+      <div className="admin-page-header">
         <div>
-          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: 0 }}>Platform Configuration & Governance</h3>
+          <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: 0 }}>Platform Configuration &amp; Governance</h3>
           <p style={{ fontSize: 12.5, color: '#64748B', margin: '2px 0 0 0' }}>Configure marketplace parameters, commission schedules, operating zones and integrations</p>
         </div>
 
@@ -144,7 +133,8 @@ export function SettingsView({ onShowToast }) {
         </button>
       </div>
 
-      {/* Settings Navigation Tabs */}
+      <div className="admin-page-body">
+        {/* Settings Navigation Tabs */}
       <div style={{
         display: 'flex',
         gap: 6,
@@ -336,5 +326,6 @@ export function SettingsView({ onShowToast }) {
         )}
       </div>
     </div>
-  );
+  </div>
+);
 }

@@ -75,4 +75,42 @@ router.post('/', async (req, res) => {
   }
 });
 
+// PUT update coupon
+router.put('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = { ...req.body };
+    if (updates.code) updates.code = updates.code.trim().toUpperCase();
+
+    const updated = await Coupon.findOneAndUpdate(
+      { $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { code: id.toUpperCase() }].filter(Boolean) },
+      { $set: updates },
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ success: false, message: 'Coupon not found' });
+    }
+    res.json({ success: true, coupon: updated });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// DELETE coupon
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Coupon.findOneAndDelete(
+      { $or: [{ _id: id.match(/^[0-9a-fA-F]{24}$/) ? id : null }, { code: id.toUpperCase() }].filter(Boolean) }
+    );
+    if (!deleted) {
+      return res.status(404).json({ success: false, message: 'Coupon not found' });
+    }
+    res.json({ success: true, message: `Coupon ${id} deleted successfully` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 export default router;

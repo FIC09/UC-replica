@@ -617,7 +617,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                           <div>
                             <div style={{ fontWeight: 700, color: '#0F172A' }}>{name}</div>
                             <div style={{ fontSize: 11, color: '#64748B' }}>
-                              ID: {p.id || p._id} • {p.phone}
+                              ID: {p.id || p._id} • {p.phone}{p.email ? ` • ${p.email}` : ''}
                             </div>
                           </div>
                         </div>

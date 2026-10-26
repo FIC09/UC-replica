@@ -3,7 +3,8 @@ import {
   Building2, Users, Calendar, Briefcase, TrendingUp, CreditCard, 
   FileText, AlertTriangle, Star, Award, Package, LifeBuoy, Bell, 
   BarChart3, ShieldCheck, UserCheck, History, Settings, ChevronLeft, 
-  ChevronRight, LogOut, Menu, X, ArrowUpRight, CheckCircle2, Shield, RotateCcw
+  ChevronRight, LogOut, Menu, X, ArrowUpRight, CheckCircle2, Shield, RotateCcw,
+  Navigation
 } from 'lucide-react';
 import { partnerClient } from './partnerClient';
 
@@ -50,6 +51,7 @@ export function PartnerLayout({
       group: 'Core Operations',
       items: [
         { path: '/partner', label: 'Overview', icon: Building2 },
+        { path: '/partner/live-tracking', label: 'Live Worker Tracking', icon: Navigation, badge: 'Live' },
         { path: '/partner/bookings', label: 'Bookings & Dispatch', icon: Briefcase, badge: 'Active' },
         { path: '/partner/calendar', label: 'Schedule Board', icon: Calendar },
         { path: '/partner/team', label: 'Technician Fleet', icon: Users },
@@ -231,12 +233,13 @@ export function PartnerLayout({
                         padding: sidebarCollapsed ? '10px' : '9px 12px',
                         borderRadius: 8,
                         border: 'none',
-                        background: isActive ? '#f3e8ff' : 'transparent',
+                        background: isActive ? '#f5f3ff' : 'transparent',
                         color: isActive ? '#7c3aed' : '#475569',
                         fontWeight: isActive ? 700 : 500,
-                        fontSize: 13.5,
+                        fontSize: 13,
                         cursor: 'pointer',
-                        transition: 'all 0.12s ease'
+                        transition: 'all 0.12s ease',
+                        boxShadow: isActive ? 'inset 3px 0 0 #7c3aed' : 'none'
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -266,32 +269,63 @@ export function PartnerLayout({
 
         {/* Bottom User Card */}
         <div style={{
-          padding: '14px 16px',
+          padding: '12px 14px',
           borderTop: '1px solid #f1f5f9',
           background: '#ffffff'
         }}>
           {!sidebarCollapsed ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-                  {staff?.name || 'Sandeep Patil'}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                <div style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                  color: '#7c3aed',
+                  fontWeight: 800,
+                  fontSize: 12.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  border: '1px solid #e9d5ff'
+                }}>
+                  {(staff?.name || 'Sandeep Patil').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
                 </div>
-                <div style={{ fontSize: 11.5, color: '#7c3aed', fontWeight: 600 }}>
-                  {staff?.role || 'Business Owner'}
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#0f172a',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }} title={staff?.name || 'Sandeep Patil'}>
+                    {(staff?.name || 'Sandeep Patil').replace(/\s*\(Agency Owner\)/i, '')}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#7c3aed', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {staff?.role || 'Business Owner'}
+                  </div>
                 </div>
               </div>
               <button
                 onClick={onLogout}
                 title="Sign out of partner portal"
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#94a3b8',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  color: '#64748b',
                   cursor: 'pointer',
-                  padding: 4
+                  padding: 6,
+                  borderRadius: 6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  transition: 'all 0.12s ease'
                 }}
               >
-                <LogOut size={16} />
+                <LogOut size={15} />
               </button>
             </div>
           ) : (
@@ -328,16 +362,23 @@ export function PartnerLayout({
           zIndex: 40
         }}>
           {/* Breadcrumb / Path Title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 13, color: '#94a3b8' }}>Partner Portal</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>Partner Portal</span>
             <span style={{ fontSize: 13, color: '#cbd5e1' }}>/</span>
             <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>
-              {currentPath.replace('/partner/', '').replace('/partner', 'Overview').toUpperCase()}
+              {(() => {
+                for (const group of navGroups) {
+                  const match = group.items.find(i => i.path === currentPath);
+                  if (match) return match.label;
+                }
+                if (currentPath === '/partner') return 'Overview';
+                return currentPath.replace('/partner/', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+              })()}
             </span>
           </div>
 
           {/* Top Actions: Role Switcher & Marketplace Exit */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             {/* Demo Role Switcher Dropdown */}
             <div style={{ position: 'relative' }}>
               <button
@@ -346,18 +387,22 @@ export function PartnerLayout({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 8,
-                  padding: '6px 12px',
-                  background: '#f8fafc',
-                  border: '1px solid #cbd5e1',
+                  padding: '7px 13px',
+                  height: 36,
+                  boxSizing: 'border-box',
+                  background: '#ffffff',
+                  border: '1px solid #e2e8f0',
                   borderRadius: 8,
                   fontSize: 12.5,
                   fontWeight: 600,
                   color: '#334155',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                  transition: 'all 0.15s ease'
                 }}
               >
                 <UserCheck size={14} color="#7c3aed" />
-                <span>Simulate Role: <strong>{staff?.role}</strong></span>
+                <span>Simulate Role: <strong style={{ color: '#0f172a' }}>{staff?.role}</strong></span>
               </button>
 
               {roleMenuOpen && (
@@ -412,14 +457,18 @@ export function PartnerLayout({
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  padding: '6px 12px',
-                  background: '#f1f5f9',
+                  padding: '7px 13px',
+                  height: 36,
+                  boxSizing: 'border-box',
+                  background: '#ffffff',
                   border: '1px solid #e2e8f0',
                   borderRadius: 8,
                   fontSize: 12.5,
                   fontWeight: 600,
                   color: '#475569',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                  transition: 'all 0.15s ease'
                 }}
               >
                 Marketplace <ArrowUpRight size={14} />
@@ -432,14 +481,16 @@ export function PartnerLayout({
         <div style={{
           background: 'linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%)',
           borderBottom: '1px solid #bfdbfe',
-          padding: '8px 24px',
+          padding: '9px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
           fontSize: 12.5,
           color: '#1e3a8a'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{
               background: '#2563eb',
               color: '#ffffff',
@@ -448,12 +499,13 @@ export function PartnerLayout({
               textTransform: 'uppercase',
               letterSpacing: 0.6,
               padding: '2px 8px',
-              borderRadius: 12
+              borderRadius: 6,
+              boxShadow: '0 1px 2px rgba(37,99,235,0.2)'
             }}>
               Demo Sandbox
             </span>
-            <span>
-              <strong>Persistent Synthetic Sandbox:</strong> Active business: <strong>{partner?.businessName || 'Apex Home Solutions'}</strong> ({partner?.id || 'PTR-90142'}). Isolated from production banking and live customers.
+            <span style={{ color: '#1e3a8a', lineHeight: 1.4 }}>
+              <strong>Persistent Synthetic Sandbox:</strong> Active business: <strong>{partner?.businessName || 'Apex Home Solutions LLP'}</strong> ({partner?.id || 'PTR-90142'}) • Isolated from production banking and live customers.
             </span>
           </div>
           <button
@@ -462,7 +514,7 @@ export function PartnerLayout({
               background: '#ffffff',
               border: '1px solid #93c5fd',
               color: '#1d4ed8',
-              padding: '4px 12px',
+              padding: '5px 12px',
               borderRadius: 6,
               fontSize: 12,
               fontWeight: 700,
@@ -470,7 +522,8 @@ export function PartnerLayout({
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+              whiteSpace: 'nowrap'
             }}
           >
             <RotateCcw size={13} />
@@ -479,8 +532,10 @@ export function PartnerLayout({
         </div>
 
         {/* View Content Container */}
-        <main style={{ flex: 1, padding: 24, overflowY: 'auto' }}>
-          {children}
+        <main style={{ flex: 1, padding: '24px 28px', overflowY: 'auto' }}>
+          <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%' }}>
+            {children}
+          </div>
         </main>
       </div>
 

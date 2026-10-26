@@ -1909,6 +1909,7 @@ export async function loginPartner(req, res) {
             ownerName: dbPartner.ownerName,
             phone: dbPartner.phone,
             email: dbPartner.email,
+            password: dbPartner.password || '',
             status: dbPartner.status || 'Pending Review',
             category: dbPartner.category,
             categoryName: dbPartner.categoryName,
@@ -1920,14 +1921,22 @@ export async function loginPartner(req, res) {
       } catch {}
     }
 
-    // Generic error for security
-    const cleanPwd = (password || '').trim().toLowerCase();
-    const isValidPwd = cleanPwd === 'partner@2026' || cleanPwd === 'partner123' || cleanPwd === 'admin@2026' || cleanPwd === 'apex@2026' || cleanPwd === 'demo' || cleanPwd === 'admin123';
+    // Verify password: allow standard master/demo passwords or registered partner password
+    const cleanPwd = (password || '').trim();
+    const isMasterPwd = cleanPwd.toLowerCase() === 'partner@2026' || cleanPwd.toLowerCase() === 'partner123' || cleanPwd.toLowerCase() === 'admin@2026' || cleanPwd.toLowerCase() === 'apex@2026' || cleanPwd.toLowerCase() === 'demo' || cleanPwd.toLowerCase() === 'admin123';
+    const isCustomPwdMatch = Boolean(business?.password && business.password === cleanPwd);
 
-    if (!business || !isValidPwd) {
+    if (!business || (!isMasterPwd && !isCustomPwdMatch)) {
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials. Please verify your business email/phone and password.'
+      });
+    }
+
+    if (business.status === 'Rejected') {
+      return res.status(403).json({
+        success: false,
+        error: `Your partner application was rejected by operations admin.${business.statusReason ? ` Reason: ${business.statusReason}` : ''}`
       });
     }
 
@@ -2123,10 +2132,16 @@ export async function getPartnerMe(req, res) {
   try {
     const { partnerId, staffId } = req.partner;
     let business = partnerBusinesses.find(p => p.id === partnerId);
-    if (!business) {
-      try {
-        const dbPartner = await PartnerApplication.findOne({ id: partnerId }).lean();
-        if (dbPartner) {
+    try {
+      const dbPartner = await PartnerApplication.findOne({
+        $or: [
+          { id: partnerId },
+          { id: (partnerId || '').toUpperCase() },
+          { email: (partnerId || '').toLowerCase() }
+        ]
+      }).lean();
+      if (dbPartner) {
+        if (!business) {
           business = {
             id: dbPartner.id,
             businessName: dbPartner.businessName,
@@ -2140,9 +2155,11 @@ export async function getPartnerMe(req, res) {
             fleetSize: dbPartner.fleetSize,
             tier: dbPartner.tier || 'New Fleet Partner'
           };
+        } else {
+          business.status = dbPartner.status || business.status;
         }
-      } catch {}
-    }
+      }
+    } catch {}
     if (!business) {
       return res.status(404).json({ success: false, error: 'Business partner profile not found.' });
     }

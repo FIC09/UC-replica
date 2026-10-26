@@ -330,20 +330,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Top Header Bar aligned to 64px */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 40,
-        height: 64,
-        boxSizing: 'border-box',
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #E2E8F0',
-        padding: '0 24px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
-      }}>
+      <div className="admin-page-header">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: 0, lineHeight: 1.25 }}>

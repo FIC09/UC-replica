@@ -81,10 +81,17 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
         // Fallback: ping worker-applications endpoint directly
         const storedUser = professionalClient.getStoredUser();
         const targetId = storedUser?.id || professionalUser?.id;
-        if (targetId) {
+        const targetEmail = (storedUser?.email || professionalUser?.email || '').toLowerCase().trim();
+        const targetPhone = (storedUser?.phone || professionalUser?.phone || '').replace(/\D/g, '');
+
+        if (targetId || targetEmail || targetPhone) {
           const directRes = await fetch(`/api/worker-applications`);
           const data = await directRes.json();
-          const match = data.applications?.find(a => a.id === targetId);
+          const match = data.applications?.find(a => 
+            (targetId && (a.id === targetId || a._id === targetId)) ||
+            (targetEmail && a.email && a.email.toLowerCase() === targetEmail) ||
+            (targetPhone && a.phone && a.phone.replace(/\D/g, '').includes(targetPhone))
+          );
           if (match) {
             setProfessionalUser(prev => ({ ...prev, ...match }));
             localStorage.setItem('uc_pro_user', JSON.stringify({ ...storedUser, ...match }));
@@ -152,7 +159,8 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
   }, [onAppLogout, onExitToMarketplace]);
 
   const handleToggleOnline = useCallback(async () => {
-    if (professionalUser?.status !== 'Approved') {
+    const isApproved = !professionalUser?.status || professionalUser.status === 'Approved' || professionalUser.status === 'Active';
+    if (!isApproved) {
       showToast(`Duty locked: Your account is "${professionalUser?.status || 'Pending'}". Must be verified by compliance.`);
       return;
     }
@@ -213,7 +221,7 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
   const renderView = () => {
     // 1. Check if Suspended
     if (professionalUser?.status === 'Suspended') {
-      if (currentPath === '/professional' || currentPath === '/professional/' || currentPath === '/professional/jobs' || currentPath === '/professional/calendar') {
+      if (currentPath === '/professional' || currentPath === '/professional/' || currentPath === '/professional/jobs') {
         return (
           <SuspendedState
             profile={professionalUser}
@@ -318,17 +326,21 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
       );
     }
 
-    // 6. Calendar & Slots (3rd bottom tab)
+    // Calendar & Slots (Removed - redirecting to Today Dashboard)
     if (currentPath === '/professional/calendar') {
+      window.history.replaceState({}, '', '/professional');
       return (
-        <CalendarView
+        <OverviewView
+          professional={professionalUser}
+          profile={professionalUser}
           onNavigate={handleNavigate}
+          onToggleOnline={handleToggleOnline}
           showToast={showToast}
         />
       );
     }
 
-    // 7. Money & Ledgers (4th bottom tab)
+    // Money & Ledgers
     if (currentPath === '/professional/earnings') {
       return (
         <EarningsView
@@ -347,7 +359,7 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
       );
     }
 
-    // 8. Secondary Modules
+    // Secondary Modules
     if (currentPath === '/professional/availability') {
       return (
         <AvailabilityView
@@ -358,9 +370,15 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
       );
     }
 
+    // Customer Ratings & Reviews (Removed - redirecting to Today Dashboard)
     if (currentPath === '/professional/reviews') {
+      window.history.replaceState({}, '', '/professional');
       return (
-        <ReviewsView
+        <OverviewView
+          professional={professionalUser}
+          profile={professionalUser}
+          onNavigate={handleNavigate}
+          onToggleOnline={handleToggleOnline}
           showToast={showToast}
         />
       );
@@ -374,17 +392,29 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
       );
     }
 
+    // Academy & Safety SOPs (Removed - redirecting to Today Dashboard)
     if (currentPath === '/professional/training') {
+      window.history.replaceState({}, '', '/professional');
       return (
-        <TrainingView
+        <OverviewView
+          professional={professionalUser}
+          profile={professionalUser}
+          onNavigate={handleNavigate}
+          onToggleOnline={handleToggleOnline}
           showToast={showToast}
         />
       );
     }
 
+    // Inventory & Spare Parts (Removed - redirecting to Today Dashboard)
     if (currentPath === '/professional/inventory') {
+      window.history.replaceState({}, '', '/professional');
       return (
-        <InventoryView
+        <OverviewView
+          professional={professionalUser}
+          profile={professionalUser}
+          onNavigate={handleNavigate}
+          onToggleOnline={handleToggleOnline}
           showToast={showToast}
         />
       );

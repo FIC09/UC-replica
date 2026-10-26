@@ -1,8 +1,21 @@
 import express from 'express';
 import { Booking } from '../models/Booking.js';
 import { User } from '../models/User.js';
+import { autoAssignWorkerToBooking } from '../services/assignmentEngine.js';
+import { validateKrishnagiriServiceArea } from '../services/geofenceService.js';
 
 const router = express.Router();
+
+// POST validate service area coverage within Krishnagiri Town
+router.post('/validate-coverage', async (req, res) => {
+  try {
+    const { address = '', locality = '', city = 'Krishnagiri', lat, lng } = req.body;
+    const coverage = validateKrishnagiriServiceArea({ address, locality, city, lat, lng });
+    res.json({ success: true, coverage });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
 
 // GET all bookings or by user phone
 router.get('/', async (req, res) => {
@@ -40,6 +53,30 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cart items and total amount are required' });
     }
 
+    // Phase 14: Krishnagiri Town Service Coverage Verification
+    const targetAddress = bookingData.address || bookingData.addressDetails?.fullAddress || '';
+    const targetLocality = bookingData.serviceZone || bookingData.addressDetails?.locality || 'Rayakottai Road';
+    const targetCity = bookingData.city || bookingData.addressDetails?.city || 'Krishnagiri';
+    const targetLat = bookingData.addressDetails?.lat;
+    const targetLng = bookingData.addressDetails?.lng;
+
+    const coverageCheck = validateKrishnagiriServiceArea({
+      address: targetAddress,
+      locality: targetLocality,
+      city: targetCity,
+      lat: targetLat,
+      lng: targetLng
+    });
+
+    if (!coverageCheck.allowed) {
+      return res.status(400).json({
+        success: false,
+        serviceUnavailable: true,
+        reason: coverageCheck.reason,
+        message: coverageCheck.message || 'Service is currently operational exclusively within Krishnagiri Town.'
+      });
+    }
+
     if (!bookingData.id) {
       bookingData.id = 'UC-' + Math.floor(100000 + Math.random() * 900000);
     }
@@ -70,12 +107,9 @@ router.post('/', async (req, res) => {
     if (!bookingData.serviceCategory) {
       bookingData.serviceCategory = firstItem.category || 'Home Services';
     }
-    if (!bookingData.city) {
-      bookingData.city = bookingData.addressDetails?.city || 'Mumbai';
-    }
-    if (!bookingData.serviceZone) {
-      bookingData.serviceZone = bookingData.addressDetails?.locality || 'Bandra West';
-    }
+    bookingData.city = 'Krishnagiri';
+    bookingData.serviceZone = coverageCheck.serviceZone || targetLocality || 'Rayakottai Road';
+
     if (!bookingData.status) {
       bookingData.status = 'Confirmed';
     }
@@ -196,7 +230,32 @@ router.post('/', async (req, res) => {
     }
 
     const booking = await Booking.create(bookingData);
+
+    // Trigger Intelligent Auto-Assignment Engine (Module 4)
+    try {
+      const assignmentResult = await autoAssignWorkerToBooking(booking);
+      if (assignmentResult.success) {
+        console.log(`[Booking] Auto-assigned ${assignmentResult.assignedWorker?.applicantName} to Booking ${booking.id}`);
+      }
+    } catch (assignErr) {
+      console.warn('[Booking] Auto-assignment notice:', assignErr.message);
+    }
+
     res.status(201).json({ success: true, booking });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST trigger or retry auto-assignment for an existing booking
+router.post('/:id/auto-assign', async (req, res) => {
+  try {
+    const booking = await Booking.findOne({ $or: [{ id: req.params.id }, { bookingReference: req.params.id }] });
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+    const result = await autoAssignWorkerToBooking(booking);
+    res.json({ success: result.success, message: result.message || 'Auto-assignment evaluated', result });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

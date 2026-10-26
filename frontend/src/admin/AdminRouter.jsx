@@ -5,6 +5,7 @@ import { adminClient } from './adminClient';
 
 // Import Admin Views
 import { OverviewView } from './views/OverviewView';
+import { OperationsView } from './views/OperationsView';
 import { BookingsView } from './views/BookingsView';
 import { CustomersView } from './views/CustomersView';
 import { ProfessionalsView } from './views/ProfessionalsView';
@@ -174,6 +175,8 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
       case '/admin':
       case '/admin/overview':
         return <OverviewView onNavigate={handleNavigate} onShowToast={showToast} />;
+      case '/admin/operations':
+        return <OperationsView onNavigate={handleNavigate} onShowToast={showToast} />;
       case '/admin/bookings':
         return <BookingsView onNavigate={handleNavigate} onShowToast={showToast} />;
       case '/admin/customers':

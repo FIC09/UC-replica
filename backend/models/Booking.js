@@ -123,11 +123,11 @@ const bookingSchema = new mongoose.Schema({
   },
   city: {
     type: String,
-    default: 'Mumbai',
+    default: 'Krishnagiri',
   },
   serviceZone: {
     type: String,
-    default: 'Bandra West',
+    default: 'Rayakottai Road',
   },
   address: {
     type: String,

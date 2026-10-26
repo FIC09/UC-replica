@@ -14,9 +14,14 @@ import {
   Check, 
   FileText, 
   Users, 
-  AlertCircle
+  AlertCircle,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { CATEGORIES } from '../data/servicesData';
+import { partnerApi } from '../api/apiClient';
 
 export function PartnerOnboardingModal({
   isOpen,
@@ -31,6 +36,8 @@ export function PartnerOnboardingModal({
   const [ownerName, setOwnerName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [businessType, setBusinessType] = useState('Partnership / LLP');
   const [selectedCategory, setSelectedCategory] = useState('ac-appliances');
   const [fleetSize, setFleetSize] = useState('6-15 Technicians');
@@ -57,6 +64,15 @@ export function PartnerOnboardingModal({
       setError('Please enter a valid 10-digit business phone number.');
       return;
     }
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please enter a valid official business email address (e.g. operations@agency.in) for partner login.');
+      return;
+    }
+    if (!password || password.length < 6) {
+      setError('Please create a secure password of at least 6 characters for your partner portal login.');
+      return;
+    }
     setError('');
     setStep(2);
   }
@@ -69,7 +85,8 @@ export function PartnerOnboardingModal({
       businessName: businessName.trim(),
       ownerName: ownerName.trim(),
       phone: phoneNumber.trim(),
-      email: email.trim() || 'contact@business.in',
+      email: email.trim().toLowerCase(),
+      password: password,
       businessType,
       category: selectedCategory,
       categoryName: catObj ? catObj.name : 'Multi-Service Fleet',
@@ -92,6 +109,8 @@ export function PartnerOnboardingModal({
     if (onPartnerApplied) {
       onPartnerApplied(newPartnerApp);
     }
+    // Also dispatch directly to partnerApi for immediate backend persistence
+    partnerApi.submit(newPartnerApp).catch(err => console.warn('Direct partnerApi submit sync:', err));
     setStep(3);
   }
 
@@ -101,6 +120,8 @@ export function PartnerOnboardingModal({
     setOwnerName('');
     setPhoneNumber('');
     setEmail('');
+    setPassword('');
+    setShowPassword(false);
     setGstNumber('');
     setError('');
     setSubmittedPartnerApp(null);
@@ -373,14 +394,19 @@ export function PartnerOnboardingModal({
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                    Official Email Address
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <Mail size={14} color="#8B5CF6" />
+                    <span>Official Email Address (for Portal Login) *</span>
                   </label>
                   <input
                     type="email"
+                    required
                     placeholder="operations@apexservices.in"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (error) setError('');
+                    }}
                     style={{
                       width: '100%',
                       background: '#1E293B',
@@ -388,13 +414,71 @@ export function PartnerOnboardingModal({
                       borderRadius: 0,
                       padding: '10px 14px',
                       color: '#FFFFFF',
-                      fontSize: 13.5
+                      fontSize: 13.5,
+                      boxSizing: 'border-box'
                     }}
                   />
+                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
+                    Your enterprise login username on the partner portal
+                  </div>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+              {/* Password and Entity Structure Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <Lock size={14} color="#8B5CF6" />
+                    <span>Create Portal Password (min. 6 characters) *</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Enter a secure password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (error) setError('');
+                      }}
+                      style={{
+                        width: '100%',
+                        background: '#1E293B',
+                        border: '1px solid #334155',
+                        borderRadius: 0,
+                        padding: '10px 40px 10px 14px',
+                        color: '#FFFFFF',
+                        fontSize: 13.5,
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94A3B8',
+                        cursor: 'pointer',
+                        padding: 6,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
+                    Used along with your official email to log in once approved
+                  </div>
+                </div>
+
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
                     Entity Structure / Business Type
@@ -409,7 +493,8 @@ export function PartnerOnboardingModal({
                       borderRadius: 0,
                       padding: '10px 14px',
                       color: '#FFFFFF',
-                      fontSize: 13.5
+                      fontSize: 13.5,
+                      boxSizing: 'border-box'
                     }}
                   >
                     <option value="Partnership / LLP">Partnership / LLP</option>
@@ -418,30 +503,30 @@ export function PartnerOnboardingModal({
                     <option value="Franchise Operator">Franchise Operator</option>
                   </select>
                 </div>
+              </div>
 
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                    Primary Business Category
-                  </label>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#1E293B',
-                      border: '1px solid #334155',
-                      borderRadius: 0,
-                      padding: '10px 14px',
-                      color: '#FFFFFF',
-                      fontSize: 13.5
-                    }}
-                  >
+              <div style={{ marginBottom: 20 }}>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
+                  Primary Business Category
+                </label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: '#1E293B',
+                    border: '1px solid #334155',
+                    borderRadius: 0,
+                    padding: '10px 14px',
+                    color: '#FFFFFF',
+                    fontSize: 13.5
+                  }}
+                >
                     {CATEGORIES.filter(c => c.id !== 'all').map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
                 </div>
-              </div>
 
               <button
                 type="submit"
@@ -658,7 +743,7 @@ export function PartnerOnboardingModal({
                 borderRadius: 0,
                 padding: '16px 20px',
                 maxWidth: 480,
-                margin: '0 auto 24px',
+                margin: '0 auto 18px',
                 textAlign: 'left',
                 fontSize: 13
               }}>
@@ -667,12 +752,20 @@ export function PartnerOnboardingModal({
                   <strong style={{ color: '#A78BFA' }}>{submittedPartnerApp.id}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
-                  <span style={{ color: '#94A3B8' }}>Category:</span>
-                  <strong style={{ color: '#fff' }}>{submittedPartnerApp.categoryName}</strong>
+                  <span style={{ color: '#94A3B8' }}>Official Login Email:</span>
+                  <strong style={{ color: '#38BDF8' }}>{submittedPartnerApp.email}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
-                  <span style={{ color: '#94A3B8' }}>Fleet Capacity:</span>
-                  <span style={{ color: '#fff' }}>{submittedPartnerApp.fleetSize} ({submittedPartnerApp.monthlyCapacity})</span>
+                  <span style={{ color: '#94A3B8' }}>Account Password:</span>
+                  <span style={{ color: '#10B981', fontWeight: 700 }}>•••••••• (Configured & Saved)</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
+                  <span style={{ color: '#94A3B8' }}>Managing Director:</span>
+                  <span style={{ color: '#fff' }}>{submittedPartnerApp.ownerName}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
+                  <span style={{ color: '#94A3B8' }}>Category & Fleet:</span>
+                  <strong style={{ color: '#fff' }}>{submittedPartnerApp.categoryName} ({submittedPartnerApp.fleetSize})</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8 }}>
                   <span style={{ color: '#94A3B8' }}>Current Status:</span>
@@ -685,9 +778,28 @@ export function PartnerOnboardingModal({
                     fontSize: 11,
                     fontWeight: 800
                   }}>
-                    ● {submittedPartnerApp.status}
+                    ● Awaiting Admin Approval
                   </span>
                 </div>
+              </div>
+
+              {/* Admin Verification Notice */}
+              <div style={{
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.3)',
+                padding: '12px 16px',
+                maxWidth: 480,
+                margin: '0 auto 20px',
+                textAlign: 'left',
+                fontSize: 12.5,
+                color: '#D1FAE5',
+                lineHeight: 1.5
+              }}>
+                <div style={{ fontWeight: 800, color: '#34D399', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <ShieldCheck size={16} />
+                  <span>Submitted to Admin Operations Dashboard</span>
+                </div>
+                Your agency profile and credentials have been forwarded to the Admin Dashboard. Once the operations team verifies and clicks <strong>Approve Agency</strong>, your full Partner ERP dashboard will be unlocked.
               </div>
 
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>

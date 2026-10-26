@@ -24,6 +24,8 @@ import {
   ThumbsUp,
   AlertCircle
 } from 'lucide-react';
+import { LiveMapTracker } from './LiveMapTracker';
+import { RapidoChatDrawer } from './RapidoChatDrawer';
 
 export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) {
   // Stages:
@@ -70,6 +72,116 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
   // Review state for Stage 6
   const [userRating, setUserRating] = useState(5);
   const [ratingSubmitted, setRatingSubmitted] = useState(false);
+
+  // Backend authoritative tracking session
+  const [trackingData, setTrackingData] = useState(null);
+  const [isSimulatingGps, setIsSimulatingGps] = useState(false);
+
+  // Synchronize with authoritative TrackingSession & SSE live stream
+  useEffect(() => {
+    if (!booking?.id) return;
+
+    let isMounted = true;
+    fetch(`/api/tracking/${booking.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (isMounted && data.success && data.tracking) {
+          setTrackingData(data.tracking);
+          if (data.tracking.remainingEtaMinutes != null) {
+            setEtaSeconds(Math.max(60, data.tracking.remainingEtaMinutes * 60));
+          }
+          if (data.tracking.status === 'completed') setStage(6);
+          else if (data.tracking.status === 'in_progress') setStage(5);
+          else if (data.tracking.status === 'arrived') setStage(4);
+          else if (data.tracking.status === 'en_route') setStage(3);
+          else if (data.tracking.status === 'assigned') setStage(3);
+        }
+      })
+      .catch(err => console.warn('Tracking fetch note:', err.message));
+
+    // Connect SSE stream
+    const eventSource = new EventSource(`/api/tracking/stream/${booking.id}`);
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === 'update' && payload.tracking) {
+          if (!isMounted) return;
+          const trk = payload.tracking;
+          setTrackingData(trk);
+          if (trk.remainingEtaMinutes != null) {
+            setEtaSeconds(Math.max(60, trk.remainingEtaMinutes * 60));
+          }
+          if (trk.status === 'completed') setStage(6);
+          else if (trk.status === 'in_progress') setStage(5);
+          else if (trk.status === 'arrived') setStage(4);
+          else if (trk.status === 'en_route') setStage(3);
+        }
+      } catch (e) {}
+    };
+
+    return () => {
+      isMounted = false;
+      eventSource.close();
+    };
+  }, [booking?.id]);
+
+  // Handlers for real backend transitions
+  async function handleVerifyPin() {
+    try {
+      const pinToVerify = trackingData?.safetyPin || safetyPin;
+      const res = await fetch(`/api/tracking/verify-pin/${booking.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: pinToVerify })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStage(5);
+        onUpdateBookingStatus?.(booking.id, 'In Progress');
+      } else {
+        alert(data.message || 'PIN verification failed');
+      }
+    } catch (err) {
+      setStage(5);
+    }
+  }
+
+  async function handleCompleteService(ratingVal = 5) {
+    try {
+      const res = await fetch(`/api/tracking/complete-service/${booking.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: ratingVal, notes: 'Service completed thoroughly and sanitized.' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStage(6);
+        setRatingSubmitted(true);
+        onUpdateBookingStatus?.(booking.id, 'Completed');
+      }
+    } catch (err) {
+      setStage(6);
+      setRatingSubmitted(true);
+    }
+  }
+
+  async function handleSimulateGpsStep() {
+    setIsSimulatingGps(true);
+    try {
+      const res = await fetch(`/api/tracking/advance-step/${booking.id}`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success && data.tracking) {
+        setTrackingData(data.tracking);
+        if (data.tracking.status === 'arrived') {
+          setStage(4);
+        }
+      }
+    } catch (err) {
+      console.warn('GPS advance note:', err.message);
+    } finally {
+      setIsSimulatingGps(false);
+    }
+  }
 
   // 1. REAL-TIME TICKER EFFECT
   useEffect(() => {
@@ -207,9 +319,22 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
     }, 1800);
   };
 
-  // Calculated distance based on eta
-  const distanceKm = Math.max(0.1, ((etaSeconds / (18 * 60)) * 2.8)).toFixed(1);
-  const routeProgressPercent = Math.min(100, Math.max(8, Math.round(((18 * 60 - etaSeconds) / (18 * 60)) * 100)));
+  // Authoritative live professional & tracking telemetry
+  const proName = trackingData?.workerName || booking?.assignedProfessional?.name || booking?.assignedPartner || 'Rajesh Sharma';
+  const proTrade = trackingData?.workerTrade || booking?.assignedProfessional?.trade || booking?.serviceName || 'Verified Pro';
+  const proRating = trackingData?.workerRating || booking?.assignedProfessional?.rating || 4.92;
+  const activePin = trackingData?.safetyPin || safetyPin;
+
+  // Calculated distance based on live telemetry or fallback
+  const distanceKm = trackingData?.remainingDistanceKm != null
+    ? trackingData.remainingDistanceKm.toFixed(1)
+    : Math.max(0.1, ((etaSeconds / (18 * 60)) * 2.8)).toFixed(1);
+
+  const totalWaypoints = trackingData?.routePolyline?.length || 15;
+  const currentWaypoint = trackingData?.currentWaypointIndex || 0;
+  const routeProgressPercent = trackingData?.routePolyline?.length
+    ? Math.min(100, Math.max(8, Math.round((currentWaypoint / (totalWaypoints - 1)) * 100)))
+    : Math.min(100, Math.max(8, Math.round(((18 * 60 - etaSeconds) / (18 * 60)) * 100)));
 
   return (
     <div 
@@ -507,7 +632,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                Rajesh Sharma
+                {proName}
               </span>
               <span style={{
                 background: '#ECFDF5',
@@ -524,14 +649,14 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: '#475569', marginTop: 2 }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: '#F59E0B', fontWeight: 800 }}>
                 <Star size={12} fill="#F59E0B" />
-                <span>4.92</span>
+                <span>{proRating}</span>
               </div>
-              <span>• 1,480+ jobs</span>
-              <span>• Vaccinated</span>
+              <span>• {proTrade}</span>
+              <span>• Live GPS Active</span>
             </div>
 
             <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-              Honda Activa • MH 02 CQ 8291
+              {booking?.serviceZone || booking?.city || 'Chennai'} Operational Hub
             </div>
           </div>
 
@@ -688,6 +813,35 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                     <span>{routeProgressPercent}% completed</span>
                     <span>Doorstep</span>
                   </div>
+
+                  {/* Real-time simulation step control */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(124, 58, 237, 0.15)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#6D28D9', fontWeight: 600 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                      <span>Live GPS Stream Connected</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleSimulateGpsStep}
+                      disabled={isSimulatingGps}
+                      style={{
+                        background: '#7C3AED',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: 6,
+                        padding: '5px 12px',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}
+                    >
+                      <Navigation size={12} />
+                      <span>Advance GPS 🛵</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -705,7 +859,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                         Partner has arrived outside!
                       </strong>
                       <span style={{ fontSize: 12, color: '#B45309' }}>
-                        Rajesh Sharma is waiting at your doorstep with sanitized equipment.
+                        {proName} is waiting at your doorstep with sanitized equipment.
                       </span>
                     </div>
                   </div>
@@ -720,11 +874,11 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                     justifyContent: 'space-between'
                   }}>
                     <span style={{ fontSize: 12, color: '#451A03', fontWeight: 600 }}>
-                      Share Safety PIN: <strong style={{ letterSpacing: 2, fontSize: 14, color: '#1E40AF' }}>{safetyPin}</strong>
+                      Share Safety PIN: <strong style={{ letterSpacing: 2, fontSize: 14, color: '#1E40AF' }}>{activePin}</strong>
                     </span>
                     <button
                       type="button"
-                      onClick={() => setStage(5)}
+                      onClick={handleVerifyPin}
                       style={{
                         background: '#059669',
                         color: '#FFFFFF',
@@ -770,11 +924,11 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                     </div>
                   </div>
                   <p style={{ fontSize: 12, color: '#15803D', margin: 0 }}>
-                    Rajesh is actively performing your service. All hygiene & safety protocols verified.
+                    {proName} is actively performing your service. All hygiene & safety protocols verified.
                   </p>
                   <button
                     type="button"
-                    onClick={() => setStage(6)}
+                    onClick={() => handleCompleteService(userRating)}
                     style={{
                       marginTop: 12,
                       background: '#15803D',
@@ -825,7 +979,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                   {!ratingSubmitted ? (
                     <div style={{ background: '#FFFFFF', padding: 12, borderRadius: 10, border: '1px solid #E2E8F0' }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 8 }}>
-                        How was your experience with Rajesh?
+                        How was your experience with {proName}?
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
                         {[1, 2, 3, 4, 5].map((star) => (
@@ -845,7 +999,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                       </div>
                       <button
                         type="button"
-                        onClick={() => setRatingSubmitted(true)}
+                        onClick={() => handleCompleteService(userRating)}
                         style={{
                           background: '#6E42E5',
                           color: '#FFFFFF',
@@ -857,108 +1011,31 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                           cursor: 'pointer'
                         }}
                       >
-                        Submit 5-Star Review
+                        Submit {userRating}-Star Review
                       </button>
                     </div>
                   ) : (
                     <div style={{ background: '#ECFDF5', padding: 10, borderRadius: 8, fontSize: 12, color: '#065F46', fontWeight: 700 }}>
-                      ✓ Thank you for rating 5 stars! Rajesh appreciates your support.
+                      ✓ Thank you for rating {userRating} stars! {proName} appreciates your support.
                     </div>
                   )}
                 </div>
               )}
 
-              {/* --- INTERACTIVE SVG GPS MINI-MAP --- */}
-              <div style={{
-                borderRadius: 14,
-                overflow: 'hidden',
-                border: '1px solid #E2E8F0',
-                background: '#F1F5F9',
-                position: 'relative',
-                height: 140
-              }}>
-                <svg width="100%" height="100%" style={{ background: '#F8FAFC' }}>
-                  {/* Grid Lines representing streets */}
-                  <pattern id="street-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#E2E8F0" strokeWidth="1" />
-                  </pattern>
-                  <rect width="100%" height="100%" fill="url(#street-grid)" />
-
-                  {/* Road Path */}
-                  <path
-                    d="M 40 100 Q 140 20 260 80 T 480 50"
-                    fill="none"
-                    stroke="#CBD5E1"
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M 40 100 Q 140 20 260 80 T 480 50"
-                    fill="none"
-                    stroke="#7C3AED"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    strokeDasharray="6,4"
-                  />
-
-                  {/* Origin Point: Urban Company Hub */}
-                  <circle cx="40" cy="100" r="5" fill="#64748B" />
-                  <text x="40" y="122" fontSize="9" fontWeight="700" fill="#64748B" textAnchor="middle">
-                    UC Hub
-                  </text>
-
-                  {/* Moving Scooter Marker based on route progress */}
-                  {(() => {
-                    // Approximate coordinates along curve
-                    const p = routeProgressPercent / 100;
-                    const scooterX = 40 + p * (480 - 40);
-                    const scooterY = 100 - Math.sin(p * Math.PI) * 50;
-                    return (
-                      <g transform={`translate(${scooterX}, ${scooterY})`}>
-                        <circle cx="0" cy="0" r="16" fill="rgba(124, 58, 237, 0.2)" />
-                        <circle cx="0" cy="0" r="10" fill="#7C3AED" />
-                        <text x="0" y="4" fontSize="10" textAnchor="middle" fill="#FFFFFF">🛵</text>
-                      </g>
-                    );
-                  })()}
-
-                  {/* Destination: Delivery Address Marker */}
-                  <g transform="translate(480, 50)">
-                    <circle cx="0" cy="0" r="14" fill="rgba(16, 185, 129, 0.25)">
-                      <animate attributeName="r" values="10;18;10" dur="2s" repeatCount="indefinite" />
-                    </circle>
-                    <circle cx="0" cy="0" r="8" fill="#10B981" />
-                    <text x="0" y="24" fontSize="10" fontWeight="800" fill="#065F46" textAnchor="middle">
-                      Home 🏠
-                    </text>
-                  </g>
-                </svg>
-
-                {/* Floating Map Info Overlay */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: 8,
-                  left: 10,
-                  right: 10,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  background: 'rgba(255, 255, 255, 0.92)',
-                  backdropFilter: 'blur(4px)',
-                  padding: '4px 10px',
-                  borderRadius: 8,
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: '#1E293B'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <Navigation size={12} color="#7C3AED" />
-                    <span>Live GPS Tracking</span>
-                  </div>
-                  <span style={{ color: '#059669', fontWeight: 800 }}>
-                    {stage >= 4 ? 'Arrived at Destination' : `${distanceKm} km away`}
-                  </span>
-                </div>
+              {/* --- REAL-TIME LIVE MAP TRACKER (Zomato & Swiggy Style) --- */}
+              <div style={{ marginBottom: 10 }}>
+                <LiveMapTracker
+                  session={trackingData}
+                  bookingId={booking?.id}
+                  height={260}
+                  showControls={true}
+                  onStepAdvanced={(updated) => {
+                    setTrackingData(updated);
+                    if (updated?.status === 'arrived') {
+                      setStage(4);
+                    }
+                  }}
+                />
               </div>
 
               {/* --- DETAILED TIMELINE STAGES --- */}
@@ -1362,164 +1439,19 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
         )}
 
         {/* =========================================================================
-            8. IN-APP CHAT DRAWER
+            8. RAPIDO-STYLE IN-APP CHAT (Real-Time SSE + MongoDB Persistence)
            ========================================================================= */}
-        {isChatOpen && (
-          <div style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: '75%',
-            background: '#FFFFFF',
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
-            boxShadow: '0 -10px 25px rgba(0,0,0,0.15)',
-            zIndex: 90,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          }}>
-            {/* Chat Header */}
-            <div style={{
-              padding: '12px 16px',
-              background: '#F8FAFC',
-              borderBottom: '1px solid #E2E8F0',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <img
-                  src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80"
-                  alt="Rajesh"
-                  style={{ width: 32, height: 32, borderRadius: '50%' }}
-                />
-                <div>
-                  <strong style={{ fontSize: 13, color: '#0F172A', display: 'block' }}>
-                    Chat with Rajesh
-                  </strong>
-                  <span style={{ fontSize: 11, color: '#10B981' }}>Online</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsChatOpen(false)}
-                style={{ background: 'none', border: 'none', color: '#64748B', cursor: 'pointer' }}
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Quick Chips */}
-            <div style={{ padding: '8px 12px', background: '#F1F5F9', display: 'flex', gap: 6, overflowX: 'auto' }}>
-              {[
-                'I am at Flat 402',
-                'Please ring the bell',
-                'Call when at gate',
-                'Take the elevator'
-              ].map((chip, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => handleSendMessage(chip)}
-                  style={{
-                    background: '#FFFFFF',
-                    border: '1px solid #CBD5E1',
-                    borderRadius: 14,
-                    padding: '3px 10px',
-                    fontSize: 11,
-                    whiteSpace: 'nowrap',
-                    cursor: 'pointer',
-                    color: '#334155'
-                  }}
-                >
-                  {chip}
-                </button>
-              ))}
-            </div>
-
-            {/* Chat Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {chatMessages.map((m, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    alignSelf: m.sender === 'user' ? 'flex-end' : 'flex-start',
-                    maxWidth: '80%'
-                  }}
-                >
-                  <div style={{
-                    background: m.sender === 'user' ? '#6E42E5' : '#F1F5F9',
-                    color: m.sender === 'user' ? '#FFFFFF' : '#0F172A',
-                    padding: '8px 12px',
-                    borderRadius: 12,
-                    fontSize: 12.5,
-                    lineHeight: 1.4
-                  }}>
-                    {m.text}
-                  </div>
-                  <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2, textAlign: m.sender === 'user' ? 'right' : 'left' }}>
-                    {m.time}
-                  </div>
-                </div>
-              ))}
-              {isPartnerTyping && (
-                <div style={{ alignSelf: 'flex-start', background: '#F1F5F9', padding: '6px 12px', borderRadius: 12, fontSize: 11, color: '#64748B' }}>
-                  Rajesh is typing...
-                </div>
-              )}
-              <div ref={chatBottomRef} />
-            </div>
-
-            {/* Chat Input */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendMessage();
-              }}
-              style={{
-                padding: '8px 12px',
-                borderTop: '1px solid #E2E8F0',
-                display: 'flex',
-                gap: 8,
-                background: '#FFFFFF'
-              }}
-            >
-              <input
-                type="text"
-                placeholder="Type a message..."
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                style={{
-                  flex: 1,
-                  padding: '8px 12px',
-                  borderRadius: 20,
-                  border: '1px solid #CBD5E1',
-                  fontSize: 12.5,
-                  outline: 'none'
-                }}
-              />
-              <button
-                type="submit"
-                style={{
-                  background: '#6E42E5',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: '50%',
-                  width: 34,
-                  height: 34,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer'
-                }}
-              >
-                <Send size={15} />
-              </button>
-            </form>
-          </div>
-        )}
+        <RapidoChatDrawer
+          isOpen={isChatOpen}
+          onClose={() => setIsChatOpen(false)}
+          booking={booking}
+          currentUser={{
+            role: 'customer',
+            id: booking?.userId || booking?.userPhone || 'cust-user',
+            name: booking?.userName || 'Customer',
+            phone: booking?.userPhone
+          }}
+        />
       </div>
     </div>
   );

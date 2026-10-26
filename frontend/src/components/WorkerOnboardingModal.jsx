@@ -16,9 +16,14 @@ import {
   UserCheck, 
   Wrench,
   AlertCircle,
-  HardHat
+  HardHat,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { CATEGORIES } from '../data/servicesData';
+import { workerApi } from '../api/apiClient';
 
 export function WorkerOnboardingModal({
   isOpen,
@@ -31,6 +36,9 @@ export function WorkerOnboardingModal({
   // Form State
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [selectedTrade, setSelectedTrade] = useState('ac-appliances');
   const [locality, setLocality] = useState('Bandra West');
   const [experienceYears, setExperienceYears] = useState('3-5 years');
@@ -67,6 +75,15 @@ export function WorkerOnboardingModal({
       setError('Please enter a valid 10-digit mobile number.');
       return;
     }
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please enter a valid email address (e.g. name@domain.com) for worker login.');
+      return;
+    }
+    if (!password || password.length < 6) {
+      setError('Please create a password of at least 6 characters for worker dashboard login.');
+      return;
+    }
     setError('');
     setStep(2);
   }
@@ -78,6 +95,8 @@ export function WorkerOnboardingModal({
       id: `WRK-${Date.now().toString().slice(-5)}`,
       applicantName: fullName.trim(),
       phone: phoneNumber.trim(),
+      email: email.trim().toLowerCase(),
+      password: password,
       trade: selectedTrade,
       tradeName: tradeObj ? tradeObj.name : 'Home Services Specialist',
       locality: `${locality}, ${selectedCity}`,
@@ -101,6 +120,8 @@ export function WorkerOnboardingModal({
     if (onWorkerApplied) {
       onWorkerApplied(newApp);
     }
+    // Also directly post to backend worker-applications to ensure instant persistence
+    workerApi.submit(newApp).catch(err => console.warn('Direct workerApi submit sync:', err));
     setStep(3);
   }
 
@@ -108,6 +129,9 @@ export function WorkerOnboardingModal({
     setStep(1);
     setFullName('');
     setPhoneNumber('');
+    setEmail('');
+    setPassword('');
+    setShowPassword(false);
     setAadhaarNumber('');
     setError('');
     setSubmittedApp(null);
@@ -349,6 +373,92 @@ export function WorkerOnboardingModal({
                     }}>
                       {phoneNumber.length}/10
                     </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Email and Password Credentials Row */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <Mail size={14} color="#10B981" />
+                    <span>Email Address (for Login & Communications) *</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. ramesh.patil@urbanpro.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (error) setError('');
+                    }}
+                    style={{
+                      width: '100%',
+                      background: '#1E293B',
+                      border: '1px solid #334155',
+                      borderRadius: 0,
+                      padding: '10px 14px',
+                      color: '#FFFFFF',
+                      fontSize: 13.5,
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
+                    Your primary login username on the worker portal
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <Lock size={14} color="#10B981" />
+                    <span>Create Password (min. 6 characters) *</span>
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      placeholder="Enter a secure password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (error) setError('');
+                      }}
+                      style={{
+                        width: '100%',
+                        background: '#1E293B',
+                        border: '1px solid #334155',
+                        borderRadius: 0,
+                        padding: '10px 40px 10px 14px',
+                        color: '#FFFFFF',
+                        fontSize: 13.5,
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                      style={{
+                        position: 'absolute',
+                        right: 8,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94A3B8',
+                        cursor: 'pointer',
+                        padding: 6,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
+                    Used along with your email to log in once approved
                   </div>
                 </div>
               </div>
@@ -657,6 +767,14 @@ export function WorkerOnboardingModal({
                   <strong style={{ color: '#A78BFA' }}>{submittedApp.id}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
+                  <span style={{ color: '#94A3B8' }}>Login Email:</span>
+                  <strong style={{ color: '#38BDF8' }}>{submittedApp.email}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
+                  <span style={{ color: '#94A3B8' }}>Account Password:</span>
+                  <span style={{ color: '#10B981', fontWeight: 600 }}>•••••••• (Configured)</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
                   <span style={{ color: '#94A3B8' }}>Selected Trade:</span>
                   <strong style={{ color: '#fff' }}>{submittedApp.tradeName}</strong>
                 </div>
@@ -675,9 +793,25 @@ export function WorkerOnboardingModal({
                     fontSize: 11,
                     fontWeight: 800
                   }}>
-                    ● {submittedApp.status}
+                    ● Awaiting Admin Approval
                   </span>
                 </div>
+              </div>
+
+              {/* Approval Info Alert */}
+              <div style={{
+                background: 'rgba(56, 189, 248, 0.1)',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                padding: '12px 16px',
+                borderRadius: 0,
+                maxWidth: 480,
+                margin: '0 auto 20px',
+                textAlign: 'left',
+                fontSize: 12.5,
+                color: '#BAE6FD',
+                lineHeight: 1.5
+              }}>
+                <strong>Admin Approval Workflow:</strong> Your credentials ({submittedApp.email}) have been forwarded to the Admin Verification desk. Once the Admin clicks <strong>Approve</strong>, you can log in directly and normally operate your worker dashboard.
               </div>
 
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>

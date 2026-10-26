@@ -89,6 +89,14 @@ export function PendingApprovalState({ partner, onNavigate, onRefresh, onLogout 
           <span style={{ color: '#0f172a', fontWeight: 600 }}>{partner?.ownerName || 'On File'} ({partner?.phone || ''})</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}>
+          <span style={{ color: '#64748b' }}>Official Login Email:</span>
+          <strong style={{ color: '#2563eb' }}>{partner?.email || 'Registered Business Email'}</strong>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}>
+          <span style={{ color: '#64748b' }}>Account Credentials:</span>
+          <span style={{ color: '#059669', fontWeight: 600 }}>•••••••• (Configured & Saved)</span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #e2e8f0' }}>
           <span style={{ color: '#64748b' }}>Category & Fleet Capacity:</span>
           <span style={{ color: '#0f172a' }}>{partner?.categoryName || partner?.category || 'General Home Services'} • {partner?.fleetSize || '6-15 Technicians'}</span>
         </div>

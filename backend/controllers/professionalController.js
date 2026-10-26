@@ -1412,6 +1412,7 @@ export async function professionalLogin(req, res) {
             legalName: dbWorker.applicantName,
             phone: dbWorker.phone,
             email: dbWorker.email || `${dbWorker.applicantName.toLowerCase().replace(/\s+/g, '.')}@urbanpro.com`,
+            password: dbWorker.password || '',
             avatar: dbWorker.avatar || 'WR',
             trade: dbWorker.tradeName || dbWorker.trade,
             tradeName: dbWorker.tradeName || dbWorker.trade,
@@ -1453,14 +1454,24 @@ export async function professionalLogin(req, res) {
       });
     }
 
-    // Password verification check
-    if (password && password !== 'pro123456' && password !== 'demo' && password !== 'admin123' && password !== 'urbanpro2026' && password !== 'Partner@2026') {
+    // Password verification check: allow master demo passwords or technician's registered password
+    const isMasterPassword = password === 'pro123456' || password === 'demo' || password === 'admin123' || password === 'urbanpro2026' || password === 'Partner@2026';
+    const isWorkerPasswordMatch = Boolean(pro.password && password && pro.password === password);
+
+    if (password && !isMasterPassword && !isWorkerPasswordMatch) {
       attempt.count += 1;
       if (attempt.count >= 5) attempt.lockedUntil = Date.now() + 15 * 60 * 1000;
       loginAttemptsStore.set(rateKey, attempt);
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials provided. Please check your phone/email and password.'
+      });
+    }
+
+    if (pro.status === 'Rejected') {
+      return res.status(403).json({
+        success: false,
+        error: `Your worker application was rejected by operations admin.${pro.rejectionReason ? ` Reason: ${pro.rejectionReason}` : ''}`
       });
     }
 
@@ -1481,10 +1492,14 @@ export async function professionalLogin(req, res) {
       { expiresIn: '30d' }
     );
 
+    // Omit sensitive password from response
+    const { password: _workerPwd, ...safePro } = pro;
+
     return res.json({
       success: true,
       token,
-      professional: pro
+      professional: safePro,
+      isPendingApproval: safePro.status !== 'Approved' && safePro.status !== 'Active'
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -1862,7 +1877,13 @@ export async function getProfessionalProfile(req, res) {
     let pro = professionalsStore.find(p => p.id === proId);
     if (!pro) {
       try {
-        const dbWorker = await WorkerApplication.findOne({ id: proId }).lean();
+        const dbWorker = await WorkerApplication.findOne({
+          $or: [
+            { id: proId },
+            { id: (proId || '').toUpperCase() },
+            { email: (proId || '').toLowerCase() }
+          ]
+        }).lean();
         if (dbWorker) {
           pro = {
             id: dbWorker.id,

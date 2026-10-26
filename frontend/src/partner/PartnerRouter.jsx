@@ -7,6 +7,7 @@ import { PartnerOnboarding } from './PartnerOnboarding';
 
 // Views
 import { OverviewView } from './views/OverviewView';
+import { LiveTrackingView } from './views/LiveTrackingView';
 import { BookingsView } from './views/BookingsView';
 import { CalendarView } from './views/CalendarView';
 import { TeamView } from './views/TeamView';
@@ -200,6 +201,42 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
     return <Component onNavigate={handleNavigate} showToast={showToast} staff={staffUser} partner={partnerUser} />;
   }
 
+  async function handleRefreshPartnerStatus() {
+    try {
+      const res = await partnerClient.getMe();
+      if (res && res.success && res.partner) {
+        setPartnerUser(res.partner);
+        localStorage.setItem('uc_partner_profile', JSON.stringify(res.partner));
+        if (res.partner.status === 'Approved' || res.partner.status === 'Active') {
+          showToast(`🎉 Partner fleet APPROVED! Welcome to Urban Company Enterprise ERP.`);
+        } else {
+          showToast(`Partner status: ${res.partner.status}. Awaiting Admin Approval.`);
+        }
+        return;
+      }
+      const direct = await fetch('/api/partner-applications');
+      const d = await direct.json();
+      const match = d.applications?.find(a => 
+        (partnerUser?.id && (a.id === partnerUser.id || a._id === partnerUser.id)) ||
+        (partnerUser?.email && a.email && a.email.toLowerCase() === partnerUser.email.toLowerCase()) ||
+        (partnerUser?.phone && a.phone === partnerUser.phone)
+      );
+      if (match) {
+        setPartnerUser(prev => ({ ...prev, ...match }));
+        localStorage.setItem('uc_partner_profile', JSON.stringify({ ...partnerUser, ...match }));
+        if (match.status === 'Approved' || match.status === 'Active') {
+          showToast(`🎉 Partner fleet APPROVED by Admin! Unlocking dashboard.`);
+        } else {
+          showToast(`Partner status: ${match.status}. Awaiting Admin Approval.`);
+        }
+      } else {
+        showToast('Application record not found. Please contact support.');
+      }
+    } catch (e) {
+      showToast(e.message || 'Check failed');
+    }
+  }
+
   // Operational privileges guard: pending businesses can access support,
   // but cannot access live operational dispatch, bookings, team, or finances until approved.
   function renderOperationalModule(requiredPermission, Component) {
@@ -209,35 +246,7 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
           partner={partnerUser}
           onNavigate={handleNavigate}
           onLogout={handleLogout}
-          onRefresh={async () => {
-            try {
-              const res = await partnerClient.getMe();
-              if (res && res.success && res.partner) {
-                setPartnerUser(res.partner);
-                localStorage.setItem('uc_partner_profile', JSON.stringify(res.partner));
-                if (res.partner.status === 'Approved' || res.partner.status === 'Active') {
-                  showToast(`🎉 Partner fleet APPROVED! Welcome to Urban Company Enterprise ERP.`);
-                } else {
-                  showToast(`Partner status: ${res.partner.status}. Awaiting Admin Approval.`);
-                }
-              } else {
-                const direct = await fetch('/api/partner-applications');
-                const d = await direct.json();
-                const match = d.applications?.find(a => a.id === partnerUser?.id);
-                if (match) {
-                  setPartnerUser(prev => ({ ...prev, ...match }));
-                  localStorage.setItem('uc_partner_profile', JSON.stringify({ ...partnerUser, ...match }));
-                  if (match.status === 'Approved' || match.status === 'Active') {
-                    showToast(`🎉 Partner fleet APPROVED by Admin! Unlocking dashboard.`);
-                  } else {
-                    showToast(`Partner status: ${match.status}. Awaiting Admin Approval.`);
-                  }
-                }
-              }
-            } catch (e) {
-              showToast(e.message || 'Check failed');
-            }
-          }}
+          onRefresh={handleRefreshPartnerStatus}
         />
       );
     }
@@ -259,41 +268,16 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
               partner={partnerUser}
               onNavigate={handleNavigate}
               onLogout={handleLogout}
-              onRefresh={async () => {
-                try {
-                  const res = await partnerClient.getMe();
-                  if (res && res.success && res.partner) {
-                    setPartnerUser(res.partner);
-                    localStorage.setItem('uc_partner_profile', JSON.stringify(res.partner));
-                    if (res.partner.status === 'Approved' || res.partner.status === 'Active') {
-                      showToast(`🎉 Partner fleet APPROVED! Welcome to Urban Company Enterprise ERP.`);
-                    } else {
-                      showToast(`Partner status: ${res.partner.status}. Awaiting Admin Approval.`);
-                    }
-                  } else {
-                    const direct = await fetch('/api/partner-applications');
-                    const d = await direct.json();
-                    const match = d.applications?.find(a => a.id === partnerUser?.id);
-                    if (match) {
-                      setPartnerUser(prev => ({ ...prev, ...match }));
-                      localStorage.setItem('uc_partner_profile', JSON.stringify({ ...partnerUser, ...match }));
-                      if (match.status === 'Approved' || match.status === 'Active') {
-                        showToast(`🎉 Partner fleet APPROVED by Admin! Unlocking dashboard.`);
-                      } else {
-                        showToast(`Partner status: ${match.status}. Awaiting Admin Approval.`);
-                      }
-                    }
-                  }
-                } catch (e) {
-                  showToast(e.message || 'Check failed');
-                }
-              }}
+              onRefresh={handleRefreshPartnerStatus}
             />
           )
           : <OverviewView onNavigate={handleNavigate} showToast={showToast} staff={staffUser} />;
         break;
       case '/partner/onboarding':
         viewContent = <PartnerOnboarding partner={partnerUser} onNavigate={handleNavigate} showToast={showToast} />;
+        break;
+      case '/partner/live-tracking':
+        viewContent = renderOperationalModule('viewing', LiveTrackingView);
         break;
       case '/partner/bookings':
         viewContent = renderOperationalModule('viewing', BookingsView);

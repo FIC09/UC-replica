@@ -4,6 +4,7 @@
 // Content CMS with HTML sanitization against stored XSS,
 // and Notifications with local outbox queue.
 // =========================================================================
+import { Coupon } from '../models/Coupon.js';
 
 // Simple HTML/XSS sanitizer helper to prevent stored XSS
 function sanitizeHtml(str) {
@@ -141,14 +142,40 @@ let mockNotifications = [
 ];
 
 // ==========================================
-// 1. PROMOTIONS CONTROLLERS
+// 1. PROMOTIONS CONTROLLERS (Database-Backed)
 // ==========================================
 export async function getPromotions(req, res) {
   try {
+    let dbCoupons = [];
+    try {
+      dbCoupons = await Coupon.find().sort({ createdAt: -1 }).lean();
+    } catch (e) {
+      console.warn('Coupon.find error:', e.message);
+    }
+
+    const mappedDb = dbCoupons.map(c => ({
+      id: c._id.toString(),
+      code: c.code,
+      discountType: c.type === 'percentage' ? 'percentage' : 'fixed',
+      discountValue: c.discount || c.discountAmount || 0,
+      minOrderValue: c.minOrder || 0,
+      maxDiscount: c.maxDiscount || c.discount || 0,
+      validTill: '2026-12-31',
+      status: c.isActive ? 'Active' : 'Inactive',
+      description: c.description || c.desc || '',
+      usedCount: 0,
+      usageLimitTotal: 5000,
+      usageLimitPerCustomer: 2
+    }));
+
+    const existingCodes = new Set(mappedDb.map(x => x.code));
+    const nonDupeMocks = mockPromotions.filter(m => !existingCodes.has(m.code));
+    const list = [...mappedDb, ...nonDupeMocks];
+
     return res.json({
       success: true,
-      count: mockPromotions.length,
-      promotions: mockPromotions
+      count: list.length,
+      promotions: list
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -177,9 +204,25 @@ export async function createPromotion(req, res) {
     }
 
     const cleanCode = code.toUpperCase().trim();
-    const existing = mockPromotions.find(p => p.code === cleanCode);
-    if (existing) {
-      return res.status(400).json({ success: false, error: `Coupon code ${cleanCode} already exists.` });
+
+    try {
+      const existingDb = await Coupon.findOne({ code: cleanCode });
+      if (existingDb) {
+        return res.status(400).json({ success: false, error: `Coupon code ${cleanCode} already exists.` });
+      }
+
+      await Coupon.create({
+        code: cleanCode,
+        discount: parseFloat(discountValue) || 10,
+        discountAmount: parseFloat(discountValue) || 10,
+        type: discountType === 'percentage' ? 'percentage' : 'flat',
+        minOrder: parseFloat(minOrderValue) || 0,
+        maxDiscount: parseFloat(maxDiscount) || 0,
+        description: sanitizeHtml(description),
+        isActive: true
+      });
+    } catch (dbErr) {
+      console.warn('Coupon.create DB error:', dbErr.message);
     }
 
     const newPromo = {
@@ -203,7 +246,7 @@ export async function createPromotion(req, res) {
     };
 
     mockPromotions.unshift(newPromo);
-    return res.json({ success: true, message: `Promo code ${cleanCode} created`, promotion: newPromo });
+    return res.status(201).json({ success: true, message: `Promo code ${cleanCode} created successfully`, promotion: newPromo });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
   }

@@ -76,23 +76,25 @@ const partnerApplicationSchema = new mongoose.Schema({
     trim: true,
     default: '',
   },
+  password: {
+    type: String,
+    default: '',
+  },
   businessType: {
     type: String,
-    enum: ['Proprietorship', 'LLP', 'Private Limited', 'Partnership Firm'],
-    default: 'LLP',
+    default: 'Partnership / LLP',
   },
   tier: {
     type: String,
-    enum: ['Silver Franchise', 'Gold Franchise', 'Diamond Fleet Partner', 'Platinum Enterprise Fleet'],
     default: 'Gold Franchise',
   },
   category: {
     type: String,
-    required: true,
+    default: 'ac-appliances',
   },
   categoryName: {
     type: String,
-    required: true,
+    default: 'AC & Appliance Care',
   },
   serviceCategories: [{
     type: String
@@ -107,7 +109,7 @@ const partnerApplicationSchema = new mongoose.Schema({
   },
   city: {
     type: String,
-    required: true,
+    default: 'Mumbai',
   },
   coverageZones: [{
     type: String

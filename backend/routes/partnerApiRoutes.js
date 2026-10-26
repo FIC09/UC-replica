@@ -129,6 +129,7 @@ router.post('/team/:proId/remove-association', requirePartnerAuth('managing_team
 router.get('/services', requirePartnerAuth('viewing'), getPartnerServices);
 router.post('/services/request-category', requirePartnerAuth('editing'), requestServiceCategory);
 router.put('/services/participation', requirePartnerAuth('editing'), toggleServiceParticipation);
+router.post('/services/toggle-participation', requirePartnerAuth('editing'), toggleServiceParticipation);
 router.put('/services/:id/toggle-participation', requirePartnerAuth('editing'), toggleServiceParticipation);
 router.put('/services/:id/global-price', requirePartnerAuth('viewing'), editGlobalService); // Guard 403
 router.get('/coverage', requirePartnerAuth('viewing'), getPartnerCoverage);
@@ -177,14 +178,17 @@ router.get('/inventory', requirePartnerAuth('viewing'), getPartnerInventory);
 router.get('/inventory/orders', requirePartnerAuth('viewing'), getPartnerSupplyOrders);
 router.post('/inventory/orders', requirePartnerAuth('editing'), createPartnerSupplyOrder);
 router.post('/inventory/orders/:id/goods-received', requirePartnerAuth('editing'), receiveSupplyOrderGoods);
+router.post('/inventory/orders/:id/confirm-receipt', requirePartnerAuth('editing'), receiveSupplyOrderGoods);
 router.post('/inventory/allocate', requirePartnerAuth('editing'), allocatePartnerInventory);
 router.post('/inventory/adjust', requirePartnerAuth('editing'), adjustPartnerInventory);
 router.post('/inventory/returns', requirePartnerAuth('editing'), returnPartnerInventory);
+router.post('/inventory/return', requirePartnerAuth('editing'), returnPartnerInventory);
 router.get('/inventory/movements', requirePartnerAuth('viewing'), getPartnerInventoryMovements);
 router.post('/inventory/order', requirePartnerAuth('editing'), orderInventorySupplies);
 
 // 13. Support & Helpdesk
 router.get('/support', requirePartnerAuth('viewing'), getPartnerSupportTickets);
+router.get('/support/tickets', requirePartnerAuth('viewing'), getPartnerSupportTickets);
 router.get('/support/tickets/:id', requirePartnerAuth('viewing'), getPartnerSupportTicketDetail);
 router.post('/support/tickets', requirePartnerAuth('viewing'), createPartnerSupportTicket);
 router.post('/support/tickets/:id/messages', requirePartnerAuth('viewing'), addSupportTicketMessage);

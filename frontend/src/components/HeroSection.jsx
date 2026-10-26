@@ -439,28 +439,28 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
             {/* 1. Water Purifiers Card */}
             <div 
               className="uc-native-showcase-card"
-              style={{ borderRadius: 0 }}
+              
               onClick={() => {
                 if (onOpenPurifierPage) onOpenPurifierPage();
                 else handleCategoryClick('native-ro', 'Native Water Purifiers');
               }}
             >
-              <div className="uc-native-discount-badge" style={{ borderRadius: 0 }}>
+              <div className="uc-native-discount-badge" >
                 % ₹4,800 off
               </div>
-              <div className="uc-native-img-box" style={{ borderRadius: 0 }}>
+              <div className="uc-native-img-box" >
                 <img 
                   src="/images/native_purifier.jpg" 
                   alt="Native Water Purifiers" 
                   className="uc-native-img"
-                  style={{ borderRadius: 0 }}
+                  
                 />
               </div>
               <h2 className="uc-native-card-title">Water Purifiers</h2>
               <p className="uc-native-card-desc">
                 Needs no service for 2 years • In-built RO + UV + Alkaline<br />Copper
               </p>
-              <div className="uc-native-card-cta uc-native-cta-primary" style={{ borderRadius: 0 }}>
+              <div className="uc-native-card-cta uc-native-cta-primary" >
                 <span>Explore Water Purifiers</span>
                 <ArrowRight size={14} />
               </div>
@@ -469,28 +469,28 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
             {/* 2. Smart Locks Card */}
             <div 
               className="uc-native-showcase-card"
-              style={{ borderRadius: 0 }}
+              
               onClick={() => {
                 if (onOpenSmartLocksPage) onOpenSmartLocksPage();
                 else handleCategoryClick('native-ro', 'Native Smart Locks');
               }}
             >
-              <div className="uc-native-discount-badge" style={{ borderRadius: 0 }}>
+              <div className="uc-native-discount-badge" >
                 % ₹4,500 off
               </div>
-              <div className="uc-native-img-box" style={{ borderRadius: 0 }}>
+              <div className="uc-native-img-box" >
                 <img 
                   src="/images/native_smart_lock.jpg" 
                   alt="Native Smart Locks" 
                   className="uc-native-img"
-                  style={{ borderRadius: 0 }}
+                  
                 />
               </div>
               <h2 className="uc-native-card-title">Smart Locks</h2>
               <p className="uc-native-card-desc">
                 6-in-1 Unlocking • Built-in Video Doorbell & Anti-Theft Security
               </p>
-              <div className="uc-native-card-cta uc-native-cta-secondary" style={{ borderRadius: 0 }}>
+              <div className="uc-native-card-cta uc-native-cta-secondary" >
                 <span>Explore Smart Locks</span>
                 <ArrowRight size={14} />
               </div>
@@ -502,7 +502,7 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
             {/* Card 1: Professional Installation */}
             <div 
               className="uc-native-adv-card"
-              style={{ borderRadius: 0 }}
+              
               onClick={() => {
                 if (onOpenPurifierPage) onOpenPurifierPage();
                 else handleCategoryClick('native-ro');
@@ -512,12 +512,12 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
                 <h3 className="uc-native-adv-heading">Professional<br />installation</h3>
                 <p className="uc-native-adv-sub">Only top technicians<br />trained by UC.</p>
               </div>
-              <div className="uc-native-adv-card-visual" style={{ borderRadius: 0 }}>
+              <div className="uc-native-adv-card-visual" >
                 <img 
                   src="/images/native_tech_exact.png" 
                   alt="Only top technicians trained by UC"
                   className="uc-native-adv-exact-img"
-                  style={{ borderRadius: 0 }}
+                  
                 />
               </div>
             </div>
@@ -525,7 +525,7 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
             {/* Card 2: 24x7 Expert Support */}
             <div 
               className="uc-native-adv-card"
-              style={{ borderRadius: 0 }}
+              
               onClick={() => {
                 if (onOpenPurifierPage) onOpenPurifierPage();
                 else handleCategoryClick('native-ro');
@@ -535,12 +535,12 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
                 <h3 className="uc-native-adv-heading">24×7 expert<br />support</h3>
                 <p className="uc-native-adv-sub">Talk to experts who<br />understand the product.</p>
               </div>
-              <div className="uc-native-adv-card-visual" style={{ borderRadius: 0 }}>
+              <div className="uc-native-adv-card-visual" >
                 <img 
                   src="/images/native_support_exact.png" 
                   alt="Talk to experts who understand the product" 
                   className="uc-native-adv-exact-img"
-                  style={{ borderRadius: 0 }}
+                  
                 />
               </div>
             </div>
@@ -548,7 +548,7 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
             {/* Card 3: Servicing 14,500+ Pin Codes */}
             <div 
               className="uc-native-adv-card"
-              style={{ borderRadius: 0 }}
+              
               onClick={() => {
                 if (onOpenPurifierPage) onOpenPurifierPage();
                 else handleCategoryClick('native-ro');
@@ -558,12 +558,12 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
                 <h3 className="uc-native-adv-heading">Servicing 14,500+<br />pin codes</h3>
                 <p className="uc-native-adv-sub">We never outsource service<br />to locals.</p>
               </div>
-              <div className="uc-native-adv-card-visual" style={{ borderRadius: 0 }}>
+              <div className="uc-native-adv-card-visual" >
                 <img 
                   src="/images/native_map_exact.png" 
                   alt="Servicing 14,500+ pin codes - We never outsource service to locals" 
                   className="uc-native-adv-exact-img"
-                  style={{ borderRadius: 0 }}
+                  
                 />
               </div>
             </div>

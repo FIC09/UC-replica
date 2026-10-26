@@ -54,7 +54,7 @@ export function OnboardingShowcaseSection({
             background: '#FFFFFF',
             border: '1.5px solid #BBF7D0',
             borderTop: '4px solid #059669',
-            borderRadius: 0,
+            borderRadius: 16,
             padding: 24,
             display: 'flex',
             flexDirection: 'column',
@@ -68,7 +68,7 @@ export function OnboardingShowcaseSection({
                   height: 44,
                   background: '#ECFDF5',
                   border: '1px solid #A7F3D0',
-                  borderRadius: 0,
+                  borderRadius: 10,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -82,8 +82,8 @@ export function OnboardingShowcaseSection({
                   color: '#15803D',
                   fontSize: 11,
                   fontWeight: 800,
-                  padding: '3px 8px',
-                  borderRadius: 0
+                  padding: '3px 10px',
+                  borderRadius: 20
                 }}>
                   FOR INDIVIDUAL SPECIALISTS
                 </span>
@@ -120,7 +120,7 @@ export function OnboardingShowcaseSection({
                 background: '#059669',
                 color: '#FFFFFF',
                 border: 'none',
-                borderRadius: 0,
+                borderRadius: 8,
                 padding: '12px 18px',
                 fontSize: 13.5,
                 fontWeight: 800,
@@ -144,7 +144,7 @@ export function OnboardingShowcaseSection({
             background: '#FFFFFF',
             border: '1.5px solid #E9D5FF',
             borderTop: '4px solid #6E42E5',
-            borderRadius: 0,
+            borderRadius: 16,
             padding: 24,
             display: 'flex',
             flexDirection: 'column',
@@ -158,7 +158,7 @@ export function OnboardingShowcaseSection({
                   height: 44,
                   background: '#F4F0FF',
                   border: '1px solid #E9D5FF',
-                  borderRadius: 0,
+                  borderRadius: 10,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -172,8 +172,8 @@ export function OnboardingShowcaseSection({
                   color: '#6E42E5',
                   fontSize: 11,
                   fontWeight: 800,
-                  padding: '3px 8px',
-                  borderRadius: 0
+                  padding: '3px 10px',
+                  borderRadius: 20
                 }}>
                   FOR AGENCIES & FLEET OWNERS
                 </span>
@@ -210,7 +210,7 @@ export function OnboardingShowcaseSection({
                 background: '#6E42E5',
                 color: '#FFFFFF',
                 border: 'none',
-                borderRadius: 0,
+                borderRadius: 8,
                 padding: '12px 18px',
                 fontSize: 13.5,
                 fontWeight: 800,

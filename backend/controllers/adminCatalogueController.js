@@ -1,4 +1,12 @@
+import mongoose from 'mongoose';
 import { Service } from '../models/Service.js';
+
+function buildServiceQuery(id) {
+  if (mongoose.isValidObjectId(id)) {
+    return { $or: [{ id }, { _id: id }] };
+  }
+  return { id };
+}
 
 let mockServices = [
   {
@@ -257,6 +265,7 @@ export async function getCatalogueServices(req, res) {
 export async function createCatalogueService(req, res) {
   try {
     const {
+      id: requestedId,
       title,
       category,
       categoryName,
@@ -290,7 +299,7 @@ export async function createCatalogueService(req, res) {
     }
 
     const newService = {
-      id: `srv-${Date.now().toString().slice(-6)}`,
+      id: requestedId || `srv-${Date.now().toString().slice(-6)}`,
       title: title.trim(),
       category: category || 'general',
       categoryName: categoryName || 'Home Services',
@@ -361,14 +370,21 @@ export async function updateCatalogueService(req, res) {
       Object.assign(found, updates, { updatedAt: new Date() });
     }
 
+    let updatedService = null;
     try {
-      await Service.findOneAndUpdate({ id }, { $set: updates }, { new: true });
-    } catch {}
+      updatedService = await Service.findOneAndUpdate(
+        buildServiceQuery(id),
+        { $set: updates },
+        { new: true }
+      );
+    } catch (e) {
+      console.warn('Service update DB error:', e.message);
+    }
 
     return res.json({
       success: true,
       message: `Service ${id} catalogue specifications updated (historical bookings snapshot preserved)`,
-      service: found || updates
+      service: updatedService || found || updates
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -389,7 +405,7 @@ export async function archiveCatalogueService(req, res) {
 
     try {
       await Service.findOneAndUpdate(
-        { id },
+        buildServiceQuery(id),
         { $set: { status: 'Archived', isArchived: true, archivedAt: new Date() } }
       );
     } catch {}
@@ -418,7 +434,7 @@ export async function restoreCatalogueService(req, res) {
 
     try {
       await Service.findOneAndUpdate(
-        { id },
+        buildServiceQuery(id),
         { $set: { status: 'Active', isArchived: false, archivedAt: null } }
       );
     } catch {}
@@ -432,3 +448,28 @@ export async function restoreCatalogueService(req, res) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
+// 6. Hard Delete Service
+export async function deleteCatalogueService(req, res) {
+  try {
+    const { id } = req.params;
+    try {
+      await Service.findOneAndDelete(buildServiceQuery(id));
+    } catch (dbErr) {
+      console.warn('Service delete DB error:', dbErr.message);
+    }
+    const mockIdx = mockServices.findIndex(s => s.id === id);
+    if (mockIdx !== -1) {
+      mockServices.splice(mockIdx, 1);
+    }
+
+    return res.json({
+      success: true,
+      message: `Service ${id} deleted permanently from catalogue`,
+      id
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+

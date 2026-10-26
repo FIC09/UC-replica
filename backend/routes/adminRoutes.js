@@ -90,7 +90,8 @@ import {
   createCatalogueService,
   updateCatalogueService,
   archiveCatalogueService,
-  restoreCatalogueService
+  restoreCatalogueService,
+  deleteCatalogueService
 } from '../controllers/adminCatalogueController.js';
 
 import {
@@ -220,7 +221,7 @@ router.post('/partners/:id/notes', requireAdminAuth, requirePermission('partners
 router.get('/services', requireAdminAuth, requirePermission('services', 'view'), getCatalogueServices);
 router.post('/services', requireAdminAuth, requirePermission('services', 'create'), createCatalogueService);
 router.put('/services/:id', requireAdminAuth, requirePermission('services', 'edit'), updateCatalogueService);
-router.delete('/services/:id', requireAdminAuth, requirePermission('services', 'edit'), archiveCatalogueService);
+router.delete('/services/:id', requireAdminAuth, requirePermission('services', 'edit'), deleteCatalogueService);
 router.put('/services/:id/archive', requireAdminAuth, requirePermission('services', 'edit'), archiveCatalogueService);
 router.put('/services/:id/restore', requireAdminAuth, requirePermission('services', 'edit'), restoreCatalogueService);
 

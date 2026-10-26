@@ -318,6 +318,10 @@ const workerApplicationSchema = new mongoose.Schema({
     trim: true,
     default: '',
   },
+  password: {
+    type: String,
+    default: '',
+  },
   avatar: {
     type: String,
     default: '',

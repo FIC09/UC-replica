@@ -474,6 +474,11 @@ export function PartnersView({ onShowToast, onNavigate }) {
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ fontWeight: 600, color: '#1E293B' }}>{p.ownerName}</div>
                       <div style={{ fontSize: 11, color: '#64748B' }}>{p.phone} • {p.email}</div>
+                      {p.password ? (
+                        <div style={{ fontSize: 10.5, color: '#059669', fontWeight: 600, marginTop: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <Lock size={10} /> Password Configured
+                        </div>
+                      ) : null}
                     </td>
 
                     {/* City & Coverage */}
@@ -774,6 +779,13 @@ export function PartnersView({ onShowToast, onNavigate }) {
                       <div>
                         <span style={{ color: '#64748B' }}>Official Email:</span>
                         <div style={{ fontWeight: 600, color: '#0F172A', marginTop: 2 }}>{selectedPartner.email}</div>
+                      </div>
+                      <div>
+                        <span style={{ color: '#64748B' }}>Portal Credentials:</span>
+                        <div style={{ fontWeight: 600, color: selectedPartner.password ? '#059669' : '#2563EB', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <Lock size={12} />
+                          <span>{selectedPartner.password ? 'Password Configured (Secured)' : 'Default Master Auth'}</span>
+                        </div>
                       </div>
                     </div>
                   </div>

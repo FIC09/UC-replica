@@ -1444,8 +1444,13 @@ export function AdminDashboardModal({
                           <div style={{ fontSize: 13, color: '#475569', marginTop: 3 }}>
                             {w.trade} • {w.experience} experience • {w.locality}
                           </div>
-                          <div style={{ fontSize: 12, color: '#94A3B8', marginTop: 3 }}>
-                            Phone: {w.phone} • Applied {w.appliedAt}
+                          <div style={{ fontSize: 12, color: '#64748B', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span>📞 <strong>{w.phone}</strong></span>
+                            {w.email && <span>✉️ <strong>{w.email}</strong></span>}
+                            {w.password ? (
+                              <span style={{ color: '#059669', fontWeight: 600 }}>🔑 Password Configured</span>
+                            ) : null}
+                            <span style={{ color: '#94A3B8' }}>🕒 Applied {w.appliedAt}</span>
                           </div>
                         </div>
                       </div>
@@ -1552,12 +1557,25 @@ export function AdminDashboardModal({
                           <Building2 size={22} />
                         </div>
                         <div>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>{p.businessName}</div>
-                          <div style={{ fontSize: 13, color: '#475569', marginTop: 2 }}>
-                            Owner: {p.ownerName} • Phone: {p.phone} • {p.city}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>{p.businessName}</span>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 4, backgroundColor: '#F5F3FF', color: '#6D28D9' }}>
+                              {p.businessType || 'Fleet Agency'}
+                            </span>
                           </div>
-                          <div style={{ fontSize: 12, color: '#2563EB', fontWeight: 600, marginTop: 3 }}>
-                            Fleet Capacity: {p.techniciansCount} active technicians • GST: {p.gstNumber || 'Verified'}
+                          <div style={{ fontSize: 13, color: '#475569', marginTop: 2 }}>
+                            Managing Director: <strong>{p.ownerName}</strong> • {p.categoryName || p.category || 'Services'} • {p.city}
+                          </div>
+                          <div style={{ fontSize: 12, color: '#64748B', marginTop: 4, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+                            <span>📞 <strong>{p.phone}</strong></span>
+                            {p.email && <span>✉️ <strong>{p.email}</strong></span>}
+                            {p.password ? (
+                              <span style={{ color: '#059669', fontWeight: 600 }}>🔑 Password Configured</span>
+                            ) : (
+                              <span style={{ color: '#64748B' }}>🔑 Default Master Auth</span>
+                            )}
+                            <span style={{ color: '#2563EB', fontWeight: 600 }}>Fleet: {p.techniciansCount || p.fleetSize || 'Fleet'}</span>
+                            {p.appliedAt && <span style={{ color: '#94A3B8' }}>🕒 Applied {p.appliedAt}</span>}
                           </div>
                         </div>
                       </div>
@@ -1568,32 +1586,53 @@ export function AdminDashboardModal({
                           fontWeight: 700,
                           padding: '4px 10px',
                           borderRadius: 6,
-                          backgroundColor: p.status === 'Approved' ? '#ECFDF5' : '#EFF6FF',
-                          color: p.status === 'Approved' ? '#059669' : '#2563EB'
+                          backgroundColor: p.status === 'Approved' ? '#ECFDF5' : p.status === 'Rejected' ? '#FEF2F2' : '#EFF6FF',
+                          color: p.status === 'Approved' ? '#059669' : p.status === 'Rejected' ? '#DC2626' : '#2563EB'
                         }}>
                           {p.status}
                         </span>
 
                         {p.status === 'Pending Review' && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (onUpdatePartnerApplicationStatus) onUpdatePartnerApplicationStatus(p.id, 'Approved');
-                              if (onShowToast) onShowToast(`✓ Partner "${p.businessName}" approved!`);
-                            }}
-                            style={{
-                              padding: '8px 16px',
-                              borderRadius: 8,
-                              border: 'none',
-                              backgroundColor: '#2563EB',
-                              color: '#FFFFFF',
-                              fontSize: 12.5,
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Approve Agency
-                          </button>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onUpdatePartnerApplicationStatus) onUpdatePartnerApplicationStatus(p.id, 'Approved');
+                                if (onShowToast) onShowToast(`✓ Partner "${p.businessName}" approved!`);
+                              }}
+                              style={{
+                                padding: '8px 16px',
+                                borderRadius: 8,
+                                border: 'none',
+                                backgroundColor: '#2563EB',
+                                color: '#FFFFFF',
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Approve Agency
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (onUpdatePartnerApplicationStatus) onUpdatePartnerApplicationStatus(p.id, 'Rejected');
+                                if (onShowToast) onShowToast(`✕ Application rejected.`);
+                              }}
+                              style={{
+                                padding: '8px 14px',
+                                borderRadius: 8,
+                                border: '1px solid #E2E8F0',
+                                backgroundColor: '#FFFFFF',
+                                color: '#64748B',
+                                fontSize: 12.5,
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Reject
+                            </button>
+                          </div>
                         )}
                       </div>
                     </div>

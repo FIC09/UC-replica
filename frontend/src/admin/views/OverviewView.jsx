@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   IndianRupee,
   Calendar,
-  Filter,
   Building2,
   HardHat,
   HelpCircle,
@@ -87,122 +86,19 @@ export function OverviewView({ onNavigate, onShowToast }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {/* 1. Global Filter Bar (Flush Sub-Header Toolbar) */}
-      <div className="admin-overview-filter-bar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#334155', flexShrink: 0 }}>
-            <Filter size={15} color="#6E42E5" />
-            <span>Filters:</span>
-          </div>
-
-          {/* Date Range Selector */}
-          <div style={{ display: 'flex', backgroundColor: '#F8FAFC', borderRadius: 8, border: '1px solid #CBD5E1', padding: 2, flexShrink: 0 }}>
-            {[
-              { id: 'today', label: 'Today' },
-              { id: '7d', label: '7D' },
-              { id: '30d', label: '30D' },
-              { id: '90d', label: '90D' },
-              { id: '1y', label: '1Y' }
-            ].map(r => (
-              <button
-                key={r.id}
-                onClick={() => setDateRange(r.id)}
-                style={{
-                  padding: '5px 11px',
-                  borderRadius: 6,
-                  border: 'none',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  backgroundColor: dateRange === r.id ? '#6E42E5' : 'transparent',
-                  color: dateRange === r.id ? '#FFFFFF' : '#475569',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-
-          {/* City Filter */}
-          <select
-            value={city}
-            onChange={e => setCity(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              backgroundColor: '#FFFFFF',
-              fontSize: 12,
-              fontWeight: 600,
-              color: '#334155',
-              outline: 'none',
-              cursor: 'pointer',
-              flex: '1 1 115px',
-              maxWidth: 155,
-              minWidth: 110
-            }}
-          >
-            <option value="ALL">All Hubs</option>
-            <option value="Mumbai">Mumbai Metro</option>
-            <option value="Bengaluru">Bengaluru Hub</option>
-            <option value="Delhi NCR">Delhi NCR</option>
-            <option value="Krishnagiri">Krishnagiri Cluster</option>
-          </select>
-
-          {/* Category Filter */}
-          <select
-            value={category}
-            onChange={e => setCategory(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              backgroundColor: '#FFFFFF',
-              fontSize: 12,
-              fontWeight: 600,
-              color: '#334155',
-              outline: 'none',
-              cursor: 'pointer',
-              flex: '1 1 115px',
-              maxWidth: 155,
-              minWidth: 110
-            }}
-          >
-            <option value="ALL">All Categories</option>
-            <option value="salon">Salon for Women</option>
-            <option value="ac">AC & Appliances</option>
-            <option value="cleaning">Cleaning & Pest</option>
-            <option value="repairs">Quick Repairs</option>
-          </select>
-
-          {/* Business Partner Filter */}
-          <select
-            value={partner}
-            onChange={e => setPartner(e.target.value)}
-            style={{
-              padding: '6px 10px',
-              borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              backgroundColor: '#FFFFFF',
-              fontSize: 12,
-              fontWeight: 600,
-              color: '#334155',
-              outline: 'none',
-              cursor: 'pointer',
-              flex: '1 1 125px',
-              maxWidth: 165,
-              minWidth: 115
-            }}
-          >
-            <option value="ALL">All Supply</option>
-            <option value="direct">Direct Freelance</option>
-            <option value="agency">Agency Fleet</option>
-          </select>
+      {/* 1. Overview Page Title & Live Stream Header */}
+      <div className="admin-page-header">
+        <div>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0', lineHeight: 1.25 }}>
+            Operations &amp; Business Command Center
+          </h2>
+          <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.2 }}>
+            Real-time platform telemetry, multi-hub metrics, dispatch fulfillment &amp; financial analytics
+          </p>
         </div>
 
         {/* Real-time Status Badge & Sync Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           {/* Live indicator badge */}
           <div style={{
             display: 'flex',
@@ -241,7 +137,8 @@ export function OverviewView({ onNavigate, onShowToast }) {
               }
             }}
             style={{
-              padding: '5px 10px',
+              padding: '0 10px',
+              height: 32,
               borderRadius: 8,
               border: '1px solid #CBD5E1',
               backgroundColor: autoSync ? '#FFFFFF' : '#FFFBEB',
@@ -251,7 +148,8 @@ export function OverviewView({ onNavigate, onShowToast }) {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 4
+              gap: 4,
+              boxSizing: 'border-box'
             }}
             title={autoSync ? 'Click to pause automatic polling' : 'Click to resume automatic polling'}
           >
@@ -271,14 +169,16 @@ export function OverviewView({ onNavigate, onShowToast }) {
               display: 'flex',
               alignItems: 'center',
               gap: 5,
-              padding: '5px 11px',
+              padding: '0 11px',
+              height: 32,
               borderRadius: 8,
               border: '1px solid #CBD5E1',
               backgroundColor: '#FFFFFF',
               fontSize: 11.5,
               fontWeight: 700,
               color: '#6E42E5',
-              cursor: isRefreshing ? 'wait' : 'pointer'
+              cursor: isRefreshing ? 'wait' : 'pointer',
+              boxSizing: 'border-box'
             }}
             title="Recalculate all metrics immediately"
           >
@@ -299,7 +199,6 @@ export function OverviewView({ onNavigate, onShowToast }) {
               display: 'flex',
               alignItems: 'center',
               gap: 5,
-              background: 'none',
               border: '1px solid #E2E8F0',
               borderRadius: 8,
               backgroundColor: showCalculationGuide ? '#EDE9FE' : '#FFFFFF',
@@ -307,9 +206,11 @@ export function OverviewView({ onNavigate, onShowToast }) {
               fontWeight: 700,
               color: '#6E42E5',
               cursor: 'pointer',
-              padding: '5px 10px',
+              padding: '0 10px',
+              height: 32,
               whiteSpace: 'nowrap',
-              flexShrink: 0
+              flexShrink: 0,
+              boxSizing: 'border-box'
             }}
           >
             <Info size={14} />
@@ -317,6 +218,8 @@ export function OverviewView({ onNavigate, onShowToast }) {
           </button>
         </div>
       </div>
+
+
 
       <style>{`
         @keyframes spin {

@@ -107,16 +107,6 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
       title: 'Skill Development & Reputation',
       items: [
         {
-          label: 'Academy & Safety SOPs',
-          desc: 'Mandatory hygiene protocols and skill certifications',
-          icon: GraduationCap,
-          iconColor: '#7c3aed',
-          iconBg: '#f5f3ff',
-          path: '/professional/training',
-          badge: 'SOPs Active',
-          badgeType: 'purple'
-        },
-        {
           label: 'Partner Scorecard & Tier',
           desc: 'On-time arrival, revisit rate, cancellation metrics',
           icon: Award,
@@ -125,16 +115,6 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
           path: '/professional/performance',
           badge: profile?.tier ? profile.tier.split('(')[0].trim() : 'Diamond Pro',
           badgeType: 'amber'
-        },
-        {
-          label: 'Customer Ratings & Reviews',
-          desc: 'Doorstep feedback, tip bonuses, and 5-star badges',
-          icon: Star,
-          iconColor: '#ca8a04',
-          iconBg: '#fefce8',
-          path: '/professional/reviews',
-          badge: `${profile?.rating || '4.94'} ★`,
-          badgeType: 'amber'
         }
       ]
     },
@@ -142,23 +122,13 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
       title: 'Operations & Equipment',
       items: [
         {
-          label: 'Shift Availability & Slot Booking',
-          desc: 'Working hours, weekly calendar, and leave requests',
+          label: 'Shift Availability & Working Hours',
+          desc: 'Working hours, daily operational status, and leave requests',
           icon: Clock,
           iconColor: '#0284c7',
           iconBg: '#f0f9ff',
           path: '/professional/availability',
           badge: 'Slots Open',
-          badgeType: 'neutral'
-        },
-        {
-          label: 'Inventory & Consumables',
-          desc: 'Spare parts, cleaning solutions, chemical kits',
-          icon: Package,
-          iconColor: '#64748b',
-          iconBg: '#f8fafc',
-          path: '/professional/inventory',
-          badge: 'In Stock',
           badgeType: 'neutral'
         }
       ]
@@ -240,15 +210,6 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
       bg: '#eff6ff',
       borderColor: '#dbeafe',
       path: '/professional/availability'
-    },
-    {
-      label: 'Safety SOPs',
-      desc: 'Hygiene & protocols',
-      icon: GraduationCap,
-      color: '#d97706',
-      bg: '#fffbeb',
-      borderColor: '#fef3c7',
-      path: '/professional/training'
     }
   ];
 

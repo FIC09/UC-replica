@@ -49,6 +49,9 @@ async function runProfessionalTests() {
   let passed = 0;
   let failed = 0;
 
+  // Clean demo state before running tests
+  await apiRequest('POST', '/demo/reset', { confirmReset: true });
+
   function assert(condition, message) {
     if (condition) {
       console.log(`  ✓ [PASS] ${message}`);
@@ -190,7 +193,9 @@ async function runProfessionalTests() {
 
     // 9. TRAINING & ACADEMY
     console.log('\n[TEST GROUP 8] Academy & Skill Certifications');
-    const trainRes = await apiRequest('POST', '/trainings/TRN-103/complete', null, {
+    const trainRes = await apiRequest('POST', '/trainings/TRN-103/assessment', {
+      answers: { q1: 1, q2: 1, q3: 1, q4: 3 }
+    }, {
       'x-professional-id': 'PRO-8841'
     });
     assert(trainRes.statusCode === 200, 'Training module completion recorded');
@@ -210,7 +215,7 @@ async function runProfessionalTests() {
     console.log('\n[TEST GROUP 10] Support Helpdesk & Notifications');
     const ticketRes = await apiRequest('POST', '/support', {
       subject: 'Verification Test Ticket',
-      category: 'Payouts & Incentives',
+      category: 'earnings_payout',
       description: 'Automated test suite check'
     }, {
       'x-professional-id': 'PRO-8841'

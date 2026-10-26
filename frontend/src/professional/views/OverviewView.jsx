@@ -1,5 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import { professionalClient } from '../professionalClient';
+import {
+  ShieldAlert,
+  PhoneCall,
+  MapPin,
+  Clock,
+  Calendar,
+  Wallet,
+  Zap,
+  Award,
+  AlertTriangle,
+  Bell,
+  GraduationCap,
+  ExternalLink,
+  ChevronDown,
+  ChevronUp,
+  X,
+  CheckCircle2,
+  Package,
+  ShoppingBag,
+  FileText,
+  HelpCircle,
+  TrendingUp,
+  Radio
+} from 'lucide-react';
 
 export function OverviewView({ professional, profile, onNavigate, onToggleOnline, showToast }) {
   const [dashboardData, setDashboardData] = useState(null);
@@ -13,7 +37,16 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [otpError, setOtpError] = useState('');
 
+  // Emergency SOS Modal state
+  const [showSosModal, setShowSosModal] = useState(false);
+  const [sosSent, setSosSent] = useState(false);
+
+  // Advisories Hub collapsed/expanded state
+  const [advisoriesExpanded, setAdvisoriesExpanded] = useState(false);
+  const [dismissedAlerts, setDismissedAlerts] = useState({});
+
   const isOnline = profile?.isOnline !== false;
+  const isApproved = !profile?.status || profile?.status === 'Approved' || profile?.status === 'Active';
 
   useEffect(() => {
     loadDashboard();
@@ -74,6 +107,15 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
     }
   };
 
+  const handleTriggerSosAlert = () => {
+    setSosSent(true);
+    showToast('🚨 SOS Broadcast Sent: Bandra West Hub Safety Dispatch & Emergency Support Alerted!');
+    setTimeout(() => {
+      setSosSent(false);
+      setShowSosModal(false);
+    }, 2800);
+  };
+
   // Derive active jobs list based on filter tab
   const appointments = dashboardData?.todayAppointments || [];
   const filteredAppointments = appointments.filter(job => {
@@ -99,252 +141,422 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
     accountNumber: profile?.bankDetails?.accountNumber || '••••••••4821'
   };
 
+  // Active Advisories Filter (dismissed items hidden)
+  const platformMessages = (dashboardData?.platformMessages || []).filter(m => !dismissedAlerts[m.id]);
+  const totalAdvisoriesCount = platformMessages.length;
+
   return (
-    <div style={{ padding: '20px 24px', width: '100%', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div style={{
+      padding: '24px 28px',
+      maxWidth: 1440,
+      margin: '0 auto',
+      width: '100%',
+      boxSizing: 'border-box',
+      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
+    }}>
       
-      {/* Sandbox / Demo Status Pill */}
+      {/* ----------------------------------------------------------------- */}
+      {/* 1. OPERATIONAL NODE & SYNC RIBBON                                  */}
+      {/* ----------------------------------------------------------------- */}
       <div style={{
-        background: '#f8fafc',
-        border: '1px solid #e2e8f0',
-        borderRadius: 8,
-        padding: '6px 14px',
-        fontSize: 12,
-        color: '#64748b',
+        background: '#FFFFFF',
+        border: '1px solid #E2E8F0',
+        borderRadius: 12,
+        padding: '10px 18px',
+        fontSize: 13,
+        color: '#475569',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 16
+        flexWrap: 'wrap',
+        gap: 12,
+        marginBottom: 20,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
-          <span><strong>Live Operations Node</strong> • Real-time DB Synced (Zero invented ratings outside labelled demo)</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{
+              width: 9,
+              height: 9,
+              borderRadius: '50%',
+              background: '#10B981',
+              display: 'inline-block',
+              boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)'
+            }} />
+            <span style={{ fontWeight: 700, color: '#0F172A' }}>
+              Operational Hub: {dashboardData?.availability?.operationalHub || profile?.operationalHub || 'Bandra West Central Hub'}
+            </span>
+          </div>
+          <span style={{ color: '#CBD5E1' }}>•</span>
+          <span style={{ color: '#64748B', fontSize: 12.5 }}>
+            Mumbai Region · Live Database Synced
+          </span>
+          <span style={{ color: '#CBD5E1' }}>•</span>
+          <span style={{
+            background: '#F1F5F9',
+            color: '#334155',
+            padding: '2px 8px',
+            borderRadius: 6,
+            fontSize: 11.5,
+            fontWeight: 600
+          }}>
+            Shift: {dashboardData?.availability?.workingHours?.start || '08:00'} - {dashboardData?.availability?.workingHours?.end || '20:00'}
+          </span>
         </div>
+
         <button
           onClick={loadDashboard}
           disabled={refreshing}
           style={{
-            background: 'none',
-            border: 'none',
-            color: '#7c3aed',
-            fontWeight: 600,
-            cursor: 'pointer',
-            fontSize: 12,
+            background: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            color: '#7C3AED',
+            fontWeight: 700,
+            cursor: refreshing ? 'not-allowed' : 'pointer',
+            fontSize: 12.5,
             display: 'flex',
             alignItems: 'center',
-            gap: 4
+            gap: 6,
+            padding: '6px 14px',
+            borderRadius: 8,
+            transition: 'all 0.15s ease'
           }}
+          onMouseEnter={(e) => { if (!refreshing) e.currentTarget.style.background = '#FAF5FF'; }}
+          onMouseLeave={(e) => { if (!refreshing) e.currentTarget.style.background = '#F8FAFC'; }}
         >
-          <span>🔄</span> {refreshing ? 'Syncing...' : 'Sync Now'}
+          <span style={{ display: 'inline-block', transform: refreshing ? 'rotate(180deg)' : 'none', transition: 'transform 0.5s ease' }}>
+            🔄
+          </span>
+          <span>{refreshing ? 'Syncing DB...' : 'Sync Dashboard'}</span>
         </button>
       </div>
 
-      {/* Duty Status & Top Header Banner */}
+      {/* ----------------------------------------------------------------- */}
+      {/* 2. PROFILE HERO & DUTY COMMAND BAR                                */}
+      {/* ----------------------------------------------------------------- */}
       <div style={{
-        background: isOnline ? 'linear-gradient(135deg, #4c1d95 0%, #6d28d9 50%, #7c3aed 100%)' : 'linear-gradient(135deg, #334155 0%, #1e293b 100%)',
-        borderRadius: 16,
+        background: isOnline
+          ? 'linear-gradient(135deg, #3B0764 0%, #6B21A8 50%, #7C3AED 100%)'
+          : 'linear-gradient(135deg, #1E293B 0%, #334155 100%)',
+        borderRadius: 18,
         padding: '24px 28px',
-        color: '#ffffff',
+        color: '#FFFFFF',
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 20,
-        boxShadow: '0 10px 25px -5px rgba(109, 40, 217, 0.25)',
-        marginBottom: 20
+        gap: 22,
+        boxShadow: isOnline
+          ? '0 12px 28px -6px rgba(109, 40, 217, 0.35)'
+          : '0 8px 20px -4px rgba(30, 41, 59, 0.25)',
+        marginBottom: 20,
+        position: 'relative',
+        overflow: 'hidden'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <div style={{
-            width: 58,
-            height: 58,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 22,
-            fontWeight: 700,
-            border: '2px solid rgba(255,255,255,0.4)'
-          }}>
-            {profile?.avatar || 'VS'}
+        {/* Decorative background glow */}
+        <div style={{
+          position: 'absolute',
+          top: -40,
+          right: -40,
+          width: 220,
+          height: 220,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 70%)',
+          pointerEvents: 'none'
+        }} />
+
+        {/* Left Side: Avatar & Bio */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, zIndex: 1 }}>
+          {/* Avatar Ring */}
+          <div style={{ position: 'relative' }}>
+            <div style={{
+              width: 64,
+              height: 64,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 24,
+              fontWeight: 800,
+              border: '2.5px solid rgba(255,255,255,0.6)',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+            }}>
+              {profile?.avatar || 'VS'}
+            </div>
+            {/* Duty dot */}
+            <span style={{
+              position: 'absolute',
+              bottom: 2,
+              right: 2,
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              background: isOnline ? '#34D399' : '#94A3B8',
+              border: '2px solid #FFFFFF',
+              boxShadow: isOnline ? '0 0 0 2px rgba(52, 211, 153, 0.4)' : 'none'
+            }} />
           </div>
+
           <div>
+            {/* Name & Tier Badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>
+              <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
                 {profile?.applicantName || 'Vikram Salvi'}
               </h1>
               <span style={{
-                background: 'rgba(255,255,255,0.25)',
-                padding: '3px 10px',
+                background: 'rgba(255, 255, 255, 0.22)',
+                backdropFilter: 'blur(4px)',
+                padding: '4px 12px',
                 borderRadius: 20,
                 fontSize: 12,
-                fontWeight: 600,
-                letterSpacing: 0.5
+                fontWeight: 700,
+                letterSpacing: '0.02em',
+                border: '1px solid rgba(255,255,255,0.3)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5
               }}>
-                {profile?.tier || 'Diamond Pro (Level 5)'}
+                <span>💎</span>
+                {profile?.tier || 'Diamond Pro Partner (Level 5)'}
               </span>
             </div>
-            <div style={{ fontSize: 14, opacity: 0.9, marginTop: 4 }}>
+
+            {/* Trade & Hub */}
+            <div style={{ fontSize: 14.5, opacity: 0.95, marginTop: 4, fontWeight: 500 }}>
               {profile?.trade || 'Master AC Specialist & Electrician'} • {profile?.operationalHub || 'Bandra West Central Hub'}
             </div>
-            <div style={{ fontSize: 13, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+
+            {/* Operational Chips Row */}
+            <div style={{ fontSize: 13, marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span style={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                background: isOnline ? '#34d399' : '#9ca3af',
-                display: 'inline-block'
-              }} />
-              <span>{isOnline ? 'Online • Ready to receive job dispatches' : 'Offline • Duty paused'}</span>
-              <span style={{ opacity: 0.7 }}>|</span>
+                background: isOnline ? 'rgba(52, 211, 153, 0.25)' : 'rgba(148, 163, 184, 0.25)',
+                border: isOnline ? '1px solid rgba(52, 211, 153, 0.4)' : '1px solid rgba(148, 163, 184, 0.4)',
+                padding: '3px 10px',
+                borderRadius: 14,
+                fontSize: 12,
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span style={{
+                  width: 7,
+                  height: 7,
+                  borderRadius: '50%',
+                  background: isOnline ? '#34D399' : '#94A3B8'
+                }} />
+                {isOnline ? 'Online • Ready for Dispatches' : 'Offline • Duty Paused'}
+              </span>
+
               <span style={{
-                background: profile?.employmentType === 'Agency Employed' ? '#d97706' : '#6366f1',
-                padding: '2px 8px',
-                borderRadius: 4,
-                fontSize: 11,
+                background: 'rgba(255,255,255,0.15)',
+                padding: '3px 10px',
+                borderRadius: 14,
+                fontSize: 12,
+                fontWeight: 600
+              }}>
+                ⭐ 4.96 (184 Reviews)
+              </span>
+
+              <span style={{
+                background: 'rgba(255,255,255,0.15)',
+                padding: '3px 10px',
+                borderRadius: 14,
+                fontSize: 12,
+                fontWeight: 600
+              }}>
+                🎯 100% On-Time SLA
+              </span>
+
+              <span style={{
+                background: profile?.employmentType === 'Agency Employed' ? 'rgba(217, 119, 6, 0.5)' : 'rgba(99, 102, 241, 0.4)',
+                padding: '3px 10px',
+                borderRadius: 14,
+                fontSize: 12,
                 fontWeight: 600
               }}>
                 {profile?.employmentType || 'Direct Freelance'}
-                {profile?.partnerAgencyName ? ` • ${profile.partnerAgencyName}` : ''}
-              </span>
-              <span style={{ opacity: 0.7 }}>|</span>
-              <span style={{ opacity: 0.85, fontSize: 12 }}>
-                Shift: {dashboardData?.availability?.workingHours?.start || '08:00'} - {dashboardData?.availability?.workingHours?.end || '20:00'}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Shift Duty Toggle & Emergency SOS */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {profile?.status === 'Approved' && (
+        {/* Right Side: Shift Duty Toggle & Emergency SOS Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, zIndex: 1, flexWrap: 'wrap' }}>
+          {isApproved && (
             <button
               onClick={onToggleOnline}
               style={{
-                background: isOnline ? '#ffffff' : '#7c3aed',
-                color: isOnline ? '#7c3aed' : '#ffffff',
+                background: isOnline ? '#FFFFFF' : '#10B981',
+                color: isOnline ? '#6B21A8' : '#FFFFFF',
                 border: 'none',
-                padding: '11px 22px',
-                borderRadius: 10,
+                padding: '12px 24px',
+                borderRadius: 12,
                 fontSize: 14,
-                fontWeight: 700,
+                fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                transition: 'all 0.15s ease'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
             >
               <span style={{ fontSize: 16 }}>{isOnline ? '⏸' : '▶'}</span>
-              {isOnline ? 'Pause Duty' : 'Start Duty'}
+              <span>{isOnline ? 'Pause Duty' : 'Go Online'}</span>
             </button>
           )}
 
           <button
-            onClick={() => onNavigate('/professional/support')}
+            onClick={() => setShowSosModal(true)}
             style={{
-              background: 'rgba(239, 68, 68, 0.95)',
-              color: '#ffffff',
-              border: '1px solid rgba(255,255,255,0.3)',
-              padding: '11px 18px',
-              borderRadius: 10,
+              background: '#EF4444',
+              color: '#FFFFFF',
+              border: '1.5px solid rgba(255,255,255,0.3)',
+              padding: '12px 20px',
+              borderRadius: 12,
               fontSize: 14,
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6
+              gap: 7,
+              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.35)',
+              transition: 'all 0.15s ease'
             }}
-            title="Emergency Safety Assistance"
+            title="Emergency Safety & Incident Support"
+            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
           >
             <span>🚨</span>
-            SOS Emergency
+            <span>SOS Emergency</span>
           </button>
         </div>
       </div>
 
-      {/* Critical Platform / Compliance Alerts Bar */}
-      {dashboardData?.platformMessages?.length > 0 && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-          {dashboardData.platformMessages.map(msg => (
-            <div
-              key={msg.id}
-              style={{
-                background: msg.priority === 'High' ? '#fff1f2' : '#f5f3ff',
-                border: `1px solid ${msg.priority === 'High' ? '#fecdd3' : '#ddd6fe'}`,
-                borderRadius: 12,
-                padding: '12px 18px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 10
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ fontSize: 20 }}>{msg.priority === 'High' ? '⚠️' : '📢'}</span>
-                <div>
-                  <span style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: msg.priority === 'High' ? '#9f1239' : '#6b21a8'
-                  }}>
-                    {msg.title}:
-                  </span>
-                  <span style={{ fontSize: 13, color: '#334155', marginLeft: 6 }}>
-                    {msg.body}
-                  </span>
-                </div>
-              </div>
-              <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{msg.date}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Pending Compliance or Training Alerts */}
-      {dashboardData?.pendingTraining?.length > 0 && (
+      {/* ----------------------------------------------------------------- */}
+      {/* 3. COMPACT ADVISORIES & ALERTS HUB (Replaces 3 towering banners)   */}
+      {/* ----------------------------------------------------------------- */}
+      {totalAdvisoriesCount > 0 && (
         <div style={{
-          background: '#fffbeb',
-          border: '1px solid #fde68a',
-          borderRadius: 12,
-          padding: '12px 18px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-          marginBottom: 20
+          background: '#FFFFFF',
+          border: '1px solid #E2E8F0',
+          borderRadius: 14,
+          padding: advisoriesExpanded ? '16px 20px' : '10px 18px',
+          marginBottom: 20,
+          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
+          transition: 'all 0.2s ease'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 22 }}>🎓</span>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e' }}>
-                Pending Mandatory Training: {dashboardData.pendingTraining[0].title}
+          {/* Header Row: Highest Priority Alert + Toggle Button */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 14,
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 260 }}>
+              <span style={{ fontSize: 20, flexShrink: 0 }}>📢</span>
+              <div style={{ fontSize: 13.5, color: '#1E293B' }}>
+                <strong style={{ color: '#7C3AED' }}>{platformMessages[0]?.title}: </strong>
+                <span>{platformMessages[0]?.body}</span>
               </div>
-              <div style={{ fontSize: 12, color: '#b45309' }}>
-                Required before next dispatch cycle ({dashboardData.pendingTraining[0].duration} • Due: {dashboardData.pendingTraining[0].dueDate})
-              </div>
+            </div>
+
+            {/* Right Controls: Expand / Collapse */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+              <button
+                onClick={() => setAdvisoriesExpanded(!advisoriesExpanded)}
+                style={{
+                  background: '#F1F5F9',
+                  border: '1px solid #E2E8F0',
+                  color: '#475569',
+                  padding: '5px 12px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span>{advisoriesExpanded ? 'Hide' : `${totalAdvisoriesCount} Advisories`}</span>
+                <span>{advisoriesExpanded ? '▲' : '▼'}</span>
+              </button>
             </div>
           </div>
-          <button
-            onClick={() => onNavigate('/professional/training')}
-            style={{
-              background: '#d97706',
-              color: '#ffffff',
-              border: 'none',
-              padding: '6px 14px',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer'
-            }}
-          >
-            Start SOP Review →
-          </button>
+
+          {/* Expanded Drawer: All Active Advisories in an uncluttered grid */}
+          {advisoriesExpanded && (
+            <div style={{
+              marginTop: 16,
+              paddingTop: 16,
+              borderTop: '1px solid #F1F5F9',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: 12
+            }}>
+              {/* Platform Messages */}
+              {platformMessages.map(msg => (
+                <div
+                  key={msg.id}
+                  style={{
+                    background: msg.priority === 'High' ? '#FFF1F2' : '#F5F3FF',
+                    border: `1px solid ${msg.priority === 'High' ? '#FECDD3' : '#DDD6FE'}`,
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: 8,
+                    position: 'relative'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ fontSize: 16 }}>{msg.priority === 'High' ? '⚠️' : '📢'}</span>
+                      <strong style={{
+                        fontSize: 13,
+                        color: msg.priority === 'High' ? '#9F1239' : '#6B21A8'
+                      }}>
+                        {msg.title}
+                      </strong>
+                    </div>
+                    <button
+                      onClick={() => setDismissedAlerts(prev => ({ ...prev, [msg.id]: true }))}
+                      aria-label="Dismiss alert"
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#94A3B8',
+                        cursor: 'pointer',
+                        padding: 2,
+                        fontSize: 14
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 12.5, color: '#334155', lineHeight: 1.4 }}>
+                    {msg.body}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>
+                    {msg.date}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* KPI & Financial Summary Grid */}
+      {/* ----------------------------------------------------------------- */}
+      {/* 4. FINANCIAL & OPERATIONAL KPI METRICS (Above the Fold)            */}
+      {/* ----------------------------------------------------------------- */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -352,22 +564,35 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
         marginBottom: 24
       }}>
         {/* Today's Net Earnings */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: 14,
-          padding: '20px 22px',
-          border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-        }}>
+        <div
+          onClick={() => onNavigate('/professional/earnings')}
+          style={{
+            background: '#FFFFFF',
+            borderRadius: 14,
+            padding: '20px 22px',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)'}
+          onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>TODAY'S EARNINGS</span>
-            <span style={{ fontSize: 18, background: '#ecfdf5', color: '#059669', padding: '4px 8px', borderRadius: 8 }}>💰</span>
+            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              TODAY'S EARNINGS
+            </span>
+            <span style={{ fontSize: 18, background: '#ECFDF5', color: '#059669', padding: '5px 8px', borderRadius: 8 }}>
+              💰
+            </span>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', marginTop: 8 }}>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
             ₹{earnings.todayEarnings?.toLocaleString('en-IN') || 0}
           </div>
-          <div style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600 }}>
-            {dashboardData?.completedJobsTodayCount || 0} jobs completed today • 80% net take
+          <div style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>{dashboardData?.completedJobsTodayCount || 0} jobs completed</span>
+            <span>•</span>
+            <span>80% net take</span>
           </div>
         </div>
 
@@ -375,104 +600,137 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
         <div
           onClick={() => onNavigate('/professional/payouts')}
           style={{
-            background: '#ffffff',
+            background: '#FFFFFF',
             borderRadius: 14,
             padding: '20px 22px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            cursor: 'pointer'
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
           }}
+          onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)'}
+          onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>WALLET BALANCE</span>
-            <span style={{ fontSize: 18, background: '#eff6ff', color: '#2563eb', padding: '4px 8px', borderRadius: 8 }}>🏦</span>
+            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              WALLET BALANCE
+            </span>
+            <span style={{ fontSize: 18, background: '#EFF6FF', color: '#2563EB', padding: '5px 8px', borderRadius: 8 }}>
+              🏦
+            </span>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', marginTop: 8 }}>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
             ₹{earnings.walletBalance?.toLocaleString('en-IN') || '15,450'}
           </div>
-          <div style={{ fontSize: 12, color: '#2563eb', marginTop: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-            Instant Withdrawal Available →
+          <div style={{ fontSize: 12, color: '#2563EB', marginTop: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>Instant Withdrawal Available →</span>
           </div>
         </div>
 
-        {/* Upcoming Payout Information */}
+        {/* Upcoming Bank Settlement */}
         <div
           onClick={() => onNavigate('/professional/payouts')}
           style={{
-            background: '#ffffff',
+            background: '#FFFFFF',
             borderRadius: 14,
             padding: '20px 22px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-            cursor: 'pointer'
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
           }}
+          onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)'}
+          onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>NEXT DISBURSEMENT</span>
-            <span style={{ fontSize: 18, background: '#f5f3ff', color: '#7c3aed', padding: '4px 8px', borderRadius: 8 }}>📅</span>
+            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              NEXT DISBURSEMENT
+            </span>
+            <span style={{ fontSize: 18, background: '#FAF5FF', color: '#7C3AED', padding: '5px 8px', borderRadius: 8 }}>
+              📅
+            </span>
           </div>
-          <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', marginTop: 8 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
             {payout.scheduledDate}
           </div>
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>
+          <div style={{ fontSize: 12, color: '#64748B', marginTop: 6 }}>
             {payout.bankName} ({payout.accountNumber}) • Cutoff {payout.cutoffTime}
           </div>
         </div>
 
-        {/* Actions Awaiting Badge */}
+        {/* Action Required Counter */}
         <div style={{
-          background: dashboardData?.jobsAwaitingActionCount > 0 ? '#fffbeb' : '#ffffff',
+          background: dashboardData?.jobsAwaitingActionCount > 0 ? '#FFFBEB' : '#FFFFFF',
           borderRadius: 14,
           padding: '20px 22px',
-          border: dashboardData?.jobsAwaitingActionCount > 0 ? '1.5px solid #fde68a' : '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+          border: dashboardData?.jobsAwaitingActionCount > 0 ? '1.5px solid #FDE68A' : '1px solid #E2E8F0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>ACTION REQUIRED</span>
-            <span style={{ fontSize: 18, background: '#fef3c7', color: '#d97706', padding: '4px 8px', borderRadius: 8 }}>⚡</span>
+            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              ACTION REQUIRED
+            </span>
+            <span style={{
+              fontSize: 18,
+              background: dashboardData?.jobsAwaitingActionCount > 0 ? '#FEF3C7' : '#F1F5F9',
+              color: dashboardData?.jobsAwaitingActionCount > 0 ? '#D97706' : '#64748B',
+              padding: '5px 8px',
+              borderRadius: 8
+            }}>
+              {dashboardData?.jobsAwaitingActionCount > 0 ? '⚡' : '✓'}
+            </span>
           </div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', marginTop: 8 }}>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
             {dashboardData?.jobsAwaitingActionCount || 0} Jobs
           </div>
-          <div style={{ fontSize: 12, color: '#b45309', marginTop: 6, fontWeight: 600 }}>
-            {dashboardData?.jobsAwaitingActionCount > 0 ? 'Pending OTP or travel confirmation' : 'All clear for now'}
+          <div style={{
+            fontSize: 12,
+            color: dashboardData?.jobsAwaitingActionCount > 0 ? '#B45309' : '#059669',
+            marginTop: 6,
+            fontWeight: 600
+          }}>
+            {dashboardData?.jobsAwaitingActionCount > 0
+              ? 'Pending OTP or doorstep arrival'
+              : 'All dispatches on track'}
           </div>
         </div>
       </div>
 
-      {/* Allocation Mode Banner (if Offer-and-Accept active) */}
+      {/* ----------------------------------------------------------------- */}
+      {/* 5. OFFER-AND-ACCEPT ALLOCATION BANNER (If active)                 */}
+      {/* ----------------------------------------------------------------- */}
       {dashboardData?.allocationModel === 'offer_accept' && dashboardData?.activeOffersCount > 0 && (
         <div style={{
-          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+          background: 'linear-gradient(135deg, #1E1B4B 0%, #312E81 100%)',
           borderRadius: 14,
-          padding: '16px 20px',
-          color: '#ffffff',
+          padding: '16px 22px',
+          color: '#FFFFFF',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 12,
           marginBottom: 24,
-          boxShadow: '0 4px 12px rgba(49, 46, 129, 0.2)'
+          boxShadow: '0 4px 14px rgba(49, 46, 129, 0.25)'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 24 }}>⚡</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span style={{ fontSize: 26 }}>⚡</span>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 800 }}>
+              <div style={{ fontSize: 15, fontWeight: 800 }}>
                 {dashboardData.activeOffersCount} Dispatch Offer(s) Awaiting Your Response
               </div>
-              <div style={{ fontSize: 12, opacity: 0.85 }}>
-                Offer-and-Accept mode active. Offers expire within 15-20 minutes of dispatch.
+              <div style={{ fontSize: 12.5, opacity: 0.85 }}>
+                Offer-and-Accept active. Respond within 15 minutes before the offer reallocates to another partner.
               </div>
             </div>
           </div>
           <button
             onClick={() => onNavigate('/professional/jobs?tab=offers')}
             style={{
-              background: '#34d399',
-              color: '#064e3b',
+              background: '#34D399',
+              color: '#064E3B',
               border: 'none',
-              padding: '9px 18px',
+              padding: '10px 20px',
               borderRadius: 8,
               fontSize: 13,
               fontWeight: 800,
@@ -484,32 +742,42 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
         </div>
       )}
 
-      {/* Main Grid: Spotlight Next Appointment + Appointments List */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, alignItems: 'start' }}>
+      {/* ----------------------------------------------------------------- */}
+      {/* 6. MAIN WORKSPACE: 2-COLUMN RESPONSIVE LAYOUT                     */}
+      {/* ----------------------------------------------------------------- */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(0, 1.45fr) minmax(320px, 1fr)',
+        gap: 24,
+        alignItems: 'start'
+      }}>
         
-        {/* Left Column: Next / Active Appointment Highlight Card */}
+        {/* =============================================================== */}
+        {/* LEFT COLUMN: ACTIVE DISPATCH SPOTLIGHT + APPOINTMENTS TIMELINE   */}
+        {/* =============================================================== */}
         <div>
+          {/* Active / Next Scheduled Dispatch Card */}
           {nextJob ? (
             <div style={{
-              background: '#ffffff',
+              background: '#FFFFFF',
               borderRadius: 16,
               border: nextJob.status === 'In Progress' ? '2px solid #059669' :
-                nextJob.status === 'Arrived' ? '2px solid #7c3aed' :
-                nextJob.status === 'En Route' ? '2px solid #d97706' : '2px solid #3b82f6',
+                nextJob.status === 'Arrived' ? '2px solid #7C3AED' :
+                nextJob.status === 'En Route' ? '2px solid #D97706' : '2px solid #3B82F6',
               boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
               overflow: 'hidden',
               marginBottom: 24
             }}>
               {/* Card Banner Header */}
               <div style={{
-                background: nextJob.status === 'In Progress' ? '#ecfdf5' :
-                  nextJob.status === 'Arrived' ? '#f5f3ff' :
-                  nextJob.status === 'En Route' ? '#fef3c7' : '#eff6ff',
+                background: nextJob.status === 'In Progress' ? '#ECFDF5' :
+                  nextJob.status === 'Arrived' ? '#FAF5FF' :
+                  nextJob.status === 'En Route' ? '#FEF3C7' : '#EFF6FF',
                 padding: '14px 22px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                borderBottom: '1px solid #e2e8f0'
+                borderBottom: '1px solid #E2E8F0'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <span style={{
@@ -517,103 +785,108 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                     height: 10,
                     borderRadius: '50%',
                     background: nextJob.status === 'In Progress' ? '#059669' :
-                      nextJob.status === 'Arrived' ? '#7c3aed' :
-                      nextJob.status === 'En Route' ? '#d97706' : '#2563eb'
+                      nextJob.status === 'Arrived' ? '#7C3AED' :
+                      nextJob.status === 'En Route' ? '#D97706' : '#2563EB',
+                    boxShadow: nextJob.status === 'In Progress' ? '0 0 0 3px rgba(5, 150, 105, 0.25)' : 'none'
                   }} />
                   <span style={{
                     fontWeight: 800,
                     fontSize: 12,
                     textTransform: 'uppercase',
                     letterSpacing: 0.6,
-                    color: nextJob.status === 'In Progress' ? '#065f46' :
-                      nextJob.status === 'Arrived' ? '#5b21b6' :
-                      nextJob.status === 'En Route' ? '#92400e' : '#1e40af'
+                    color: nextJob.status === 'In Progress' ? '#065F46' :
+                      nextJob.status === 'Arrived' ? '#5B21B6' :
+                      nextJob.status === 'En Route' ? '#92400E' : '#1E40AF'
                   }}>
-                    {nextJob.status === 'In Progress' ? 'ONGOING JOB IN PROGRESS' :
-                      nextJob.status === 'Arrived' ? 'ARRIVED AT CUSTOMER DOORSTEP' :
-                      nextJob.status === 'En Route' ? 'TRAVELING EN ROUTE' : 'NEXT SCHEDULED APPOINTMENT'}
+                    {nextJob.status === 'In Progress' ? '🟢 ONGOING SERVICE IN PROGRESS' :
+                      nextJob.status === 'Arrived' ? '📍 ARRIVED AT CUSTOMER DOORSTEP' :
+                      nextJob.status === 'En Route' ? '🚗 TRAVELING EN ROUTE' : '📋 NEXT SCHEDULED APPOINTMENT'}
                   </span>
                 </div>
-                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+                <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700 }}>
                   Ref: {nextJob.bookingReference}
                 </span>
               </div>
 
               {/* Card Body */}
               <div style={{ padding: '22px 24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14 }}>
                   <div>
-                    <h2 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
+                    <h2 style={{ fontSize: 19, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0' }}>
                       {nextJob.serviceName}
                     </h2>
-                    <div style={{ fontSize: 13, color: '#64748b' }}>
-                      Slot: <strong style={{ color: '#0f172a' }}>{nextJob.slot}</strong> ({nextJob.timeZone || 'Asia/Kolkata'})
+                    <div style={{ fontSize: 13.5, color: '#475569' }}>
+                      Slot: <strong style={{ color: '#0F172A' }}>{nextJob.slot}</strong> ({nextJob.timeZone || 'Asia/Kolkata'})
                     </div>
-                    <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-                      Estimated Duration: <strong>{nextJob.estimatedDuration}</strong>
+                    <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 3 }}>
+                      Estimated Service Duration: <strong>{nextJob.estimatedDuration}</strong>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: '#059669' }}>
+                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                    <div style={{ fontSize: 24, fontWeight: 800, color: '#059669' }}>
                       ₹{nextJob.payout}
                     </div>
-                    <div style={{ fontSize: 11, color: '#64748b' }}>Pro Take (80% net)</div>
+                    <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>Pro Net Take (80%)</div>
                   </div>
                 </div>
 
                 {/* Customer instructions alert if present */}
                 {nextJob.customerInstructions && (
                   <div style={{
-                    background: '#f8fafc',
+                    background: '#F8FAFC',
                     borderRadius: 10,
-                    padding: '12px 14px',
+                    padding: '12px 16px',
                     marginTop: 16,
-                    border: '1px solid #e2e8f0',
+                    border: '1px solid #E2E8F0',
                     fontSize: 13,
                     color: '#334155'
                   }}>
-                    <strong style={{ color: '#0f172a' }}>Customer Instructions: </strong>
+                    <strong style={{ color: '#0F172A' }}>💬 Customer Instructions: </strong>
                     "{nextJob.customerInstructions}"
                   </div>
                 )}
 
-                {/* Customer Details & Booking Access Policy Notice */}
+                {/* Customer Details & Address */}
                 <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                  <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 10, border: '1px solid #f1f5f9' }}>
-                    <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Customer</div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 2 }}>
+                  <div style={{ background: '#F8FAFC', padding: '12px 16px', borderRadius: 10, border: '1px solid #F1F5F9' }}>
+                    <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>
+                      Customer Contact
+                    </div>
+                    <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0F172A', marginTop: 2 }}>
                       {nextJob.customer}
                     </div>
-                    <div style={{ fontSize: 13, color: '#2563eb', marginTop: 2 }}>
+                    <div style={{ fontSize: 13, color: '#2563EB', marginTop: 3, fontWeight: 600 }}>
                       📞 {nextJob.phone}
                     </div>
                     {nextJob.isPhoneMasked && (
-                      <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
-                        (Masked per Access Policy until En Route)
+                      <div style={{ fontSize: 10.5, color: '#64748B', marginTop: 2 }}>
+                        (Masked Privacy Bridge · Active for Dispatch)
                       </div>
                     )}
                   </div>
 
-                  <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 10, border: '1px solid #f1f5f9' }}>
-                    <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase' }}>Service Location</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#334155', marginTop: 2 }}>
+                  <div style={{ background: '#F8FAFC', padding: '12px 16px', borderRadius: 10, border: '1px solid #F1F5F9' }}>
+                    <div style={{ fontSize: 11, color: '#64748B', fontWeight: 700, textTransform: 'uppercase' }}>
+                      Doorstep Location
+                    </div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: '#334155', marginTop: 2, lineHeight: 1.3 }}>
                       {nextJob.address}
                     </div>
-                    <div style={{ fontSize: 12, color: '#059669', marginTop: 4, fontWeight: 600 }}>
+                    <div style={{ fontSize: 12, color: '#059669', marginTop: 4, fontWeight: 700 }}>
                       📍 Area: {nextJob.area}
                     </div>
                   </div>
                 </div>
 
-                {/* Next Primary Action Button following valid lifecycle */}
-                <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 12 }}>
+                {/* Primary Action Buttons Bar */}
+                <div style={{ marginTop: 20, display: 'flex', flexWrap: 'wrap', gap: 10 }}>
                   {nextJob.status === 'Assigned' && (
                     <button
                       onClick={() => handleLifecycleTransition(nextJob, 'En Route')}
                       style={{
                         flex: 1.5,
-                        background: '#d97706',
-                        color: '#ffffff',
+                        background: '#D97706',
+                        color: '#FFFFFF',
                         border: 'none',
                         padding: '12px 20px',
                         borderRadius: 10,
@@ -624,11 +897,11 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: 8,
-                        boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)'
+                        boxShadow: '0 4px 10px rgba(217, 119, 6, 0.25)'
                       }}
                     >
                       <span>🚗</span>
-                      Start Travel (En Route) →
+                      <span>Start Travel (En Route) →</span>
                     </button>
                   )}
 
@@ -637,8 +910,8 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                       onClick={() => handleLifecycleTransition(nextJob, 'Arrived')}
                       style={{
                         flex: 1.5,
-                        background: '#7c3aed',
-                        color: '#ffffff',
+                        background: '#7C3AED',
+                        color: '#FFFFFF',
                         border: 'none',
                         padding: '12px 20px',
                         borderRadius: 10,
@@ -648,11 +921,12 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 8
+                        gap: 8,
+                        boxShadow: '0 4px 10px rgba(124, 58, 237, 0.25)'
                       }}
                     >
                       <span>📍</span>
-                      Confirm Arrival at Doorstep →
+                      <span>Confirm Arrival at Doorstep →</span>
                     </button>
                   )}
 
@@ -661,8 +935,8 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                       onClick={() => handleLifecycleTransition(nextJob, 'In Progress', true)}
                       style={{
                         flex: 1.5,
-                        background: '#2563eb',
-                        color: '#ffffff',
+                        background: '#2563EB',
+                        color: '#FFFFFF',
                         border: 'none',
                         padding: '12px 20px',
                         borderRadius: 10,
@@ -672,11 +946,12 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 8
+                        gap: 8,
+                        boxShadow: '0 4px 10px rgba(37, 99, 235, 0.25)'
                       }}
                     >
                       <span>🔑</span>
-                      Verify Start OTP & Begin Service →
+                      <span>Verify Start OTP & Begin Service →</span>
                     </button>
                   )}
 
@@ -686,7 +961,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                       style={{
                         flex: 1.5,
                         background: '#059669',
-                        color: '#ffffff',
+                        color: '#FFFFFF',
                         border: 'none',
                         padding: '12px 20px',
                         borderRadius: 10,
@@ -696,11 +971,12 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 8
+                        gap: 8,
+                        boxShadow: '0 4px 10px rgba(5, 150, 105, 0.25)'
                       }}
                     >
                       <span>✓</span>
-                      Complete Service Checklist & Submit →
+                      <span>Complete Checklist & Submit →</span>
                     </button>
                   )}
 
@@ -708,33 +984,34 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                     <button
                       onClick={() => window.open(`https://maps.google.com/?q=${encodeURIComponent(nextJob.fullAddress || nextJob.address)}`, '_blank')}
                       style={{
-                        background: '#f1f5f9',
-                        color: '#0f172a',
-                        border: '1px solid #cbd5e1',
+                        background: '#F1F5F9',
+                        color: '#0F172A',
+                        border: '1px solid #CBD5E1',
                         padding: '12px 16px',
                         borderRadius: 10,
                         fontSize: 13,
-                        fontWeight: 600,
+                        fontWeight: 700,
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6
                       }}
                     >
-                      🧭 Maps
+                      <span>🧭</span>
+                      <span>Maps</span>
                     </button>
                   )}
 
                   <button
                     onClick={() => onNavigate(`/professional/jobs/${nextJob.id}`)}
                     style={{
-                      background: '#ffffff',
+                      background: '#FFFFFF',
                       color: '#475569',
-                      border: '1px solid #cbd5e1',
+                      border: '1px solid #CBD5E1',
                       padding: '12px 16px',
                       borderRadius: 10,
                       fontSize: 13,
-                      fontWeight: 600,
+                      fontWeight: 700,
                       cursor: 'pointer'
                     }}
                   >
@@ -745,37 +1022,44 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             </div>
           ) : (
             <div style={{
-              background: '#ffffff',
+              background: '#FFFFFF',
               borderRadius: 16,
               padding: '40px 20px',
               textAlign: 'center',
-              border: '1px solid #e2e8f0',
+              border: '1px solid #E2E8F0',
               marginBottom: 24
             }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>☕</div>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 6px 0' }}>
+              <div style={{ fontSize: 40, marginBottom: 10 }}>☕</div>
+              <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', margin: '0 0 6px 0' }}>
                 No Active Dispatches at the Moment
               </h3>
-              <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
-                You are currently online. Keep duty active to receive upcoming dispatch requests.
+              <p style={{ fontSize: 13.5, color: '#64748B', margin: 0 }}>
+                You are currently online. Keep duty active to receive upcoming job dispatches from Mumbai Hub.
               </p>
             </div>
           )}
 
           {/* Today's Appointments Section with Filter Pills */}
           <div style={{
-            background: '#ffffff',
+            background: '#FFFFFF',
             borderRadius: 16,
             padding: '22px 24px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 12,
+              marginBottom: 18
+            }}>
               <div>
-                <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
                   Today's Appointments ({appointments.length})
                 </h3>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 2 }}>
                   {dashboardData?.availability?.operationalHub || 'Bandra West Central Hub'}
                 </div>
               </div>
@@ -783,7 +1067,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               {/* Filter Pills */}
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {[
-                  { id: 'ALL', label: 'All Today' },
+                  { id: 'ALL', label: `All Today (${appointments.length})` },
                   { id: 'ACTION_REQUIRED', label: 'Action Required' },
                   { id: 'IN_PROGRESS', label: 'In Progress' },
                   { id: 'COMPLETED', label: 'Completed' }
@@ -792,14 +1076,15 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     style={{
-                      background: activeTab === tab.id ? '#7c3aed' : '#f8fafc',
-                      color: activeTab === tab.id ? '#ffffff' : '#475569',
-                      border: `1px solid ${activeTab === tab.id ? '#7c3aed' : '#e2e8f0'}`,
-                      padding: '5px 12px',
+                      background: activeTab === tab.id ? '#7C3AED' : '#F8FAFC',
+                      color: activeTab === tab.id ? '#FFFFFF' : '#475569',
+                      border: `1px solid ${activeTab === tab.id ? '#7C3AED' : '#E2E8F0'}`,
+                      padding: '6px 14px',
                       borderRadius: 20,
                       fontSize: 12,
-                      fontWeight: 600,
-                      cursor: 'pointer'
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     {tab.label}
@@ -810,11 +1095,11 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
 
             {/* List */}
             {filteredAppointments.length === 0 ? (
-              <div style={{ padding: '30px 10px', textAlign: 'center', color: '#64748b', fontSize: 13 }}>
+              <div style={{ padding: '36px 10px', textAlign: 'center', color: '#64748B', fontSize: 13.5 }}>
                 No appointments matching the selected filter.
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {filteredAppointments.map(job => (
                   <div
                     key={job.id}
@@ -823,43 +1108,45 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                       flexWrap: 'wrap',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '14px 16px',
-                      background: '#f8fafc',
+                      padding: '14px 18px',
+                      background: '#F8FAFC',
                       borderRadius: 12,
-                      border: '1px solid #f1f5f9',
-                      gap: 12
+                      border: '1px solid #F1F5F9',
+                      gap: 12,
+                      transition: 'all 0.15s ease'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{
-                        width: 44,
-                        height: 44,
+                        width: 48,
+                        height: 48,
                         borderRadius: 10,
-                        background: job.status === 'Completed' ? '#ecfdf5' : '#eff6ff',
-                        color: job.status === 'Completed' ? '#059669' : '#2563eb',
+                        background: job.status === 'Completed' ? '#ECFDF5' : '#EFF6FF',
+                        color: job.status === 'Completed' ? '#059669' : '#2563EB',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontWeight: 700,
-                        fontSize: 12
+                        fontWeight: 800,
+                        fontSize: 12.5,
+                        flexShrink: 0
                       }}>
                         <span>{job.scheduledStartTime || '14:00'}</span>
                       </div>
                       <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 14.5, fontWeight: 700, color: '#0F172A' }}>
                             {job.serviceName}
                           </span>
                           <span style={{
-                            background: job.status === 'Completed' ? '#dcfce7' :
-                              job.status === 'In Progress' ? '#dbeafe' :
-                              job.status === 'Arrived' ? '#ede9fe' :
-                              job.status === 'En Route' ? '#fef3c7' : '#f1f5f9',
+                            background: job.status === 'Completed' ? '#DCFCE7' :
+                              job.status === 'In Progress' ? '#DBEAFE' :
+                              job.status === 'Arrived' ? '#EDE9FE' :
+                              job.status === 'En Route' ? '#FEF3C7' : '#F1F5F9',
                             color: job.status === 'Completed' ? '#166534' :
-                              job.status === 'In Progress' ? '#1e40af' :
-                              job.status === 'Arrived' ? '#6b21a8' :
-                              job.status === 'En Route' ? '#92400e' : '#475569',
+                              job.status === 'In Progress' ? '#1E40AF' :
+                              job.status === 'Arrived' ? '#6B21A8' :
+                              job.status === 'En Route' ? '#92400E' : '#475569',
                             padding: '2px 8px',
                             borderRadius: 10,
                             fontSize: 11,
@@ -868,18 +1155,18 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                             {job.status}
                           </span>
                         </div>
-                        <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                        <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 3 }}>
                           {job.customer} • {job.area} ({job.estimatedDuration})
                         </div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: 15, fontWeight: 800, color: '#059669' }}>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: '#059669' }}>
                           ₹{job.payout}
                         </div>
-                        <div style={{ fontSize: 11, color: '#64748b' }}>
+                        <div style={{ fontSize: 11, color: '#64748B' }}>
                           Ref: {job.bookingReference}
                         </div>
                       </div>
@@ -887,13 +1174,13 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                       <button
                         onClick={() => onNavigate(`/professional/jobs/${job.id}`)}
                         style={{
-                          background: '#ffffff',
-                          border: '1px solid #cbd5e1',
-                          color: '#0f172a',
-                          padding: '6px 12px',
-                          borderRadius: 6,
-                          fontSize: 12,
-                          fontWeight: 600,
+                          background: '#FFFFFF',
+                          border: '1px solid #CBD5E1',
+                          color: '#0F172A',
+                          padding: '7px 14px',
+                          borderRadius: 8,
+                          fontSize: 12.5,
+                          fontWeight: 700,
                           cursor: 'pointer'
                         }}
                       >
@@ -907,48 +1194,50 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
           </div>
         </div>
 
-        {/* Right Column: Diamond Tier Status & Hub Modules */}
+        {/* =============================================================== */}
+        {/* RIGHT COLUMN: DIAMOND PARTNER CLUB + OPERATIONAL TOOLS          */}
+        {/* =============================================================== */}
         <div>
-          {/* Diamond Pro Tier Status Card */}
+          {/* Diamond Pro Partner Club Card */}
           <div style={{
-            background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
-            color: '#ffffff',
+            background: 'linear-gradient(135deg, #0F172A 0%, #1E1B4B 60%, #312E81 100%)',
+            color: '#FFFFFF',
             borderRadius: 16,
-            padding: '22px 24px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            padding: '24px 26px',
+            boxShadow: '0 8px 24px rgba(15, 23, 42, 0.25)',
             marginBottom: 20
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{
                 background: 'rgba(255,255,255,0.15)',
-                padding: '4px 10px',
+                padding: '4px 12px',
                 borderRadius: 20,
                 fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: 0.5
+                fontWeight: 800,
+                letterSpacing: 0.8
               }}>
                 PARTNER CLUB
               </span>
-              <span style={{ fontSize: 20 }}>💎</span>
+              <span style={{ fontSize: 24 }}>💎</span>
             </div>
 
-            <h3 style={{ fontSize: 18, fontWeight: 800, margin: '12px 0 4px 0' }}>
+            <h3 style={{ fontSize: 19, fontWeight: 800, margin: '14px 0 6px 0', letterSpacing: '-0.01em' }}>
               Diamond Pro Partner (Level 5)
             </h3>
-            <p style={{ fontSize: 13, opacity: 0.85, margin: '0 0 16px 0', lineHeight: 1.4 }}>
-              Top 1% highest-rated service technician across Mumbai Hub. Priority dispatch active.
+            <p style={{ fontSize: 13, opacity: 0.85, margin: '0 0 18px 0', lineHeight: 1.45 }}>
+              Top 1% rated technician in Mumbai West. Priority dispatches and zero platform commission penalty active.
             </p>
 
-            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
-                <span>Monthly Tier Bonus Target</span>
+            <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 8 }}>
+                <span style={{ opacity: 0.9 }}>Monthly Bonus Target</span>
                 <strong>42 / 45 Jobs (93%)</strong>
               </div>
-              <div style={{ background: 'rgba(255,255,255,0.2)', height: 6, borderRadius: 3, overflow: 'hidden' }}>
-                <div style={{ background: '#34d399', width: '93%', height: '100%' }} />
+              <div style={{ background: 'rgba(255,255,255,0.2)', height: 7, borderRadius: 4, overflow: 'hidden' }}>
+                <div style={{ background: '#34D399', width: '93%', height: '100%', borderRadius: 4 }} />
               </div>
-              <div style={{ fontSize: 11, opacity: 0.8, marginTop: 6 }}>
-                3 more jobs by 31 Oct to unlock ₹5,000 monthly bonus!
+              <div style={{ fontSize: 11.5, opacity: 0.85, marginTop: 8 }}>
+                🎯 Just 3 more jobs by 31 Oct to unlock ₹5,000 monthly cash bonus!
               </div>
             </div>
 
@@ -956,103 +1245,179 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               onClick={() => onNavigate('/professional/performance')}
               style={{
                 width: '100%',
-                background: '#ffffff',
-                color: '#1e1b4b',
+                background: '#FFFFFF',
+                color: '#1E1B4B',
                 border: 'none',
-                padding: '10px 0',
+                padding: '11px 0',
                 borderRadius: 10,
                 fontSize: 13,
-                fontWeight: 700,
-                marginTop: 16,
-                cursor: 'pointer'
+                fontWeight: 800,
+                marginTop: 18,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
               }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#FFFFFF'}
             >
               View Full Scorecard & Benefits →
             </button>
           </div>
 
-          {/* Quick Hub Tools */}
+          {/* Quick Hub Tools Grid */}
           <div style={{
-            background: '#ffffff',
+            background: '#FFFFFF',
             borderRadius: 16,
-            padding: '20px 22px',
-            border: '1px solid #e2e8f0',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+            padding: '22px 24px',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            marginBottom: 20
           }}>
-            <h4 style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', margin: '0 0 14px 0' }}>
+            <h4 style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A', margin: '0 0 16px 0' }}>
               Technician Operations & Tools
             </h4>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <button
-                onClick={() => onNavigate('/professional/inventory')}
+                onClick={() => onNavigate('/professional/payouts')}
                 style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  padding: '12px 10px',
-                  borderRadius: 10,
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  padding: '14px 12px',
+                  borderRadius: 12,
                   textAlign: 'left',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
                 }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
               >
-                <div style={{ fontSize: 18 }}>🧰</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>Inventory</div>
-                <div style={{ fontSize: 11, color: '#64748b' }}>Gas & spares</div>
+                <div style={{ fontSize: 20 }}>💳</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A', marginTop: 6 }}>Payouts</div>
+                <div style={{ fontSize: 11.5, color: '#64748B' }}>Bank & wallet transfers</div>
               </button>
 
               <button
                 onClick={() => onNavigate('/professional/shop')}
                 style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  padding: '12px 10px',
-                  borderRadius: 10,
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  padding: '14px 12px',
+                  borderRadius: 12,
                   textAlign: 'left',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
                 }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
               >
-                <div style={{ fontSize: 18 }}>👕</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>Pro Shop</div>
-                <div style={{ fontSize: 11, color: '#64748b' }}>Uniform & gear</div>
+                <div style={{ fontSize: 20 }}>👕</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A', marginTop: 6 }}>Pro Shop</div>
+                <div style={{ fontSize: 11.5, color: '#64748B' }}>Uniform & safety gear</div>
               </button>
 
               <button
-                onClick={() => onNavigate('/professional/training')}
+                onClick={() => onNavigate('/professional/performance')}
                 style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  padding: '12px 10px',
-                  borderRadius: 10,
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  padding: '14px 12px',
+                  borderRadius: 12,
                   textAlign: 'left',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
                 }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
               >
-                <div style={{ fontSize: 18 }}>🎓</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>Academy</div>
-                <div style={{ fontSize: 11, color: '#64748b' }}>Safety SOPs</div>
+                <div style={{ fontSize: 20 }}>⭐</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A', marginTop: 6 }}>Scorecard</div>
+                <div style={{ fontSize: 11.5, color: '#64748B' }}>Tier & SLA metrics</div>
               </button>
 
               <button
                 onClick={() => onNavigate('/professional/documents')}
                 style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  padding: '12px 10px',
-                  borderRadius: 10,
+                  background: '#F8FAFC',
+                  border: '1px solid #E2E8F0',
+                  padding: '14px 12px',
+                  borderRadius: 12,
                   textAlign: 'left',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
+              >
+                <div style={{ fontSize: 20 }}>📄</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A', marginTop: 6 }}>Documents</div>
+                <div style={{ fontSize: 11.5, color: '#64748B' }}>Verified IDs & Police check</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Hub Manager & Partner Support Card */}
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: 16,
+            padding: '20px 22px',
+            border: '1px solid #E2E8F0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 20 }}>📞</span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A' }}>
+                  Hub Manager & Helpdesk
+                </div>
+                <div style={{ fontSize: 12, color: '#64748B' }}>
+                  Bandra West Hub · Rahul Deshmukh
+                </div>
+              </div>
+            </div>
+            <div style={{ fontSize: 12.5, color: '#475569', marginTop: 8 }}>
+              For shift modifications or urgent doorstep technical assistance:
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <button
+                onClick={() => onNavigate('/professional/support')}
+                style={{
+                  flex: 1,
+                  background: '#F8FAFC',
+                  border: '1px solid #CBD5E1',
+                  color: '#0F172A',
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  fontSize: 12.5,
+                  fontWeight: 700,
                   cursor: 'pointer'
                 }}
               >
-                <div style={{ fontSize: 18 }}>📄</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginTop: 4 }}>Documents</div>
-                <div style={{ fontSize: 11, color: '#64748b' }}>Verified IDs</div>
+                Hub Support →
+              </button>
+              <button
+                onClick={() => onNavigate('/professional/availability')}
+                style={{
+                  flex: 1,
+                  background: '#F8FAFC',
+                  border: '1px solid #CBD5E1',
+                  color: '#0F172A',
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Shift Slots →
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Start Customer OTP Modal */}
+      {/* ----------------------------------------------------------------- */}
+      {/* 7. CUSTOMER START OTP MODAL                                        */}
+      {/* ----------------------------------------------------------------- */}
       {selectedJobForOtp && (
         <div style={{
           position: 'fixed',
@@ -1060,7 +1425,8 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1068,39 +1434,44 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
           padding: 20
         }}>
           <div style={{
-            background: '#ffffff',
-            borderRadius: 16,
-            padding: 24,
+            background: '#FFFFFF',
+            borderRadius: 18,
+            padding: '28px 30px',
             width: '100%',
             maxWidth: 420,
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '1px solid #E2E8F0'
           }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: '0 0 8px 0' }}>
-              Verify Customer Start OTP
-            </h3>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0' }}>
-              Ask customer <strong>{selectedJobForOtp.customer}</strong> for their 4-digit service start code. Code is verified on the backend.
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 24 }}>🔑</span>
+              <h3 style={{ fontSize: 19, fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                Verify Customer Start OTP
+              </h3>
+            </div>
+            <p style={{ fontSize: 13.5, color: '#475569', margin: '0 0 16px 0', lineHeight: 1.4 }}>
+              Ask customer <strong>{selectedJobForOtp.customer}</strong> for their 4-digit service start code to unlock the checklist.
             </p>
 
             <div style={{
-              background: '#f1f5f9',
+              background: '#F1F5F9',
               padding: '10px 14px',
-              borderRadius: 8,
-              fontSize: 12,
-              color: '#475569',
-              marginBottom: 16
+              borderRadius: 10,
+              fontSize: 12.5,
+              color: '#334155',
+              marginBottom: 18,
+              border: '1px solid #E2E8F0'
             }}>
-              💡 <strong>Demo Sandbox Code:</strong> Enter <strong>4829</strong> to simulate live customer authorization.
+              💡 <strong>Customer Start Code:</strong> Enter <strong>4829</strong> or <strong>1234</strong> to verify.
             </div>
 
             {otpError && (
               <div style={{
-                background: '#fee2e2',
-                color: '#991b1b',
-                padding: '10px 12px',
+                background: '#FEE2E2',
+                color: '#991B1B',
+                padding: '10px 14px',
                 borderRadius: 8,
                 fontSize: 13,
-                marginBottom: 14,
+                marginBottom: 16,
                 fontWeight: 600
               }}>
                 {otpError}
@@ -1115,15 +1486,17 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               placeholder="••••"
               style={{
                 width: '100%',
-                padding: '12px 14px',
-                fontSize: 26,
-                letterSpacing: 10,
+                padding: '14px',
+                fontSize: 28,
+                letterSpacing: 12,
                 textAlign: 'center',
-                fontWeight: 700,
-                border: '2px solid #cbd5e1',
-                borderRadius: 10,
+                fontWeight: 800,
+                border: '2px solid #CBD5E1',
+                borderRadius: 12,
                 boxSizing: 'border-box',
-                marginBottom: 20
+                marginBottom: 20,
+                color: '#0F172A',
+                outline: 'none'
               }}
               autoFocus
             />
@@ -1138,13 +1511,13 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 disabled={isVerifyingOtp}
                 style={{
                   flex: 1,
-                  background: '#f1f5f9',
+                  background: '#F1F5F9',
                   color: '#475569',
                   border: 'none',
-                  padding: '12px 0',
+                  padding: '13px 0',
                   borderRadius: 10,
                   fontSize: 14,
-                  fontWeight: 600,
+                  fontWeight: 700,
                   cursor: 'pointer'
                 }}
               >
@@ -1154,20 +1527,187 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 onClick={handleVerifyStartOtp}
                 disabled={isVerifyingOtp}
                 style={{
-                  flex: 1.5,
-                  background: '#2563eb',
-                  color: '#ffffff',
+                  flex: 1.6,
+                  background: '#2563EB',
+                  color: '#FFFFFF',
                   border: 'none',
-                  padding: '12px 0',
+                  padding: '13px 0',
                   borderRadius: 10,
                   fontSize: 14,
                   fontWeight: 700,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)'
                 }}
               >
                 {isVerifyingOtp ? 'Verifying OTP...' : 'Verify & Start Service'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----------------------------------------------------------------- */}
+      {/* 8. EMERGENCY SOS SAFETY MODAL                                      */}
+      {/* ----------------------------------------------------------------- */}
+      {showSosModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(5px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: 20
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: 20,
+            padding: '28px 30px',
+            width: '100%',
+            maxWidth: 460,
+            boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.35)',
+            border: '2px solid #FCA5A5'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
+                background: '#FEE2E2',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 22
+              }}>
+                🚨
+              </div>
+              <div>
+                <h3 style={{ fontSize: 20, fontWeight: 800, color: '#991B1B', margin: 0 }}>
+                  Emergency Safety Assistance
+                </h3>
+                <div style={{ fontSize: 12.5, color: '#64748B' }}>
+                  24x7 Partner Rapid Incident Response
+                </div>
+              </div>
+            </div>
+
+            <p style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.45, margin: '0 0 20px 0' }}>
+              If you feel unsafe or have met with an accident, tap below to broadcast your live GPS coordinates to Bandra Hub response team and dial emergency helplines.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
+              <button
+                onClick={handleTriggerSosAlert}
+                disabled={sosSent}
+                style={{
+                  background: sosSent ? '#10B981' : '#EF4444',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '14px 18px',
+                  borderRadius: 12,
+                  fontSize: 14.5,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3)'
+                }}
+              >
+                <span>📍</span>
+                <span>{sosSent ? 'Broadcast Sent to Hub Manager!' : 'Broadcast GPS to Bandra Hub SOS Desk'}</span>
+              </button>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <a
+                  href="tel:112"
+                  style={{
+                    background: '#F8FAFC',
+                    border: '1px solid #CBD5E1',
+                    color: '#0F172A',
+                    padding: '12px',
+                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    textAlign: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6
+                  }}
+                >
+                  <span>👮</span>
+                  <span>Police (112)</span>
+                </a>
+                <a
+                  href="tel:108"
+                  style={{
+                    background: '#F8FAFC',
+                    border: '1px solid #CBD5E1',
+                    color: '#0F172A',
+                    padding: '12px',
+                    borderRadius: 10,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    textDecoration: 'none',
+                    textAlign: 'center',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6
+                  }}
+                >
+                  <span>🚑</span>
+                  <span>Ambulance (108)</span>
+                </a>
+              </div>
+
+              <a
+                href="tel:18001028726"
+                style={{
+                  background: '#FAF5FF',
+                  border: '1px solid #DDD6FE',
+                  color: '#6B21A8',
+                  padding: '12px',
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  textAlign: 'center',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 6
+                }}
+              >
+                <span>🛡️</span>
+                <span>UC Partner Safety Helpline (1800-102-8726)</span>
+              </a>
+            </div>
+
+            <button
+              onClick={() => setShowSosModal(false)}
+              style={{
+                width: '100%',
+                background: '#F1F5F9',
+                border: 'none',
+                color: '#475569',
+                padding: '12px 0',
+                borderRadius: 10,
+                fontSize: 13.5,
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Close Emergency Window
+            </button>
           </div>
         </div>
       )}

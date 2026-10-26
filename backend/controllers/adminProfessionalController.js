@@ -412,7 +412,8 @@ export async function updateProfessionalStatus(req, res) {
 
     let worker = null;
     try {
-      worker = await WorkerApplication.findOne({ id });
+      const isMongoId = id?.match(/^[0-9a-fA-F]{24}$/);
+      worker = await WorkerApplication.findOne(isMongoId ? { $or: [{ id }, { _id: id }] } : { id });
       if (worker) {
         worker.status = status;
         if (status === 'Rejected') worker.rejectionReason = reason.trim();

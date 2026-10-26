@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { professionalClient } from '../professionalClient';
+import { RapidoChatDrawer } from '../../components/RapidoChatDrawer';
 
 export function JobsView({ onNavigate, showToast }) {
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' | 'action_required' | 'in_progress' | 'completed' | 'cancelled' | 'offers'
@@ -9,6 +10,7 @@ export function JobsView({ onNavigate, showToast }) {
   const [jobs, setJobs] = useState([]);
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedChatJob, setSelectedChatJob] = useState(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -563,6 +565,27 @@ export function JobsView({ onNavigate, showToast }) {
                     View Job Detail & SOP →
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={() => setSelectedChatJob(job)}
+                    style={{
+                      background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      boxShadow: '0 2px 6px rgba(79, 70, 229, 0.25)'
+                    }}
+                  >
+                    💬 Chat
+                  </button>
+
                   {!job.preciseAddressHidden && (
                     <button
                       onClick={() => {
@@ -921,6 +944,32 @@ export function JobsView({ onNavigate, showToast }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Rapido-Style Real-Time In-App Chat Drawer */}
+      {selectedChatJob && (
+        <RapidoChatDrawer
+          isOpen={Boolean(selectedChatJob)}
+          onClose={() => setSelectedChatJob(null)}
+          booking={{
+            id: selectedChatJob.id || selectedChatJob.bookingReference,
+            bookingReference: selectedChatJob.bookingReference || selectedChatJob.id,
+            userName: selectedChatJob.customer || 'Customer',
+            userPhone: selectedChatJob.phone || '',
+            serviceName: selectedChatJob.service,
+            address: selectedChatJob.address,
+            status: selectedChatJob.status,
+            assignedProfessional: {
+              id: professionalClient.getStoredUser()?.id || 'WRK-KRI-101',
+              name: professionalClient.getStoredUser()?.applicantName || 'Technician'
+            }
+          }}
+          currentUser={{
+            role: 'professional',
+            id: professionalClient.getStoredUser()?.id || 'WRK-KRI-101',
+            name: professionalClient.getStoredUser()?.applicantName || 'Technician'
+          }}
+        />
       )}
     </div>
   );

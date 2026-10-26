@@ -127,22 +127,9 @@ export function PromotionsView({ onShowToast }) {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Header Banner */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 40,
-        backgroundColor: '#FFFFFF',
-        borderRadius: '0 0 12px 12px',
-        padding: '20px 24px',
-        border: '1px solid #E2E8F0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 16
-      }}>
+      <div className="admin-page-header">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: 0 }}>
@@ -186,7 +173,8 @@ export function PromotionsView({ onShowToast }) {
         </button>
       </div>
 
-      {/* SERVER-SIDE VALIDATION TESTER SANDBOX */}
+      <div className="admin-page-body">
+        {/* SERVER-SIDE VALIDATION TESTER SANDBOX */}
       <div style={{
         backgroundColor: '#FFFFFF',
         borderRadius: 12,
@@ -372,6 +360,7 @@ export function PromotionsView({ onShowToast }) {
             ))}
           </tbody>
         </table>
+      </div>
       </div>
 
       {/* ========================================================================= */}

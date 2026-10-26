@@ -7,6 +7,7 @@ import {
   HardHat, 
   Building2, 
   Wrench, 
+  Navigation,
   CreditCard, 
   Wallet, 
   RotateCcw, 
@@ -21,8 +22,11 @@ import {
   Command,
   SlidersHorizontal,
   ChevronDown,
+  ChevronLeft,
   Key,
-  Check
+  Check,
+  Bell,
+  ExternalLink
 } from 'lucide-react';
 import { adminClient } from './adminClient';
 
@@ -39,8 +43,6 @@ export function AdminLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [showDemoLoginsModal, setShowDemoLoginsModal] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [resettingDemo, setResettingDemo] = useState(false);
@@ -54,8 +56,6 @@ export function AdminLayout({
       }
       if (e.key === 'Escape') {
         setShowGlobalSearch(false);
-        setShowNotifications(false);
-        setShowUserDropdown(false);
       }
     }
     window.addEventListener('keydown', handleKeyDown);
@@ -80,6 +80,7 @@ export function AdminLayout({
       title: 'CORE OPERATIONS',
       items: [
         { path: '/admin', label: 'Overview', icon: LayoutDashboard },
+        { path: '/admin/operations', label: 'Live Operations', icon: Navigation, badge: 'Live' },
         { path: '/admin/bookings', label: 'Bookings', icon: ShoppingBag, badge: bookingBadge },
         { path: '/admin/customers', label: 'Customers', icon: Users },
         { path: '/admin/professionals', label: 'Professionals', icon: HardHat, badge: '5' },
@@ -121,9 +122,7 @@ export function AdminLayout({
     ? allNavItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
     : allNavItems.slice(0, 8);
 
-  // Derive Breadcrumbs
-  const currentItem = allNavItems.find(item => item.path === currentPath) || { label: 'Overview' };
-  const currentSection = NAV_SECTIONS.find(s => s.items.some(i => i.path === currentPath))?.title || 'OPERATIONS';
+
 
   return (
     <div style={{
@@ -159,19 +158,19 @@ export function AdminLayout({
             height: 64,
             boxSizing: 'border-box',
             flexShrink: 0,
-            padding: sidebarCollapsed ? '0 16px' : '0 20px',
+            padding: sidebarCollapsed ? '0 12px' : '0 14px 0 18px',
             borderBottom: '1px solid #E2E8F0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: sidebarCollapsed ? 'center' : 'space-between',
-            gap: 12
+            gap: 8
           }}>
             <div 
               onClick={() => onNavigate('/admin')}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 12,
+                gap: 10,
                 cursor: 'pointer',
                 minWidth: 0
               }}
@@ -192,15 +191,45 @@ export function AdminLayout({
               </div>
               {!sidebarCollapsed && (
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
                     Forge India Connect
                   </div>
-                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#6E42E5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: '#6E42E5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Admin Operations
                   </div>
                 </div>
               )}
             </div>
+
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              title={sidebarCollapsed ? "Expand sidebar navigation" : "Collapse sidebar navigation"}
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: 6,
+                border: '1px solid #E2E8F0',
+                backgroundColor: '#F8FAFC',
+                display: sidebarCollapsed ? 'none' : 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#64748B',
+                transition: 'all 0.15s ease',
+                flexShrink: 0
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#EDE9FE';
+                e.currentTarget.style.color = '#6E42E5';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#F8FAFC';
+                e.currentTarget.style.color = '#64748B';
+              }}
+            >
+              <ChevronLeft size={14} />
+            </button>
           </div>
 
           {/* Navigation Item Scrollable List */}
@@ -297,25 +326,48 @@ export function AdminLayout({
 
           {/* Sidebar Collapse Toggle & Footer Actions */}
           <div style={{
-            padding: sidebarCollapsed ? '12px 8px' : '12px 14px',
+            padding: sidebarCollapsed ? '10px 8px' : '12px 14px',
             borderTop: '1px solid #E2E8F0',
             backgroundColor: '#FFFFFF',
             display: 'flex',
             flexDirection: 'column',
             gap: 6
           }}>
+            {sidebarCollapsed && (
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(false)}
+                title="Expand sidebar navigation"
+                style={{
+                  width: '100%',
+                  padding: '7px 0',
+                  borderRadius: 6,
+                  border: '1px solid #E2E8F0',
+                  backgroundColor: '#F8FAFC',
+                  color: '#64748B',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer'
+                }}
+              >
+                <ChevronRight size={14} />
+              </button>
+            )}
+
+
             <button
               type="button"
               onClick={onLogout}
               title="Log Out Session"
               style={{
                 width: '100%',
-                padding: '9px 12px',
+                padding: sidebarCollapsed ? '8px 0' : '8px 12px',
                 borderRadius: 8,
                 border: '1px solid #FEE2E2',
                 backgroundColor: '#FEF2F2',
                 color: '#DC2626',
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
@@ -333,7 +385,7 @@ export function AdminLayout({
                 e.currentTarget.style.borderColor = '#FEE2E2';
               }}
             >
-              <LogOut size={16} color="#DC2626" />
+              <LogOut size={14} color="#DC2626" />
               {!sidebarCollapsed && <span>Log Out</span>}
             </button>
           </div>
@@ -352,6 +404,8 @@ export function AdminLayout({
         maxHeight: '100vh',
         overflow: 'hidden'
       }}>
+
+
         {/* MAIN BODY CONTENT */}
         <main style={{
           flex: 1,

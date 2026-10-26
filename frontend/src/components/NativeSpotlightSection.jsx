@@ -10,7 +10,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
       <div className="container-custom">
         <div style={{
           background: 'linear-gradient(135deg, #09090b 0%, #18181b 50%, #1e1b4b 100%)',
-          borderRadius: 0,
+          borderRadius: 16,
           border: '1px solid rgba(139, 92, 246, 0.25)',
           boxShadow: '0 12px 36px rgba(0, 0, 0, 0.35)',
           padding: '22px 28px',
@@ -34,7 +34,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                 background: 'rgba(251, 191, 36, 0.12)',
                 border: '1px solid rgba(251, 191, 36, 0.3)',
                 padding: '4px 11px',
-                borderRadius: 0,
+                borderRadius: 20,
                 fontSize: 11,
                 fontWeight: 800,
                 color: '#FBBF24',
@@ -86,7 +86,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                   <div style={{
                     width: 18,
                     height: 18,
-                    borderRadius: 0,
+                    borderRadius: 4,
                     background: '#6E42E5',
                     display: 'flex',
                     alignItems: 'center',
@@ -104,7 +104,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                   <div style={{
                     width: 18,
                     height: 18,
-                    borderRadius: 0,
+                    borderRadius: 4,
                     background: '#6E42E5',
                     display: 'flex',
                     alignItems: 'center',
@@ -122,7 +122,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                   <div style={{
                     width: 18,
                     height: 18,
-                    borderRadius: 0,
+                    borderRadius: 4,
                     background: '#6E42E5',
                     display: 'flex',
                     alignItems: 'center',
@@ -140,7 +140,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                   <div style={{
                     width: 18,
                     height: 18,
-                    borderRadius: 0,
+                    borderRadius: 4,
                     background: '#6E42E5',
                     display: 'flex',
                     alignItems: 'center',
@@ -164,7 +164,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                     background: 'linear-gradient(135deg, #6E42E5 0%, #8B5CF6 100%)',
                     color: '#fff',
                     padding: '8px 20px',
-                    borderRadius: 0,
+                    borderRadius: 8,
                     fontSize: 13,
                     fontWeight: 700,
                     display: 'inline-flex',
@@ -191,7 +191,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
             {/* Right Visual Image */}
             <div style={{
               position: 'relative',
-              borderRadius: 0,
+              borderRadius: 12,
               overflow: 'hidden',
               boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
               border: '1px solid rgba(255, 255, 255, 0.12)',
@@ -213,7 +213,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                 right: 10,
                 background: 'rgba(15, 23, 42, 0.88)',
                 backdropFilter: 'blur(8px)',
-                borderRadius: 0,
+                borderRadius: 8,
                 padding: '8px 12px',
                 display: 'flex',
                 alignItems: 'center',
@@ -230,7 +230,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                   fontSize: 10,
                   fontWeight: 700,
                   padding: '3px 8px',
-                  borderRadius: 0
+                  borderRadius: 6
                 }}>
                   In Stock in Mumbai
                 </span>

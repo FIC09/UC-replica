@@ -35,6 +35,13 @@ router.post('/', async (req, res) => {
       });
     }
 
+    if (appData.email) {
+      appData.email = appData.email.trim().toLowerCase();
+    }
+    if (appData.password) {
+      appData.password = appData.password.trim();
+    }
+
     const application = await PartnerApplication.create(appData);
     res.status(201).json({ success: true, application });
   } catch (error) {
@@ -45,8 +52,12 @@ router.post('/', async (req, res) => {
 // PUT update status
 router.put('/:id', async (req, res) => {
   try {
+    const filter = req.params.id?.match(/^[0-9a-fA-F]{24}$/)
+      ? { $or: [{ id: req.params.id }, { _id: req.params.id }] }
+      : { id: req.params.id };
+
     const updated = await PartnerApplication.findOneAndUpdate(
-      { id: req.params.id },
+      filter,
       req.body,
       { new: true }
     );

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { professionalClient } from '../professionalClient';
+import { RapidoChatDrawer } from '../../components/RapidoChatDrawer';
 
 export function JobDetailView({ jobId, onNavigate, showToast }) {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('checklists'); // 'checklists' | 'extra_work' | 'communication' | 'incidents' | 'financials'
+  const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
 
   // Start OTP verification modal
   const [otpInput, setOtpInput] = useState('');
@@ -57,7 +59,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
   const [isSubmittingIncident, setIsSubmittingIncident] = useState(false);
 
   // 5. Financials State
-  const [currencyMode, setCurrencyMode] = useState('inr'); // 'inr' | 'paisa'
+  // Clean Rupee standard formatting throughout (removed developer paisa debug toggle)
 
   useEffect(() => {
     loadJob();
@@ -670,6 +672,29 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
             </button>
           )}
 
+          {['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'].includes(job.status) && (
+            <button
+              type="button"
+              onClick={() => setIsChatDrawerOpen(true)}
+              style={{
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: '0 4px 10px rgba(79, 70, 229, 0.25)'
+              }}
+            >
+              💬 Chat with Customer
+            </button>
+          )}
+
           {['Assigned', 'En Route', 'Arrived'].includes(job.status) && (
             <button
               onClick={() => setActiveTab('incidents')}
@@ -724,7 +749,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           { id: 'extra_work', label: '⚡ Extra Work & Parts (Customer Approval)', count: extraWorkItems.length || null },
           { id: 'communication', label: '💬 Customer Chat & Navigation', count: chatMessages.length || null },
           { id: 'incidents', label: '⚠️ Delays & Policy Actions', count: (job.incidentReports || []).length || null },
-          { id: 'financials', label: '💰 Financial Ledger (Paisa Minor Units)' }
+          { id: 'financials', label: '💰 Financial Ledger' }
         ].map(tab => (
           <button
             key={tab.id}
@@ -1593,42 +1618,6 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                   Shared financial calculation engine • Preserves historical pricing snapshot
                 </div>
               </div>
-
-              {/* Minor Currency Units toggle */}
-              <div style={{ display: 'flex', background: '#f1f5f9', padding: 3, borderRadius: 8 }}>
-                <button
-                  type="button"
-                  onClick={() => setCurrencyMode('inr')}
-                  style={{
-                    background: currencyMode === 'inr' ? '#ffffff' : 'none',
-                    color: currencyMode === 'inr' ? '#0f172a' : '#64748b',
-                    border: 'none',
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  INR (₹)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setCurrencyMode('paisa')}
-                  style={{
-                    background: currencyMode === 'paisa' ? '#ffffff' : 'none',
-                    color: currencyMode === 'paisa' ? '#0f172a' : '#64748b',
-                    border: 'none',
-                    padding: '4px 10px',
-                    borderRadius: 6,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Paisa (1/100 ₹)
-                </button>
-              </div>
             </div>
 
             {/* Completed != Disbursed Clarification Banner */}
@@ -1649,21 +1638,21 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#475569' }}>
                 <span>Gross Customer Booking Fare:</span>
                 <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                  {currencyMode === 'paisa' ? `${(job.totalAmount || 548) * 100} Paisa` : `₹${job.totalAmount || 548}`}
+                  ₹{(job.totalAmount || 548).toLocaleString('en-IN')}
                 </span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
                 <span>Platform Commission ({job.commissionRate || 20}%):</span>
                 <span>
-                  - {currencyMode === 'paisa' ? `${Math.round((job.totalAmount || 548) * 0.2 * 100)} Paisa` : `₹${job.platformCommission || Math.round((job.totalAmount || 548) * 0.2)}`}
+                  - ₹{(job.platformCommission || Math.round((job.totalAmount || 548) * 0.2)).toLocaleString('en-IN')}
                 </span>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669' }}>
                 <span>Customer Tip (100% Retained by Technician):</span>
                 <span>
-                  + {currencyMode === 'paisa' ? `5000 Paisa` : `₹50`}
+                  + ₹50
                 </span>
               </div>
 
@@ -1679,7 +1668,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               }}>
                 <span>Net Professional Payout:</span>
                 <span>
-                  {currencyMode === 'paisa' ? `${((job.payout || 438) + 50) * 100} Paisa` : `₹${(job.payout || 438) + 50}`}
+                  ₹{((job.payout || 438) + 50).toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
@@ -2031,6 +2020,30 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           </div>
         </div>
       )}
+
+      {/* Rapido-Style Real-Time In-App Chat Drawer */}
+      <RapidoChatDrawer
+        isOpen={isChatDrawerOpen}
+        onClose={() => setIsChatDrawerOpen(false)}
+        booking={{
+          id: job?.id || job?.bookingReference || jobId,
+          bookingReference: job?.bookingReference || job?.id || jobId,
+          userName: job?.customerName || 'Customer',
+          userPhone: job?.customerPhone || '',
+          serviceName: job?.serviceName,
+          address: job?.address,
+          status: job?.status,
+          assignedProfessional: {
+            id: professionalClient.getStoredUser()?.id || 'WRK-KRI-101',
+            name: professionalClient.getStoredUser()?.applicantName || 'Technician'
+          }
+        }}
+        currentUser={{
+          role: 'professional',
+          id: professionalClient.getStoredUser()?.id || 'WRK-KRI-101',
+          name: professionalClient.getStoredUser()?.applicantName || 'Technician'
+        }}
+      />
     </div>
   );
 }
