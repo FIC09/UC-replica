@@ -24,6 +24,8 @@ import chatRoutes from './routes/chatRoutes.js';
 import callingRoutes from './routes/callingRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 
+import { startAssignmentWatchdog } from './services/assignmentEngine.js';
+
 // Load environment variables
 dotenv.config();
 
@@ -38,6 +40,7 @@ async function bootstrapDatabases() {
     await connectPostgres();
     await runMigrations();
     await connectRedis();
+    startAssignmentWatchdog(5000);
   } catch (err) {
     console.error('Database bootstrap error:', err.message);
   }

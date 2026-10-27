@@ -44,7 +44,7 @@ export function ShopView({ profile, showToast }) {
       });
 
       if (res.success) {
-        if (showToast) showToast(res.message || 'Order placed successfully! (Sandbox Demo)');
+        if (showToast) showToast(res.message || 'Order placed successfully!');
         if (res.order) {
           setOrders(prev => [res.order, ...prev]);
         }
@@ -241,18 +241,6 @@ export function ShopView({ profile, showToast }) {
               {selectedItem.title}
             </div>
 
-            <div style={{
-              background: '#fef3c7',
-              border: '1px solid #fde68a',
-              borderRadius: 8,
-              padding: '10px 14px',
-              fontSize: 12,
-              color: '#92400e',
-              marginBottom: 16
-            }}>
-              🛡️ <strong>Sandbox Mode:</strong> This is a labelled demonstration order. No actual payment is debited from your bank account.
-            </div>
-
             <form onSubmit={handlePlaceOrder}>
               <div style={{ marginBottom: 14 }}>
                 <label style={{ fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>
@@ -301,7 +289,7 @@ export function ShopView({ profile, showToast }) {
                   disabled={isOrdering}
                   style={{ flex: 1.5, background: '#0f172a', color: '#ffffff', border: 'none', padding: '11px 0', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                 >
-                  {isOrdering ? 'Processing...' : 'Place Sandbox Order'}
+                  {isOrdering ? 'Processing...' : 'Place Order'}
                 </button>
               </div>
             </form>

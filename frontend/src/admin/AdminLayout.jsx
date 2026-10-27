@@ -43,10 +43,6 @@ export function AdminLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showDemoLoginsModal, setShowDemoLoginsModal] = useState(false);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [resettingDemo, setResettingDemo] = useState(false);
-
   // Global search shortcut Ctrl+K or Cmd+K
   useEffect(() => {
     function handleKeyDown(e) {
@@ -62,7 +58,7 @@ export function AdminLayout({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const [bookingBadge, setBookingBadge] = useState('143');
+  const [bookingBadge, setBookingBadge] = useState(null);
 
   useEffect(() => {
     function handleStatsUpdate(e) {
@@ -83,14 +79,14 @@ export function AdminLayout({
         { path: '/admin/operations', label: 'Live Operations', icon: Navigation, badge: 'Live' },
         { path: '/admin/bookings', label: 'Bookings', icon: ShoppingBag, badge: bookingBadge },
         { path: '/admin/customers', label: 'Customers', icon: Users },
-        { path: '/admin/professionals', label: 'Professionals', icon: HardHat, badge: '5' },
-        { path: '/admin/partners', label: 'Business Partners', icon: Building2, badge: '3' }
+        { path: '/admin/professionals', label: 'Professionals', icon: HardHat },
+        { path: '/admin/partners', label: 'Business Partners', icon: Building2 }
       ]
     },
     {
       title: 'SERVICES & CATALOGUE',
       items: [
-        { path: '/admin/services', label: 'Services Catalogue', icon: Wrench, badge: '51' }
+        { path: '/admin/services', label: 'Services Catalogue', icon: Wrench }
       ]
     },
     {
@@ -98,7 +94,7 @@ export function AdminLayout({
       items: [
         { path: '/admin/payments', label: 'Payments', icon: CreditCard },
         { path: '/admin/payouts', label: 'Payouts Ledger', icon: Wallet, badge: 'Due' },
-        { path: '/admin/refunds', label: 'Refunds & Disputes', icon: RotateCcw, badge: '1' },
+        { path: '/admin/refunds', label: 'Refunds & Disputes', icon: RotateCcw },
         { path: '/admin/promotions', label: 'Promotions & Coupons', icon: Tag }
       ]
     },
@@ -513,193 +509,7 @@ export function AdminLayout({
         </div>
       )}
 
-      {/* DEMO LOGINS DOCUMENTATION MODAL */}
-      {showDemoLoginsModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
-          backdropFilter: 'blur(3px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 14,
-            width: 600,
-            maxWidth: '92vw',
-            maxHeight: '85vh',
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-            overflow: 'hidden'
-          }}>
-            <div style={{
-              padding: '16px 22px',
-              borderBottom: '1px solid #E2E8F0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div>
-                <h4 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Key size={18} color="#6E42E5" /> Local Demo Administrator Logins
-                </h4>
-                <p style={{ fontSize: 12, color: '#64748B', margin: '3px 0 0 0' }}>
-                  Pre-configured accounts for testing role-based access control and dashboard capabilities
-                </p>
-              </div>
-              <button
-                onClick={() => setShowDemoLoginsModal(false)}
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748B' }}
-              >
-                <X size={20} />
-              </button>
-            </div>
 
-            <div style={{ padding: 22, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div style={{
-                backgroundColor: '#F5F3FF',
-                border: '1px solid #DDD6FE',
-                borderRadius: 8,
-                padding: '10px 14px',
-                fontSize: 12.5,
-                color: '#5B21B6'
-              }}>
-                <strong>Common Password:</strong> All demo accounts use <code>admin123</code> (or <code>admin@123</code>).
-              </div>
-
-              {[
-                { role: 'Super Admin', email: 'admin@urbancompany.com', desc: 'Unrestricted full access across all operations, financial releases, settings & team controls' },
-                { role: 'Operations Manager', email: 'ops@urbancompany.com', desc: 'Dispatches, technician allocations, partner verifications and coverage zones' },
-                { role: 'Finance Manager', email: 'finance@urbancompany.com', desc: 'NEFT weekly payout batches, refund processing, settlement accounts & financial analytics' },
-                { role: 'Support Agent', email: 'support@urbancompany.com', desc: 'Customer escalation tickets, internal notes, revisits and review moderation' },
-                { role: 'Catalogue Manager', email: 'catalogue@urbancompany.com', desc: 'Service offerings, pricing, promotional coupons, warehouse spare parts & marketing CMS' },
-                { role: 'Read-only Analyst', email: 'analyst@urbancompany.com', desc: 'Read-only business analytics, SLA dashboards, CSV exports and audit inspection' }
-              ].map((acc, i) => (
-                <div key={i} style={{
-                  padding: '12px 14px',
-                  borderRadius: 8,
-                  border: '1px solid #E2E8F0',
-                  backgroundColor: '#FFFFFF',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12
-                }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontWeight: 800, color: '#0F172A', fontSize: 13 }}>{acc.role}</span>
-                      <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, backgroundColor: '#F1F5F9', color: '#475569', fontFamily: 'monospace' }}>
-                        {acc.email}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 12, color: '#64748B', marginTop: 3 }}>{acc.desc}</div>
-                  </div>
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(acc.email);
-                      alert(`Copied ${acc.email} to clipboard!`);
-                    }}
-                    style={{
-                      padding: '5px 10px',
-                      borderRadius: 6,
-                      border: '1px solid #CBD5E1',
-                      backgroundColor: '#F8FAFC',
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    Copy Email
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ padding: '14px 22px', borderTop: '1px solid #E2E8F0', backgroundColor: '#F8FAFC', display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => setShowDemoLoginsModal(false)}
-                style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* RESET DEMO CONFIRMATION MODAL */}
-      {showResetConfirm && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
-          backdropFilter: 'blur(3px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 14,
-            width: 480,
-            maxWidth: '92vw',
-            padding: 24,
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
-          }}>
-            <h4 style={{ fontSize: 16, fontWeight: 800, color: '#DC2626', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <RotateCcw size={18} color="#DC2626" /> Reset Demo Sandbox Data
-            </h4>
-            <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, margin: '0 0 16px 0' }}>
-              Are you sure you want to reset the demonstration sandbox? This action will:
-            </p>
-
-            <ul style={{ fontSize: 12.5, color: '#334155', lineHeight: 1.6, paddingLeft: 20, margin: '0 0 20px 0' }}>
-              <li>Reset all 6 administrative accounts to active status with default credentials</li>
-              <li>Re-establish baseline default booking states and dispatch assignments</li>
-              <li>Revert any temporary stock deductions or surge fee overrides</li>
-              <li>Write an immutable entry to the system audit trail</li>
-            </ul>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => setShowResetConfirm(false)}
-                disabled={resettingDemo}
-                style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', cursor: 'pointer', fontWeight: 600 }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={resettingDemo}
-                onClick={() => {
-                  setResettingDemo(true);
-                  adminClient.resetDemoData()
-                    .then(() => {
-                      setResettingDemo(false);
-                      setShowResetConfirm(false);
-                      window.location.reload();
-                    })
-                    .catch(() => {
-                      setResettingDemo(false);
-                      setShowResetConfirm(false);
-                      window.location.reload();
-                    });
-                }}
-                style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#DC2626', color: '#FFFFFF', cursor: 'pointer', fontWeight: 700 }}
-              >
-                {resettingDemo ? 'Resetting Sandbox...' : 'Confirm Demo Reset'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

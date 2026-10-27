@@ -31,16 +31,16 @@ export function EarningsView({ onNavigate, showToast }) {
   };
 
   const stages = earnings.financialStages || {
-    earned: 48920,
-    earnedPaisa: 4892000,
-    pendingConfirmation: 548,
-    pendingConfirmationPaisa: 54800,
-    availableForSettlement: 15450,
-    availableForSettlementPaisa: 1545000,
+    earned: earnings.thisMonth || 0,
+    earnedPaisa: (earnings.thisMonth || 0) * 100,
+    pendingConfirmation: 0,
+    pendingConfirmationPaisa: 0,
+    availableForSettlement: earnings.walletBalance != null ? earnings.walletBalance : 0,
+    availableForSettlementPaisa: (earnings.walletBalance != null ? earnings.walletBalance : 0) * 100,
     processing: 0,
     processingPaisa: 0,
-    paid: 428000,
-    paidPaisa: 42800000,
+    paid: earnings.lifetimeEarnings != null ? earnings.lifetimeEarnings : 0,
+    paidPaisa: (earnings.lifetimeEarnings != null ? earnings.lifetimeEarnings : 0) * 100,
     disputed: 0,
     disputedPaisa: 0
   };

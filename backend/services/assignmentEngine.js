@@ -2,6 +2,9 @@ import { WorkerApplication } from '../models/WorkerApplication.js';
 import { Booking } from '../models/Booking.js';
 import { TrackingSession } from '../models/TrackingSession.js';
 import { getOrCreateConversation } from './chatService.js';
+import { cacheActiveOffer, getActiveOffer, deleteActiveOffer, getOnlineWorkerIds } from '../config/redis.js';
+import { emitEvent } from './websocketService.js';
+import { assignWorkerTransactionally, syncBookingToPostgres } from './postgresService.js';
 
 // High-Precision Coordinates for Krishnagiri Town and operational locations
 export const CITY_COORDINATES = {
@@ -268,153 +271,401 @@ export function calculateWorkerScore(worker, booking, customerCoords) {
 }
 
 /**
- * Intelligent Auto-Assignment Core Engine
- * Evaluates Hard Eligibility, Scores Candidates, Confirms Assignment & Initializes Tracking
+ * Discovers and ranks eligible professionals for a booking based on
+ * MongoDB 2dsphere / GeoJSON distance, trade/skills match, availability, and business scope.
  */
-export async function autoAssignWorkerToBooking(booking) {
-  try {
-    console.log(`[Auto-Assignment] Initiating intelligent dispatch for Booking ${booking.id} (${booking.serviceName})...`);
+export async function findEligibleProfessionals(bookingIdOrDoc, { scopePartnerId = null, excludeProIds = [] } = {}) {
+  let booking = bookingIdOrDoc;
+  if (typeof booking === 'string' || !booking.id) {
+    booking = await Booking.findOne({ $or: [{ id: bookingIdOrDoc }, { bookingReference: bookingIdOrDoc }] });
+    if (!booking) throw new Error(`Booking ${bookingIdOrDoc} not found`);
+  }
 
-    // Determine customer coordinates
+  // 1. Resolve customer coordinates (GeoJSON 2dsphere priority)
+  let customerCoords;
+  if (booking.location?.coordinates && booking.location.coordinates.length === 2 &&
+      (booking.location.coordinates[0] !== 0 || booking.location.coordinates[1] !== 0)) {
+    customerCoords = { lng: booking.location.coordinates[0], lat: booking.location.coordinates[1] };
+  } else {
     const customerLocality = booking.serviceZone || booking.addressDetails?.locality || 'Rayakottai Road';
     const customerCity = booking.city || 'Krishnagiri';
-    const customerCoords = resolveCoordinates(booking.address, customerLocality, customerCity);
+    customerCoords = resolveCoordinates(booking.address, customerLocality, customerCity);
+  }
 
-    // 1. HARD ELIGIBILITY FILTERS
-    // - Must be Approved
-    // - Not Suspended
-    // - Not Offline
-    const allWorkers = await WorkerApplication.find({
-      status: 'Approved',
-      dispatchState: { $nin: ['Offline', 'Suspended'] }
-    });
+  // 2. Query Approved Workers from MongoDB
+  const query = {
+    status: 'Approved',
+    dispatchState: { $nin: ['Offline', 'Suspended'] }
+  };
 
-    if (!allWorkers || allWorkers.length === 0) {
-      console.warn(`[Auto-Assignment] No approved active workers found in database for Booking ${booking.id}.`);
-      booking.status = 'Confirmed';
-      booking.offerStatus = 'unoffered';
-      await booking.save();
-      return { success: false, message: 'No eligible workers online. Marked for operations queue.' };
+  // Partner Scope Check (Requirement A.11)
+  if (scopePartnerId) {
+    query.partnerAgencyId = scopePartnerId;
+  }
+
+  if (excludeProIds && excludeProIds.length > 0) {
+    query.id = { $nin: excludeProIds };
+  }
+
+  const allWorkers = await WorkerApplication.find(query).lean();
+  if (!allWorkers || allWorkers.length === 0) {
+    return { customerCoords, candidates: [] };
+  }
+
+  // 3. Concurrency check: find any conflicting active bookings
+  const activeBookings = await Booking.find({
+    id: { $ne: booking.id },
+    status: { $in: ['Assigned', 'En Route', 'In Progress'] }
+  }).lean();
+
+  const busyWorkerIds = new Set();
+  const workerActiveCountMap = {};
+
+  for (const b of activeBookings) {
+    const proId = b.assignedProfessional?.id;
+    if (proId) {
+      workerActiveCountMap[proId] = (workerActiveCountMap[proId] || 0) + 1;
+      // If slot matches, flag conflict
+      if (b.slot === booking.slot) {
+        busyWorkerIds.add(proId);
+      }
+    }
+  }
+
+  // 4. Redis online presence check
+  let onlineWorkerIds = [];
+  try {
+    onlineWorkerIds = await getOnlineWorkerIds();
+  } catch {}
+
+  // 5. Score & Rank Each Worker
+  const scoredCandidates = allWorkers.map(worker => {
+    // Determine worker coordinates
+    let workerCoords;
+    if (worker.location?.coordinates && worker.location.coordinates.length === 2 &&
+        (worker.location.coordinates[0] !== 0 || worker.location.coordinates[1] !== 0)) {
+      workerCoords = { lng: worker.location.coordinates[0], lat: worker.location.coordinates[1] };
+    } else {
+      const workerLocality = worker.locality || worker.operationalHub || 'Rayakottai Road';
+      const workerCity = worker.city || 'Krishnagiri';
+      workerCoords = resolveCoordinates('', workerLocality, workerCity);
     }
 
-    // Filter by trade/category and prioritize Krishnagiri workers
-    const reqTrade = (booking.serviceCategory || booking.serviceName || '').toLowerCase();
-    
-    // Priority 1: Approved workers located in Krishnagiri Town matching trade or skills
-    let candidates = allWorkers.filter(w => {
-      const isKrishnagiri = (w.city || '').toLowerCase().includes('krishnagiri');
-      const workerTrade = (w.trade || w.tradeName || '').toLowerCase();
-      const skills = (w.skills || []).map(s => s.toLowerCase());
-      const categories = (w.categories || []).map(c => c.toLowerCase());
+    const distanceKm = calculateDistanceKm(workerCoords, customerCoords);
+    const etaMinutes = Math.max(4, Math.round(distanceKm * 3.0 + 3));
 
-      const tradeMatch = reqTrade.includes(workerTrade) || workerTrade.includes(reqTrade) ||
-                         skills.some(s => reqTrade.includes(s) || s.includes(reqTrade)) ||
-                         categories.some(c => reqTrade.includes(c) || c.includes(reqTrade));
+    const scoreResult = calculateWorkerScore(worker, booking, customerCoords);
+    const isSlotConflict = busyWorkerIds.has(worker.id);
+    const isBusy = isSlotConflict || worker.dispatchState === 'Busy on Booking';
+    const isOnline = onlineWorkerIds.includes(worker.id) || worker.dispatchState !== 'Offline';
 
-      return isKrishnagiri && tradeMatch;
-    });
-
-    // Priority 2: Any approved worker in Krishnagiri Town
-    if (candidates.length === 0) {
-      candidates = allWorkers.filter(w => (w.city || '').toLowerCase().includes('krishnagiri'));
-    }
-
-    // Priority 3: Fall back to all matching trade workers
-    if (candidates.length === 0) {
-      candidates = allWorkers.filter(w => {
-        const workerTrade = (w.trade || w.tradeName || '').toLowerCase();
-        const skills = (w.skills || []).map(s => s.toLowerCase());
-        const categories = (w.categories || []).map(c => c.toLowerCase());
-
-        return reqTrade.includes(workerTrade) || workerTrade.includes(reqTrade) ||
-               skills.some(s => reqTrade.includes(s) || s.includes(reqTrade)) ||
-               categories.some(c => reqTrade.includes(c) || c.includes(reqTrade));
-      });
-    }
-
-    // Ultimate fallback if no trade match
-    if (candidates.length === 0) {
-      candidates = allWorkers;
-    }
-
-    // 2. MULTI-FACTOR RANKING (35% ETA/Dist, 25% Skills, 15% Availability, 10% Reliability, 10% Workload, 5% Rating)
-    const rankedCandidates = candidates
-      .map(worker => calculateWorkerScore(worker, booking, customerCoords))
-      .sort((a, b) => b.totalScore - a.totalScore);
-
-    const bestCandidate = rankedCandidates[0];
-    if (!bestCandidate) {
-      return { success: false, message: 'Could not rank workers.' };
-    }
-
-    const { worker, breakdown } = bestCandidate;
-    const workerCoords = breakdown.workerCoords;
-    const distanceKm = breakdown.distanceKm;
-    const etaMinutes = Math.max(4, Math.round(distanceKm * 3.0 + 3)); // Krishnagiri town traffic (~25 km/h)
-
-    console.log(`[Auto-Assignment] Worker Selected: ${worker.applicantName} (Score: ${bestCandidate.totalScore}/100, Dist: ${distanceKm}km, ETA: ${etaMinutes}m)`);
-
-    // 3. ATOMIC CONFIRMATION & PERSISTENCE
-    booking.assignedProfessional = {
-      id: worker.id,
-      name: worker.applicantName,
-      phone: worker.phone,
-      trade: worker.tradeName || worker.trade,
-      avatar: worker.avatar || (worker.applicantName ? worker.applicantName.split(' ').map(n=>n[0]).join('') : 'PRO'),
-      assignedAt: new Date()
+    return {
+      worker: {
+        id: worker.id,
+        applicantName: worker.applicantName,
+        phone: worker.phone,
+        email: worker.email,
+        avatar: worker.avatar,
+        trade: worker.trade,
+        tradeName: worker.tradeName,
+        skills: worker.skills || [],
+        categories: worker.categories || [],
+        locality: worker.locality,
+        city: worker.city,
+        status: worker.status,
+        dispatchState: worker.dispatchState,
+        rating: worker.rating || 0,
+        jobsCompleted: worker.jobsCompleted || 0,
+        partnerAgencyId: worker.partnerAgencyId || '',
+        partnerAgencyName: worker.partnerAgencyName || '',
+        tier: worker.tier || 'Verified Partner',
+        location: worker.location
+      },
+      distanceKm,
+      etaMinutes,
+      workerCoords,
+      isOnline,
+      isBusy,
+      isSlotConflict,
+      activeBookingsCount: workerActiveCountMap[worker.id] || 0,
+      totalScore: scoreResult.totalScore,
+      scoreBreakdown: scoreResult.breakdown
     };
-    booking.assignedPartner = worker.applicantName;
-    if (worker.partnerAgencyId) {
-      booking.partnerAgency = worker.partnerAgencyName || worker.partnerAgencyId;
-      booking.assignedBusinessPartner = {
-        id: worker.partnerAgencyId,
-        name: worker.partnerAgencyName || 'Business Partner'
-      };
+  });
+
+  // Sort by available first, then highest score, then closest distance
+  scoredCandidates.sort((a, b) => {
+    if (a.isBusy !== b.isBusy) {
+      return a.isBusy ? 1 : -1;
     }
-    booking.status = 'Assigned';
-    booking.offerStatus = 'accepted';
+    if (b.totalScore !== a.totalScore) {
+      return b.totalScore - a.totalScore;
+    }
+    return a.distanceKm - b.distanceKm;
+  });
 
-    // Add Timeline Event (Direct Dispatch - No Hub)
-    booking.timeline.push({
-      id: `tl-${Date.now()}`,
-      status: 'Assigned',
-      title: 'Professional Assigned',
-      description: `${worker.applicantName} (${worker.tradeName || worker.trade}) assigned. Direct dispatch from worker location to customer address (No Hub).`,
-      actor: 'Intelligent Dispatch Engine',
-      actorRole: 'System Dispatch',
-      timestamp: new Date()
-    });
+  return { customerCoords, candidates: scoredCandidates };
+}
 
-    await booking.save();
+/**
+ * Sends a real assignment offer to a professional (Manual or Automatic)
+ * Updates MongoDB conditionally, caches in Redis with TTL, and emits real-time offer event.
+ */
+export async function sendAssignmentOffer(bookingId, proId, { mode = 'MANUAL', timeoutSeconds = 90, offeredBy = 'Operations' } = {}) {
+  const booking = await Booking.findOne({ $or: [{ id: bookingId }, { bookingReference: bookingId }] });
+  if (!booking) {
+    throw new Error(`Booking ${bookingId} not found`);
+  }
 
-    // 4. UPDATE WORKER ACTIVE DISPATCH STATE
-    worker.dispatchState = 'Busy on Booking';
-    worker.activeBookingId = booking.id;
-    await worker.save();
+  if (['Assigned', 'In Progress', 'Completed', 'Cancelled'].includes(booking.status)) {
+    throw new Error(`Booking ${bookingId} cannot be offered because it is already '${booking.status}'`);
+  }
 
-    // 5. INITIALIZE LIVE GPS TRACKING SESSION (Real Road Network Navigation)
-    const safetyPin = String(Math.floor(1000 + Math.random() * 9000));
+  const worker = await WorkerApplication.findOne({ $or: [{ id: proId }, { applicationNumber: proId }] });
+  if (!worker) {
+    throw new Error(`Professional ${proId} not found`);
+  }
+  const effectiveProId = worker.id || worker.applicationNumber || proId;
+
+  if (worker.status !== 'Approved') {
+    throw new Error(`Professional ${worker.applicantName} is not approved (${worker.status})`);
+  }
+
+  if (worker.dispatchState === 'Suspended') {
+    throw new Error(`Professional ${worker.applicantName} is currently suspended`);
+  }
+
+  if (worker.dispatchState === 'Offline') {
+    throw new Error(`Professional ${worker.applicantName} is currently offline`);
+  }
+
+  const expiresAt = new Date(Date.now() + timeoutSeconds * 1000);
+
+  // Atomic update
+  const updated = await Booking.findOneAndUpdate(
+    {
+      id: booking.id,
+      status: { $in: ['Pending', 'Confirmed'] }
+    },
+    {
+      $set: {
+        assignmentMode: mode,
+        assignmentStatus: 'OFFERED',
+        offerStatus: 'offered',
+        offerExpiry: expiresAt,
+        offeredTo: {
+          proId: effectiveProId,
+          proName: worker.applicantName,
+          proPhone: worker.phone,
+          offeredAt: new Date(),
+          expiresAt,
+          mode,
+          attemptCount: (booking.offeredTo?.attemptCount || 0) + 1
+        }
+      },
+      $push: {
+        assignmentAttempts: {
+          proId: effectiveProId,
+          proName: worker.applicantName,
+          status: 'offered',
+          attemptedAt: new Date(),
+          reason: `Offer dispatched via ${mode} assignment engine`
+        },
+        timeline: {
+          id: `tl-${Date.now()}`,
+          status: 'Offered',
+          title: `Assignment Offer Dispatched (${mode})`,
+          description: `Offer dispatched to ${worker.applicantName} (${worker.tradeName || worker.trade}). Offer expires in ${timeoutSeconds}s.`,
+          actor: offeredBy,
+          actorRole: mode === 'MANUAL' ? 'Admin / Partner' : 'Auto Engine',
+          timestamp: new Date()
+        }
+      }
+    },
+    { new: true }
+  );
+
+  if (!updated) {
+    throw new Error(`Could not dispatch offer: Booking ${booking.id} is no longer eligible for offers.`);
+  }
+
+  // Cache in Redis
+  const offerPayload = {
+    offerId: `off-${booking.id}-${worker.id}`,
+    bookingId: updated.id,
+    bookingReference: updated.bookingReference || updated.id,
+    serviceName: updated.serviceName,
+    serviceCategory: updated.serviceCategory,
+    customerArea: updated.serviceZone || updated.addressDetails?.locality || updated.city || 'Krishnagiri',
+    address: updated.address,
+    slot: updated.slot,
+    scheduledDate: updated.scheduledDate,
+    totalAmount: updated.totalAmount,
+    expectedEarnings: Math.round((updated.totalAmount || 500) * 0.8),
+    proId: worker.id,
+    proName: worker.applicantName,
+    mode,
+    offeredAt: new Date().toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    timeoutSeconds
+  };
+
+  try {
+    await cacheActiveOffer(updated.id, offerPayload, timeoutSeconds);
+  } catch (err) {
+    console.warn('[Redis cacheActiveOffer Warning]:', err.message);
+  }
+
+  // Real-time Socket.IO dispatch
+  emitEvent('DISPATCH_OFFER', {
+    entityId: updated.id,
+    room: `worker:${worker.id}`,
+    payload: offerPayload
+  });
+
+  emitEvent('ASSIGNMENT_OFFERED', {
+    entityId: updated.id,
+    room: 'admin:operations',
+    payload: {
+      booking: updated,
+      offer: offerPayload
+    }
+  });
+
+  emitEvent('ASSIGNMENT_OFFERED', {
+    entityId: updated.id,
+    room: `booking:${updated.id}`,
+    payload: {
+      booking: updated,
+      offer: offerPayload
+    }
+  });
+
+  return { success: true, booking: updated, offer: offerPayload };
+}
+
+/**
+ * Handles explicit professional acceptance of an offer.
+ * Uses atomic conditional MongoDB update to prevent race conditions or duplicate acceptance.
+ */
+export async function acceptAssignmentOffer(bookingId, proId) {
+  const pro = await WorkerApplication.findOne({ $or: [{ id: proId }, { applicationNumber: proId }] });
+  if (!pro) {
+    return { success: false, code: 404, error: `Professional ${proId} not found` };
+  }
+  const effectiveProId = pro.id || pro.applicationNumber || proId;
+
+  // Atomic conditional update ensuring concurrency protection:
+  // ONLY if status is Pending/Confirmed, offerStatus is offered, and offeredTo.proId is this worker!
+  const updated = await Booking.findOneAndUpdate(
+    {
+      $or: [{ id: bookingId }, { bookingReference: bookingId }],
+      status: { $in: ['Pending', 'Confirmed'] },
+      offerStatus: 'offered',
+      'offeredTo.proId': { $in: [proId, effectiveProId, pro.applicationNumber, pro.id].filter(Boolean) }
+    },
+    {
+      $set: {
+        status: 'Assigned',
+        offerStatus: 'accepted',
+        assignmentStatus: 'ASSIGNED',
+        assignedPartner: pro.applicantName,
+        assignedProfessional: {
+          id: effectiveProId,
+          name: pro.applicantName,
+          phone: pro.phone,
+          trade: pro.tradeName || pro.trade,
+          avatar: pro.avatar || (pro.applicantName ? pro.applicantName.split(' ').map(n=>n[0]).join('') : 'PRO'),
+          assignedAt: new Date()
+        },
+        partnerAgency: pro.partnerAgencyName || pro.partnerAgencyId || '',
+        assignedBusinessPartner: pro.partnerAgencyId ? {
+          id: pro.partnerAgencyId,
+          name: pro.partnerAgencyName || 'Business Partner'
+        } : undefined
+      },
+      $push: {
+        timeline: {
+          id: `tl-${Date.now()}`,
+          status: 'Assigned',
+          title: 'Offer Accepted by Professional',
+          description: `${pro.applicantName} (${pro.tradeName || pro.trade}) accepted the offer. Direct dispatch activated.`,
+          actor: pro.applicantName,
+          actorRole: 'Professional',
+          timestamp: new Date()
+        }
+      }
+    },
+    { new: true }
+  );
+
+  if (!updated) {
+    return {
+      success: false,
+      code: 409,
+      error: 'Cannot accept offer: Offer has already been accepted, expired, or was reassigned to another professional.'
+    };
+  }
+
+  // Update assignmentAttempts history
+  try {
+    await Booking.updateOne(
+      { id: updated.id, 'assignmentAttempts.proId': proId, 'assignmentAttempts.status': 'offered' },
+      { $set: { 'assignmentAttempts.$.status': 'accepted', 'assignmentAttempts.$.respondedAt': new Date() } }
+    );
+  } catch {}
+
+  // Update worker dispatch state
+  try {
+    await WorkerApplication.updateOne(
+      { _id: pro._id },
+      { $set: { dispatchState: 'Busy on Booking', activeBookingId: updated.id } }
+    );
+  } catch (err) {
+    console.warn('[acceptAssignmentOffer pro update warning]:', err.message);
+  }
+
+  // Delete active offer from Redis
+  try {
+    await deleteActiveOffer(updated.id);
+  } catch {}
+
+  // Initialize TrackingSession
+  try {
+    const customerLocality = updated.serviceZone || updated.addressDetails?.locality || 'Rayakottai Road';
+    const customerCity = updated.city || 'Krishnagiri';
+    const customerCoords = resolveCoordinates(updated.address, customerLocality, customerCity);
+
+    let workerCoords;
+    if (pro.location?.coordinates && pro.location.coordinates.length === 2 &&
+        (pro.location.coordinates[0] !== 0 || pro.location.coordinates[1] !== 0)) {
+      workerCoords = { lng: pro.location.coordinates[0], lat: pro.location.coordinates[1] };
+    } else {
+      workerCoords = resolveCoordinates('', pro.locality, pro.city);
+    }
+
     const roadRoute = await fetchRoadRouteWaypoints(workerCoords, customerCoords);
     const waypoints = roadRoute.waypoints;
     const initialHeading = waypoints.length >= 2 ? calculateBearing(waypoints[0], waypoints[1]) : 45;
+    const safetyPin = String(Math.floor(1000 + Math.random() * 9000));
 
-    let trackingSession = await TrackingSession.findOne({ bookingId: booking.id });
+    let trackingSession = await TrackingSession.findOne({ bookingId: updated.id });
     if (!trackingSession) {
       trackingSession = new TrackingSession({
-        id: `TRK-${booking.id}`,
-        bookingId: booking.id,
-        bookingReference: booking.bookingReference || booking.id,
-        workerId: worker.id,
-        workerName: worker.applicantName,
-        workerPhone: worker.phone,
-        workerAvatar: worker.avatar,
-        workerTrade: worker.tradeName || worker.trade,
-        workerRating: worker.rating || 4.9,
-        partnerId: worker.partnerAgencyId || '',
-        partnerName: worker.partnerAgencyName || '',
-        customerName: booking.userName || 'Customer',
-        customerPhone: booking.userPhone || '',
-        customerAddress: booking.address,
+        id: `TRK-${updated.id}`,
+        bookingId: updated.id,
+        bookingReference: updated.bookingReference || updated.id,
+        workerId: pro.id,
+        workerName: pro.applicantName,
+        workerPhone: pro.phone,
+        workerAvatar: pro.avatar,
+        workerTrade: pro.tradeName || pro.trade,
+        workerRating: pro.rating || 4.9,
+        partnerId: pro.partnerAgencyId || '',
+        partnerName: pro.partnerAgencyName || '',
+        customerName: updated.userName || 'Customer',
+        customerPhone: updated.userPhone || '',
+        customerAddress: updated.address,
         customerCoords,
         currentCoords: roadRoute.origin || workerCoords,
         heading: initialHeading,
@@ -422,46 +673,404 @@ export async function autoAssignWorkerToBooking(booking) {
         status: 'assigned',
         routePolyline: waypoints,
         currentWaypointIndex: 0,
-        remainingDistanceKm: roadRoute.distanceKm || distanceKm,
-        remainingEtaMinutes: roadRoute.etaMinutes || etaMinutes,
+        remainingDistanceKm: roadRoute.distanceKm || 2.5,
+        remainingEtaMinutes: roadRoute.etaMinutes || 6,
         safetyPin,
         lastPingAt: new Date()
       });
     } else {
-      trackingSession.workerId = worker.id;
-      trackingSession.workerName = worker.applicantName;
-      trackingSession.workerPhone = worker.phone;
-      trackingSession.workerTrade = worker.tradeName || worker.trade;
-      trackingSession.partnerId = worker.partnerAgencyId || '';
-      trackingSession.partnerName = worker.partnerAgencyName || '';
+      trackingSession.workerId = pro.id;
+      trackingSession.workerName = pro.applicantName;
+      trackingSession.workerPhone = pro.phone;
+      trackingSession.workerTrade = pro.tradeName || pro.trade;
       trackingSession.status = 'assigned';
       trackingSession.routePolyline = waypoints;
-      trackingSession.remainingDistanceKm = distanceKm;
-      trackingSession.remainingEtaMinutes = etaMinutes;
       trackingSession.safetyPin = safetyPin;
       trackingSession.lastPingAt = new Date();
     }
     await trackingSession.save();
+  } catch (trkErr) {
+    console.warn('[Tracking Init Warning]:', trkErr.message);
+  }
 
-    console.log(`[Auto-Assignment] ✅ Tracking session TRK-${booking.id} created with Safety PIN: ${safetyPin}`);
+  // Initialize private chat conversation
+  try {
+    await getOrCreateConversation(updated.id, pro);
+  } catch (chatErr) {
+    console.warn('[Chat Init Warning]:', chatErr.message);
+  }
 
-    // 6. INITIALIZE RAPIDO-STYLE PRIVATE CHAT CONVERSATION
-    try {
-      const chatConversation = await getOrCreateConversation(booking.id, worker);
-      console.log(`[Auto-Assignment] ✅ Private Chat activated: ${chatConversation.id}`);
-    } catch (chatErr) {
-      console.warn('[Auto-Assignment] Chat activation note:', chatErr.message);
+  // Transactionally confirm exclusive worker assignment in PostgreSQL
+  try {
+    await assignWorkerTransactionally({
+      bookingId: updated.id,
+      workerId: pro.id,
+      workerName: pro.applicantName,
+      partnerId: pro.partnerAgencyId || '',
+      assignedBy: 'worker_acceptance'
+    });
+    await syncBookingToPostgres(updated);
+  } catch (pgErr) {
+    console.warn('PostgreSQL transactional assign note:', pgErr.message);
+  }
+
+  // Real-time WebSocket emissions
+  emitEvent('ASSIGNMENT_ACCEPTED', {
+    entityId: updated.id,
+    room: 'admin:operations',
+    payload: {
+      bookingId: updated.id,
+      worker: updated.assignedProfessional,
+      status: 'Assigned',
+      timestamp: new Date().toISOString()
     }
+  });
+
+  emitEvent('ASSIGNMENT_ACCEPTED', {
+    entityId: updated.id,
+    room: `booking:${updated.id}`,
+    payload: {
+      bookingId: updated.id,
+      worker: updated.assignedProfessional,
+      status: 'Assigned',
+      timestamp: new Date().toISOString()
+    }
+  });
+
+  emitEvent('ASSIGNMENT_ACCEPTED', {
+    entityId: updated.id,
+    room: `worker:${pro.id}`,
+    payload: {
+      bookingId: updated.id,
+      status: 'Assigned',
+      timestamp: new Date().toISOString()
+    }
+  });
+
+  return { success: true, booking: updated };
+}
+
+/**
+ * Handles professional rejection of an offer.
+ * If in AUTO mode, automatically tries the next eligible candidate.
+ * If in MANUAL mode, updates assignment status to REJECTED for owner intervention.
+ */
+export async function rejectAssignmentOffer(bookingId, proId, reason = 'Declined by professional') {
+  const pro = await WorkerApplication.findOne({ $or: [{ id: proId }, { applicationNumber: proId }] });
+  const possibleIds = [proId, pro?.id, pro?.applicationNumber].filter(Boolean);
+
+  const booking = await Booking.findOne({
+    $or: [{ id: bookingId }, { bookingReference: bookingId }],
+    'offeredTo.proId': { $in: possibleIds },
+    offerStatus: 'offered'
+  });
+
+  if (!booking) {
+    return { success: false, error: 'Offer not found or not currently offered to this professional' };
+  }
+
+  try {
+    await deleteActiveOffer(booking.id);
+  } catch {}
+
+  // Update attempt history in booking
+  await Booking.updateOne(
+    { id: booking.id, 'assignmentAttempts.proId': { $in: possibleIds }, 'assignmentAttempts.status': 'offered' },
+    {
+      $set: {
+        'assignmentAttempts.$.status': 'rejected',
+        'assignmentAttempts.$.respondedAt': new Date(),
+        'assignmentAttempts.$.reason': reason
+      }
+    }
+  );
+
+  const timelineEvent = {
+    id: `tl-${Date.now()}`,
+    status: 'Rejected',
+    title: 'Assignment Offer Rejected',
+    description: `${booking.offeredTo?.proName || proId} rejected the offer: ${reason}`,
+    actor: booking.offeredTo?.proName || proId,
+    actorRole: 'Professional',
+    timestamp: new Date()
+  };
+
+  if (booking.assignmentMode === 'AUTO') {
+    booking.offerStatus = 'declined';
+    booking.timeline.push(timelineEvent);
+    await booking.save();
+
+    emitEvent('OFFER_REJECTED', {
+      entityId: booking.id,
+      room: 'admin:operations',
+      payload: { bookingId: booking.id, proId, reason, mode: 'AUTO' }
+    });
+
+    // Automatically try the next eligible candidate!
+    const attemptedIds = (booking.assignmentAttempts || []).map(a => a.proId);
+    return await triggerAutoAssignment(booking.id, { excludeProIds: [...new Set([...attemptedIds, proId])] });
+  } else {
+    // MANUAL MODE
+    booking.assignmentStatus = 'REJECTED';
+    booking.offerStatus = 'declined';
+    booking.timeline.push(timelineEvent);
+    await booking.save();
+
+    emitEvent('OFFER_REJECTED', {
+      entityId: booking.id,
+      room: 'admin:operations',
+      payload: { bookingId: booking.id, proId, reason, mode: 'MANUAL' }
+    });
+
+    emitEvent('OFFER_REJECTED', {
+      entityId: booking.id,
+      room: `booking:${booking.id}`,
+      payload: { bookingId: booking.id, proId, reason }
+    });
 
     return {
       success: true,
-      booking,
-      assignedWorker: worker,
-      ranking: bestCandidate,
-      trackingSession
+      message: 'Offer rejected. Owner can manually reassign or switch to auto.',
+      booking
     };
-  } catch (error) {
-    console.error('[Auto-Assignment] Error executing auto-assignment:', error);
-    return { success: false, error: error.message };
   }
 }
+
+/**
+ * Expires an assignment offer upon timeout.
+ * If in AUTO mode, automatically cascades to next eligible candidate.
+ * If in MANUAL mode, marks as EXPIRED for owner reassignment.
+ */
+export async function expireAssignmentOffer(bookingId) {
+  const booking = await Booking.findOne({
+    $or: [{ id: bookingId }, { bookingReference: bookingId }],
+    offerStatus: 'offered'
+  });
+
+  if (!booking) {
+    return { success: false, error: 'No active offer found to expire' };
+  }
+
+  const proId = booking.offeredTo?.proId;
+
+  try {
+    await deleteActiveOffer(booking.id);
+  } catch {}
+
+  // Update attempt history in booking
+  if (proId) {
+    const updateRes = await Booking.updateOne(
+      { id: booking.id, 'assignmentAttempts.proId': proId, 'assignmentAttempts.status': 'offered' },
+      {
+        $set: {
+          'assignmentAttempts.$.status': 'expired',
+          'assignmentAttempts.$.respondedAt': new Date(),
+          'assignmentAttempts.$.reason': 'Offer timed out without response'
+        }
+      }
+    );
+
+    if (!updateRes || updateRes.matchedCount === 0) {
+      await Booking.updateOne(
+        { id: booking.id },
+        {
+          $push: {
+            assignmentAttempts: {
+              proId,
+              proName: booking.offeredTo?.proName || 'Professional',
+              status: 'expired',
+              attemptedAt: new Date(),
+              respondedAt: new Date(),
+              reason: 'Offer timed out without response'
+            }
+          }
+        }
+      );
+    }
+  }
+
+  const timelineEvent = {
+    id: `tl-${Date.now()}`,
+    status: 'Expired',
+    title: 'Assignment Offer Expired',
+    description: `Offer to ${booking.offeredTo?.proName || proId} expired after timeout without response.`,
+    actor: 'System Engine',
+    actorRole: 'System Dispatch',
+    timestamp: new Date()
+  };
+
+  emitEvent('OFFER_EXPIRED', {
+    entityId: booking.id,
+    room: `worker:${proId}`,
+    payload: { bookingId: booking.id, proId }
+  });
+
+  if (booking.assignmentMode === 'AUTO') {
+    booking.offerStatus = 'expired';
+    booking.timeline.push(timelineEvent);
+    await booking.save();
+
+    emitEvent('OFFER_EXPIRED', {
+      entityId: booking.id,
+      room: 'admin:operations',
+      payload: { bookingId: booking.id, proId, mode: 'AUTO' }
+    });
+
+    // Automatically try next candidate!
+    const attemptedIds = (booking.assignmentAttempts || []).map(a => a.proId);
+    return await triggerAutoAssignment(booking.id, { excludeProIds: [...new Set(attemptedIds)] });
+  } else {
+    // MANUAL MODE
+    booking.assignmentStatus = 'EXPIRED';
+    booking.offerStatus = 'expired';
+    booking.timeline.push(timelineEvent);
+    await booking.save();
+
+    emitEvent('OFFER_EXPIRED', {
+      entityId: booking.id,
+      room: 'admin:operations',
+      payload: { bookingId: booking.id, proId, mode: 'MANUAL' }
+    });
+
+    emitEvent('OFFER_EXPIRED', {
+      entityId: booking.id,
+      room: `booking:${booking.id}`,
+      payload: { bookingId: booking.id, proId }
+    });
+
+    return {
+      success: true,
+      message: 'Offer expired. Owner can manually reassign or switch to auto.',
+      booking
+    };
+  }
+}
+
+/**
+ * Triggers Automatic Assignment engine for a booking.
+ * Evaluates candidates, sends real offer to top candidate, or marks awaiting attention.
+ */
+export async function triggerAutoAssignment(bookingIdOrDoc, { excludeProIds = [] } = {}) {
+  let booking = bookingIdOrDoc;
+  if (typeof booking === 'string' || !booking.id) {
+    booking = await Booking.findOne({ $or: [{ id: bookingIdOrDoc }, { bookingReference: bookingIdOrDoc }] });
+    if (!booking) throw new Error(`Booking ${bookingIdOrDoc} not found`);
+  }
+
+  if (booking.assignmentMode !== 'AUTO') {
+    return { success: false, message: 'Booking is set to MANUAL assignment mode.' };
+  }
+
+  if (['Assigned', 'In Progress', 'Completed', 'Cancelled'].includes(booking.status)) {
+    return { success: false, message: `Booking is already ${booking.status}` };
+  }
+
+  const existingAttemptIds = (booking.assignmentAttempts || []).map(a => a.proId);
+  const combinedExcluded = [...new Set([...existingAttemptIds, ...excludeProIds])];
+
+  const { candidates } = await findEligibleProfessionals(booking, { excludeProIds: combinedExcluded });
+
+  // Pick top available candidate (must be online, available, not conflicting, and category-compatible)
+  const availableCandidate = candidates.find(c => {
+    if (!c.isOnline || c.isBusy || c.isSlotConflict) return false;
+    
+    // Check trade/category compatibility
+    const wTrade = (c.worker.trade || '').toLowerCase();
+    const wTradeName = (c.worker.tradeName || '').toLowerCase();
+    const wCats = (c.worker.categories || []).map(cat => cat.toLowerCase());
+    const bCat = (booking.serviceCategory || '').toLowerCase();
+    const bService = (booking.serviceName || '').toLowerCase();
+
+    if (wTrade === 'all services' || wTrade.includes('all services')) return true;
+    if (!bCat || bCat === 'all services') return true;
+
+    const matchesCat = (wTrade && (wTrade.includes(bCat) || bCat.includes(wTrade))) ||
+                       (wTradeName && (wTradeName.includes(bCat) || bCat.includes(wTradeName))) ||
+                       wCats.some(cat => cat && (cat.includes(bCat) || bCat.includes(cat)));
+    const matchesService = (wTrade && (wTrade.includes(bService) || bService.includes(wTrade))) ||
+                           (wTradeName && (wTradeName.includes(bService) || bService.includes(wTradeName)));
+
+    return Boolean(matchesCat || matchesService);
+  });
+
+  if (availableCandidate) {
+    console.log(`[Auto-Assignment] Dispatching offer for Booking ${booking.id} to ${availableCandidate.worker.applicantName} (Score: ${availableCandidate.totalScore})`);
+    return await sendAssignmentOffer(booking.id, availableCandidate.worker.id, {
+      mode: 'AUTO',
+      timeoutSeconds: 60,
+      offeredBy: 'Auto Assignment Engine'
+    });
+  }
+
+  // No eligible candidates available
+  console.warn(`[Auto-Assignment] No eligible professionals available for Booking ${booking.id}. Transitioning to AWAITING_OWNER_ATTENTION.`);
+  booking.assignmentStatus = 'AWAITING_OWNER_ATTENTION';
+  booking.offerStatus = 'unoffered';
+  booking.timeline.push({
+    id: `tl-${Date.now()}`,
+    status: 'Awaiting Attention',
+    title: 'Awaiting Owner Attention',
+    description: 'Automatic assignment exhausted all candidates or no approved professionals were available in range. Manual owner intervention required.',
+    actor: 'Auto Assignment Engine',
+    actorRole: 'System Dispatch',
+    timestamp: new Date()
+  });
+  await booking.save();
+
+  emitEvent('ASSIGNMENT_FAILED', {
+    entityId: booking.id,
+    room: 'admin:operations',
+    payload: {
+      bookingId: booking.id,
+      assignmentStatus: 'AWAITING_OWNER_ATTENTION',
+      reason: 'No eligible professionals available in coverage area'
+    }
+  });
+
+  emitEvent('ASSIGNMENT_FAILED', {
+    entityId: booking.id,
+    room: `booking:${booking.id}`,
+    payload: {
+      bookingId: booking.id,
+      assignmentStatus: 'AWAITING_OWNER_ATTENTION',
+      message: 'Looking for available professionals in your area...'
+    }
+  });
+
+  return {
+    success: false,
+    awaitingOwnerAttention: true,
+    message: 'No eligible professionals available. Marked for Owner Attention.'
+  };
+}
+
+/**
+ * Watchdog runner: reliably checks and processes expired offers across server restarts.
+ * Runs against authoritative MongoDB records with offerStatus === 'offered' and offerExpiry < now.
+ */
+export async function checkAndProcessExpiredOffers() {
+  try {
+    const expiredBookings = await Booking.find({
+      offerStatus: 'offered',
+      offerExpiry: { $lt: new Date() }
+    });
+
+    for (const b of expiredBookings) {
+      console.log(`[Watchdog] Offer for booking ${b.id} expired at ${b.offerExpiry}. Processing timeout...`);
+      await expireAssignmentOffer(b.id);
+    }
+  } catch (err) {
+    console.warn('[Watchdog Check Warning]:', err.message);
+  }
+}
+
+let watchdogInterval = null;
+export function startAssignmentWatchdog(intervalMs = 5000) {
+  if (watchdogInterval) clearInterval(watchdogInterval);
+  watchdogInterval = setInterval(checkAndProcessExpiredOffers, intervalMs);
+  console.log(`⏱️ Assignment Offer Expiration Watchdog started (interval: ${intervalMs}ms)`);
+}
+
+// Backward-compatible alias
+export const autoAssignWorkerToBooking = triggerAutoAssignment;
+

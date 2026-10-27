@@ -5,11 +5,11 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
   const [authMode, setAuthMode] = useState('otp'); // 'otp' | 'password'
 
   // Password Login State
-  const [emailOrPhone, setEmailOrPhone] = useState('vikram.salvi@urbanpro.com');
-  const [password, setPassword] = useState('pro123456');
+  const [emailOrPhone, setEmailOrPhone] = useState('');
+  const [password, setPassword] = useState('');
 
   // Phone OTP Login State
-  const [phoneInput, setPhoneInput] = useState('+91 98205 11982');
+  const [phoneInput, setPhoneInput] = useState('');
   const [otpInput, setOtpInput] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [otpNotice, setOtpNotice] = useState(null);
@@ -19,110 +19,8 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
-
-  const handleResetDemoData = async () => {
-    setIsResetting(true);
-    try {
-      const res = await professionalClient.resetDemoData();
-      if (res.success) {
-        if (showToast) showToast('Demonstration data has been cleanly reset to default initial state.');
-        setShowResetConfirm(false);
-      } else {
-        throw new Error(res.error || 'Failed to reset demo data');
-      }
-    } catch (err) {
-      if (showToast) showToast(err.message || 'Reset failed');
-    } finally {
-      setIsResetting(false);
-    }
-  };
 
   // Cooldown timer
-  useEffect(() => {
-    if (cooldown > 0) {
-      const timer = setTimeout(() => setCooldown(cooldown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [cooldown]);
-
-  // Expiry timer
-  useEffect(() => {
-    if (otpSent && expiresIn > 0) {
-      const timer = setTimeout(() => setExpiresIn(expiresIn - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [otpSent, expiresIn]);
-
-  const demoAccounts = [
-    {
-      id: 'PRO-8841',
-      name: 'Vikram Salvi',
-      role: 'Master AC Specialist & Electrician',
-      tier: 'Diamond Pro (Level 5)',
-      status: 'Approved',
-      type: 'Direct Freelance (Independent)',
-      phone: '+91 98205 11982',
-      email: 'vikram.salvi@urbanpro.com',
-      badge: 'Approved Direct Freelancer'
-    },
-    {
-      id: 'PRO-8842',
-      name: 'Rajesh Kumar',
-      role: 'Appliance Repair Specialist (Data Isolation Test)',
-      tier: 'Platinum Pro (Level 4)',
-      status: 'Approved',
-      type: 'Independent Professional',
-      phone: '+91 98201 44521',
-      email: 'rajesh.kumar@urbanpro.com',
-      badge: 'Data Isolation Verified (Separate Ledgers & Jobs)'
-    },
-    {
-      id: 'PRO-8843',
-      name: 'Sunil Vishwakarma',
-      role: 'Cleaning & Housekeeping Specialist',
-      tier: 'Gold Pro (Level 3)',
-      status: 'Approved',
-      type: 'Agency Employed (Apex Home Solutions LLP)',
-      phone: '+91 98332 10984',
-      email: 'sunil.v@urbanpro.com',
-      badge: 'Approved Business Partner Agency'
-    },
-    {
-      id: 'PRO-8845',
-      name: 'Kavita Sharma',
-      role: 'Salon & Skin Care Specialist',
-      tier: 'Onboarding Partner',
-      status: 'Under Review',
-      type: 'Direct Freelance',
-      phone: '+91 98209 88123',
-      email: 'kavita.sharma@urbanpro.com',
-      badge: 'Application Under Review'
-    },
-    {
-      id: 'PRO-8846',
-      name: 'Mohit Verma',
-      role: 'Electrician & Appliance Technician',
-      tier: 'Onboarding Partner',
-      status: 'Changes Requested',
-      type: 'Direct Freelance',
-      phone: '+91 98207 77451',
-      email: 'mohit.verma@urbanpro.com',
-      badge: 'Action Needed: PAN Glare Re-upload'
-    },
-    {
-      id: 'PRO-8847',
-      name: 'Deepak Jadhav',
-      role: 'Plumber & Water Specialist',
-      tier: 'Suspended Partner',
-      status: 'Suspended',
-      type: 'Direct Freelance',
-      phone: '+91 98202 33190',
-      email: 'deepak.jadhav@urbanpro.com',
-      badge: 'Account Suspended (3 Cancellations)'
-    }
-  ];
 
   // Password Login Handler
   const handlePasswordLogin = async (e) => {
@@ -204,29 +102,6 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
     }
   };
 
-  // 1-Click Persona Switcher for Quick Verification
-  const handleQuickDemoLogin = async (demo) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await professionalClient.login({
-        proId: demo.id,
-        identifier: demo.email,
-        password: 'demo'
-      });
-      if (data.success && data.professional) {
-        onLoginSuccess(data.professional);
-      } else {
-        throw new Error(data.error);
-      }
-    } catch {
-      // Fallback local session with complete metadata
-      professionalClient.setAuth('mock-pro-jwt-token-2026', demo);
-      onLoginSuccess(demo);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div style={{
@@ -568,180 +443,6 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
           </form>
         )}
 
-        {/* 1-Click Evaluation Personas (All Application States) */}
-        <div style={{
-          background: '#f8fafc',
-          border: '1px solid #e2e8f0',
-          borderRadius: 16,
-          padding: 16,
-          marginTop: 24
-        }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.6 }}>
-              Evaluation Personas (Test All States)
-            </span>
-            <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 700 }}>1-Click Auth</span>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {demoAccounts.map(demo => {
-              const isSuspended = demo.status === 'Suspended';
-              const isPending = demo.status === 'Under Review' || demo.status === 'Changes Requested';
-              return (
-                <div
-                  key={demo.id}
-                  onClick={() => handleQuickDemoLogin(demo)}
-                  style={{
-                    background: '#ffffff',
-                    border: `1px solid ${isSuspended ? '#fecaca' : isPending ? '#fde68a' : '#cbd5e1'}`,
-                    borderRadius: 10,
-                    padding: '9px 12px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.borderColor = '#7c3aed'}
-                  onMouseLeave={(e) => e.currentTarget.style.borderColor = isSuspended ? '#fecaca' : isPending ? '#fde68a' : '#cbd5e1'}
-                >
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{demo.name}</span>
-                      <span style={{
-                        background: isSuspended ? '#fef2f2' : isPending ? '#fffbeb' : '#faf5ff',
-                        color: isSuspended ? '#b91c1c' : isPending ? '#b45309' : '#7c3aed',
-                        padding: '1px 6px',
-                        borderRadius: 4,
-                        fontSize: 10,
-                        fontWeight: 700
-                      }}>
-                        {demo.status}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>
-                      {demo.role}
-                    </div>
-                    <div style={{ fontSize: 10, color: '#6b21a8', fontWeight: 600 }}>
-                      {demo.badge}
-                    </div>
-                  </div>
-
-                  <span style={{
-                    fontSize: 12,
-                    color: '#7c3aed',
-                    fontWeight: 700
-                  }}>
-                    Select →
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Reset Demo Data Action */}
-          <div style={{ marginTop: 14, textAlign: 'center', paddingTop: 10, borderTop: '1px dashed #e2e8f0' }}>
-            <button
-              type="button"
-              onClick={() => setShowResetConfirm(true)}
-              style={{
-                background: '#fee2e2',
-                border: '1px solid #fecaca',
-                color: '#991b1b',
-                padding: '7px 16px',
-                borderRadius: 8,
-                fontSize: 11,
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6
-              }}
-            >
-              🔄 Reset Demo Data (Confirmed)
-            </button>
-            <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>
-              Restores synthetic dispatches, tickets & ledgers. Does not affect live data.
-            </div>
-          </div>
-        </div>
-
-        {/* Confirmed Demo Reset Modal */}
-        {showResetConfirm && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(15, 23, 42, 0.7)',
-            backdropFilter: 'blur(4px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99999,
-            padding: 16
-          }}>
-            <div style={{
-              background: '#ffffff',
-              borderRadius: 18,
-              padding: '28px 24px',
-              maxWidth: 420,
-              width: '100%',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-              textAlign: 'center'
-            }}>
-              <div style={{ fontSize: 38, marginBottom: 10 }}>⚠️</div>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 8px 0' }}>
-                Reset Synthetic Demo Data?
-              </h3>
-              <p style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, margin: '0 0 20px 0' }}>
-                This will reset all synthetic bookings, extra work proposals, notifications, support tickets, and earnings back to their initial seed state.
-                <br /><br />
-                <strong style={{ color: '#059669' }}>✓ Live records are completely segregated and unaffected.</strong>
-              </p>
-
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => setShowResetConfirm(false)}
-                  disabled={isResetting}
-                  style={{
-                    flex: 1,
-                    background: '#f1f5f9',
-                    color: '#475569',
-                    border: 'none',
-                    padding: '11px 0',
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleResetDemoData}
-                  disabled={isResetting}
-                  style={{
-                    flex: 1.5,
-                    background: '#dc2626',
-                    color: '#ffffff',
-                    border: 'none',
-                    padding: '11px 0',
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    cursor: isResetting ? 'wait' : 'pointer'
-                  }}
-                >
-                  {isResetting ? 'Resetting...' : 'Confirm Demo Reset'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Footer Actions */}
         <div style={{ marginTop: 24, textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: 16 }}>

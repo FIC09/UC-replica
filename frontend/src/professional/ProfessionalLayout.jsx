@@ -21,6 +21,7 @@ import {
   X
 } from 'lucide-react';
 import { OfflineBanner } from './views/StateViews';
+import { getInitials } from './professionalClient';
 
 // Dynamic Page Titles & Subtitles matching Admin Dashboard format
 const PAGE_METADATA = {
@@ -146,7 +147,12 @@ export function ProfessionalLayout({
     if (k === '/professional') return currentPath === '/professional' || currentPath === '/professional/';
     return currentPath === k || currentPath.startsWith(k);
   });
-  const pageMeta = matchedKey ? PAGE_METADATA[matchedKey] : {
+  const pageMeta = matchedKey ? {
+    ...PAGE_METADATA[matchedKey],
+    subtitle: matchedKey === '/professional'
+      ? `${profile?.operationalHub || (profile?.locality ? `${profile.locality} Hub` : 'Krishnagiri Hub')} dispatches, customer OTP verification lifecycle, and shift duty`
+      : PAGE_METADATA[matchedKey].subtitle
+  } : {
     title: "Urban Pro Partner Portal",
     subtitle: "Manage dispatches, shifts, earnings, and operational compliance"
   };
@@ -534,7 +540,7 @@ export function ProfessionalLayout({
               onMouseLeave={(e) => e.currentTarget.style.background = '#FAF5FF'}
             >
               <Wallet size={15} color="#7C3AED" />
-              <span>₹{(profile?.walletBalance || 0).toLocaleString('en-IN')}</span>
+              <span>₹{(profile?.walletBalance != null ? profile.walletBalance : 0).toLocaleString('en-IN')}</span>
             </div>
 
             {/* Profile Dropdown Container */}
@@ -558,7 +564,7 @@ export function ProfessionalLayout({
                   boxShadow: '0 2px 8px rgba(124, 58, 237, 0.25)'
                 }}
               >
-                {profile?.avatar || 'VS'}
+                {getInitials(profile?.applicantName || profile?.name, profile?.avatar)}
               </button>
 
               {showProfileDropdown && (
@@ -576,10 +582,10 @@ export function ProfessionalLayout({
                 }}>
                   <div style={{ padding: '8px 16px 10px 16px', borderBottom: '1px solid #F1F5F9' }}>
                     <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>
-                      {profile?.applicantName || 'Vikram Salvi'}
+                      {profile?.applicantName || profile?.name || 'Professional'}
                     </div>
                     <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                      ID: <strong>{profile?.id || 'PRO-8841'}</strong>
+                      ID: <strong>{profile?.id || profile?.workerId || 'Partner'}</strong>
                     </div>
                     <div style={{
                       marginTop: 6,

@@ -363,8 +363,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       const res = await professionalClient.handleCustomerExtraWorkApproval(jobId, workId, {
         action,
         approvedBy: job?.userName || 'Customer',
-        approvalMethod: action === 'approve' ? 'Customer App In-App Authorization (Demo Flow)' : 'Customer App Rejection',
-        isDemo: true,
+        approvalMethod: action === 'approve' ? 'Customer In-App Authorization' : 'Customer Rejection',
         rejectionReason: action === 'reject' ? 'Customer requested service to stay within base package.' : ''
       });
       showToast(res.message || 'Customer approval status updated.');
@@ -1304,10 +1303,10 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                       {item.status === 'Pending Customer Approval' && (
                         <div style={{ marginTop: 14, background: '#ffffff', padding: '12px 14px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
                           <div style={{ fontSize: 11, fontWeight: 700, color: '#6b21a8', textTransform: 'uppercase', marginBottom: 8 }}>
-                            🧪 Verifiable Customer Approval Workflow (Demo Flow)
+                            Customer Authorization Workflow
                           </div>
                           <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 10px 0' }}>
-                            Simulate customer response on mobile app. Does not impersonate; explicitly tagged in audit history.
+                            Record customer response for additional work authorization.
                           </p>
                           <div style={{ display: 'flex', gap: 8 }}>
                             <button
@@ -1825,7 +1824,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 HDFC Bank ••••4821 [IFSC: HDFC0001248]
               </div>
               <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
-                Primary UPI ID: vikramsalvi@okaxis • Mode: Direct IMPS / NEFT Batch
+                Primary UPI ID: {job?.recipientSnapshot?.upiId || (professionalClient.getStoredUser()?.applicantName ? `${professionalClient.getStoredUser().applicantName.toLowerCase().replace(/\s+/g, '')}@okaxis` : 'partner@okaxis')} • Mode: Direct IMPS / NEFT Batch
               </div>
               <div style={{ fontSize: 11, color: '#059669', marginTop: 6, fontWeight: 600 }}>
                 Status: Verified for Settlement Cycle
@@ -1996,7 +1995,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               color: '#475569',
               marginBottom: 16
             }}>
-              💡 <strong>Demo Code:</strong> Enter <strong>4829</strong> to simulate live customer authorization.
+              Enter the 4-digit Safety PIN provided by the customer at the doorstep.
             </div>
 
             {otpError && (

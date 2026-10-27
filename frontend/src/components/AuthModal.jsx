@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { partnerClient } from '../partner/partnerClient';
 import { professionalClient } from '../professional/professionalClient';
+import { authApi } from '../api/apiClient';
 
 export function AuthModal({ 
   isOpen, 
@@ -45,6 +46,7 @@ export function AuthModal({
 
   // Sign up fields
   const [signupName, setSignupName] = useState('');
+  const [signupPhone, setSignupPhone] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
@@ -232,17 +234,30 @@ export function AuthModal({
       detectedRole = 'partner';
     }
 
-    const preset = ROLE_PRESETS[detectedRole] || ROLE_PRESETS.customer;
+    const userName = cleanEmail.includes(preset.email.split('@')[0]) ? preset.name : (cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+    const userPhone = preset.phone || '+91 98201 44521';
 
     const authenticatedUser = {
-      name: cleanEmail.includes(preset.email.split('@')[0]) ? preset.name : (cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())),
+      name: userName,
       email: cleanEmail,
-      phone: preset.phone || '+91 98201 44521',
+      phone: userPhone,
       role: detectedRole,
       trade: preset.trade,
       agencyName: preset.agencyName,
       isPlusMember: false
     };
+
+    if (detectedRole === 'customer') {
+      authApi.register(userName, userPhone, cleanEmail)
+        .then(res => {
+          if (res?.user?._id) {
+            authenticatedUser._id = res.user._id;
+            authenticatedUser.id = res.user._id;
+            localStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
+          }
+        })
+        .catch(() => {});
+    }
 
     try {
       localStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
@@ -283,16 +298,21 @@ export function AuthModal({
     }, 350);
   }
 
-  function handleSignupSubmit(e) {
+  async function handleSignupSubmit(e) {
     e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
 
     const cleanName = signupName.trim();
     const cleanEmail = signupEmail.trim().toLowerCase();
+    const cleanPhone = signupPhone.trim();
 
     if (!cleanName || cleanName.length < 2) {
       setErrorMsg('Please enter your full name');
+      return;
+    }
+    if (!cleanPhone || cleanPhone.replace(/\D/g, '').length < 10) {
+      setErrorMsg('Please enter a valid 10-digit mobile number');
       return;
     }
     if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
@@ -308,13 +328,27 @@ export function AuthModal({
       return;
     }
 
-    const newUser = {
+    const formattedPhone = cleanPhone.startsWith('+91')
+      ? cleanPhone
+      : `+91 ${cleanPhone.replace(/\D/g, '').slice(-10)}`;
+
+    let newUser = {
       name: cleanName,
       email: cleanEmail,
-      phone: '+91 98201 44521',
+      phone: formattedPhone,
       role: 'customer',
       isPlusMember: false
     };
+
+    try {
+      const res = await authApi.register(cleanName, formattedPhone, cleanEmail);
+      if (res?.user) {
+        newUser._id = res.user._id || res.user.id;
+        newUser.id = res.user.id || res.user._id;
+      }
+    } catch (apiErr) {
+      console.warn('Backend customer register notice:', apiErr.message);
+    }
 
     try {
       localStorage.setItem('uc_user', JSON.stringify(newUser));
@@ -982,9 +1016,30 @@ export function AuthModal({
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Rahul Sharma"
+                    placeholder="e.g. Renu"
                     value={signupName}
                     onChange={(e) => setSignupName(e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '9px 12px',
+                      borderRadius: 9,
+                      border: '1.5px solid #CBD5E1',
+                      fontSize: 13,
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    Mobile Number
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="e.g. 98765 43210"
+                    value={signupPhone}
+                    onChange={(e) => setSignupPhone(e.target.value)}
                     required
                     style={{
                       width: '100%',

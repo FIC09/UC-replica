@@ -1,112 +1,21 @@
 import { User } from '../models/User.js';
 import { Booking } from '../models/Booking.js';
 
-let mockCustomers = [
-  {
-    id: 'CUST-1001',
-    _id: 'CUST-1001',
-    name: 'Rahul Sharma',
-    email: 'rahul.sharma@example.com',
-    phone: '+91 98201 44521',
-    city: 'Mumbai',
-    locality: 'Bandra West',
-    status: 'Active',
-    isPlusMember: true,
-    joinedDate: '12 Jan 2026',
-    savedAddresses: [
-      { id: 'addr-1', type: 'Home', buildingName: 'Sea Green Apts', streetAddress: 'Perry Cross Road', locality: 'Bandra West', city: 'Mumbai', pincode: '400050', isDefault: true },
-      { id: 'addr-2', type: 'Work', buildingName: 'One BKC', streetAddress: 'G Block BKC', locality: 'Bandra Kurla Complex', city: 'Mumbai', pincode: '400051', isDefault: false }
-    ],
-    internalNotes: [
-      { id: 'n1', note: 'VIP corporate client. Prefers weekend afternoon slots.', author: 'Priya Sundaram', authorRole: 'Ops Lead', createdAt: new Date(Date.now() - 604800000) }
-    ],
-    suspendHistory: []
-  },
-  {
-    id: 'CUST-1002',
-    _id: 'CUST-1002',
-    name: 'Pooja Iyer',
-    email: 'pooja.iyer@example.com',
-    phone: '+91 98450 67123',
-    city: 'Krishnagiri',
-    locality: 'Rayakottai Road',
-    status: 'Active',
-    isPlusMember: false,
-    joinedDate: '04 Feb 2026',
-    savedAddresses: [
-      { id: 'addr-3', type: 'Home', buildingName: 'Green Meadows', streetAddress: 'Plot 45, Rayakottai Road', locality: 'Rayakottai Road', city: 'Krishnagiri', pincode: '635001', isDefault: true }
-    ],
-    internalNotes: [],
-    suspendHistory: []
-  },
-  {
-    id: 'CUST-1003',
-    _id: 'CUST-1003',
-    name: 'Amit Patel',
-    email: 'amit.patel@example.com',
-    phone: '+91 98980 11234',
-    city: 'Mumbai',
-    locality: 'Andheri East',
-    status: 'Active',
-    isPlusMember: true,
-    joinedDate: '19 Nov 2025',
-    savedAddresses: [
-      { id: 'addr-4', type: 'Home', buildingName: 'Kalpataru Estate', streetAddress: 'JVLR Road', locality: 'Andheri East', city: 'Mumbai', pincode: '400093', isDefault: true }
-    ],
-    internalNotes: [],
-    suspendHistory: []
-  },
-  {
-    id: 'CUST-1004',
-    _id: 'CUST-1004',
-    name: 'Sneha Roy',
-    email: 'sneha.roy@example.com',
-    phone: '+91 98112 44556',
-    city: 'Bengaluru',
-    locality: 'Koramangala',
-    status: 'Active',
-    isPlusMember: false,
-    joinedDate: '28 Feb 2026',
-    savedAddresses: [
-      { id: 'addr-5', type: 'Home', buildingName: 'Prestige Acropolis', streetAddress: 'Hosur Road', locality: 'Koramangala', city: 'Bengaluru', pincode: '560029', isDefault: true }
-    ],
-    internalNotes: [],
-    suspendHistory: []
-  },
-  {
-    id: 'CUST-1005',
-    _id: 'CUST-1005',
-    name: 'Rohan Mehra',
-    email: 'rohan.mehra@example.com',
-    phone: '+91 98765 43210',
-    city: 'Delhi NCR',
-    locality: 'Gurugram Sector 43',
-    status: 'Suspended',
-    suspendReason: 'Repeated unexcused last-minute cancellations without pro compensation',
-    isPlusMember: false,
-    joinedDate: '15 Mar 2026',
-    savedAddresses: [
-      { id: 'addr-6', type: 'Home', buildingName: 'DLF Phase IV', streetAddress: 'Golf Course Road', locality: 'Sector 43', city: 'Delhi NCR', pincode: '122002', isDefault: true }
-    ],
-    internalNotes: [
-      { id: 'n2', note: 'Account suspended following 3 consecutive false dispatch requests.', author: 'Super Admin', authorRole: 'Super Admin', createdAt: new Date(Date.now() - 172800000) }
-    ],
-    suspendHistory: [
-      { status: 'Suspended', reason: 'Repeated unexcused last-minute cancellations', changedBy: 'Super Admin', timestamp: new Date(Date.now() - 172800000) }
-    ]
-  }
-];
+// =========================================================================
+// AUTHORITATIVE CUSTOMER CONTROLLER (100% REAL-TIME DATABASE OPERATIONS)
+// Zero mock records, zero mock fallback injection.
+// =========================================================================
 
-// 1. Get Customers List (Search, Status Filter, Pagination)
+// 1. Get Customers List (Real MongoDB users + booking callers, Filter & Pagination)
 export async function getCustomers(req, res) {
   try {
     const { search = '', status = 'ALL', city = 'ALL', page = 1, limit = 10 } = req.query;
 
     let dbUsers = [];
     try {
-      dbUsers = await User.find({ role: 'user' }).select('-password').lean();
+      dbUsers = await User.find({ role: { $in: ['user', 'customer', undefined] } }).select('-password').lean();
     } catch (e) {
-      console.warn('User.find error:', e.message);
+      console.warn('User.find error in getCustomers:', e.message);
     }
 
     let allBookings = [];
@@ -145,7 +54,7 @@ export async function getCustomers(req, res) {
       }
     }
 
-    // 1. Map registered DB users
+    // Map registered DB users
     const realUsers = dbUsers.map(u => {
       const phoneDigits = (u.phone || '').replace(/\D/g, '').slice(-10);
       const stats = statsByCustId[u._id.toString()] || statsByPhone[phoneDigits] || { count: 0, totalSpend: 0, bookings: [] };
@@ -183,7 +92,7 @@ export async function getCustomers(req, res) {
       };
     });
 
-    // 2. Synthesize customer records for any bookings placed where User record wasn't pre-created
+    // Synthesize customer records for any bookings placed where User record wasn't pre-created
     const registeredPhoneDigits = new Set(realUsers.map(u => (u.phone || '').replace(/\D/g, '').slice(-10)).filter(Boolean));
     const extraCustomersFromBookings = [];
 
@@ -221,12 +130,8 @@ export async function getCustomers(req, res) {
       }
     }
 
-    // Real DB customers at the top, then fallback mock records (filtered to avoid duplicate phones)
-    const realCustomers = [...realUsers, ...extraCustomersFromBookings];
-    const realPhones = new Set(realCustomers.map(c => (c.phone || '').replace(/\D/g, '').slice(-10)).filter(Boolean));
-    const nonDupeMocks = mockCustomers.filter(m => !realPhones.has((m.phone || '').replace(/\D/g, '').slice(-10)));
-
-    let list = [...realCustomers, ...nonDupeMocks];
+    // Authoritative real database customer records only (zero mock append)
+    const list = [...realUsers, ...extraCustomersFromBookings];
 
     // Filter
     let filtered = list.filter(c => {
@@ -235,7 +140,8 @@ export async function getCustomers(req, res) {
         const matches = (c.name || '').toLowerCase().includes(q) ||
           (c.phone || '').toLowerCase().includes(q) ||
           (c.email || '').toLowerCase().includes(q) ||
-          (c.locality || '').toLowerCase().includes(q);
+          (c.locality || '').toLowerCase().includes(q) ||
+          (c.id || '').toLowerCase().includes(q);
         if (!matches) return false;
       }
       if (status !== 'ALL' && c.status !== status) return false;
@@ -260,7 +166,81 @@ export async function getCustomers(req, res) {
   }
 }
 
-// 2. Get Customer Detail Profile with Bookings, LTV, Payments, and Support
+// 2. Create Real Customer Profile in MongoDB
+export async function createCustomer(req, res) {
+  try {
+    const { name, phone, email, city, locality, address, isPlusMember } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Customer full name is required' });
+    }
+    if (!phone || !phone.trim()) {
+      return res.status(400).json({ success: false, error: 'Customer phone number is required' });
+    }
+
+    const cleanPhone = phone.trim();
+    // Check if phone already registered
+    const existing = await User.findOne({ phone: cleanPhone });
+    if (existing) {
+      return res.status(409).json({ success: false, error: `Customer with phone ${cleanPhone} already exists` });
+    }
+
+    const savedAddresses = [];
+    if (address && address.trim()) {
+      savedAddresses.push({
+        id: `addr-${Date.now()}`,
+        type: 'Home',
+        streetAddress: address.trim(),
+        locality: locality?.trim() || '',
+        city: city?.trim() || 'Krishnagiri',
+        isDefault: true
+      });
+    }
+
+    const newUser = await User.create({
+      name: name.trim(),
+      phone: cleanPhone,
+      email: email?.trim() || `${name.trim().toLowerCase().replace(/\s+/g, '.')}@example.com`,
+      city: city?.trim() || 'Krishnagiri',
+      locality: locality?.trim() || 'Town Center',
+      hasUCPlus: Boolean(isPlusMember),
+      role: 'user',
+      status: 'Active',
+      savedAddresses,
+      internalNotes: [{
+        id: `note-${Date.now()}`,
+        note: 'Customer account created via Admin Console',
+        author: req.admin?.name || 'Administrator',
+        authorRole: req.admin?.role || 'Admin',
+        createdAt: new Date()
+      }]
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: 'Customer account created successfully in real-time database',
+      customer: {
+        id: newUser._id.toString(),
+        _id: newUser._id.toString(),
+        name: newUser.name,
+        phone: newUser.phone,
+        email: newUser.email,
+        city: newUser.city,
+        locality: newUser.locality,
+        status: newUser.status,
+        isPlusMember: newUser.hasUCPlus,
+        savedAddresses: newUser.savedAddresses,
+        internalNotes: newUser.internalNotes,
+        totalBookings: 0,
+        totalSpend: 0
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// 3. Get Real Customer Detail Profile with Actual Bookings & LTV
 export async function getCustomerDetail(req, res) {
   try {
     const { id } = req.params;
@@ -284,7 +264,7 @@ export async function getCustomerDetail(req, res) {
       } catch {}
     }
 
-    // Fetch all bookings for this customer from MongoDB
+    // Fetch all real bookings for this customer from MongoDB
     let customerBookings = [];
     try {
       const searchQueries = [{ customerId: id }, { userPhone: id }];
@@ -331,40 +311,31 @@ export async function getCustomerDetail(req, res) {
     }
 
     if (!user) {
-      user = mockCustomers.find(c => c.id === id || c._id === id);
+      return res.status(404).json({ success: false, error: `Customer #${id} not found in database.` });
     }
 
-    if (!user) {
-      return res.status(404).json({ success: false, error: `Customer ${id} not found.` });
-    }
-
-    if (customerBookings.length === 0) {
-      customerBookings = [
-        { id: 'ORD-9841', serviceName: 'Powerjet AC Servicing', totalAmount: 699, status: 'In Progress', slot: 'Today, 02:00 PM', assignedPartner: 'Vikram Salvi' },
-        { id: 'ORD-8910', serviceName: 'Classic Bathroom Deep Cleaning', totalAmount: 499, status: 'Completed', slot: '14 Oct 2026', assignedPartner: 'Sunil V.' }
-      ];
-    }
-
-    // Compute Spending summary
+    // Compute Spending summary strictly from real bookings
     const completedOrders = customerBookings.filter(b => b.status === 'Completed').length;
     const cancelledOrders = customerBookings.filter(b => b.status === 'Cancelled').length;
-    const lifetimeValue = customerBookings.reduce((sum, b) => b.status !== 'Cancelled' ? sum + (b.totalAmount || 0) : sum, 0) || (user.totalSpend || 8450);
-    const avgOrderValue = Math.round(lifetimeValue / (customerBookings.length || 1));
+    const lifetimeValue = customerBookings.reduce((sum, b) => b.status !== 'Cancelled' ? sum + (b.totalAmount || 0) : sum, 0);
+    const avgOrderValue = customerBookings.length > 0 ? Math.round(lifetimeValue / customerBookings.length) : 0;
 
-    // Linked support tickets
-    const supportTickets = [
-      { id: 'TKT-1081', subject: 'Technician In-Transit ETA Inquiry', priority: 'Normal', status: 'Resolved', createdAt: '14 Oct 2026' }
-    ];
-
-    // Reviews left
-    const reviews = [
-      { id: 'REV-901', service: 'Classic Bathroom Cleaning', rating: 5, comment: 'Spotless cleaning and polite technician.', date: '15 Oct 2026' }
-    ];
+    // Real reviews from bookings if available
+    const reviews = customerBookings
+      .filter(b => b.rating)
+      .map(b => ({
+        id: `rev-${b.id || b.bookingReference}`,
+        service: b.serviceName || 'Home Service',
+        rating: b.rating,
+        comment: b.review || b.comment || 'Verified customer review',
+        date: new Date(b.completedAt || b.updatedAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+      }));
 
     return res.json({
       success: true,
       customer: {
         id: user._id || user.id,
+        _id: user._id || user.id,
         name: user.name,
         email: user.email,
         phone: user.phone,
@@ -386,7 +357,7 @@ export async function getCustomerDetail(req, res) {
         cancelledOrders
       },
       bookings: customerBookings,
-      supportTickets,
+      supportTickets: [],
       reviews
     });
   } catch (err) {
@@ -394,7 +365,7 @@ export async function getCustomerDetail(req, res) {
   }
 }
 
-// 3. Suspend / Reactivate Customer with Mandatory Reason
+// 4. Suspend / Reactivate Customer in MongoDB
 export async function updateCustomerStatus(req, res) {
   try {
     const { id } = req.params;
@@ -427,14 +398,12 @@ export async function updateCustomerStatus(req, res) {
         });
         await user.save();
       }
-    } catch {}
+    } catch (e) {
+      return res.status(500).json({ success: false, error: e.message });
+    }
 
-    const mock = mockCustomers.find(c => c.id === id || c._id === id);
-    if (mock) {
-      mock.status = status;
-      mock.suspendReason = status === 'Suspended' ? reason.trim() : '';
-      mock.suspendHistory = mock.suspendHistory || [];
-      mock.suspendHistory.push(auditEvent);
+    if (!user) {
+      return res.status(404).json({ success: false, error: `Customer #${id} not found.` });
     }
 
     return res.json({
@@ -447,29 +416,35 @@ export async function updateCustomerStatus(req, res) {
   }
 }
 
-// 4. Privacy Erasure & Account Anonymisation (Preserves Financial/Order Records)
+// 5. Delete Customer Record from MongoDB
+export async function deleteCustomer(req, res) {
+  try {
+    const { id } = req.params;
+    const deleted = await User.findByIdAndDelete(id);
+    if (!deleted) {
+      return res.status(404).json({ success: false, error: `Customer #${id} not found.` });
+    }
+    return res.json({
+      success: true,
+      message: `Customer account #${id} deleted permanently from database.`
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// 6. Privacy Erasure & Account Anonymisation in MongoDB
 export async function anonymiseCustomerAccount(req, res) {
   try {
     const { id } = req.params;
 
-    let user = null;
-    try {
-      user = await User.findById(id);
-      if (user) {
-        user.anonymiseAccount(req.admin?.email || 'Admin');
-        await user.save();
-      }
-    } catch {}
-
-    const mock = mockCustomers.find(c => c.id === id || c._id === id);
-    if (mock) {
-      mock.name = 'Anonymised Customer (GDPR Erased)';
-      mock.phone = '+91 99999 0000';
-      mock.email = `privacy.erased.${id}@anonymised.local`;
-      mock.savedAddresses = [];
-      mock.status = 'Anonymised';
-      mock.isPlusMember = false;
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: `Customer #${id} not found.` });
     }
+
+    user.anonymiseAccount(req.admin?.email || 'Admin');
+    await user.save();
 
     return res.json({
       success: true,
@@ -480,7 +455,7 @@ export async function anonymiseCustomerAccount(req, res) {
   }
 }
 
-// 5. Add Internal Customer Note
+// 7. Add Internal Customer Note in MongoDB
 export async function addCustomerNote(req, res) {
   try {
     const { id } = req.params;
@@ -498,20 +473,13 @@ export async function addCustomerNote(req, res) {
       createdAt: new Date()
     };
 
-    let user = null;
-    try {
-      user = await User.findById(id);
-      if (user) {
-        user.internalNotes.push(noteObj);
-        await user.save();
-      }
-    } catch {}
-
-    const mock = mockCustomers.find(c => c.id === id || c._id === id);
-    if (mock) {
-      mock.internalNotes = mock.internalNotes || [];
-      mock.internalNotes.push(noteObj);
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, error: `Customer #${id} not found.` });
     }
+
+    user.internalNotes.push(noteObj);
+    await user.save();
 
     return res.status(201).json({
       success: true,

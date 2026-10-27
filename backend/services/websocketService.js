@@ -294,6 +294,8 @@ export function initWebSocketServer(httpServer) {
     // If professional connected, record online presence in Redis & notify operations
     const workerId = proId || (role === 'professional' ? userId : null);
     if (workerId) {
+      socket.join(`worker:${workerId}`);
+      socket.data.joinedRooms.add(`worker:${workerId}`);
       setWorkerPresence(workerId, { status: 'online', socketId: socket.id })
         .then(() => {
           emitEvent('WORKER_PRESENCE_CHANGED', {
@@ -303,6 +305,11 @@ export function initWebSocketServer(httpServer) {
           });
         })
         .catch(() => {});
+    }
+
+    if (role === 'admin') {
+      socket.join('admin:operations');
+      socket.data.joinedRooms.add('admin:operations');
     }
 
     // Worker presence update from application

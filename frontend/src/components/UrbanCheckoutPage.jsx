@@ -625,7 +625,7 @@ export function UrbanCheckoutPage({
       },
       slot: `${selectedDate}, ${selectedTime}`,
       status: 'Confirmed',
-      paymentStatus: 'Paid',
+      paymentStatus: (paymentDetails?.method === 'cod' || paymentDetails?.methodLabel?.toLowerCase().includes('cash')) ? 'Pending' : 'Paid',
       paymentMethod: paymentDetails?.methodLabel || paymentMethod.toUpperCase(),
       paymentDetails: {
         transactionId: paymentDetails?.transactionId || `UC_TXN_${Date.now()}`,

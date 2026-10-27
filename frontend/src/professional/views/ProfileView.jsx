@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { professionalClient } from '../professionalClient';
+import { professionalClient, getInitials, getPartnerTier } from '../professionalClient';
 
 export function ProfileView({ profile, onUpdateProfile, showToast }) {
   const [pro, setPro] = useState(profile);
@@ -162,13 +162,13 @@ export function ProfileView({ profile, onUpdateProfile, showToast }) {
             fontSize: 32,
             fontWeight: 800
           }}>
-            {currentPro.avatar || 'VS'}
+            {getInitials(currentPro.applicantName || currentPro.name, currentPro.avatar)}
           </div>
 
           <div style={{ flex: 1, minWidth: 260 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                {currentPro.applicantName || 'Vikram Salvi'}
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: 0, textTransform: 'capitalize' }}>
+                {currentPro.applicantName || currentPro.name || 'Professional'}
               </h2>
               <span style={{
                 background: '#ecfdf5',
@@ -178,7 +178,7 @@ export function ProfileView({ profile, onUpdateProfile, showToast }) {
                 fontSize: 12,
                 fontWeight: 700
               }}>
-                {currentPro.tier || 'Diamond Pro Partner (Level 5)'}
+                {getPartnerTier(currentPro)}
               </span>
               <span style={{
                 background: '#f1f5f9',
@@ -188,12 +188,12 @@ export function ProfileView({ profile, onUpdateProfile, showToast }) {
                 fontSize: 12,
                 fontWeight: 700
               }}>
-                ID: {currentPro.id || 'PRO-8841'}
+                ID: {currentPro.id || currentPro.applicationNumber || 'WRK-00146'}
               </span>
             </div>
 
             <div style={{ fontSize: 15, color: '#475569', marginTop: 4, fontWeight: 600 }}>
-              {currentPro.trade || 'Master AC Specialist & Electrician'}
+              {currentPro.tradeName || currentPro.trade || "Women's Salon"}
             </div>
 
             <div style={{ fontSize: 13, color: '#64748b', marginTop: 6, lineHeight: 1.5 }}>
@@ -255,7 +255,7 @@ export function ProfileView({ profile, onUpdateProfile, showToast }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13 }}>
             <div>
               <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600 }}>Full Legal Name</div>
-              <div style={{ fontWeight: 700, color: '#0f172a' }}>{currentPro.applicantName || 'Vikram Salvi'}</div>
+              <div style={{ fontWeight: 700, color: '#0f172a' }}>{currentPro.applicantName || currentPro.name || 'Professional'}</div>
             </div>
 
             <div>
@@ -275,7 +275,7 @@ export function ProfileView({ profile, onUpdateProfile, showToast }) {
             <div>
               <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600 }}>Partner Tier & Rating</div>
               <div style={{ fontWeight: 700, color: '#059669' }}>
-                {currentPro.tier || 'Diamond Partner'} • ⭐ {currentPro.rating || 4.94} ({currentPro.jobsCompleted || 1520} jobs)
+                {getPartnerTier(currentPro)} • ⭐ {currentPro.jobsCompleted > 0 ? (currentPro.rating || 5.0) : 'New Partner'} ({currentPro.jobsCompleted != null ? currentPro.jobsCompleted : 0} jobs)
               </div>
             </div>
 
@@ -303,12 +303,12 @@ export function ProfileView({ profile, onUpdateProfile, showToast }) {
 
             <div>
               <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600 }}>Registered Work Email</div>
-              <div style={{ fontWeight: 700, color: '#0f172a' }}>{currentPro.email || 'vikram.salvi@urbanpro.com'}</div>
+              <div style={{ fontWeight: 700, color: '#0f172a' }}>{currentPro.email || (currentPro.applicantName ? `${currentPro.applicantName.toLowerCase().replace(/\s+/g, '.')}@urbanpro.com` : 'partner@urbanpro.com')}</div>
             </div>
 
             <div>
               <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600 }}>Operational Hub & Locality</div>
-              <div style={{ fontWeight: 700, color: '#0f172a' }}>{currentPro.operationalHub || 'Bandra West Central Hub'} ({currentPro.locality || 'Bandra West'})</div>
+              <div style={{ fontWeight: 700, color: '#0f172a' }}>{currentPro.operationalHub || (currentPro.locality ? `${currentPro.locality} Operational Hub` : 'Regional Operations Hub')} ({currentPro.locality || 'Operational Area'})</div>
             </div>
 
             <div>

@@ -387,6 +387,7 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
     if (currentPath === '/professional/performance') {
       return (
         <PerformanceView
+          profile={professionalUser}
           showToast={showToast}
         />
       );

@@ -25,7 +25,8 @@ import {
   Send,
   RefreshCw,
   Award,
-  CreditCard
+  CreditCard,
+  Trash2
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
 
@@ -209,6 +210,20 @@ export function PartnersView({ onShowToast, onNavigate }) {
       })
       .catch(err => {
         onShowToast && onShowToast(`Error: ${err.message}`);
+      });
+  }
+
+  // Handle Permanent Partner Deletion
+  function handleDeletePartner(partnerId) {
+    if (!window.confirm(`Are you sure you want to permanently delete partner agency "${selectedPartner?.businessName || partnerId}"? This will deregister the agency franchise.`)) return;
+    adminClient.deletePartner(partnerId)
+      .then(() => {
+        onShowToast && onShowToast('✓ Agency partner franchise deleted successfully');
+        setSelectedPartner(null);
+        fetchPartnersList();
+      })
+      .catch(err => {
+        onShowToast && onShowToast(`Error deleting partner: ${err.message}`);
       });
   }
 
@@ -746,6 +761,27 @@ export function PartnersView({ onShowToast, onNavigate }) {
                   }}
                 >
                   <Lock size={14} /> Configure Settlement Mode
+                </button>
+
+                <button
+                  onClick={() => handleDeletePartner(selectedPartner.id)}
+                  style={{
+                    flex: '1 1 auto',
+                    padding: '8px 14px',
+                    borderRadius: 6,
+                    border: '1px solid #FECACA',
+                    backgroundColor: '#FEF2F2',
+                    color: '#DC2626',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6
+                  }}
+                >
+                  <Trash2 size={14} /> Delete Agency
                 </button>
               </div>
 

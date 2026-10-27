@@ -35,6 +35,13 @@ export async function connectPostgres() {
     if (!fs.existsSync(pgDataDir)) {
       fs.mkdirSync(pgDataDir, { recursive: true });
     }
+    // Clean up stale postmaster.pid lock file if present from prior sudden termination
+    const pidFile = path.join(pgDataDir, 'postmaster.pid');
+    if (fs.existsSync(pidFile)) {
+      try {
+        fs.unlinkSync(pidFile);
+      } catch {}
+    }
     console.log(`📂 Initializing embedded PostgreSQL (PGlite) with persistence at: ${pgDataDir}`);
     pgClient = new PGlite(pgDataDir);
     isNativePg = false;

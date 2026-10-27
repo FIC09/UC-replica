@@ -332,7 +332,7 @@ const workerApplicationSchema = new mongoose.Schema({
   },
   tradeName: {
     type: String,
-    required: true,
+    default: function() { return this.trade || 'General Home Services'; }
   },
   categories: [String],
   skills: [String],
@@ -346,7 +346,18 @@ const workerApplicationSchema = new mongoose.Schema({
   },
   locality: {
     type: String,
-    required: true,
+    default: 'Rayakottai Road',
+  },
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number],
+      default: [78.2138, 12.5186] // [lng, lat]
+    }
   },
   serviceAreas: [String],
   operationalHub: {
@@ -502,5 +513,8 @@ const workerApplicationSchema = new mongoose.Schema({
 }, {
   timestamps: true,
 });
+
+workerApplicationSchema.index({ location: '2dsphere' });
+workerApplicationSchema.index({ status: 1, dispatchState: 1 });
 
 export const WorkerApplication = mongoose.model('WorkerApplication', workerApplicationSchema);

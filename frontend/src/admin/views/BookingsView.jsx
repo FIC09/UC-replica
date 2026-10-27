@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { io } from 'socket.io-client';
 import { 
   Search, 
   Filter, 
@@ -23,6 +24,7 @@ import {
   RefreshCw,
   Printer,
   Shield,
+  ShieldCheck,
   ArrowUpDown,
   MessageSquare,
   FileText,
@@ -31,7 +33,13 @@ import {
   Check,
   Sparkles,
   HelpCircle,
-  Briefcase
+  Briefcase,
+  Timer,
+  Zap,
+  Radio,
+  Star,
+  Compass,
+  Trash2
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
 
@@ -82,6 +90,197 @@ export function BookingsView({ onShowToast, onNavigate }) {
   const [rescheduleData, setRescheduleData] = useState({ newDate: '', newSlot: '10:00 AM - 11:30 AM', reason: 'Customer requested schedule adjustment' });
   const [cancelData, setCancelData] = useState({ reason: 'Customer requested cancellation', feeCharged: 0 });
   const [refundData, setRefundData] = useState({ amount: '', reason: 'Service quality dispute' });
+
+  // Real-time Assignment Engine States
+  const [assignmentStats, setAssignmentStats] = useState({
+    totalUnassigned: 0,
+    pendingOffers: 0,
+    autoAssigned: 0,
+    manuallyAssigned: 0,
+    rejectedOrExpired: 0,
+    awaitingOwnerAttention: 0
+  });
+  const [manualAssignBooking, setManualAssignBooking] = useState(null);
+  const [eligiblePros, setEligiblePros] = useState([]);
+  const [loadingEligiblePros, setLoadingEligiblePros] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [offerTimeout, setOfferTimeout] = useState(120);
+  const [candidateSearch, setCandidateSearch] = useState('');
+  const [candidateFilter, setCandidateFilter] = useState('ALL');
+  const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  // 1-second countdown ticker for offer expirations
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Fetch assignment KPIs
+  const fetchAssignmentStats = () => {
+    adminClient.getAssignmentStats()
+      .then(res => {
+        if (res && res.stats) setAssignmentStats(res.stats);
+      })
+      .catch(err => console.warn('Assignment stats load note:', err.message));
+  };
+
+  useEffect(() => {
+    fetchAssignmentStats();
+  }, []);
+
+  // WebSocket real-time subscription for operations dispatch & offers
+  useEffect(() => {
+    const socket = io();
+    socket.emit('join:room', 'admin:operations');
+
+    const handleAssignmentEvent = (event) => {
+      if (!event) return;
+      const type = event.eventType || event.type;
+      const payload = event.payload || {};
+
+      if ([
+        'ASSIGNMENT_OFFERED',
+        'ASSIGNMENT_ACCEPTED',
+        'OFFER_REJECTED',
+        'OFFER_EXPIRED',
+        'ASSIGNMENT_FAILED',
+        'ASSIGNMENT_MODE_CHANGED',
+        'BOOKING_CREATED',
+        'BOOKING_CONFIRMED'
+      ].includes(type)) {
+        fetchBookingsList();
+        fetchAssignmentStats();
+
+        if (type === 'ASSIGNMENT_ACCEPTED') {
+          onShowToast && onShowToast(`✓ Professional accepted offer for booking ${event.entityId || payload.bookingId}!`);
+        } else if (type === 'OFFER_REJECTED') {
+          onShowToast && onShowToast(`⚠️ Professional declined offer for ${event.entityId || payload.bookingId}: ${payload.reason || 'declined'}`);
+        } else if (type === 'OFFER_EXPIRED') {
+          onShowToast && onShowToast(`⌛ Assignment offer expired for booking ${event.entityId || payload.bookingId}`);
+        } else if (type === 'ASSIGNMENT_FAILED') {
+          onShowToast && onShowToast(`🚨 Auto-assignment exhausted candidates for ${event.entityId || payload.bookingId}. Marked Awaiting Owner Attention.`);
+        } else if (type === 'ASSIGNMENT_OFFERED') {
+          onShowToast && onShowToast(`📡 Offer dispatched to ${payload.proName || 'candidate'} for booking ${event.entityId || payload.bookingId}`);
+        }
+      }
+    };
+
+    socket.on('realtime:event', handleAssignmentEvent);
+    socket.on('ASSIGNMENT_OFFERED', handleAssignmentEvent);
+    socket.on('ASSIGNMENT_ACCEPTED', handleAssignmentEvent);
+    socket.on('OFFER_REJECTED', handleAssignmentEvent);
+    socket.on('OFFER_EXPIRED', handleAssignmentEvent);
+    socket.on('ASSIGNMENT_FAILED', handleAssignmentEvent);
+    socket.on('ASSIGNMENT_MODE_CHANGED', handleAssignmentEvent);
+
+    return () => {
+      socket.off('realtime:event', handleAssignmentEvent);
+      socket.off('ASSIGNMENT_OFFERED', handleAssignmentEvent);
+      socket.off('ASSIGNMENT_ACCEPTED', handleAssignmentEvent);
+      socket.off('OFFER_REJECTED', handleAssignmentEvent);
+      socket.off('OFFER_EXPIRED', handleAssignmentEvent);
+      socket.off('ASSIGNMENT_FAILED', handleAssignmentEvent);
+      socket.off('ASSIGNMENT_MODE_CHANGED', handleAssignmentEvent);
+      socket.disconnect();
+    };
+  }, []);
+
+  const handleOpenAssignModal = (booking) => {
+    const b = booking || selectedBooking;
+    if (!b) return;
+    setManualAssignBooking(b);
+    setSelectedCandidate(null);
+    setCandidateSearch('');
+    setCandidateFilter('ALL');
+    setLoadingEligiblePros(true);
+    setOfferTimeout(120);
+
+    adminClient.getEligibleProfessionals(b.id || b.bookingReference)
+      .then(res => {
+        const raw = res.eligibleProfessionals || res.candidates || [];
+        const normalized = raw.map(c => {
+          const w = c.worker || {};
+          const proId = c.id || w.id || (w._id ? w._id.toString() : '');
+          const proName = c.name || w.applicantName || w.name || 'Professional';
+          return {
+            ...c,
+            id: proId,
+            name: proName,
+            phone: c.phone || w.phone || '',
+            trade: c.trade || w.tradeName || w.trade || 'Specialist',
+            skills: c.skills || w.skills || [],
+            rating: c.rating != null ? Number(c.rating) : (w.rating != null ? Number(w.rating) : 5.0),
+            isVerified: c.isVerified != null ? c.isVerified : (w.status === 'Approved'),
+            isOnline: c.isOnline != null ? c.isOnline : (w.dispatchState !== 'Offline'),
+            isAvailable: c.isAvailable != null ? c.isAvailable : (!c.isBusy),
+            isEligible: c.isEligible != null ? c.isEligible : true,
+            distanceKm: c.distanceKm != null ? c.distanceKm : 1.5,
+            score: c.score != null ? c.score : (c.totalScore || 80)
+          };
+        });
+        setEligiblePros(normalized);
+        setLoadingEligiblePros(false);
+      })
+      .catch(err => {
+        onShowToast && onShowToast(`Failed to load candidates: ${err.message}`);
+        setEligiblePros([]);
+        setLoadingEligiblePros(false);
+      });
+  };
+
+  const handleDispatchManualOffer = async () => {
+    if (!manualAssignBooking || !selectedCandidate) return;
+    setIsSubmittingOffer(true);
+    try {
+      const res = await adminClient.sendManualOffer(
+        manualAssignBooking.id || manualAssignBooking.bookingReference,
+        selectedCandidate.id,
+        offerTimeout
+      );
+      if (res.success) {
+        onShowToast && onShowToast(`✓ Offer sent to ${selectedCandidate.name}! (${offerTimeout}s timeout)`);
+        setManualAssignBooking(null);
+        setSelectedCandidate(null);
+        fetchBookingsList();
+        fetchAssignmentStats();
+      } else {
+        onShowToast && onShowToast(`Offer dispatch error: ${res.error || res.message}`);
+      }
+    } catch (err) {
+      onShowToast && onShowToast(`Failed to dispatch offer: ${err.message}`);
+    } finally {
+      setIsSubmittingOffer(false);
+    }
+  };
+
+  const handleSwitchMode = async (bookingId, currentMode) => {
+    const newMode = currentMode === 'AUTO' ? 'MANUAL' : 'AUTO';
+    try {
+      const res = await adminClient.switchAssignmentMode(bookingId, newMode);
+      if (res.success) {
+        onShowToast && onShowToast(`✓ Mode switched to ${newMode} for ${bookingId}`);
+        fetchBookingsList();
+        fetchAssignmentStats();
+      }
+    } catch (err) {
+      onShowToast && onShowToast(`Failed to change mode: ${err.message}`);
+    }
+  };
+
+  const handleRetryAutoAssign = async (bookingId) => {
+    try {
+      onShowToast && onShowToast(`🔄 Retrying auto-assignment for ${bookingId}...`);
+      const res = await adminClient.retryAutoAssign(bookingId);
+      if (res.success) {
+        onShowToast && onShowToast(`✓ Auto-assignment algorithm initiated for ${bookingId}`);
+        fetchBookingsList();
+        fetchAssignmentStats();
+      }
+    } catch (err) {
+      onShowToast && onShowToast(`Auto-assign retry error: ${err.message}`);
+    }
+  };
 
   // Fetch bookings with current filters
   const fetchBookingsList = () => {
@@ -248,6 +447,21 @@ export function BookingsView({ onShowToast, onNavigate }) {
       });
   }
 
+  // Handle Delete Booking
+  function handleDeleteBooking(bookingId) {
+    if (!window.confirm(`Are you sure you want to permanently delete booking ${bookingId}? This action will permanently remove the booking.`)) return;
+    adminClient.deleteBooking(bookingId)
+      .then(() => {
+        onShowToast && onShowToast(`✓ Booking ${bookingId} permanently deleted`);
+        setSelectedBooking(null);
+        fetchBookingsList();
+        fetchAssignmentStats();
+      })
+      .catch(err => {
+        onShowToast && onShowToast(`Error deleting booking: ${err.message}`);
+      });
+  }
+
   // Handle Internal Note
   function handleAddNoteSubmit(e) {
     e.preventDefault();
@@ -392,6 +606,219 @@ export function BookingsView({ onShowToast, onNavigate }) {
     );
   }
 
+  // Assignment Status Badge with dynamic live countdown
+  function renderAssignmentBadge(b) {
+    const status = b.assignmentStatus || (b.assignedPartner || b.assignedProfessional?.name ? 'ASSIGNED' : 'UNASSIGNED');
+    let remainingSecs = 0;
+    if (b.offerStatus === 'offered' && b.offerExpiry) {
+      remainingSecs = Math.max(0, Math.round((new Date(b.offerExpiry).getTime() - currentTime) / 1000));
+    }
+
+    if (status === 'ASSIGNED') {
+      const name = b.assignedPartner || b.assignedProfessional?.name || 'Verified Pro';
+      return (
+        <div>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '3px 8px',
+            borderRadius: 6,
+            backgroundColor: '#ECFDF5',
+            color: '#059669',
+            fontSize: 11,
+            fontWeight: 700,
+            border: '1px solid #A7F3D0'
+          }}>
+            <CheckCircle2 size={12} />
+            {name}
+          </span>
+          <div style={{ fontSize: 10, color: '#64748B', marginTop: 2 }}>
+            {b.assignedProfessional?.trade || 'Verified Technician'}
+          </div>
+        </div>
+      );
+    }
+
+    if (status === 'OFFERED' || (b.offerStatus === 'offered' && remainingSecs > 0)) {
+      const proName = b.offeredTo?.proName || 'Professional';
+      return (
+        <div>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 5,
+            padding: '3px 8px',
+            borderRadius: 6,
+            backgroundColor: '#F5F3FF',
+            color: '#7C3AED',
+            fontSize: 11,
+            fontWeight: 700,
+            border: '1px solid #DDD6FE'
+          }}>
+            <Timer size={12} className="animate-spin" />
+            Offered ({remainingSecs}s)
+          </span>
+          <div style={{ fontSize: 10, color: '#7C3AED', marginTop: 2, fontWeight: 600 }}>
+            To: {proName}
+          </div>
+        </div>
+      );
+    }
+
+    if (status === 'AWAITING_OWNER_ATTENTION') {
+      return (
+        <div>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '3px 8px',
+            borderRadius: 6,
+            backgroundColor: '#FEF2F2',
+            color: '#DC2626',
+            fontSize: 11,
+            fontWeight: 800,
+            border: '1px solid #FECACA',
+            boxShadow: '0 0 6px rgba(220, 38, 38, 0.25)'
+          }}>
+            <AlertCircle size={12} />
+            Needs Attention
+          </span>
+          <div style={{ fontSize: 10, color: '#DC2626', marginTop: 2 }}>
+            Exhausted • Manual Assign
+          </div>
+        </div>
+      );
+    }
+
+    if (status === 'REJECTED') {
+      return (
+        <div>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '3px 8px',
+            borderRadius: 6,
+            backgroundColor: '#FFF1F2',
+            color: '#BE123C',
+            fontSize: 11,
+            fontWeight: 700,
+            border: '1px solid #FECDD3'
+          }}>
+            <Ban size={12} />
+            Rejected
+          </span>
+          {b.offeredTo?.rejectionReason && (
+            <div style={{ fontSize: 10, color: '#64748B', marginTop: 2, maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={b.offeredTo.rejectionReason}>
+              "{b.offeredTo.rejectionReason}"
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    if (status === 'EXPIRED') {
+      return (
+        <div>
+          <span style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '3px 8px',
+            borderRadius: 6,
+            backgroundColor: '#FFFBEB',
+            color: '#D97706',
+            fontSize: 11,
+            fontWeight: 700,
+            border: '1px solid #FDE68A'
+          }}>
+            <Clock size={12} />
+            Expired
+          </span>
+          <div style={{ fontSize: 10, color: '#B45309', marginTop: 2 }}>
+            Offer timed out
+          </div>
+        </div>
+      );
+    }
+
+    // Default: UNASSIGNED
+    return (
+      <span style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '3px 8px',
+        borderRadius: 6,
+        backgroundColor: '#FEF2F2',
+        color: '#DC2626',
+        fontSize: 11,
+        fontWeight: 700,
+        border: '1px solid #FECACA'
+      }}>
+        <AlertTriangle size={12} />
+        Unassigned
+      </span>
+    );
+  }
+
+  // Assignment Mode Pill (Clickable toggle between AUTO and MANUAL)
+  function renderModePill(b) {
+    const mode = b.assignmentMode || 'AUTO';
+    const isAuto = mode === 'AUTO';
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleSwitchMode(b.id || b.bookingReference, mode);
+        }}
+        title={`Click to switch to ${isAuto ? 'MANUAL' : 'AUTO'} assignment mode`}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '3px 8px',
+          borderRadius: 12,
+          fontSize: 10.5,
+          fontWeight: 800,
+          border: isAuto ? '1px solid #BFDBFE' : '1px solid #DDD6FE',
+          backgroundColor: isAuto ? '#EFF6FF' : '#F5F3FF',
+          color: isAuto ? '#1D4ED8' : '#6D28D9',
+          cursor: 'pointer',
+          transition: 'all 0.15s ease'
+        }}
+      >
+        <Zap size={11} fill={isAuto ? '#1D4ED8' : 'none'} />
+        {mode}
+      </button>
+    );
+  }
+
+  // Filter candidates for the manual assign modal
+  const filteredCandidates = useMemo(() => {
+    let list = [...eligiblePros];
+    if (candidateSearch.trim()) {
+      const q = candidateSearch.toLowerCase();
+      list = list.filter(p => 
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.phone && p.phone.includes(q)) ||
+        (p.trade && p.trade.toLowerCase().includes(q)) ||
+        (p.skills && p.skills.some(s => s.toLowerCase().includes(q)))
+      );
+    }
+    if (candidateFilter === 'AVAILABLE') {
+      list = list.filter(p => p.isAvailable && p.isOnline);
+    } else if (candidateFilter === 'TOP_RATED') {
+      list = list.filter(p => (p.rating || 0) >= 4.5);
+    } else if (candidateFilter === 'CLOSEST') {
+      list.sort((a, b) => (a.distanceKm ?? 999) - (b.distanceKm ?? 999));
+    }
+    return list;
+  }, [eligiblePros, candidateSearch, candidateFilter]);
+
   // Check possible next lifecycle transitions
   const currentTransitions = selectedBooking ? (VALID_TRANSITIONS[selectedBooking.status] || []) : [];
 
@@ -410,6 +837,239 @@ export function BookingsView({ onShowToast, onNavigate }) {
       </div>
 
       <div className="admin-page-body">
+        {/* Assignment & Dispatch KPI Metrics Summary Cards */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: 12,
+          marginBottom: 16
+        }}>
+          {/* 1. Total Unassigned */}
+          <div
+            onClick={() => { setAssignedFilter('unassigned'); setPage(1); }}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 10,
+              padding: '14px 16px',
+              border: assignedFilter === 'unassigned' ? '2px solid #F59E0B' : '1px solid #E2E8F0',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+            }}
+          >
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: 8,
+              backgroundColor: '#FEF3C7',
+              color: '#D97706',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <AlertTriangle size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+                {assignmentStats.totalUnassigned || 0}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginTop: 3 }}>
+                Unassigned
+              </div>
+              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
+                Needs pro dispatch
+              </div>
+            </div>
+          </div>
+
+          {/* 2. Pending Offers */}
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 10,
+            padding: '14px 16px',
+            border: '1px solid #E2E8F0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: 8,
+              backgroundColor: '#F5F3FF',
+              color: '#7C3AED',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Timer size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+                {assignmentStats.pendingOffers || 0}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginTop: 3 }}>
+                Pending Offers
+              </div>
+              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
+                Awaiting pro accept
+              </div>
+            </div>
+          </div>
+
+          {/* 3. Auto-Assigned */}
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 10,
+            padding: '14px 16px',
+            border: '1px solid #E2E8F0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: 8,
+              backgroundColor: '#EFF6FF',
+              color: '#2563EB',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Zap size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+                {assignmentStats.autoAssigned || 0}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginTop: 3 }}>
+                Auto-Assigned
+              </div>
+              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
+                Matched via algorithm
+              </div>
+            </div>
+          </div>
+
+          {/* 4. Manually Assigned */}
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 10,
+            padding: '14px 16px',
+            border: '1px solid #E2E8F0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: 8,
+              backgroundColor: '#ECFDF5',
+              color: '#059669',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <UserCheck size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+                {assignmentStats.manuallyAssigned || 0}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginTop: 3 }}>
+                Manual Assigned
+              </div>
+              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
+                Owner dispatched
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Rejected / Expired */}
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 10,
+            padding: '14px 16px',
+            border: '1px solid #E2E8F0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: 8,
+              backgroundColor: '#FFF1F2',
+              color: '#BE123C',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <Ban size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+                {assignmentStats.rejectedOrExpired || 0}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginTop: 3 }}>
+                Rejected / Expired
+              </div>
+              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
+                Declined or timed out
+              </div>
+            </div>
+          </div>
+
+          {/* 6. Awaiting Owner Attention */}
+          <div style={{
+            backgroundColor: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '#FEF2F2' : '#FFFFFF',
+            borderRadius: 10,
+            padding: '14px 16px',
+            border: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '1.5px solid #F87171' : '1px solid #E2E8F0',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            boxShadow: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '0 0 10px rgba(239, 68, 68, 0.15)' : '0 1px 3px rgba(0,0,0,0.02)'
+          }}>
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: 8,
+              backgroundColor: '#FEE2E2',
+              color: '#DC2626',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              <AlertCircle size={18} />
+            </div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '#DC2626' : '#0F172A', lineHeight: 1 }}>
+                {assignmentStats.awaitingOwnerAttention || 0}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '#DC2626' : '#475569', marginTop: 3 }}>
+                Awaiting Attention
+              </div>
+              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
+                Action required
+              </div>
+            </div>
+          </div>
+        </div>
         {/* Comprehensive Filter Bar */}
       <div style={{
         backgroundColor: '#FFFFFF',
@@ -603,7 +1263,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Booking Ref</th>
                 <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Customer</th>
                 <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Service & Category</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Professional</th>
+                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Mode</th>
+                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Assignment Status</th>
                 <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Partner Agency</th>
                 <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>City & Zone</th>
                 <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Scheduled Slot</th>
@@ -616,7 +1277,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={11} style={{ textAlign: 'center', padding: '40px', color: '#64748B' }}>
+                  <td colSpan={12} style={{ textAlign: 'center', padding: '40px', color: '#64748B' }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                       <RefreshCw size={16} className="animate-spin" />
                       Loading bookings records...
@@ -625,7 +1286,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 </tr>
               ) : bookings.length === 0 ? (
                 <tr>
-                  <td colSpan={11} style={{ textAlign: 'center', padding: '48px 20px', color: '#64748B' }}>
+                  <td colSpan={12} style={{ textAlign: 'center', padding: '48px 20px', color: '#64748B' }}>
                     <AlertCircle size={28} color="#94A3B8" style={{ marginBottom: 8, display: 'inline-block' }} />
                     <div style={{ fontWeight: 600, color: '#334155' }}>No bookings match the selected criteria</div>
                     <div style={{ fontSize: 12, marginTop: 4, marginBottom: 14 }}>Try clearing search keywords or filter dropdowns.</div>
@@ -660,9 +1321,6 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 </tr>
               ) : (
                 bookings.map(b => {
-                  const proName = b.assignedPartner || b.assignedProfessional?.name;
-                  const isUnassigned = !proName;
-
                   return (
                     <tr
                       key={b.id || b.bookingReference}
@@ -699,29 +1357,14 @@ export function BookingsView({ onShowToast, onNavigate }) {
                         </div>
                       </td>
 
-                      {/* Professional */}
+                      {/* Assignment Mode */}
                       <td style={{ padding: '14px 16px' }}>
-                        {isUnassigned ? (
-                          <span style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            padding: '3px 8px',
-                            borderRadius: 6,
-                            backgroundColor: '#FEF2F2',
-                            color: '#DC2626',
-                            fontSize: 11,
-                            fontWeight: 600
-                          }}>
-                            <AlertTriangle size={12} />
-                            Unassigned
-                          </span>
-                        ) : (
-                          <div>
-                            <div style={{ fontWeight: 600, color: '#0F172A' }}>{proName}</div>
-                            <div style={{ fontSize: 11, color: '#64748B' }}>{b.assignedProfessional?.trade || 'Verified Pro'}</div>
-                          </div>
-                        )}
+                        {renderModePill(b)}
+                      </td>
+
+                      {/* Assignment Status */}
+                      <td style={{ padding: '14px 16px' }}>
+                        {renderAssignmentBadge(b)}
                       </td>
 
                       {/* Partner Agency */}
@@ -761,6 +1404,65 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       {/* Actions */}
                       <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                          {/* Visible Assign Pro button for eligible bookings */}
+                          {((!b.assignedPartner && !b.assignedProfessional?.name) || ['UNASSIGNED', 'OFFERED', 'EXPIRED', 'REJECTED', 'AWAITING_OWNER_ATTENTION'].includes(b.assignmentStatus)) && b.status !== 'Completed' && b.status !== 'Cancelled' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenAssignModal(b);
+                              }}
+                              title="Assign Professional"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                backgroundColor: '#7C3AED',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: 6,
+                                padding: '6px 11px',
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                boxShadow: '0 2px 4px rgba(124, 58, 237, 0.25)',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              <UserCheck size={13} />
+                              Assign Pro
+                            </button>
+                          )}
+
+                          {/* Retry Auto-Assign button */}
+                          {b.assignmentMode === 'AUTO' && b.status !== 'Assigned' && b.status !== 'Completed' && b.status !== 'Cancelled' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRetryAutoAssign(b.id || b.bookingReference);
+                              }}
+                              title="Run automatic assignment engine"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                backgroundColor: '#EFF6FF',
+                                color: '#2563EB',
+                                border: '1px solid #BFDBFE',
+                                borderRadius: 6,
+                                padding: '6px 9px',
+                                fontSize: 11.5,
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              <RotateCcw size={11} />
+                              Auto
+                            </button>
+                          )}
+
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1017,8 +1719,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button
                   onClick={() => {
-                    setSelectedProForAssign(selectedBooking.assignedProfessional?.id || '');
-                    setShowAssignModal(true);
+                    handleOpenAssignModal(selectedBooking);
                   }}
                   style={{
                     flex: '1 1 auto',
@@ -1109,6 +1810,27 @@ export function BookingsView({ onShowToast, onNavigate }) {
                     <Ban size={14} /> Cancel Booking
                   </button>
                 )}
+
+                <button
+                  onClick={() => handleDeleteBooking(selectedBooking.id || selectedBooking.bookingReference)}
+                  style={{
+                    flex: '1 1 auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    border: '1px solid #FECACA',
+                    backgroundColor: '#FEF2F2',
+                    color: '#DC2626',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Trash2 size={14} /> Delete Booking
+                </button>
               </div>
 
               {/* Customer and Service Address */}
@@ -1229,7 +1951,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       ⚠️ No technician assigned yet. Overdue dispatch slot alert.
                     </span>
                     <button
-                      onClick={() => setShowAssignModal(true)}
+                      onClick={() => handleOpenAssignModal(selectedBooking)}
                       style={{
                         backgroundColor: '#DC2626',
                         color: '#FFFFFF',
@@ -1469,133 +2191,455 @@ export function BookingsView({ onShowToast, onNavigate }) {
       )}
 
       {/* ======================================================== */}
-      {/* 2. ASSIGN / REASSIGN PROFESSIONAL MODAL                   */}
+      {/* 2. REAL MANUAL PROFESSIONAL ASSIGNMENT MODAL              */}
       {/* ======================================================== */}
-      {showAssignModal && selectedBooking && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.5)',
-          zIndex: 1100,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 20
-        }}>
+      {(manualAssignBooking || (showAssignModal && selectedBooking)) && (() => {
+        const activeModalBooking = manualAssignBooking || selectedBooking;
+        return (
           <div style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 12,
-            width: '100%',
-            maxWidth: 580,
-            padding: '24px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
-            maxHeight: '90vh',
-            overflowY: 'auto'
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            zIndex: 1100,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            backdropFilter: 'blur(4px)'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', margin: 0 }}>
-                Assign Qualified Professional to {selectedBooking.id}
-              </h3>
-              <X size={18} color="#64748B" style={{ cursor: 'pointer' }} onClick={() => setShowAssignModal(false)} />
-            </div>
+            <div style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              width: '100%',
+              maxWidth: 720,
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              maxHeight: '92vh',
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden'
+            }}>
+              {/* Modal Header */}
+              <div style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid #E2E8F0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                backgroundColor: '#F8FAFC'
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                      Assign Professional to {activeModalBooking.id || activeModalBooking.bookingReference}
+                    </h3>
+                    <span style={{
+                      backgroundColor: '#EFF6FF',
+                      color: '#1D4ED8',
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 12,
+                      border: '1px solid #BFDBFE'
+                    }}>
+                      {activeModalBooking.serviceCategory || 'All Services'}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, color: '#64748B', marginTop: 4, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <span>Customer: <strong style={{ color: '#0F172A' }}>{activeModalBooking.userName || activeModalBooking.customerName}</strong></span>
+                    <span>•</span>
+                    <span>Slot: <strong style={{ color: '#0F172A' }}>{activeModalBooking.slot}</strong></span>
+                    <span>•</span>
+                    <span>Location: <strong style={{ color: '#0F172A' }}>{activeModalBooking.serviceZone || activeModalBooking.city}</strong></span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setManualAssignBooking(null);
+                    setShowAssignModal(false);
+                    setSelectedCandidate(null);
+                  }}
+                  style={{
+                    border: 'none',
+                    background: '#E2E8F0',
+                    borderRadius: '50%',
+                    width: 28,
+                    height: 28,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#64748B'
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
 
-            <p style={{ fontSize: 12, color: '#64748B', marginBottom: 16 }}>
-              City: <strong>{selectedBooking.city}</strong> • Slot: <strong>{selectedBooking.slot}</strong> • Service: <strong>{selectedBooking.serviceName}</strong>
-            </p>
+              {/* Offer Expiration Configuration Row */}
+              <div style={{
+                padding: '12px 24px',
+                backgroundColor: '#FAF5FF',
+                borderBottom: '1px solid #E9D5FF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 10
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Timer size={16} color="#7C3AED" />
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#581C87' }}>
+                    Offer Expiration Countdown:
+                  </span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {[60, 90, 120, 180].map(secs => (
+                    <button
+                      key={secs}
+                      type="button"
+                      onClick={() => setOfferTimeout(secs)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: offerTimeout === secs ? '1.5px solid #7C3AED' : '1px solid #CBD5E1',
+                        backgroundColor: offerTimeout === secs ? '#7C3AED' : '#FFFFFF',
+                        color: offerTimeout === secs ? '#FFFFFF' : '#475569',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {secs}s {secs === 120 ? '(Default)' : ''}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 6 }}>
-                Select Active Professional:
-              </label>
+              {/* Search & Filter Toolbar inside Modal */}
+              <div style={{
+                padding: '14px 24px',
+                borderBottom: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                flexWrap: 'wrap'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  backgroundColor: '#F8FAFC',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: 8,
+                  padding: '6px 12px',
+                  flex: '1 1 240px'
+                }}>
+                  <Search size={14} color="#64748B" />
+                  <input
+                    type="text"
+                    placeholder="Search candidate by name, skills, phone..."
+                    value={candidateSearch}
+                    onChange={e => setCandidateSearch(e.target.value)}
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      backgroundColor: 'transparent',
+                      width: '100%',
+                      fontSize: 12.5,
+                      color: '#0F172A'
+                    }}
+                  />
+                  {candidateSearch && (
+                    <X size={12} color="#94A3B8" style={{ cursor: 'pointer' }} onClick={() => setCandidateSearch('')} />
+                  )}
+                </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 260, overflowY: 'auto' }}>
-                {professionals
-                  .filter(p => !p.city || p.city.toLowerCase() === (selectedBooking.city || 'mumbai').toLowerCase())
-                  .map(p => {
-                    const isSelected = selectedProForAssign === (p.id || p._id);
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {[
+                    { id: 'ALL', label: `All (${eligiblePros.length})` },
+                    { id: 'AVAILABLE', label: `Online & Available (${eligiblePros.filter(p => p.isOnline && p.isAvailable).length})` },
+                    { id: 'TOP_RATED', label: `Top Rated (⭐ 4.5+)` },
+                    { id: 'CLOSEST', label: `Closest Distance` }
+                  ].map(f => (
+                    <button
+                      key={f.id}
+                      type="button"
+                      onClick={() => setCandidateFilter(f.id)}
+                      style={{
+                        padding: '5px 10px',
+                        borderRadius: 6,
+                        border: candidateFilter === f.id ? '1px solid #6E42E5' : '1px solid #E2E8F0',
+                        backgroundColor: candidateFilter === f.id ? '#F5F3FF' : '#FFFFFF',
+                        color: candidateFilter === f.id ? '#6E42E5' : '#64748B',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Eligible Candidates Scrollable List */}
+              <div style={{
+                padding: '16px 24px',
+                overflowY: 'auto',
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+                backgroundColor: '#F8FAFC'
+              }}>
+                {loadingEligiblePros ? (
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748B' }}>
+                    <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px auto', display: 'block', color: '#7C3AED' }} />
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>Evaluating qualified nearby professionals...</div>
+                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>Calculating real GeoJSON road distances, shift availability &amp; ratings</div>
+                  </div>
+                ) : filteredCandidates.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
+                    <AlertCircle size={28} color="#94A3B8" style={{ margin: '0 auto 8px auto', display: 'block' }} />
+                    <div style={{ fontWeight: 700, color: '#334155' }}>No qualified candidates match current filter</div>
+                    <div style={{ fontSize: 12, marginTop: 4 }}>Try clearing search keywords or switching filters to "All".</div>
+                  </div>
+                ) : (
+                  filteredCandidates.map(candidate => {
+                    const isSelected = selectedCandidate?.id === candidate.id;
+                    const canAssign = candidate.isEligible && candidate.isOnline && candidate.isAvailable;
+
                     return (
                       <div
-                        key={p.id || p._id}
-                        onClick={() => setSelectedProForAssign(p.id || p._id)}
+                        key={candidate.id}
+                        onClick={() => {
+                          if (canAssign) {
+                            setSelectedCandidate(candidate);
+                          }
+                        }}
                         style={{
-                          padding: '12px 14px',
-                          borderRadius: 8,
-                          border: isSelected ? '2px solid #6E42E5' : '1px solid #CBD5E1',
-                          backgroundColor: isSelected ? '#F5F3FF' : '#FFFFFF',
-                          cursor: 'pointer',
+                          backgroundColor: '#FFFFFF',
+                          borderRadius: 10,
+                          border: isSelected ? '2px solid #7C3AED' : '1px solid #E2E8F0',
+                          padding: '14px 16px',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'space-between'
+                          justifyContent: 'space-between',
+                          gap: 14,
+                          cursor: canAssign ? 'pointer' : 'not-allowed',
+                          opacity: canAssign ? 1 : 0.65,
+                          boxShadow: isSelected ? '0 4px 12px rgba(124, 58, 237, 0.15)' : '0 1px 3px rgba(0,0,0,0.02)',
+                          transition: 'all 0.15s ease'
                         }}
                       >
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>
-                            {p.applicantName || p.name}
+                        {/* Left: Avatar, Name, Verification, Skills */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            width: 42,
+                            height: 42,
+                            borderRadius: '50%',
+                            backgroundColor: isSelected ? '#7C3AED' : '#F1F5F9',
+                            color: isSelected ? '#FFFFFF' : '#475569',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 800,
+                            fontSize: 15,
+                            flexShrink: 0
+                          }}>
+                            {candidate.name.charAt(0)}
                           </div>
-                          <div style={{ fontSize: 11, color: '#64748B' }}>
-                            {p.trade || p.tradeName || 'Specialist'} • Rating: ⭐ {p.rating || 4.9} • Hub: {p.locality || p.city}
+
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {candidate.name}
+                              </span>
+                              {candidate.isVerified && (
+                                <span title="Verified Professional" style={{ display: 'inline-flex' }}>
+                                  <ShieldCheck size={14} color="#0284C7" />
+                                </span>
+                              )}
+                              <span style={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: 10,
+                                backgroundColor: candidate.isOnline ? '#DCFCE7' : '#F1F5F9',
+                                color: candidate.isOnline ? '#15803D' : '#64748B',
+                                border: `1px solid ${candidate.isOnline ? '#BBF7D0' : '#E2E8F0'}`
+                              }}>
+                                {candidate.isOnline ? '● Online' : '○ Offline'}
+                              </span>
+                              <span style={{
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                padding: '1px 6px',
+                                borderRadius: 10,
+                                backgroundColor: candidate.isAvailable ? '#EFF6FF' : '#FEF3C7',
+                                color: candidate.isAvailable ? '#1D4ED8' : '#B45309',
+                                border: `1px solid ${candidate.isAvailable ? '#BFDBFE' : '#FDE68A'}`
+                              }}>
+                                {candidate.isAvailable ? 'Available' : `Busy (${candidate.activeBookingsCount} active)`}
+                              </span>
+                            </div>
+
+                            {/* Skills Tags */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: '#6E42E5' }}>
+                                {candidate.trade || 'Specialist'}:
+                              </span>
+                              {(candidate.skills || []).slice(0, 3).map((sk, idx) => (
+                                <span key={idx} style={{
+                                  fontSize: 10.5,
+                                  backgroundColor: '#F1F5F9',
+                                  color: '#334155',
+                                  padding: '1px 6px',
+                                  borderRadius: 4
+                                }}>
+                                  {sk}
+                                </span>
+                              ))}
+                            </div>
+
+                            {/* Ineligibility Warning if cannot assign */}
+                            {!canAssign && (
+                              <div style={{
+                                fontSize: 11,
+                                fontWeight: 600,
+                                color: '#DC2626',
+                                marginTop: 4,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4
+                              }}>
+                                <Ban size={12} />
+                                Ineligible: {(candidate.ineligibilityReasons || []).join(', ') || (!candidate.isOnline ? 'Technician is currently offline' : 'Busy with conflicting job')}
+                              </div>
+                            )}
                           </div>
                         </div>
 
-                        {isSelected && <CheckCircle2 size={18} color="#6E42E5" />}
+                        {/* Right: Real GeoJSON Distance, ETA, Rating, Match Score, Selection */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 16, textAlign: 'right', flexShrink: 0 }}>
+                          <div>
+                            <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                              <MapPin size={12} color="#6E42E5" />
+                              {candidate.distanceKm != null ? `${candidate.distanceKm} km` : 'Near'} • ~{candidate.etaMinutes || 15} mins ETA
+                            </div>
+                            <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: '#F59E0B', fontWeight: 700 }}>
+                                <Star size={11} fill="#F59E0B" /> {candidate.rating || '5.0'}
+                              </span>
+                              <span>•</span>
+                              <span>{candidate.completedJobs || 0} jobs</span>
+                              <span>•</span>
+                              <span style={{ color: '#059669', fontWeight: 700 }}>{candidate.score || 85}% match</span>
+                            </div>
+                          </div>
+
+                          {/* Select Radio / Checkmark */}
+                          <div style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: '50%',
+                            border: isSelected ? '2px solid #7C3AED' : '2px solid #CBD5E1',
+                            backgroundColor: isSelected ? '#7C3AED' : '#FFFFFF',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#FFFFFF'
+                          }}>
+                            {isSelected && <Check size={14} />}
+                          </div>
+                        </div>
                       </div>
                     );
-                  })}
+                  })
+                )}
+              </div>
+
+              {/* Modal Footer Actions */}
+              <div style={{
+                padding: '16px 24px',
+                borderTop: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: '#FFFFFF'
+              }}>
+                <div style={{ fontSize: 12, color: '#64748B' }}>
+                  {selectedCandidate ? (
+                    <span>Selected: <strong style={{ color: '#7C3AED' }}>{selectedCandidate.name}</strong> • Offer expires in {offerTimeout}s</span>
+                  ) : (
+                    <span>Select an eligible professional from the verified candidates above</span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setManualAssignBooking(null);
+                      setShowAssignModal(false);
+                      setSelectedCandidate(null);
+                    }}
+                    style={{
+                      padding: '8px 16px',
+                      borderRadius: 8,
+                      border: '1px solid #CBD5E1',
+                      backgroundColor: '#FFFFFF',
+                      color: '#475569',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!selectedCandidate || isSubmittingOffer}
+                    onClick={handleDispatchManualOffer}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '9px 20px',
+                      borderRadius: 8,
+                      border: 'none',
+                      backgroundColor: selectedCandidate && !isSubmittingOffer ? '#7C3AED' : '#CBD5E1',
+                      color: '#FFFFFF',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: selectedCandidate && !isSubmittingOffer ? 'pointer' : 'not-allowed',
+                      boxShadow: selectedCandidate ? '0 4px 10px rgba(124, 58, 237, 0.25)' : 'none'
+                    }}
+                  >
+                    {isSubmittingOffer ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        Dispatching Offer...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={14} />
+                        Dispatch Manual Offer ({offerTimeout}s)
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-
-            {/* Overlap & Concurrency Guard Banner */}
-            <div style={{
-              padding: '10px 12px',
-              borderRadius: 8,
-              backgroundColor: '#EFF6FF',
-              border: '1px solid #BFDBFE',
-              fontSize: 11,
-              color: '#1E40AF',
-              marginBottom: 20
-            }}>
-              <strong>Concurrency Protection:</strong> Checks working hours, service area coverage, active leaves, and enforces a mandatory 30-minute buffer between appointments to prevent double-booking.
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button
-                onClick={() => setShowAssignModal(false)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 6,
-                  border: '1px solid #CBD5E1',
-                  backgroundColor: '#FFFFFF',
-                  color: '#475569',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                disabled={!selectedProForAssign}
-                onClick={handleAssignProSubmit}
-                style={{
-                  padding: '8px 18px',
-                  borderRadius: 6,
-                  border: 'none',
-                  backgroundColor: selectedProForAssign ? '#6E42E5' : '#CBD5E1',
-                  color: '#FFFFFF',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: selectedProForAssign ? 'pointer' : 'not-allowed'
-                }}
-              >
-                Confirm Assignment
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ======================================================== */}
       {/* 3. RESCHEDULE BOOKING MODAL                               */}

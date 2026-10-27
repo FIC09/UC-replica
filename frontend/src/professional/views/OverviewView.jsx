@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
-import { professionalClient } from '../professionalClient';
+import { professionalClient, getInitials, getPartnerTier } from '../professionalClient';
 import {
   ShieldAlert,
   PhoneCall,
@@ -199,11 +199,17 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
 
   const nextJob = dashboardData?.nextAppointment || appointments.find(j => j.status !== 'Completed') || appointments[0];
   const earnings = dashboardData?.earningsSummary || {
-    todayEarnings: 1840,
-    weeklyEarnings: 8680,
-    walletBalance: profile?.walletBalance || 15450,
+    todayEarnings: 0,
+    weeklyEarnings: 0,
+    walletBalance: profile?.walletBalance != null ? profile.walletBalance : 0,
     platformCommissionRate: 20
   };
+  const currentTier = getPartnerTier(profile);
+  const tierIcon = currentTier.includes('Diamond') ? '💎' : currentTier.includes('Platinum') ? '🏆' : currentTier.includes('Gold') ? '🥇' : currentTier.includes('Silver') ? '🥈' : '⭐';
+  const isExperienced = (profile?.jobsCompleted || 0) >= 10;
+  const targetJobs = isExperienced ? 45 : 10;
+  const currentCompleted = isExperienced ? Math.min(targetJobs, (profile?.jobsCompleted % targetJobs) || 42) : (profile?.jobsCompleted || 0);
+  const percentProgress = Math.min(100, Math.round((currentCompleted / targetJobs) * 100));
   const payout = dashboardData?.upcomingPayout || {
     batchId: 'BATCH-W43',
     scheduledDate: 'Friday, 24 Oct 2026',
@@ -354,7 +360,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               border: '2.5px solid rgba(255,255,255,0.6)',
               boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
             }}>
-              {profile?.avatar || 'VS'}
+              {getInitials(profile?.applicantName || profile?.name, profile?.avatar)}
             </div>
             {/* Duty dot */}
             <span style={{
@@ -373,8 +379,8 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
           <div>
             {/* Name & Tier Badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
-                {profile?.applicantName || 'Vikram Salvi'}
+              <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: '-0.02em', textTransform: 'capitalize' }}>
+                {profile?.applicantName || profile?.name || 'Professional'}
               </h1>
               <span style={{
                 background: 'rgba(255, 255, 255, 0.22)',
@@ -389,14 +395,14 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 alignItems: 'center',
                 gap: 5
               }}>
-                <span>💎</span>
-                {profile?.tier || 'Diamond Pro Partner (Level 5)'}
+                <span>{tierIcon}</span>
+                {currentTier}
               </span>
             </div>
 
             {/* Trade & Operational Territory */}
             <div style={{ fontSize: 14.5, opacity: 0.95, marginTop: 4, fontWeight: 500 }}>
-              {profile?.trade || 'Master AC Specialist & Electrician'} • {profile?.locality || 'Krishnagiri Town, Tamil Nadu'}
+              {profile?.tradeName || profile?.trade || "Women's Salon"} • {profile?.locality || 'Krishnagiri Town, Tamil Nadu'}
             </div>
 
             {/* Operational Chips Row */}
@@ -428,7 +434,9 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 fontSize: 12,
                 fontWeight: 600
               }}>
-                ⭐ 4.96 (184 Reviews)
+                {profile?.jobsCompleted > 0 && profile?.rating 
+                  ? `⭐ ${Number(profile.rating).toFixed(1)} (${profile.jobsCompleted} Reviews)` 
+                  : '⭐ New Partner (0 Reviews)'}
               </span>
 
               <span style={{
@@ -438,7 +446,9 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 fontSize: 12,
                 fontWeight: 600
               }}>
-                🎯 100% On-Time SLA
+                {profile?.onTimeArrivalRate 
+                  ? `🎯 ${profile.onTimeArrivalRate}% On-Time SLA` 
+                  : (profile?.jobsCompleted > 0 ? '🎯 100% On-Time SLA' : '🎯 New Partner • 100% Target')}
               </span>
 
               <span style={{
@@ -659,7 +669,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             </span>
           </div>
           <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
-            ₹{earnings.todayEarnings?.toLocaleString('en-IN') || 0}
+            ₹{(earnings.todayEarnings != null ? earnings.todayEarnings : 0).toLocaleString('en-IN')}
           </div>
           <div style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
             <span>{dashboardData?.completedJobsTodayCount || 0} jobs completed</span>
@@ -692,7 +702,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             </span>
           </div>
           <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
-            ₹{earnings.walletBalance?.toLocaleString('en-IN') || '15,450'}
+            ₹{(earnings.walletBalance != null ? earnings.walletBalance : (profile?.walletBalance != null ? profile.walletBalance : 0)).toLocaleString('en-IN')}
           </div>
           <div style={{ fontSize: 12, color: '#2563EB', marginTop: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
             <span>Instant Withdrawal Available →</span>
@@ -1290,26 +1300,30 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               }}>
                 PARTNER CLUB
               </span>
-              <span style={{ fontSize: 24 }}>💎</span>
+              <span style={{ fontSize: 24 }}>{tierIcon}</span>
             </div>
 
             <h3 style={{ fontSize: 19, fontWeight: 800, margin: '14px 0 6px 0', letterSpacing: '-0.01em' }}>
-              Diamond Pro Partner (Level 5)
+              {currentTier}
             </h3>
             <p style={{ fontSize: 13, opacity: 0.85, margin: '0 0 18px 0', lineHeight: 1.45 }}>
-              Top 1% rated technician in Mumbai West. Priority dispatches and zero platform commission penalty active.
+              {isExperienced
+                ? `Top tier verified specialist in ${profile?.locality || 'Krishnagiri Town'}. Priority dispatches and zero platform commission penalty active.`
+                : `Welcome to Forge India Connect! Complete your first 10 quality jobs in ${profile?.locality || 'Krishnagiri Town'} to unlock Silver Tier and lower platform commission rates.`}
             </p>
 
             <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: '14px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 8 }}>
-                <span style={{ opacity: 0.9 }}>Monthly Bonus Target</span>
-                <strong>42 / 45 Jobs (93%)</strong>
+                <span style={{ opacity: 0.9 }}>{isExperienced ? 'Monthly Bonus Target' : 'First Milestone Progress'}</span>
+                <strong>{currentCompleted} / {targetJobs} Jobs ({percentProgress}%)</strong>
               </div>
               <div style={{ background: 'rgba(255,255,255,0.2)', height: 7, borderRadius: 4, overflow: 'hidden' }}>
-                <div style={{ background: '#34D399', width: '93%', height: '100%', borderRadius: 4 }} />
+                <div style={{ background: '#34D399', width: `${percentProgress}%`, height: '100%', borderRadius: 4 }} />
               </div>
               <div style={{ fontSize: 11.5, opacity: 0.85, marginTop: 8 }}>
-                🎯 Just 3 more jobs by 31 Oct to unlock ₹5,000 monthly cash bonus!
+                {isExperienced
+                  ? `🎯 Just ${Math.max(1, targetJobs - currentCompleted)} more jobs to unlock monthly performance cash bonus!`
+                  : `🎯 Complete ${Math.max(1, targetJobs - currentCompleted)} more jobs to unlock Silver Tier Partner perks!`}
               </div>
             </div>
 

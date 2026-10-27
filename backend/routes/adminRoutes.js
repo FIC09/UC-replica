@@ -52,13 +52,21 @@ import {
   cancelBooking,
   addInternalNote,
   initiateBookingRefund,
-  getBookingInvoice
+  getBookingInvoice,
+  getEligibleProfessionals,
+  manualAssignOffer,
+  retryAutoAssign,
+  switchAssignmentMode,
+  getAssignmentManagementStats,
+  deleteBooking
 } from '../controllers/adminBookingController.js';
 
 import {
   getCustomers,
   getCustomerDetail,
+  createCustomer,
   updateCustomerStatus,
+  deleteCustomer,
   anonymiseCustomerAccount,
   addCustomerNote
 } from '../controllers/adminCustomerController.js';
@@ -66,7 +74,9 @@ import {
 import {
   getProfessionals,
   getProfessionalDetail,
+  createProfessional,
   updateProfessionalStatus,
+  deleteProfessional,
   verifyDocument,
   verifyBankDetails,
   assignSkillsAndCoverage,
@@ -80,6 +90,7 @@ import {
   getPartnerDetail,
   createPartner,
   updatePartnerStatus,
+  deletePartner,
   verifyPartnerDocument,
   updateSettlementMode,
   addPartnerNote
@@ -164,10 +175,15 @@ router.post('/auth/password-reset', adminPasswordReset);
 router.get('/overview', requireAdminAuth, requirePermission('overview', 'view'), getOverviewDashboardMetrics);
 
 // ==========================================
-// 3. BOOKINGS MANAGEMENT (Full Lifecycle, Overlap Guard, Invoice)
+// 3. BOOKINGS MANAGEMENT (Full Lifecycle, Overlap Guard, Invoice, Manual & Auto Assignment)
 // ==========================================
+router.get('/bookings/assignment-stats', requireAdminAuth, requirePermission('bookings', 'view'), getAssignmentManagementStats);
 router.get('/bookings', requireAdminAuth, requirePermission('bookings', 'view'), getBookings);
 router.post('/bookings', requireAdminAuth, requirePermission('bookings', 'create'), createBookingOnBehalf);
+router.get('/bookings/:id/eligible-professionals', requireAdminAuth, requirePermission('bookings', 'view'), getEligibleProfessionals);
+router.post('/bookings/:id/offer', requireAdminAuth, requirePermission('bookings', 'edit'), manualAssignOffer);
+router.post('/bookings/:id/auto-assign', requireAdminAuth, requirePermission('bookings', 'edit'), retryAutoAssign);
+router.post('/bookings/:id/mode', requireAdminAuth, requirePermission('bookings', 'edit'), switchAssignmentMode);
 router.get('/bookings/:id', requireAdminAuth, requirePermission('bookings', 'view'), getBookingDetail);
 router.put('/bookings/:id/lifecycle', requireAdminAuth, requirePermission('bookings', 'edit'), updateLifecycleStatus);
 router.put('/bookings/:id/status', requireAdminAuth, requirePermission('bookings', 'edit'), updateLifecycleStatus);
@@ -177,13 +193,16 @@ router.put('/bookings/:id/cancel', requireAdminAuth, requirePermission('bookings
 router.post('/bookings/:id/notes', requireAdminAuth, requirePermission('bookings', 'edit'), addInternalNote);
 router.post('/bookings/:id/refund', requireAdminAuth, requirePermission('refunds', 'refund'), initiateBookingRefund);
 router.get('/bookings/:id/invoice', requireAdminAuth, requirePermission('bookings', 'view'), getBookingInvoice);
+router.delete('/bookings/:id', requireAdminAuth, requirePermission('bookings', 'edit'), deleteBooking);
 
 // ==========================================
 // 4. CUSTOMERS MANAGEMENT (Profile, LTV, History, Anonymisation)
 // ==========================================
 router.get('/customers', requireAdminAuth, requirePermission('customers', 'view'), getCustomers);
+router.post('/customers', requireAdminAuth, requirePermission('customers', 'create'), createCustomer);
 router.get('/customers/:id', requireAdminAuth, requirePermission('customers', 'view'), getCustomerDetail);
 router.put('/customers/:id/status', requireAdminAuth, requirePermission('customers', 'suspend'), updateCustomerStatus);
+router.delete('/customers/:id', requireAdminAuth, requirePermission('customers', 'suspend'), deleteCustomer);
 router.post('/customers/:id/anonymise', requireAdminAuth, requirePermission('customers', 'suspend'), anonymiseCustomerAccount);
 router.post('/customers/:id/notes', requireAdminAuth, requirePermission('customers', 'edit'), addCustomerNote);
 
@@ -191,8 +210,10 @@ router.post('/customers/:id/notes', requireAdminAuth, requirePermission('custome
 // 5. PROFESSIONALS MANAGEMENT (Documents, Bank Review, Training, Skills)
 // ==========================================
 router.get('/professionals', requireAdminAuth, requirePermission('professionals', 'view'), getProfessionals);
+router.post('/professionals', requireAdminAuth, requirePermission('professionals', 'create'), createProfessional);
 router.get('/professionals/:id', requireAdminAuth, requirePermission('professionals', 'view'), getProfessionalDetail);
 router.put('/professionals/:id/status', requireAdminAuth, requirePermission('professionals', 'approve'), updateProfessionalStatus);
+router.delete('/professionals/:id', requireAdminAuth, requirePermission('professionals', 'suspend'), deleteProfessional);
 router.put('/professionals/:id/kyc', requireAdminAuth, requirePermission('professionals', 'approve'), (req, res) => {
   req.body.status = 'Approved';
   updateProfessionalStatus(req, res);
@@ -211,6 +232,7 @@ router.get('/partners', requireAdminAuth, requirePermission('partners', 'view'),
 router.get('/partners/:id', requireAdminAuth, requirePermission('partners', 'view'), getPartnerDetail);
 router.post('/partners', requireAdminAuth, requirePermission('partners', 'create'), createPartner);
 router.put('/partners/:id/status', requireAdminAuth, requirePermission('partners', 'approve'), updatePartnerStatus);
+router.delete('/partners/:id', requireAdminAuth, requirePermission('partners', 'suspend'), deletePartner);
 router.put('/partners/:id/verify-document', requireAdminAuth, requirePermission('partners', 'approve'), verifyPartnerDocument);
 router.put('/partners/:id/settlement-mode', requireAdminAuth, requirePermission('payouts', 'edit'), updateSettlementMode);
 router.post('/partners/:id/notes', requireAdminAuth, requirePermission('partners', 'edit'), addPartnerNote);

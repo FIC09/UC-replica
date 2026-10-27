@@ -6,6 +6,8 @@ import { sanitizeAuditPayload } from '../models/AuditLog.js';
 import { query } from '../config/postgres.js';
 import { assignWorkerTransactionally } from '../services/postgresService.js';
 import { emitEvent } from '../services/websocketService.js';
+import { getActiveOffer } from '../config/redis.js';
+import { acceptAssignmentOffer, rejectAssignmentOffer } from '../services/assignmentEngine.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'urban_company_jwt_secret_key_2026';
 
@@ -1876,49 +1878,61 @@ export async function resubmitOnboardingCorrections(req, res) {
 // -------------------------------------------------------------
 export async function getProfessionalProfile(req, res) {
   try {
-    const proId = req.professional?.id || req.headers['x-professional-id'] || 'PRO-8841';
-    let pro = professionalsStore.find(p => p.id === proId);
-    if (!pro) {
-      try {
-        const dbWorker = await WorkerApplication.findOne({
-          $or: [
-            { id: proId },
-            { id: (proId || '').toUpperCase() },
-            { email: (proId || '').toLowerCase() }
-          ]
-        }).lean();
-        if (dbWorker) {
-          pro = {
-            id: dbWorker.id,
-            workerId: dbWorker.id,
-            applicantName: dbWorker.applicantName,
-            legalName: dbWorker.applicantName,
-            phone: dbWorker.phone,
-            email: dbWorker.email || `${dbWorker.applicantName.toLowerCase().replace(/\s+/g, '.')}@urbanpro.com`,
-            avatar: dbWorker.avatar || 'WR',
-            trade: dbWorker.tradeName || dbWorker.trade,
-            tradeName: dbWorker.tradeName || dbWorker.trade,
-            categories: dbWorker.categories && dbWorker.categories.length > 0 ? dbWorker.categories : [dbWorker.tradeName || dbWorker.trade],
-            skills: dbWorker.skills && dbWorker.skills.length > 0 ? dbWorker.skills : ['Verified Service Specialist'],
-            experience: dbWorker.experience || '2 years',
-            city: dbWorker.city || 'Mumbai',
-            locality: dbWorker.locality,
-            operationalHub: dbWorker.operationalHub || 'Bandra West Central Hub',
-            serviceAreas: dbWorker.serviceAreas && dbWorker.serviceAreas.length > 0 ? dbWorker.serviceAreas : [dbWorker.locality],
-            status: dbWorker.status || 'Pending Review',
-            tier: dbWorker.tier || 'New Professional',
-            employmentType: dbWorker.employmentType || 'Direct Freelance',
-            rating: dbWorker.rating || 5.0,
-            jobsCompleted: dbWorker.jobsCompleted || 0,
-            walletBalance: dbWorker.walletBalance || 0,
-            lifetimeEarnings: dbWorker.lifetimeEarnings || 0,
-            isOnline: false,
-            documents: dbWorker.documents || {},
-            bankDetails: dbWorker.bankDetails || {}
-          };
-        }
-      } catch {}
+    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-00146';
+    let pro = null;
+
+    // Check MongoDB WorkerApplication first for authentic database profile
+    try {
+      const dbWorker = await WorkerApplication.findOne({
+        $or: [
+          { id: proId },
+          { applicationNumber: proId },
+          { id: (proId || '').toUpperCase() },
+          { email: (proId || '').toLowerCase() }
+        ]
+      }).lean();
+
+      if (dbWorker) {
+        const cleanName = (dbWorker.applicantName || dbWorker.name || 'Professional').trim();
+        const parts = cleanName.split(/\s+/);
+        const initials = parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : cleanName.slice(0, 2).toUpperCase() || 'P';
+        const jobs = dbWorker.jobsCompleted != null ? Number(dbWorker.jobsCompleted) : 0;
+        const tier = dbWorker.tier || (jobs >= 500 ? 'Diamond Pro Partner (Level 5)' : jobs >= 200 ? 'Platinum Partner (Level 4)' : jobs >= 50 ? 'Gold Partner (Level 3)' : jobs >= 10 ? 'Silver Partner (Level 2)' : 'New Partner (Level 1)');
+
+        pro = {
+          id: dbWorker.id || dbWorker.applicationNumber,
+          workerId: dbWorker.id || dbWorker.applicationNumber,
+          applicantName: cleanName,
+          legalName: cleanName,
+          phone: dbWorker.phone,
+          email: dbWorker.email || `${cleanName.toLowerCase().replace(/\s+/g, '.')}@urbanpro.com`,
+          avatar: (dbWorker.avatar && dbWorker.avatar.length <= 3 && !dbWorker.avatar.includes('/')) ? dbWorker.avatar.toUpperCase() : initials,
+          trade: dbWorker.tradeName || dbWorker.trade || 'Home Services',
+          tradeName: dbWorker.tradeName || dbWorker.trade || 'Home Services',
+          categories: dbWorker.categories && dbWorker.categories.length > 0 ? dbWorker.categories : [dbWorker.tradeName || dbWorker.trade || 'Home Services'],
+          skills: dbWorker.skills && dbWorker.skills.length > 0 ? dbWorker.skills : ['Verified Service Specialist'],
+          experience: dbWorker.experience || '1-2 years',
+          city: dbWorker.city || 'Krishnagiri',
+          locality: dbWorker.locality || 'Krishnagiri Town',
+          operationalHub: dbWorker.operationalHub || (dbWorker.locality ? `${dbWorker.locality} Operational Hub` : 'Krishnagiri Town Hub'),
+          serviceAreas: dbWorker.serviceAreas && dbWorker.serviceAreas.length > 0 ? dbWorker.serviceAreas : [dbWorker.locality || 'Krishnagiri Town'],
+          status: dbWorker.status || 'Approved',
+          tier,
+          employmentType: dbWorker.employmentType || 'Direct Freelance',
+          rating: dbWorker.rating != null ? Number(dbWorker.rating) : 0,
+          jobsCompleted: jobs,
+          walletBalance: dbWorker.walletBalance != null ? Number(dbWorker.walletBalance) : 0,
+          lifetimeEarnings: dbWorker.lifetimeEarnings != null ? Number(dbWorker.lifetimeEarnings) : 0,
+          isOnline: dbWorker.isOnline !== false,
+          documents: dbWorker.documents || {},
+          bankDetails: dbWorker.bankDetails || {}
+        };
+      }
+    } catch (err) {
+      console.warn('WorkerApplication lookup error:', err.message);
     }
+
+    if (!pro) pro = professionalsStore.find(p => p.id === proId);
     if (!pro) pro = req.professional;
     initProData(pro.id);
 
@@ -2596,8 +2610,17 @@ async function getAllJobsForPro(proId) {
 // -------------------------------------------------------------
 export async function getTodayDashboard(req, res) {
   try {
-    const proId = req.professional.id;
-    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    const proId = req.professional?.id || req.headers['x-professional-id'];
+    let dbWorker = null;
+    try {
+      dbWorker = await WorkerApplication.findOne({
+        $or: [{ id: proId }, { applicationNumber: proId }]
+      }).lean();
+    } catch {}
+
+    const pro = dbWorker 
+      ? { ...req.professional, ...dbWorker, id: dbWorker.id || dbWorker.applicationNumber }
+      : (professionalsStore.find(p => p.id === proId) || req.professional);
 
     if (pro.status === 'Suspended') {
       return res.status(403).json({
@@ -2641,29 +2664,34 @@ export async function getTodayDashboard(req, res) {
       }
     ];
 
+    const hubLocality = pro.locality || pro.city || 'Krishnagiri Town';
+    const tradeTitle = pro.tradeName || pro.trade || 'Home service';
     const platformMessages = [
       {
         id: 'msg-1',
-        title: 'Monsoon High-Demand Advisory',
-        body: 'AC servicing demand has surged in Bandra and Khar. Peak incentive of ₹75/job active on slots after 4 PM.',
+        title: 'High-Demand Operational Advisory',
+        body: `${tradeTitle} servicing demand is elevated across ${hubLocality}. Maintain high punctuality to earn top partner ratings.`,
         priority: 'Normal',
         date: 'Today, 09:00 AM'
       },
       {
         id: 'msg-2',
         title: 'Safety SOP Refresher Reminder',
-        body: 'Remember to fit the waterproof PVC drain bag before operating the high-pressure coil wash jet.',
+        body: 'Always verify customer OTP before beginning service and follow standard quality protocols.',
         priority: 'High',
         date: 'Today, 08:00 AM'
       }
     ];
+
+    const walletBalance = pro.walletBalance != null ? Number(pro.walletBalance) : 0;
+    const lifetimeEarnings = pro.lifetimeEarnings != null ? Number(pro.lifetimeEarnings) : 0;
 
     return res.json({
       success: true,
       availability: {
         isOnline: pro.isOnline !== false,
         workingHours: pro.workingHours || { start: '08:00', end: '20:00' },
-        operationalHub: pro.operationalHub || 'Bandra West Central Hub',
+        operationalHub: pro.operationalHub || (pro.locality ? `${pro.locality} Service Hub` : 'Krishnagiri Operational Hub'),
         status: pro.status
       },
       todayAppointments: todayFormatted,
@@ -2675,9 +2703,9 @@ export async function getTodayDashboard(req, res) {
       completedJobsToday,
       earningsSummary: {
         todayEarnings,
-        weeklyEarnings: (todayEarnings || 0) + 6840,
-        lifetimeEarnings: pro.lifetimeEarnings || 428000,
-        walletBalance: pro.walletBalance || 15450,
+        weeklyEarnings: todayEarnings,
+        lifetimeEarnings,
+        walletBalance,
         platformCommissionRate: 20
       },
       upcomingPayout: {
@@ -2702,25 +2730,56 @@ export async function getTodayDashboard(req, res) {
 }
 
 // -------------------------------------------------------------
-// 4B. JOB OFFERS (Offer-and-Accept allocation mode)
+// 4B. JOB OFFERS (Authoritative MongoDB & Redis Allocation)
 // -------------------------------------------------------------
 export async function getJobOffers(req, res) {
   try {
-    const proId = req.professional.id;
+    const proId = req.professional?.id || req.user?.id || req.headers['x-professional-id'] || 'WRK-KRI-101';
     const now = new Date();
-    const activeOffers = jobOffersStore
-      .filter(o => o.status === 'offered' && new Date(o.offerExpiry) > now)
-      .map(o => ({
-        ...o,
-        remainingSeconds: Math.max(0, Math.round((new Date(o.offerExpiry) - now) / 1000))
-      }));
+
+    // Query active offers for this professional from MongoDB Booking
+    const mongoOffers = await Booking.find({
+      'offeredTo.proId': proId,
+      offerStatus: 'offered',
+      offerExpiry: { $gt: now },
+      status: { $in: ['Pending', 'Confirmed'] }
+    }).lean();
+
+    const formattedOffers = await Promise.all(mongoOffers.map(async (b) => {
+      let cached = null;
+      try {
+        cached = await getActiveOffer(b.id);
+      } catch {}
+
+      const remainingSeconds = Math.max(0, Math.round((new Date(b.offerExpiry) - now) / 1000));
+      return {
+        id: b.id,
+        bookingId: b.id,
+        bookingReference: b.bookingReference || b.id,
+        service: b.serviceName,
+        serviceName: b.serviceName,
+        category: b.serviceCategory,
+        customerArea: b.serviceZone || b.addressDetails?.locality || b.city || 'Krishnagiri',
+        address: b.address,
+        scheduledTime: `${b.slot || '14:00 - 15:30'}`,
+        scheduledDate: b.scheduledDate || new Date(),
+        slot: b.slot,
+        totalAmount: b.totalAmount,
+        expectedEarnings: cached?.expectedEarnings || Math.round((b.totalAmount || 500) * 0.8),
+        mode: b.assignmentMode || 'AUTO',
+        offerExpiry: b.offerExpiry,
+        remainingSeconds,
+        status: 'offered'
+      };
+    }));
 
     return res.json({
       success: true,
-      allocationModel: platformAllocationConfig.mode,
-      offers: activeOffers
+      allocationModel: 'offer_accept',
+      offers: formattedOffers
     });
   } catch (err) {
+    console.error('getJobOffers error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }
@@ -2728,144 +2787,24 @@ export async function getJobOffers(req, res) {
 export async function acceptJobOffer(req, res) {
   try {
     const { id } = req.params;
-    const proId = req.professional?.id || req.body?.workerId || 'WRK-KRI-101';
-    const pro = professionalsStore.find(p => p.id === proId) || req.professional || {};
+    const proId = req.professional?.id || req.user?.id || req.headers['x-professional-id'] || req.body?.workerId;
 
-    // 1. Check PostgreSQL assignment_offers first
-    let pgOffer = null;
-    try {
-      const pgRes = await query(`
-        SELECT * FROM assignment_offers
-        WHERE (id = $1 OR booking_id = $1)
-        ORDER BY offered_at DESC LIMIT 1
-      `, [id]);
-      if (pgRes.rows.length > 0) {
-        pgOffer = pgRes.rows[0];
-      }
-    } catch (pgErr) {
-      console.warn('PostgreSQL offer lookup warning:', pgErr.message);
+    if (!proId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: Professional identification missing' });
     }
 
-    if (pgOffer) {
-      if (pgOffer.status === 'accepted') {
-        return res.status(409).json({ success: false, error: 'Offer already accepted' });
-      }
-
-      // Confirm assignment transactionally
-      const workerName = pro.name || pro.applicantName || 'A. Kumar';
-      const confirmedWorkerId = proId.startsWith('WRK-') ? proId : 'WRK-KRI-101';
-
-      await assignWorkerTransactionally({
-        bookingId: pgOffer.booking_id,
-        workerId: confirmedWorkerId,
-        workerName,
-        partnerId: pgOffer.partner_id || 'PTR-KRI-501',
-        assignedBy: 'worker_acceptance'
-      });
-
-      // Update offer status
-      await query(`
-        UPDATE assignment_offers
-        SET status = 'accepted', accepted_at = NOW()
-        WHERE id = $1
-      `, [pgOffer.id]);
-
-      // Synchronize MongoDB Booking
-      try {
-        await Booking.findOneAndUpdate(
-          { $or: [{ id: pgOffer.booking_id }, { bookingReference: pgOffer.booking_id }] },
-          {
-            status: 'Assigned',
-            assignedWorkerId: confirmedWorkerId,
-            assignedWorkerName: workerName,
-            assignedProfessional: {
-              id: confirmedWorkerId,
-              name: workerName,
-              phone: pro.phone || '+91 94432 10984',
-              trade: pro.trade || 'Technician',
-              avatar: pro.avatar || 'AK',
-              assignedAt: new Date()
-            }
-          }
-        );
-      } catch {}
-
-      emitEvent('ASSIGNMENT_ACCEPTED', {
-        entityId: pgOffer.booking_id,
-        room: `booking:${pgOffer.booking_id}`,
-        payload: {
-          bookingId: pgOffer.booking_id,
-          workerId: confirmedWorkerId,
-          workerName,
-          status: 'Assigned',
-          timestamp: new Date().toISOString()
-        }
-      });
-
-      return res.json({
-        success: true,
-        message: `Offer ${id} accepted! Booking is now assigned to your schedule.`,
-        bookingId: pgOffer.booking_id
-      });
+    const result = await acceptAssignmentOffer(id, proId);
+    if (!result.success) {
+      return res.status(result.code || 400).json({ success: false, error: result.error });
     }
-
-    const offer = jobOffersStore.find(o => o.id === id);
-    if (!offer) {
-      return res.json({
-        success: true,
-        message: `Booking ${id} accepted and assigned to your schedule.`
-      });
-    }
-
-    if (offer.status !== 'offered') {
-      return res.status(409).json({
-        success: false,
-        error: `Cannot accept offer: Offer is already ${offer.status} by another technician.`
-      });
-    }
-
-    if (new Date() > new Date(offer.offerExpiry)) {
-      offer.status = 'expired';
-      return res.status(410).json({
-        success: false,
-        error: 'Offer Expired: The acceptance time window for this booking dispatch has lapsed.'
-      });
-    }
-
-    // Atomically accept
-    offer.status = 'accepted';
-    offer.acceptedBy = proId;
-    offer.acceptedAt = new Date();
-
-    const newJob = {
-      id: offer.id.replace('OFFER', 'JOB'),
-      bookingReference: offer.bookingReference,
-      serviceName: offer.serviceName,
-      serviceCategory: offer.serviceCategory,
-      customer: offer.customer,
-      userName: offer.customer,
-      userPhone: '+91 98200 99412',
-      address: `1402, Sea Green Crest, ${offer.area}`,
-      city: 'Krishnagiri',
-      serviceZone: offer.locality || 'Rayakottai Road',
-      slot: offer.slot,
-      status: 'Assigned',
-      paymentStatus: 'Paid',
-      totalAmount: offer.totalAmount,
-      payout: offer.payout,
-      customerInstructions: offer.customerInstructions || '',
-      assignedProfessional: { id: proId, name: pro.applicantName },
-      timeline: [
-        { id: `tl-${Date.now()}`, status: 'Assigned', title: 'Offer Accepted by Technician', actor: pro.applicantName, actorRole: 'Service Professional', timestamp: new Date() }
-      ]
-    };
 
     return res.json({
       success: true,
       message: `Offer ${id} accepted! Booking is now assigned to your schedule.`,
-      job: formatJobForProfessional(newJob, proId)
+      booking: result.booking
     });
   } catch (err) {
+    console.error('acceptJobOffer error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }
@@ -2873,23 +2812,25 @@ export async function acceptJobOffer(req, res) {
 export async function declineJobOffer(req, res) {
   try {
     const { id } = req.params;
-    const { reason = 'schedule_conflict' } = req.body;
-    const proId = req.professional.id;
+    const proId = req.professional?.id || req.user?.id || req.headers['x-professional-id'] || req.body?.workerId;
+    const { reason = 'schedule_conflict' } = req.body || {};
 
-    const offer = jobOffersStore.find(o => o.id === id);
-    if (!offer) {
-      return res.status(404).json({ success: false, error: 'Job offer not found.' });
+    if (!proId) {
+      return res.status(401).json({ success: false, error: 'Unauthorized: Professional identification missing' });
     }
 
-    offer.status = 'declined';
-    offer.declinedBy = proId;
-    offer.declineReason = reason;
+    const result = await rejectAssignmentOffer(id, proId, reason);
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
 
     return res.json({
       success: true,
-      message: `Offer ${id} declined with reason: ${reason}.`
+      message: `Offer ${id} declined with reason: ${reason}.`,
+      booking: result.booking
     });
   } catch (err) {
+    console.error('declineJobOffer error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }
@@ -3889,15 +3830,35 @@ export async function verifyJobOtp(req, res) {
 // -------------------------------------------------------------
 export async function getEarnings(req, res) {
   try {
-    const proId = req.professional.id;
-    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-00146';
+    let pro = professionalsStore.find(p => p.id === proId) || req.professional || {};
 
+    try {
+      const dbWorker = await WorkerApplication.findOne({
+        $or: [
+          { id: proId },
+          { applicationNumber: proId },
+          { id: (proId || '').toUpperCase() },
+          { email: (proId || '').toLowerCase() }
+        ]
+      }).lean();
+      if (dbWorker) {
+        pro = { ...pro, ...dbWorker, applicantName: dbWorker.applicantName || dbWorker.name };
+      }
+    } catch (e) {}
+
+    const jobsCompleted = pro.jobsCompleted != null ? Number(pro.jobsCompleted) : 0;
+    const isNew = jobsCompleted === 0;
+    const walletBalance = pro.walletBalance != null ? Number(pro.walletBalance) : (isNew ? 0 : 15450);
+    const lifetimeEarnings = pro.lifetimeEarnings != null ? Number(pro.lifetimeEarnings) : (isNew ? 0 : 428000);
+
+    const cleanName = pro.applicantName || pro.name || 'Professional';
     const recipientSnapshot = {
-      accountHolderName: pro.applicantName || 'Vikram Salvi',
+      accountHolderName: cleanName,
       accountNumberMasked: pro.bankDetails?.accountNumber || '••••••••4821',
-      bankName: pro.bankDetails?.bankName || 'HDFC Bank',
-      ifscCode: pro.bankDetails?.ifscCode || 'HDFC0001248',
-      upiId: pro.bankDetails?.upiId || 'vikramsalvi@okaxis',
+      bankName: pro.bankDetails?.bankName || 'State Bank of India',
+      ifscCode: pro.bankDetails?.ifscCode || 'SBIN0001248',
+      upiId: pro.bankDetails?.upiId || (cleanName ? `${cleanName.toLowerCase().replace(/\s+/g, '')}@okaxis` : 'partner@okaxis'),
       settlementMode: 'Direct IMPS / Bank NEFT'
     };
 
@@ -4035,37 +3996,50 @@ export async function getEarnings(req, res) {
     ];
 
     const financialStages = {
-      earnedPaisa: 4892000,
-      earned: 48920,
-      pendingConfirmationPaisa: 54800,
-      pendingConfirmation: 548,
-      availableForSettlementPaisa: (pro.walletBalance || 15450) * 100,
-      availableForSettlement: pro.walletBalance || 15450,
+      earnedPaisa: isNew ? 0 : 4892000,
+      earned: isNew ? 0 : 48920,
+      pendingConfirmationPaisa: 0,
+      pendingConfirmation: 0,
+      availableForSettlementPaisa: walletBalance * 100,
+      availableForSettlement: walletBalance,
       processingPaisa: 0,
       processing: 0,
-      paidPaisa: (pro.lifetimeEarnings || 428000) * 100,
-      paid: pro.lifetimeEarnings || 428000,
+      paidPaisa: lifetimeEarnings * 100,
+      paid: lifetimeEarnings,
       disputedPaisa: 0,
       disputed: 0
     };
 
     const earningsData = {
-      walletBalance: pro.walletBalance || 15450,
-      lifetime: pro.lifetimeEarnings || 428000,
-      lifetimeEarnings: pro.lifetimeEarnings || 428000,
-      thisWeek: 9450,
-      thisWeekEarnings: 9450,
-      today: 1960,
-      todayEarnings: 1960,
-      thisMonth: 48920,
-      tipsReceived: 450,
-      incentivesEarned: 800,
+      walletBalance: walletBalance,
+      lifetime: lifetimeEarnings,
+      lifetimeEarnings: lifetimeEarnings,
+      thisWeek: isNew ? 0 : 9450,
+      thisWeekEarnings: isNew ? 0 : 9450,
+      today: isNew ? 0 : 1960,
+      todayEarnings: isNew ? 0 : 1960,
+      thisMonth: isNew ? 0 : 48920,
+      tipsReceived: isNew ? 0 : 450,
+      incentivesEarned: isNew ? 0 : 800,
       platformTakeRate: pro.employmentType === 'Agency Employed' ? '14% (Agency Partner Rate)' : '20% (Standard Solo Rate)',
       currencyUnit: 'INR (₹)',
       minorCurrencyUnit: 'Paisa (100 Paisa = ₹1.00)',
       financialNotice: 'Completed job indicates earned professional entitlement but is distinct from funds already released into your bank account. Settlements disburse on configured weekly cycles.',
       financialStages,
-      breakdown: {
+      breakdown: isNew ? {
+        grossFare: 0,
+        grossFarePaisa: 0,
+        platformCommission: 0,
+        platformCommissionPaisa: 0,
+        tips: 0,
+        tipsPaisa: 0,
+        surgeBonus: 0,
+        surgeBonusPaisa: 0,
+        tierBonus: 0,
+        tierBonusPaisa: 0,
+        netEarnings: 0,
+        netEarningsPaisa: 0
+      } : {
         grossFare: 61150,
         grossFarePaisa: 6115000,
         platformCommission: 12230,
@@ -4079,12 +4053,12 @@ export async function getEarnings(req, res) {
         netEarnings: 58120,
         netEarningsPaisa: 5812000
       },
-      recentTransactions: [
+      recentTransactions: isNew ? [] : [
         { id: 'TXN-901', bookingRef: 'UC-829410', service: 'Powerjet AC Servicing', gross: 499, platformTake: 100, net: 399, date: 'Today, 02:45 PM', status: 'Credited' },
         { id: 'TXN-902', bookingRef: 'UC-829399', service: 'AC Gas Charging & Valve Fit', gross: 899, platformTake: 180, net: 719, date: 'Yesterday, 04:15 PM', status: 'Credited' },
         { id: 'TXN-903', bookingRef: 'UC-829350', service: 'Electrical Fuse Replacement', gross: 299, platformTake: 60, net: 239, date: '20 Oct 2026', status: 'Credited' }
       ],
-      itemizedLedger,
+      itemizedLedger: isNew ? [] : itemizedLedger,
       recipientSnapshot
     };
 
@@ -4099,9 +4073,27 @@ export async function getEarnings(req, res) {
 
 export async function getPayouts(req, res) {
   try {
-    const proId = req.professional.id;
-    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-00146';
+    let pro = professionalsStore.find(p => p.id === proId) || req.professional || {};
     initProData(proId);
+
+    try {
+      const dbWorker = await WorkerApplication.findOne({
+        $or: [
+          { id: proId },
+          { applicationNumber: proId },
+          { id: (proId || '').toUpperCase() },
+          { email: (proId || '').toLowerCase() }
+        ]
+      }).lean();
+      if (dbWorker) {
+        pro = { ...pro, ...dbWorker, applicantName: dbWorker.applicantName || dbWorker.name };
+      }
+    } catch (e) {}
+
+    const jobsCompleted = pro.jobsCompleted != null ? Number(pro.jobsCompleted) : 0;
+    const isNew = jobsCompleted === 0;
+    const walletBalance = pro.walletBalance != null ? Number(pro.walletBalance) : (isNew ? 0 : 15450);
 
     const isBusinessAssociated = pro.employmentType === 'Agency Employed';
     const settlementModel = pro.settlementModel || (isBusinessAssociated ? 'settle_to_business' : 'direct_to_worker');
@@ -4118,15 +4110,16 @@ export async function getPayouts(req, res) {
         label: `${pro.partnerAgencyName || 'Apex Home Solutions LLP'} [Partner Agency ID: ${pro.partnerAgencyId || 'PTR-90142'}]`
       };
     } else {
+      const cleanName = pro.applicantName || pro.name || 'Professional';
       recipientDetails = {
         type: 'professional_personal',
-        name: pro.applicantName || 'Vikram Salvi',
+        name: cleanName,
         entityId: pro.id,
         accountNumberMasked: pro.bankDetails?.accountNumber || '••••••••4821',
-        bankName: pro.bankDetails?.bankName || 'HDFC Bank (Savings Account)',
-        ifscCodeMasked: pro.bankDetails?.ifscCode || 'HDFC0001248',
-        upiIdMasked: pro.bankDetails?.upiId ? pro.bankDetails.upiId.replace(/(.{3})(.*)(@.*)/, '$1***$3') : 'vik***@okaxis',
-        label: `${pro.applicantName} [Personal Verified Account]`
+        bankName: pro.bankDetails?.bankName || 'State Bank of India',
+        ifscCodeMasked: pro.bankDetails?.ifscCode || 'SBIN0001248',
+        upiIdMasked: pro.bankDetails?.upiId ? pro.bankDetails.upiId.replace(/(.{3})(.*)(@.*)/, '$1***$3') : (cleanName ? `${cleanName.toLowerCase().slice(0, 3)}***@okaxis` : 'pro***@okaxis'),
+        label: `${cleanName} [Personal Verified Account]`
       };
     }
 
@@ -4211,7 +4204,7 @@ export async function getPayouts(req, res) {
 
     return res.json({
       success: true,
-      balance: pro.walletBalance || 15450,
+      balance: walletBalance,
       settlementModel,
       isBusinessAssociated,
       actualRecipient: recipientDetails,
@@ -4221,18 +4214,18 @@ export async function getPayouts(req, res) {
       sandboxMode: true,
       sandboxNotice: 'Sandbox Environment: Financial transfers and withdrawals are simulated for demonstration. No live banking transactions are initiated.',
       bankDetails: {
-        accountHolderName: pro.bankDetails?.accountHolderName || pro.applicantName,
+        accountHolderName: pro.bankDetails?.accountHolderName || pro.applicantName || 'Professional',
         accountNumber: pro.bankDetails?.accountNumber || '••••••••4821',
-        bankName: pro.bankDetails?.bankName || 'HDFC Bank',
-        ifscCode: pro.bankDetails?.ifscCode || 'HDFC0001248',
-        upiId: pro.bankDetails?.upiId || 'vikramsalvi@okaxis',
+        bankName: pro.bankDetails?.bankName || 'State Bank of India',
+        ifscCode: pro.bankDetails?.ifscCode || 'SBIN0001248',
+        upiId: pro.bankDetails?.upiId || (pro.applicantName ? `${pro.applicantName.toLowerCase().replace(/\s+/g, '')}@okaxis` : 'partner@okaxis'),
         status: pro.bankDetails?.status || 'Verified',
         hasPendingChangeRequest: changeRequests.some(r => r.status === 'Pending Review')
       },
       bankChangeRequests: changeRequests,
       financialDisputes: disputes,
-      payoutBatches: payoutStatements,
-      payoutStatements
+      payoutBatches: isNew ? [] : payoutStatements,
+      payoutStatements: isNew ? [] : payoutStatements
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -4540,77 +4533,107 @@ export async function flagReview(req, res) {
 
 export async function getPerformance(req, res) {
   try {
-    const proId = req.professional.id;
-    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-00146';
+    let pro = professionalsStore.find(p => p.id === proId) || req.professional || {};
     initProData(proId);
 
-    const jobsCompleted = pro.jobsCompleted !== undefined ? pro.jobsCompleted : 1520;
+    try {
+      const dbWorker = await WorkerApplication.findOne({
+        $or: [
+          { id: proId },
+          { applicationNumber: proId },
+          { id: (proId || '').toUpperCase() },
+          { email: (proId || '').toLowerCase() }
+        ]
+      }).lean();
+      if (dbWorker) {
+        pro = { ...pro, ...dbWorker, applicantName: dbWorker.applicantName || dbWorker.name };
+      }
+    } catch (e) {}
+
+    const jobsCompleted = pro.jobsCompleted != null ? Number(pro.jobsCompleted) : 0;
     const insufficientData = jobsCompleted < 10;
 
     const appeals = performanceAppealsStore.get(proId) || [];
 
     const scorecard = {
       averageRating: {
-        value: pro.rating || 4.94,
+        value: jobsCompleted > 0 ? (pro.rating || 5.0) : 0,
         target: 4.90,
         unit: 'Stars',
         definition: 'Weighted average of 1-to-5 star customer ratings received across verified completed jobs during the rolling 30-day review period.'
       },
       reviewCount: {
-        value: jobsCompleted > 0 ? (pro.reviewCount || 1520) : 0,
+        value: jobsCompleted > 0 ? (pro.reviewCount || jobsCompleted) : 0,
         target: 10,
         unit: 'Reviews',
         definition: 'Total number of verified homeowner service ratings registered on platform.'
       },
       completionRate: {
-        value: jobsCompleted > 0 ? (100 - (pro.cancellationRate || 0.6)) : 0,
+        value: jobsCompleted > 0 ? (100 - (pro.cancellationRate || 0)) : 100,
         target: 98.0,
         unit: '%',
         definition: 'Percentage of accepted service dispatches completed successfully without cancellation: (Completed Jobs / Total Accepted Jobs) × 100.'
       },
       cancellationRate: {
-        value: pro.cancellationRate !== undefined ? pro.cancellationRate : 0.6,
+        value: jobsCompleted > 0 ? (pro.cancellationRate !== undefined ? pro.cancellationRate : 0) : 0,
         target: 1.0,
         unit: '%',
         definition: 'Percentage of accepted bookings initiated for cancellation by the professional: (Cancelled by Worker / Total Accepted) × 100.'
       },
       onTimeArrivalRate: {
-        value: pro.onTimeArrivalRate !== undefined ? pro.onTimeArrivalRate : 99.2,
+        value: jobsCompleted > 0 ? (pro.onTimeArrivalRate !== undefined ? pro.onTimeArrivalRate : 100) : 100,
         target: 98.0,
         unit: '%',
         definition: 'Percentage of bookings where the technician arrived at the doorstep on or before the scheduled service window start time based on GPS geo-fence timestamp.'
       },
       revisitRate: {
-        value: pro.revisitRate !== undefined ? pro.revisitRate : 0.4,
+        value: jobsCompleted > 0 ? (pro.revisitRate !== undefined ? pro.revisitRate : 0) : 0,
         target: 0.5,
         unit: '%',
         definition: 'Percentage of completed jobs requiring a customer-initiated rework or warranty revisit within 14 days of original service.'
       },
       jobsCompleted: {
         value: jobsCompleted,
-        target: 45,
+        target: 10,
         unit: 'Jobs',
         definition: 'Total completed service dispatches executed in current rolling calendar month.'
       }
     };
 
-    const trainingRecommendations = [
+    const isSalonTrade = (pro.trade || pro.tradeName || '').toLowerCase().includes('salon') || (pro.trade || pro.tradeName || '').toLowerCase().includes('beauty');
+    const trainingRecommendations = isSalonTrade ? [
       {
-        courseId: 'TRN-103',
-        title: 'Inverter PCB Diagnostics & High-Voltage Safety',
-        reason: 'Recommended based on seasonal inverter split AC maintenance demand in Mumbai region.'
+        courseId: 'TRN-201',
+        title: 'Customer Hygiene, Tool Sterilization & Zero-Spill Protocol',
+        reason: 'Required onboarding certification for in-home Salon & Spa specialists.'
       },
       {
-        courseId: 'TRN-104',
-        title: 'R32 / R410A Eco Refrigerant Safe Recovery & Vacuum SOP',
-        reason: 'Recommended for Diamond Pro Partners to qualify for zero-emission eco-refrigerant premium bonuses.'
+        courseId: 'TRN-202',
+        title: 'Skin Sensitivity Consultation & Patch-Testing Standards',
+        reason: 'Recommended for Salon Partners to qualify for premium organic service badges.'
+      }
+    ] : [
+      {
+        courseId: 'TRN-101',
+        title: 'Doorstep Hospitality & Punctuality Protocol',
+        reason: 'Core foundational standard for all newly onboarding Urban Company professionals.'
+      },
+      {
+        courseId: 'TRN-102',
+        title: 'Equipment Safety & Digital Inspection Checklist SOP',
+        reason: 'Recommended to maintain 5-star customer ratings and 100% first-time resolution.'
       }
     ];
 
+    const currentTierName = insufficientData
+      ? 'New Partner (Level 1)'
+      : (jobsCompleted >= 500 ? 'Diamond Pro Partner (Level 5)' : jobsCompleted >= 200 ? 'Platinum Partner (Level 4)' : jobsCompleted >= 50 ? 'Gold Partner (Level 3)' : 'Silver Partner (Level 2)');
+
     return res.json({
       success: true,
-      tier: insufficientData ? 'Evaluating Partner (Onboarding)' : (pro.tier || 'Diamond Pro Partner (Level 5)'),
-      reviewPeriod: 'Rolling 30-Day Evaluation Window (23 Sep 2026 – 23 Oct 2026)',
+      tier: currentTierName,
+      reviewPeriod: 'Rolling 30-Day Evaluation Window (Current Cycle)',
       reviewCycleExplanation: 'Performance metrics and partner tiers are evaluated continuously over a rolling 30-day window. Tier promotions and guaranteed monthly bonus payouts execute on the 1st of every calendar month.',
       insufficientData,
       insufficientDataNotice: insufficientData
@@ -4619,9 +4642,9 @@ export async function getPerformance(req, res) {
       scorecard,
       trainingRecommendations,
       tierEligibility: {
-        currentTier: insufficientData ? 'Evaluating' : (pro.tier || 'Diamond Pro Partner (Level 5)'),
-        nextTier: 'Master Elite Partner (Level 6)',
-        progressPercent: insufficientData ? 0 : 93,
+        currentTier: currentTierName,
+        nextTier: 'Silver Partner (Level 2)',
+        progressPercent: insufficientData ? Math.min(100, Math.round((jobsCompleted / 10) * 100)) : 93,
         thresholds: {
           minRating: 4.90,
           minCompletionRate: 98.0,

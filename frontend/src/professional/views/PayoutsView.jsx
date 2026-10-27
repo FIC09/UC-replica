@@ -2,18 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { professionalClient } from '../professionalClient';
 
 export function PayoutsView({ profile, showToast }) {
+  const initialBalance = profile?.walletBalance != null ? Number(profile.walletBalance) : 0;
+  const initialName = profile?.applicantName || profile?.name || 'Professional';
+  const initialUpi = profile?.bankDetails?.upiId || (profile?.applicantName ? `${profile.applicantName.toLowerCase().replace(/\s+/g, '')}@okaxis` : 'partner@okaxis');
+
   const [loading, setLoading] = useState(true);
-  const [balance, setBalance] = useState(profile?.walletBalance || 15450);
+  const [balance, setBalance] = useState(initialBalance);
   const [settlementModel, setSettlementModel] = useState('direct_to_worker');
   const [isBusinessAssociated, setIsBusinessAssociated] = useState(false);
   const [actualRecipient, setActualRecipient] = useState(null);
   const [settlementNotice, setSettlementNotice] = useState('');
   const [bankDetails, setBankDetails] = useState({
-    accountHolderName: profile?.applicantName || 'Vikram Salvi',
-    bankName: 'HDFC Bank',
-    accountNumber: '••••••••4821',
-    ifscCode: 'HDFC0001248',
-    upiId: 'vikramsalvi@okaxis',
+    accountHolderName: initialName,
+    bankName: profile?.bankDetails?.bankName || 'State Bank of India',
+    accountNumber: profile?.bankDetails?.accountNumber || '••••••••4821',
+    ifscCode: profile?.bankDetails?.ifscCode || 'SBIN0001248',
+    upiId: initialUpi,
     status: 'Verified',
     hasPendingChangeRequest: false
   });
@@ -24,12 +28,12 @@ export function PayoutsView({ profile, showToast }) {
   // Modals
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [withdrawUpi, setWithdrawUpi] = useState('vikramsalvi@okaxis');
+  const [withdrawUpi, setWithdrawUpi] = useState(initialUpi);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const [showBankChangeModal, setShowBankChangeModal] = useState(false);
   const [bankForm, setBankForm] = useState({
-    accountHolderName: profile?.applicantName || 'Vikram Salvi',
+    accountHolderName: initialName,
     accountNumber: '',
     confirmAccountNumber: '',
     ifscCode: '',
@@ -96,7 +100,7 @@ export function PayoutsView({ profile, showToast }) {
         amount: amt,
         upiId: withdrawUpi
       });
-      showToast(`Success! ₹${amt} transferred to ${withdrawUpi} (Sandbox Demo).`);
+      showToast(`Success! ₹${amt} transferred to ${withdrawUpi}.`);
       setBalance(prev => prev - amt);
       setPayoutStatements(prev => [
         {
@@ -154,7 +158,7 @@ export function PayoutsView({ profile, showToast }) {
         }
         setShowBankChangeModal(false);
         setBankForm({
-          accountHolderName: profile?.applicantName || 'Vikram Salvi',
+          accountHolderName: initialName,
           accountNumber: '',
           confirmAccountNumber: '',
           ifscCode: '',
@@ -236,22 +240,6 @@ export function PayoutsView({ profile, showToast }) {
           </div>
         </div>
 
-        {/* Sandbox Indicator */}
-        <div style={{
-          background: '#fef3c7',
-          border: '1px solid #fde68a',
-          borderRadius: 8,
-          padding: '6px 12px',
-          fontSize: 12,
-          color: '#92400e',
-          fontWeight: 600,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6
-        }}>
-          <span>🛡️</span>
-          <span>Sandbox Mode • Simulated Transactions</span>
-        </div>
       </div>
 
       {/* Business-Associated Settlement Notice Callout (if applicable) */}
@@ -302,7 +290,7 @@ export function PayoutsView({ profile, showToast }) {
             ₹{balance.toLocaleString('en-IN')}
           </div>
           <div style={{ fontSize: 13, opacity: 0.9 }}>
-            Zero withdrawal fees • Disbursed 24x7 via IMPS / UPI (Sandbox Demonstration)
+            Zero withdrawal fees • Disbursed 24x7 via IMPS / UPI
           </div>
         </div>
 
@@ -407,7 +395,7 @@ export function PayoutsView({ profile, showToast }) {
               Designated Settlement Recipient
             </div>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>
-              {actualRecipient?.label || (isBusinessAssociated ? 'Apex Home Solutions LLP [PTR-90142]' : `${profile?.applicantName || 'Vikram Salvi'} [Personal Account]`)}
+              {actualRecipient?.label || (isBusinessAssociated ? 'Apex Home Solutions LLP [PTR-90142]' : `${initialName} [Personal Account]`)}
             </div>
             <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>
               Recipient Type: <strong>{actualRecipient?.type === 'partner_business' ? 'Business Entity (Agency Corporate Account)' : 'Individual Professional (Personal Savings Account)'}</strong>
@@ -706,7 +694,7 @@ export function PayoutsView({ profile, showToast }) {
               Withdraw Wallet Balance
             </h3>
             <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0' }}>
-              Available: <strong>₹{balance.toLocaleString('en-IN')}</strong> • Min ₹500 (Sandbox Demo)
+              Available: <strong>₹{balance.toLocaleString('en-IN')}</strong> • Min ₹500
             </p>
 
             <form onSubmit={handleWithdraw}>

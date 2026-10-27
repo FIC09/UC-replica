@@ -20,31 +20,6 @@ export function PartnerLayout({
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [resetting, setResetting] = useState(false);
-  const [resetMessage, setResetMessage] = useState(null);
-
-  const handleConfirmReset = async () => {
-    try {
-      setResetting(true);
-      const res = await partnerClient.resetDemoData({ confirmReset: true });
-      if (res.success) {
-        setResetMessage('Demo sandbox records have been cleanly reset to default baseline state.');
-        setTimeout(() => {
-          setShowResetModal(false);
-          setResetMessage(null);
-          window.location.reload();
-        }, 1200);
-      } else {
-        alert(res.error || 'Failed to reset demo data');
-      }
-    } catch (err) {
-      alert('Reset error: ' + err.message);
-    } finally {
-      setResetting(false);
-    }
-  };
 
   const navGroups = [
     {
@@ -88,16 +63,6 @@ export function PartnerLayout({
         { path: '/partner/settings', label: 'Business Settings', icon: Settings }
       ]
     }
-  ];
-
-  // Quick testing demo accounts
-  const demoAccounts = [
-    { role: 'Business Owner', name: 'Sandeep Patil', email: 'contact@apexhome.in', partnerId: 'PTR-90142' },
-    { role: 'Business Manager', name: 'Pooja Patil', email: 'pooja@apexhome.in', partnerId: 'PTR-90142' },
-    { role: 'Dispatcher', name: 'Rahul Dev', email: 'dispatcher@apexhome.in', partnerId: 'PTR-90142' },
-    { role: 'Finance Staff', name: 'Anand Kulkarni', email: 'finance@apexhome.in', partnerId: 'PTR-90142' },
-    { role: 'Read-only Staff', name: 'Meera Joshi', email: 'analyst@apexhome.in', partnerId: 'PTR-90142' },
-    { role: 'Business Owner', name: 'M. Selvam', email: 'selvam@quickfixcare.com', partnerId: 'PTR-90143' }
   ];
 
   return (
@@ -379,75 +344,25 @@ export function PartnerLayout({
 
           {/* Top Actions: Role Switcher & Marketplace Exit */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {/* Demo Role Switcher Dropdown */}
-            <div style={{ position: 'relative' }}>
-              <button
-                onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '7px 13px',
-                  height: 36,
-                  boxSizing: 'border-box',
-                  background: '#ffffff',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 8,
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  color: '#334155',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                  transition: 'all 0.15s ease'
-                }}
-              >
+            {staff?.role && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '7px 13px',
+                height: 36,
+                boxSizing: 'border-box',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: 8,
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: '#334155'
+              }}>
                 <UserCheck size={14} color="#7c3aed" />
-                <span>Simulate Role: <strong style={{ color: '#0f172a' }}>{staff?.role}</strong></span>
-              </button>
-
-              {roleMenuOpen && (
-                <div style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '110%',
-                  width: 260,
-                  background: '#ffffff',
-                  borderRadius: 10,
-                  border: '1px solid #e2e8f0',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-                  padding: 6,
-                  zIndex: 99
-                }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', padding: '6px 10px', textTransform: 'uppercase' }}>
-                    Switch Demo Business Staff
-                  </div>
-                  {demoAccounts.map(acc => (
-                    <button
-                      key={acc.email}
-                      onClick={() => {
-                        onSwitchRole(acc);
-                        setRoleMenuOpen(false);
-                      }}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-start',
-                        width: '100%',
-                        padding: '8px 10px',
-                        background: staff?.email === acc.email ? '#f3e8ff' : 'transparent',
-                        border: 'none',
-                        borderRadius: 6,
-                        textAlign: 'left',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <strong style={{ fontSize: 13, color: '#0f172a' }}>{acc.role}</strong>
-                      <span style={{ fontSize: 11.5, color: '#64748b' }}>{acc.name} ({acc.partnerId})</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+                <span>Role: <strong style={{ color: '#0f172a' }}>{staff?.role}</strong></span>
+              </div>
+            )}
 
             {/* Exit to Customer Marketplace */}
             {onExitToMarketplace && (
@@ -477,60 +392,6 @@ export function PartnerLayout({
           </div>
         </header>
 
-        {/* Visible Demo Mode Persistent Banner */}
-        <div style={{
-          background: 'linear-gradient(90deg, #eff6ff 0%, #f0fdf4 100%)',
-          borderBottom: '1px solid #bfdbfe',
-          padding: '9px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: 12,
-          fontSize: 12.5,
-          color: '#1e3a8a'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{
-              background: '#2563eb',
-              color: '#ffffff',
-              fontSize: 10.5,
-              fontWeight: 800,
-              textTransform: 'uppercase',
-              letterSpacing: 0.6,
-              padding: '2px 8px',
-              borderRadius: 6,
-              boxShadow: '0 1px 2px rgba(37,99,235,0.2)'
-            }}>
-              Demo Sandbox
-            </span>
-            <span style={{ color: '#1e3a8a', lineHeight: 1.4 }}>
-              <strong>Persistent Synthetic Sandbox:</strong> Active business: <strong>{partner?.businessName || 'Apex Home Solutions LLP'}</strong> ({partner?.id || 'PTR-90142'}) • Isolated from production banking and live customers.
-            </span>
-          </div>
-          <button
-            onClick={() => setShowResetModal(true)}
-            style={{
-              background: '#ffffff',
-              border: '1px solid #93c5fd',
-              color: '#1d4ed8',
-              padding: '5px 12px',
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <RotateCcw size={13} />
-            Reset Demo Data
-          </button>
-        </div>
-
         {/* View Content Container */}
         <main style={{ flex: 1, padding: '24px 28px', overflowY: 'auto' }}>
           <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%' }}>
@@ -538,111 +399,6 @@ export function PartnerLayout({
           </div>
         </main>
       </div>
-
-      {/* Confirmed Demo Reset Modal */}
-      {showResetModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(3px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 99999,
-          padding: 20
-        }}>
-          <div style={{
-            background: '#ffffff',
-            borderRadius: 14,
-            maxWidth: 480,
-            width: '100%',
-            padding: 24,
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
-            border: '1px solid #e2e8f0'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{
-                width: 42,
-                height: 42,
-                borderRadius: 10,
-                background: '#fee2e2',
-                color: '#ef4444',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <AlertTriangle size={22} />
-              </div>
-              <div>
-                <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                  Confirm Demo Sandbox Reset
-                </h3>
-                <p style={{ fontSize: 12, color: '#64748b', margin: '3px 0 0' }}>
-                  Affects strictly simulated partner records
-                </p>
-              </div>
-            </div>
-
-            <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.6, marginBottom: 20 }}>
-              <p style={{ margin: '0 0 10px' }}>
-                This will restore all demo bookings, inventory counts, supply orders, technician allocations, support tickets, and activity logs for <strong>PTR-90142</strong> and <strong>PTR-90143</strong> back to default baseline verification records.
-              </p>
-              <div style={{ background: '#f8fafc', padding: 10, borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 12, color: '#475569' }}>
-                ✓ Live production records remain completely unaffected.<br />
-                ✓ Demo authentication and staff accounts will be refreshed.
-              </div>
-            </div>
-
-            {resetMessage ? (
-              <div style={{ padding: 12, background: '#dcfce7', color: '#166534', borderRadius: 8, fontSize: 13, fontWeight: 600, textAlign: 'center', marginBottom: 16 }}>
-                {resetMessage}
-              </div>
-            ) : (
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-                <button
-                  onClick={() => setShowResetModal(false)}
-                  disabled={resetting}
-                  style={{
-                    padding: '8px 16px',
-                    background: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: '#475569',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleConfirmReset}
-                  disabled={resetting}
-                  style={{
-                    padding: '8px 18px',
-                    background: '#ef4444',
-                    border: 'none',
-                    borderRadius: 8,
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: '#ffffff',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6
-                  }}
-                >
-                  {resetting ? 'Resetting...' : 'Yes, Reset Demo Records'}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

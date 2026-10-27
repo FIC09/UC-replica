@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { io } from 'socket.io-client';
 import {
   X,
   CheckCircle2,
@@ -37,7 +38,13 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
   // 4: Arrived at Doorstep 📍 (PIN verification prompt)
   // 5: Service In Progress ⚡ (Safety PIN verified, service elapsed timer)
   // 6: Service Completed 🎉 (Quality check, review rating, invoice)
-  const [stage, setStage] = useState(3);
+  const initialStage = (booking?.status === 'Completed') ? 6
+    : (booking?.status === 'In Progress') ? 5
+    : (booking?.status === 'Arrived') ? 4
+    : (booking?.status === 'En Route') ? 3
+    : (booking?.assignedProfessional?.name || booking?.assignedPartner) ? 2
+    : 1;
+  const [stage, setStage] = useState(initialStage);
 
   // Real-time speed mode: 'normal' (standard countdown), 'fast' (auto-advance every 6-8s), 'manual'
   const [speedMode, setSpeedMode] = useState('normal');
@@ -49,7 +56,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
   const [serviceElapsed, setServiceElapsed] = useState(0);
 
   // Safety PIN state
-  const safetyPin = booking?.safetyPin || '4829';
+  const safetyPin = booking?.safetyPin || '';
   const [copiedPin, setCopiedPin] = useState(false);
 
   // Responsive desktop detection for spacious 2-column layout
@@ -73,9 +80,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
 
   // Interactive Chat Drawer
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([
-    { sender: 'partner', text: 'Hello! I am Rajesh Sharma, your assigned Urban Company professional. I am carrying sanitized tools and single-use kit.', time: 'Just now' }
-  ]);
+  const [chatMessages, setChatMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const chatBottomRef = useRef(null);
@@ -87,6 +92,9 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
   // Backend authoritative tracking session
   const [trackingData, setTrackingData] = useState(null);
   const [isSimulatingGps, setIsSimulatingGps] = useState(false);
+
+  // Live local booking state (synchronized via WebSockets)
+  const [liveBooking, setLiveBooking] = useState(booking || {});
 
   // Synchronize with authoritative TrackingSession & SSE live stream
   useEffect(() => {
@@ -105,7 +113,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
           else if (data.tracking.status === 'in_progress') setStage(5);
           else if (data.tracking.status === 'arrived') setStage(4);
           else if (data.tracking.status === 'en_route') setStage(3);
-          else if (data.tracking.status === 'assigned') setStage(3);
+          else if (data.tracking.status === 'assigned') setStage(2);
         }
       })
       .catch(err => console.warn('Tracking fetch note:', err.message));
@@ -126,13 +134,64 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
           else if (trk.status === 'in_progress') setStage(5);
           else if (trk.status === 'arrived') setStage(4);
           else if (trk.status === 'en_route') setStage(3);
+          else if (trk.status === 'assigned') setStage(2);
         }
       } catch (e) {}
     };
 
+    // Connect WebSocket room for assignment updates
+    const socket = io();
+    socket.emit('join:room', `booking:${booking.id}`);
+
+    const handleBookingLiveEvent = (event) => {
+      if (!event) return;
+      const type = event.eventType || event.type;
+      const payload = event.payload || {};
+
+      if (type === 'ASSIGNMENT_ACCEPTED') {
+        setLiveBooking(prev => ({
+          ...prev,
+          status: 'Assigned',
+          assignmentStatus: 'ASSIGNED',
+          assignedPartner: payload.proName,
+          assignedProfessional: {
+            id: payload.proId,
+            name: payload.proName,
+            phone: payload.proPhone,
+            trade: payload.proTrade || prev?.serviceName
+          }
+        }));
+        setStage(2);
+      } else if (type === 'ASSIGNMENT_OFFERED') {
+        setLiveBooking(prev => ({
+          ...prev,
+          assignmentStatus: 'OFFERED',
+          offeredTo: {
+            proName: payload.proName,
+            timeoutSeconds: payload.timeoutSeconds
+          }
+        }));
+      } else if (type === 'ASSIGNMENT_FAILED') {
+        setLiveBooking(prev => ({
+          ...prev,
+          assignmentStatus: 'AWAITING_OWNER_ATTENTION'
+        }));
+      }
+    };
+
+    socket.on('realtime:event', handleBookingLiveEvent);
+    socket.on('ASSIGNMENT_OFFERED', handleBookingLiveEvent);
+    socket.on('ASSIGNMENT_ACCEPTED', handleBookingLiveEvent);
+    socket.on('ASSIGNMENT_FAILED', handleBookingLiveEvent);
+
     return () => {
       isMounted = false;
       eventSource.close();
+      socket.off('realtime:event', handleBookingLiveEvent);
+      socket.off('ASSIGNMENT_OFFERED', handleBookingLiveEvent);
+      socket.off('ASSIGNMENT_ACCEPTED', handleBookingLiveEvent);
+      socket.off('ASSIGNMENT_FAILED', handleBookingLiveEvent);
+      socket.disconnect();
     };
   }, [booking?.id]);
 
@@ -290,7 +349,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
       } else if (msg.toLowerCase().includes('flat') || msg.toLowerCase().includes('floor') || msg.toLowerCase().includes('lift')) {
         reply = 'Noted! Coming straight to Flat 402 via the elevator.';
       } else if (msg.toLowerCase().includes('pin')) {
-        reply = `Thank you! I will verify PIN ${safetyPin} when I reach your doorstep.`;
+        reply = safetyPin ? `Thank you! I will verify PIN ${safetyPin} upon arrival.` : 'Thank you! I will verify with you upon arrival.';
       }
       setIsPartnerTyping(false);
       setChatMessages((prev) => [
@@ -305,9 +364,11 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
   };
 
   // Authoritative live professional & tracking telemetry
-  const proName = trackingData?.workerName || booking?.assignedProfessional?.name || booking?.assignedPartner || 'Rajesh Sharma';
-  const proTrade = trackingData?.workerTrade || booking?.assignedProfessional?.trade || booking?.serviceName || 'Verified Pro';
-  const proRating = trackingData?.workerRating || booking?.assignedProfessional?.rating || 4.92;
+  const hasAssignedPro = Boolean(trackingData?.workerName || liveBooking?.assignedProfessional?.name || liveBooking?.assignedPartner);
+  const proName = trackingData?.workerName || liveBooking?.assignedProfessional?.name || liveBooking?.assignedPartner || '';
+  const proTrade = trackingData?.workerTrade || liveBooking?.assignedProfessional?.trade || liveBooking?.serviceName || 'Home Service Specialist';
+  const proRating = trackingData?.workerRating ?? liveBooking?.assignedProfessional?.rating ?? 4.9;
+  const assignmentStatus = liveBooking?.assignmentStatus || (hasAssignedPro ? 'ASSIGNED' : 'UNASSIGNED');
   const activePin = trackingData?.safetyPin || safetyPin;
 
   // Calculated distance based on live telemetry or fallback
@@ -455,183 +516,218 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
             overflowY: 'auto',
             maxHeight: isDesktop ? '100%' : undefined
           }}>
-            {/* 2. SAFETY PIN BANNER (Prominent & Copyable) */}
-            <div style={{
-              background: '#EFF6FF',
-              borderBottom: '1px solid #BFDBFE',
-              padding: '10px 18px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexShrink: 0
-            }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <ShieldCheck size={14} color="#1E40AF" />
-                  <span style={{ fontSize: 12, color: '#1E40AF', fontWeight: 800 }}>
-                    Service Start Safety PIN
-                  </span>
-                </div>
-                <span style={{ fontSize: 11.5, color: '#3B82F6', marginTop: 1, display: 'block' }}>
-                  {stage < 4 ? 'Share with partner upon doorstep arrival' : stage === 4 ? '⚠️ Partner is outside! Share PIN now' : '✓ PIN Verified successfully'}
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{
-                  fontSize: 18,
-                  fontWeight: 800,
-                  letterSpacing: 3,
-                  background: '#1E40AF',
-                  color: '#FFFFFF',
-                  padding: '4px 10px',
-                  borderRadius: 8,
-                  boxShadow: '0 2px 4px rgba(30, 64, 175, 0.25)',
-                  fontFamily: 'monospace'
-                }}>
-                  {safetyPin}
-                </div>
-                <button
-                  type="button"
-                  onClick={handleCopyPin}
-                  style={{
-                    background: copiedPin ? '#10B981' : '#DBEAFE',
-                    color: copiedPin ? '#FFFFFF' : '#1E40AF',
-                    border: 'none',
-                    borderRadius: 6,
-                    padding: '6px 8px',
-                    fontSize: 11,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    transition: 'all 0.2s'
-                  }}
-                  title="Copy PIN"
-                >
-                  {copiedPin ? <Check size={13} /> : <Copy size={13} />}
-                  <span>{copiedPin ? 'Copied' : 'Copy'}</span>
-                </button>
-              </div>
-            </div>
 
             {/* 3. UNIFIED PARTNER CARD (Avatar, Rating & Dual Actions) */}
-            <div style={{
-              padding: '12px 18px',
-              background: '#F8FAFC',
-              borderBottom: '1px solid #E2E8F0',
-              flexShrink: 0
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ position: 'relative' }}>
-                  <img
-                    src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80"
-                    alt={proName}
-                    style={{
-                      width: 46,
-                      height: 46,
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      border: '2px solid #6E42E5'
-                    }}
-                  />
-                  <span style={{
-                    position: 'absolute',
-                    bottom: 0,
-                    right: 0,
-                    width: 12,
-                    height: 12,
+            {!hasAssignedPro ? (
+              <div style={{
+                padding: '16px 20px',
+                background: assignmentStatus === 'AWAITING_OWNER_ATTENTION' ? '#FEF2F2' : '#F5F3FF',
+                borderBottom: '1px solid #E2E8F0',
+                flexShrink: 0
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <div style={{
+                    width: 44,
+                    height: 44,
                     borderRadius: '50%',
-                    background: '#10B981',
-                    border: '2px solid #FFFFFF'
-                  }} title="Online" />
-                </div>
-
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {proName}
-                    </span>
-                    <span style={{
-                      background: '#ECFDF5',
-                      color: '#059669',
-                      fontSize: 10,
-                      fontWeight: 800,
-                      padding: '2px 6px',
-                      borderRadius: 4
-                    }}>
-                      Verified Pro
-                    </span>
+                    backgroundColor: assignmentStatus === 'AWAITING_OWNER_ATTENTION' ? '#FEE2E2' : '#EDE9FE',
+                    color: assignmentStatus === 'AWAITING_OWNER_ATTENTION' ? '#DC2626' : '#7C3AED',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 20,
+                    flexShrink: 0
+                  }}>
+                    {assignmentStatus === 'AWAITING_OWNER_ATTENTION' ? '⚠️' : '⚡'}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: '#475569', marginTop: 2 }}>
-                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: '#F59E0B', fontWeight: 800 }}>
-                      <Star size={12} fill="#F59E0B" />
-                      <span>{proRating}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A' }}>
+                      {assignmentStatus === 'OFFERED'
+                        ? 'Waiting for professional acceptance...'
+                        : assignmentStatus === 'AWAITING_OWNER_ATTENTION'
+                        ? 'Operations desk prioritizing your booking'
+                        : 'Finding your qualified professional...'}
                     </div>
-                    <span>• {proTrade}</span>
-                    <span>• Live GPS Active</span>
-                  </div>
-
-                  <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                    {booking?.serviceZone || booking?.city || 'Krishnagiri'} • Direct Home Service
+                    <div style={{ fontSize: 12, color: '#64748B', marginTop: 3 }}>
+                      {assignmentStatus === 'OFFERED'
+                        ? `Dispatch offer sent to a verified specialist nearby. Awaiting confirmation.`
+                        : assignmentStatus === 'AWAITING_OWNER_ATTENTION'
+                        ? 'Our operations desk is manually assigning a certified expert for your scheduled slot.'
+                        : 'Matching with the highest-rated verified professional near your area.'}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Quick Actions Row: Message & Call */}
-              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                <button
-                  type="button"
-                  onClick={() => setIsChatOpen(true)}
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
-                    color: '#FFFFFF',
-                    border: 'none',
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
-                    transition: 'opacity 0.15s'
-                  }}
-                >
-                  <MessageSquare size={14} />
-                  <span>Message Technician</span>
-                </button>
+                {/* Disabled Call & Message Buttons */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <button
+                    type="button"
+                    disabled
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: '#F1F5F9',
+                      color: '#94A3B8',
+                      border: '1px solid #E2E8F0',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'not-allowed'
+                    }}
+                  >
+                    <MessageSquare size={13} />
+                    <span>Chat (Available once assigned)</span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={handleInitiateCall}
-                  title="Free Privacy-Protected WebRTC Voice Call (No phone number shared)"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    padding: '8px 14px',
-                    borderRadius: 8,
-                    background: '#FFFFFF',
-                    color: '#059669',
-                    border: '1.5px solid #A7F3D0',
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'background 0.15s'
-                  }}
-                >
-                  <Phone size={14} />
-                  <span>Call (Free)</span>
-                </button>
+                  <button
+                    type="button"
+                    disabled
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      background: '#F1F5F9',
+                      color: '#94A3B8',
+                      border: '1px solid #E2E8F0',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'not-allowed'
+                    }}
+                  >
+                    <Phone size={13} />
+                    <span>Call</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div style={{
+                padding: '12px 18px',
+                background: '#F8FAFC',
+                borderBottom: '1px solid #E2E8F0',
+                flexShrink: 0
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ position: 'relative' }}>
+                    <img
+                      src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80"
+                      alt={proName}
+                      style={{
+                        width: 46,
+                        height: 46,
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '2px solid #6E42E5'
+                      }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: 0,
+                      width: 12,
+                      height: 12,
+                      borderRadius: '50%',
+                      background: '#10B981',
+                      border: '2px solid #FFFFFF'
+                    }} title="Online" />
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {proName}
+                      </span>
+                      <span style={{
+                        background: '#ECFDF5',
+                        color: '#059669',
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: '2px 6px',
+                        borderRadius: 4
+                      }}>
+                        Verified Pro
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11.5, color: '#475569', marginTop: 2 }}>
+                      {proRating > 0 ? (
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: '#F59E0B', fontWeight: 800 }}>
+                          <Star size={12} fill="#F59E0B" />
+                          <span>{Number(proRating).toFixed(1)}</span>
+                        </div>
+                      ) : (
+                        <span style={{ color: '#059669', fontWeight: 700, fontSize: 11 }}>★ New Professional</span>
+                      )}
+                      <span>• {proTrade}</span>
+                      <span>• Live GPS Active</span>
+                    </div>
+
+                    <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                      {liveBooking?.serviceZone || liveBooking?.city || 'Direct Dispatch'} • Direct Home Service
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Actions Row: Message & Call */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsChatOpen(true)}
+                    style={{
+                      flex: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(16, 185, 129, 0.25)',
+                      transition: 'opacity 0.15s'
+                    }}
+                  >
+                    <MessageSquare size={14} />
+                    <span>Message Technician</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleInitiateCall}
+                    title="Free Privacy-Protected WebRTC Voice Call (No phone number shared)"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      background: '#FFFFFF',
+                      color: '#059669',
+                      border: '1.5px solid #A7F3D0',
+                      fontSize: 12.5,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'background 0.15s'
+                    }}
+                  >
+                    <Phone size={14} />
+                    <span>Call (Free)</span>
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* 4. TABS (Live Tracker | Items & Invoice) */}
             <div style={{
@@ -738,33 +834,12 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                         <span>Doorstep</span>
                       </div>
 
-                      {/* Real-time simulation step control */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(124, 58, 237, 0.15)' }}>
+                      {/* Live GPS stream status */}
+                      <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(124, 58, 237, 0.15)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#6D28D9', fontWeight: 600 }}>
                           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
                           <span>Live GPS Stream Connected</span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={handleSimulateGpsStep}
-                          disabled={isSimulatingGps}
-                          style={{
-                            background: '#7C3AED',
-                            color: '#FFFFFF',
-                            border: 'none',
-                            borderRadius: 6,
-                            padding: '5px 12px',
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 4
-                          }}
-                        >
-                          <Navigation size={12} />
-                          <span>Advance GPS 🛵</span>
-                        </button>
                       </div>
                     </div>
                   )}
@@ -1090,7 +1165,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                             </span>
                           </div>
                           <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 1 }}>
-                            Share PIN {safetyPin} to initiate service
+                            {stage >= 4 ? 'Doorstep arrival verified' : 'Technician arrival at doorstep'}
                           </div>
                         </div>
                       </div>

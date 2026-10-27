@@ -115,7 +115,7 @@ const bookingSchema = new mongoose.Schema({
     convenienceFee: { type: Number, default: 49 },
     taxes: { type: Number, default: 0 },
     surgeFee: { type: Number, default: 0 },
-    total: { type: Number, required: true },
+    total: { type: Number, default: function() { return this.totalAmount || 0; } },
   },
   totalAmount: {
     type: Number,
@@ -232,6 +232,44 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     enum: ['automatic', 'offer_accept'],
     default: 'automatic'
+  },
+  assignmentMode: {
+    type: String,
+    enum: ['MANUAL', 'AUTO'],
+    default: 'AUTO'
+  },
+  assignmentStatus: {
+    type: String,
+    enum: ['UNASSIGNED', 'OFFERED', 'ASSIGNED', 'EXPIRED', 'REJECTED', 'AWAITING_OWNER_ATTENTION'],
+    default: 'UNASSIGNED'
+  },
+  offeredTo: {
+    proId: { type: String, default: '' },
+    proName: { type: String, default: '' },
+    proPhone: { type: String, default: '' },
+    offeredAt: Date,
+    expiresAt: Date,
+    mode: { type: String, enum: ['MANUAL', 'AUTO'], default: 'AUTO' },
+    attemptCount: { type: Number, default: 0 }
+  },
+  assignmentAttempts: [{
+    proId: String,
+    proName: String,
+    status: { type: String, enum: ['offered', 'accepted', 'rejected', 'expired'] },
+    attemptedAt: { type: Date, default: Date.now },
+    respondedAt: Date,
+    reason: { type: String, default: '' }
+  }],
+  location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      default: 'Point'
+    },
+    coordinates: {
+      type: [Number],
+      default: [78.2090, 12.5200] // [lng, lat]
+    }
   },
   offerExpiry: Date,
   offerStatus: {
@@ -434,7 +472,19 @@ bookingSchema.pre('save', function (next) {
   if (!this.invoiceNumber) {
     this.invoiceNumber = `INV-${new Date().getFullYear()}-${this.id.replace(/\D/g, '').slice(-5) || '10492'}`;
   }
+  if (!this.assignmentStatus) {
+    if (this.assignedPartner || this.assignedProfessional?.id) {
+      this.assignmentStatus = 'ASSIGNED';
+    } else {
+      this.assignmentStatus = 'UNASSIGNED';
+    }
+  }
   next();
 });
 
+bookingSchema.index({ location: '2dsphere' });
+bookingSchema.index({ status: 1, assignmentStatus: 1 });
+bookingSchema.index({ 'offeredTo.proId': 1, offerStatus: 1 });
+
 export const Booking = mongoose.model('Booking', bookingSchema);
+

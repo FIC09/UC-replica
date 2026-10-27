@@ -1,108 +1,7 @@
 import { AuditLog, sanitizeAuditPayload } from '../models/AuditLog.js';
 
-// In-memory fallback audit ledger for demo / development persistence
-let mockAuditStore = [
-  {
-    _id: 'LOG-88101',
-    logId: 'LOG-88101',
-    actor: {
-      id: 'adm-super-01',
-      name: 'Super Admin',
-      email: 'admin@urbancompany.com',
-      role: 'Super Admin',
-      ipAddress: '106.51.78.21'
-    },
-    action: 'PRICE_SURGE_ENABLED',
-    entityType: 'PlatformSettings',
-    entityId: 'SETTINGS-GLOBAL',
-    reason: 'Heavy monsoon storm alert in Mumbai Coastal Cluster',
-    severity: 'Warning',
-    beforeSummary: { monsoonSurgeActive: false, monsoonSurgeAmount: 0 },
-    afterSummary: { monsoonSurgeActive: true, monsoonSurgeAmount: 49 },
-    ipAddress: '106.51.78.21',
-    timestamp: new Date(Date.now() - 3600000 * 2)
-  },
-  {
-    _id: 'LOG-88102',
-    logId: 'LOG-88102',
-    actor: {
-      id: 'adm-ops-02',
-      name: 'Operations Manager',
-      email: 'ops@urbancompany.com',
-      role: 'Operations Manager',
-      ipAddress: '49.207.198.11'
-    },
-    action: 'PARTNER_APPROVED',
-    entityType: 'BusinessPartner',
-    entityId: 'PTN-01',
-    reason: 'All GSTIN and police verification documents verified and approved',
-    severity: 'Info',
-    beforeSummary: { status: 'Pending Verification', verifiedDocs: 2 },
-    afterSummary: { status: 'Active', verifiedDocs: 3, settlementMode: 'BUSINESS_DIRECT' },
-    ipAddress: '49.207.198.11',
-    timestamp: new Date(Date.now() - 3600000 * 6)
-  },
-  {
-    _id: 'LOG-88103',
-    logId: 'LOG-88103',
-    actor: {
-      id: 'adm-fin-03',
-      name: 'Finance Manager',
-      email: 'finance@urbancompany.com',
-      role: 'Finance Manager',
-      ipAddress: '157.48.12.90'
-    },
-    action: 'PAYOUT_RELEASED',
-    entityType: 'PayoutStatement',
-    entityId: 'PAYOUT-2026-W42',
-    reason: 'Scheduled weekly NEFT settlement to verified fleet bank accounts',
-    severity: 'Critical',
-    beforeSummary: { status: 'Pending Approval', grossAmount: 184500, bankAccount: '•••• 4821' },
-    afterSummary: { status: 'Released', utrReference: 'CMS9823481289', grossAmount: 184500, bankAccount: '•••• 4821' },
-    ipAddress: '157.48.12.90',
-    timestamp: new Date(Date.now() - 3600000 * 18)
-  },
-  {
-    _id: 'LOG-88104',
-    logId: 'LOG-88104',
-    actor: {
-      id: 'adm-supp-04',
-      name: 'Support Agent',
-      email: 'support@urbancompany.com',
-      role: 'Support Agent',
-      ipAddress: '106.51.78.21'
-    },
-    action: 'REFUND_APPROVED',
-    entityType: 'Booking',
-    entityId: 'BK-8902',
-    reason: 'Water heater service incomplete due to component shortage; goodwill instant reversal',
-    severity: 'Critical',
-    beforeSummary: { paymentStatus: 'Paid', amount: 849 },
-    afterSummary: { paymentStatus: 'Refunded', refundAmount: 849, gatewayRefundId: 'rfnd_sim_91823' },
-    ipAddress: '106.51.78.21',
-    timestamp: new Date(Date.now() - 3600000 * 24)
-  },
-  {
-    _id: 'LOG-88105',
-    logId: 'LOG-88105',
-    actor: {
-      id: 'adm-super-01',
-      name: 'Super Admin',
-      email: 'admin@urbancompany.com',
-      role: 'Super Admin',
-      ipAddress: '127.0.0.1'
-    },
-    action: 'STAFF_SESSION_REVOKED',
-    entityType: 'Admin',
-    entityId: 'adm-ops-02',
-    reason: 'Security rotation of active sessions requested by operations lead',
-    severity: 'Warning',
-    beforeSummary: { tokenVersion: 0 },
-    afterSummary: { tokenVersion: 1, sessionStatus: 'Invalidated' },
-    ipAddress: '127.0.0.1',
-    timestamp: new Date(Date.now() - 3600000 * 30)
-  }
-];
+// Audit ledger store
+let mockAuditStore = [];
 
 // Reusable function to record audit entries across controllers
 export async function recordAuditTrail({
@@ -188,22 +87,8 @@ export async function getAuditLogs(req, res) {
         .lean();
     } catch {}
 
-    if (!logs || logs.length === 0) {
-      let filtered = [...mockAuditStore];
-      if (action && action !== 'ALL') filtered = filtered.filter(l => l.action === action);
-      if (entityType && entityType !== 'ALL') filtered = filtered.filter(l => l.entityType === entityType);
-      if (severity && severity !== 'ALL') filtered = filtered.filter(l => l.severity === severity);
-      if (search) {
-        const q = search.toLowerCase();
-        filtered = filtered.filter(l =>
-          (l.actor?.name || '').toLowerCase().includes(q) ||
-          (l.actor?.email || '').toLowerCase().includes(q) ||
-          (l.action || '').toLowerCase().includes(q) ||
-          (l.entityId || '').toLowerCase().includes(q) ||
-          (l.reason || '').toLowerCase().includes(q)
-        );
-      }
-      logs = filtered;
+    if (!logs) {
+      logs = [];
     }
 
     // Map for frontend consumption

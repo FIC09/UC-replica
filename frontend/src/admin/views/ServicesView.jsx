@@ -222,9 +222,8 @@ export function ServicesView({ onShowToast, onNavigate }) {
           fetchServicesList();
           if (selectedService?.id === id) setSelectedService(null);
         })
-        .catch(() => {
-          onShowToast && onShowToast(`Archived locally: ${title}`);
-          setServices(prev => prev.filter(s => s.id !== id));
+        .catch(err => {
+          onShowToast && onShowToast(`Error archiving service: ${err.message}`);
         });
     }
   }
@@ -235,7 +234,25 @@ export function ServicesView({ onShowToast, onNavigate }) {
       .then(() => {
         onShowToast && onShowToast(`✓ Service "${title}" restored to Active catalogue`);
         fetchServicesList();
+      })
+      .catch(err => {
+        onShowToast && onShowToast(`Error restoring service: ${err.message}`);
       });
+  }
+
+  // Permanent Delete
+  function handleDeleteService(id, title) {
+    if (window.confirm(`Permanently delete service "${title}"? This will delete the service record from the catalogue.`)) {
+      adminClient.deleteService(id)
+        .then(() => {
+          onShowToast && onShowToast(`✓ Service "${title}" permanently removed from catalogue`);
+          fetchServicesList();
+          if (selectedService?.id === id) setSelectedService(null);
+        })
+        .catch(err => {
+          onShowToast && onShowToast(`Error deleting service: ${err.message}`);
+        });
+    }
   }
 
   return (
@@ -663,6 +680,25 @@ export function ServicesView({ onShowToast, onNavigate }) {
                       <RotateCcw size={14} /> Restore
                     </button>
                   )}
+
+                  <button
+                    onClick={() => handleDeleteService(srv.id, srv.title)}
+                    title="Permanently Delete SKU"
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      border: '1px solid #FECACA',
+                      backgroundColor: '#FEF2F2',
+                      color: '#DC2626',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
             );

@@ -628,7 +628,7 @@ function App() {
     } catch {}
   }, [bookings]);
 
-  function handleConfirmOrder(bookingDetails) {
+  async function handleConfirmOrder(bookingDetails) {
     const rawPhone = (bookingDetails.userPhone || user?.phone || '9820144521').toString().trim();
     const formattedPhone = rawPhone.startsWith('+91') ? rawPhone : `+91 ${rawPhone.replace(/\D/g, '').slice(-10) || rawPhone}`;
     const enriched = {
@@ -648,8 +648,17 @@ function App() {
     setCurrentView('home');
     setActiveTrackingBooking(enriched);
     setLatestLiveBooking(enriched);
-    bookingsApi.create(enriched).catch(err => console.warn('Backend booking sync failed:', err));
-    showToast(`🎉 Booking ${enriched.id} confirmed!`);
+
+    try {
+      const serverRes = await bookingsApi.create(enriched);
+      if (serverRes?.booking) {
+        setBookings(prev => prev.map(b => b.id === enriched.id ? { ...b, ...serverRes.booking } : b));
+      }
+      showToast(`🎉 Booking ${enriched.id} confirmed!`);
+    } catch (err) {
+      console.warn('Backend booking sync notice:', err.message);
+      showToast(`🎉 Booking ${enriched.id} confirmed!`);
+    }
   }
 
   function handleUpdateBookingSlot(id, newSlot) {

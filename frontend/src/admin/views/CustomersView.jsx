@@ -25,7 +25,8 @@ import {
   Download,
   Trash2,
   Lock,
-  RefreshCw
+  RefreshCw,
+  Plus
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
 
@@ -47,6 +48,17 @@ export function CustomersView({ onShowToast, onNavigate }) {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'bookings' | 'ledger' | 'support' | 'notes'
 
   // Modal Dialogs
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newCustomer, setNewCustomer] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    city: 'Krishnagiri',
+    locality: 'Rayakottai Road',
+    address: '',
+    isPlusMember: false
+  });
+
   const [showSuspendModal, setShowSuspendModal] = useState(false);
   const [suspendReason, setSuspendReason] = useState('Suspicious fraudulent booking activity');
   const [showAnonymiseModal, setShowAnonymiseModal] = useState(false);
@@ -87,41 +99,74 @@ export function CustomersView({ onShowToast, onNavigate }) {
     setLoadingDetail(true);
     adminClient.getCustomerDetail(selectedCust.id || selectedCust._id)
       .then(res => {
-        if (res.customer) {
-          setCustomerDetail(res.customer);
-        } else {
-          // Fallback structure
+        if (res && res.customer) {
           setCustomerDetail({
             ...selectedCust,
-            metrics: {
-              totalSpend: 5490,
-              totalOrders: 6,
-              completedOrders: 5,
-              cancelledOrders: 1,
-              averageOrderValue: 915
-            },
-            bookings: [
-              { id: 'ORD-9841', serviceName: 'Powerjet AC Servicing', slot: '14 Oct, 02:00 PM', amount: 922, status: 'In Progress', proName: 'Vikram Salvi' },
-              { id: 'ORD-9810', serviceName: 'Bathroom Deep Cleaning', slot: '22 Sep, 10:00 AM', amount: 499, status: 'Completed', proName: 'Sunil V.' }
-            ],
-            payments: [
-              { id: 'TXN-9021', date: '14 Oct 2026', method: 'Google Pay (UPI)', amount: 922, type: 'Payment', status: 'Success' },
-              { id: 'TXN-8840', date: '22 Sep 2026', method: 'Credit Card (Visa)', amount: 499, type: 'Payment', status: 'Success' }
-            ],
-            supportTickets: [
-              { id: 'TCK-201', subject: 'Inquiry regarding seasonal monsoon discounts', status: 'Resolved', date: '12 Sep 2026' }
-            ],
-            reviews: [
-              { id: 'REV-101', rating: 5, service: 'Bathroom Deep Cleaning', text: 'Excellent technician, arrived right on time and cleaned thoroughly.', date: '23 Sep 2026' }
-            ]
+            ...res.customer,
+            spendingSummary: res.spendingSummary || { lifetimeValue: 0, totalBookings: 0, completedOrders: 0, cancelledOrders: 0 },
+            bookings: res.bookings || [],
+            supportTickets: res.supportTickets || [],
+            reviews: res.reviews || []
           });
+        } else {
+          setCustomerDetail(selectedCust);
         }
         setLoadingDetail(false);
       })
       .catch(() => {
+        setCustomerDetail(selectedCust);
         setLoadingDetail(false);
       });
   }, [selectedCust]);
+
+  // Handle Create Customer in Real-time Database
+  function handleCreateCustomerSubmit(e) {
+    e.preventDefault();
+    if (!newCustomer.name.trim()) {
+      onShowToast && onShowToast('Please enter customer full name.');
+      return;
+    }
+    if (!newCustomer.phone.trim()) {
+      onShowToast && onShowToast('Please enter customer phone number.');
+      return;
+    }
+
+    adminClient.createCustomer(newCustomer)
+      .then(res => {
+        onShowToast && onShowToast(`✓ Customer account "${newCustomer.name}" created in real-time database!`);
+        setIsCreateOpen(false);
+        setNewCustomer({
+          name: '',
+          phone: '',
+          email: '',
+          city: 'Krishnagiri',
+          locality: 'Rayakottai Road',
+          address: '',
+          isPlusMember: false
+        });
+        fetchCustomersList();
+      })
+      .catch(err => {
+        onShowToast && onShowToast(`Error: ${err.message}`);
+      });
+  }
+
+  // Handle Permanent Delete of Customer
+  function handleDeleteCustomer() {
+    if (!selectedCust) return;
+    if (!window.confirm(`Permanently delete customer account for "${selectedCust.name}" from database?`)) {
+      return;
+    }
+    adminClient.deleteCustomer(selectedCust.id || selectedCust._id)
+      .then(() => {
+        onShowToast && onShowToast(`✓ Customer account #${selectedCust.id || selectedCust._id} deleted permanently.`);
+        setSelectedCust(null);
+        fetchCustomersList();
+      })
+      .catch(err => {
+        onShowToast && onShowToast(`Error deleting customer: ${err.message}`);
+      });
+  }
 
   // Handle Suspend / Reactivate
   function handleSuspendSubmit() {
@@ -278,6 +323,25 @@ export function CustomersView({ onShowToast, onNavigate }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              backgroundColor: '#6E42E5',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: 8,
+              padding: '9px 16px',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(110, 66, 229, 0.25)'
+            }}
+          >
+            <Plus size={16} /> Add Customer
+          </button>
           <button
             onClick={fetchCustomersList}
             title="Refresh List"
@@ -771,10 +835,32 @@ export function CustomersView({ onShowToast, onNavigate }) {
                       gap: 6
                     }}
                   >
-                    <Trash2 size={14} />
-                    GDPR Anonymise / Erase PII
+                    <Lock size={14} />
+                    GDPR Anonymise
                   </button>
                 )}
+
+                <button
+                  onClick={handleDeleteCustomer}
+                  style={{
+                    flex: '1 1 auto',
+                    padding: '8px 14px',
+                    borderRadius: 6,
+                    border: '1px solid #FCA5A5',
+                    backgroundColor: '#FFF1F2',
+                    color: '#BE123C',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6
+                  }}
+                >
+                  <Trash2 size={14} />
+                  Delete Account
+                </button>
               </div>
 
               {/* TAB 1: OVERVIEW & SPENDING SUMMARY */}
@@ -794,9 +880,9 @@ export function CustomersView({ onShowToast, onNavigate }) {
                     }}>
                       <div style={{ fontSize: 11, color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Lifetime Value (LTV)</div>
                       <div style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
-                        ₹{customerDetail?.metrics?.totalSpend || 5490}
+                        ₹{customerDetail?.spendingSummary?.lifetimeValue ?? customerDetail?.totalSpend ?? 0}
                       </div>
-                      <div style={{ fontSize: 11, color: '#16A34A', marginTop: 2 }}>Statutory GST Recorded</div>
+                      <div style={{ fontSize: 11, color: '#16A34A', marginTop: 2 }}>Real DB Ledger</div>
                     </div>
 
                     <div style={{
@@ -807,10 +893,10 @@ export function CustomersView({ onShowToast, onNavigate }) {
                     }}>
                       <div style={{ fontSize: 11, color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Total Bookings Placed</div>
                       <div style={{ fontSize: 22, fontWeight: 800, color: '#6E42E5', marginTop: 4 }}>
-                        {customerDetail?.metrics?.totalOrders || 6} Orders
+                        {customerDetail?.spendingSummary?.totalBookings ?? customerDetail?.totalBookings ?? 0} Orders
                       </div>
                       <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                        {customerDetail?.metrics?.completedOrders || 5} Delivered • {customerDetail?.metrics?.cancelledOrders || 1} Cancelled
+                        {customerDetail?.spendingSummary?.completedOrders ?? 0} Delivered • {customerDetail?.spendingSummary?.cancelledOrders ?? 0} Cancelled
                       </div>
                     </div>
                   </div>
@@ -911,13 +997,13 @@ export function CustomersView({ onShowToast, onNavigate }) {
                             {bk.serviceName}
                           </div>
                           <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                            Slot: {bk.slot} • Pro: <strong>{bk.proName || 'Rajesh K.'}</strong>
+                            Slot: {bk.slot || 'Scheduled'} • Pro: <strong>{bk.assignedPartner || bk.proName || 'Unassigned'}</strong>
                           </div>
                         </div>
 
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>₹{bk.amount || 699}</div>
-                          <div style={{ fontSize: 10, color: '#16A34A', fontWeight: 600 }}>Settled</div>
+                          <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>₹{bk.totalAmount || bk.amount || 0}</div>
+                          <div style={{ fontSize: 10, color: '#16A34A', fontWeight: 600 }}>{bk.paymentStatus || 'Settled'}</div>
                         </div>
                       </div>
                     ))
@@ -1231,9 +1317,156 @@ export function CustomersView({ onShowToast, onNavigate }) {
                   cursor: confirmAnonymiseText.trim().toUpperCase() === 'ANONYMISE' ? 'pointer' : 'not-allowed'
                 }}
               >
-                Permanently Anonymise Data
+                Confirm Anonymisation
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* ADD CUSTOMER MODAL DIALOG                                 */}
+      {/* ======================================================== */}
+      {isCreateOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          zIndex: 1100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(3px)'
+        }}>
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 14,
+            width: '100%',
+            maxWidth: 520,
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+              <div>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>Add New Customer</h3>
+                <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0 0' }}>Register a verified client account directly into MongoDB</p>
+              </div>
+              <button
+                onClick={() => setIsCreateOpen(false)}
+                style={{ backgroundColor: '#F1F5F9', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X size={16} color="#64748B" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateCustomerSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Anand Kumar"
+                  value={newCustomer.name}
+                  onChange={e => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Phone Number *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="+91 94421 88390"
+                    value={newCustomer.phone}
+                    onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="customer@example.com"
+                    value={newCustomer.email}
+                    onChange={e => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>City</label>
+                  <select
+                    value={newCustomer.city}
+                    onChange={e => setNewCustomer({ ...newCustomer, city: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box', backgroundColor: '#FFFFFF' }}
+                  >
+                    <option value="Krishnagiri">Krishnagiri</option>
+                    <option value="Mumbai">Mumbai</option>
+                    <option value="Bengaluru">Bengaluru</option>
+                    <option value="Delhi NCR">Delhi NCR</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Locality / Zone</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Rayakottai Road"
+                    value={newCustomer.locality}
+                    onChange={e => setNewCustomer({ ...newCustomer, locality: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Street Address</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Flat 3B, Green Meadows, 45 Rayakottai Road"
+                  value={newCustomer.address}
+                  onChange={e => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4 }}>
+                <input
+                  type="checkbox"
+                  id="ucPlusToggle"
+                  checked={newCustomer.isPlusMember}
+                  onChange={e => setNewCustomer({ ...newCustomer, isPlusMember: e.target.checked })}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <label htmlFor="ucPlusToggle" style={{ fontSize: 13, color: '#334155', cursor: 'pointer', fontWeight: 600 }}>
+                  Enroll in UC Plus VIP Membership
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '9px 20px', borderRadius: 8, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Save Customer
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

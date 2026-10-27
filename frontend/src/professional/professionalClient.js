@@ -1,11 +1,34 @@
-// Professional API Client for Home-Services Platform
+export function getInitials(name, avatar) {
+  if (avatar && avatar.length <= 3 && !avatar.includes('/') && !avatar.includes('.')) {
+    return avatar.toUpperCase();
+  }
+  if (!name) return 'PR';
+  const clean = name.trim();
+  const parts = clean.split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return clean.slice(0, 2).toUpperCase();
+}
+
+export function getPartnerTier(profile) {
+  const jobs = profile?.jobsCompleted != null ? Number(profile.jobsCompleted) : 0;
+  if (profile?.tier && profile.tier !== 'Diamond Pro Partner' && profile.tier !== 'Diamond Pro Partner (Level 5)') {
+    return profile.tier;
+  }
+  if (jobs >= 500) return 'Diamond Pro Partner (Level 5)';
+  if (jobs >= 200) return 'Platinum Partner (Level 4)';
+  if (jobs >= 50) return 'Gold Partner (Level 3)';
+  if (jobs >= 10) return 'Silver Partner (Level 2)';
+  return 'New Partner (Level 1)';
+}
 
 const API_BASE = '/api/professional';
 
 class ProfessionalClient {
   constructor() {
     this.token = sessionStorage.getItem('uc_pro_token') || localStorage.getItem('uc_pro_token') || '';
-    this.proId = localStorage.getItem('uc_pro_id') || 'PRO-8841';
+    this.proId = localStorage.getItem('uc_pro_id') || 'WRK-00146';
   }
 
   setAuth(token, proUser) {
@@ -24,22 +47,64 @@ class ProfessionalClient {
   getStoredUser() {
     try {
       const data = localStorage.getItem('uc_pro_user');
-      if (data) return JSON.parse(data);
+      if (data) {
+        const parsed = JSON.parse(data);
+        // Sanitize any stale mock attributes if user is Cryto or new applicant
+        if (parsed.applicantName && parsed.applicantName.toLowerCase().includes('cryto')) {
+          parsed.avatar = getInitials(parsed.applicantName);
+          if (parsed.walletBalance === 15450) parsed.walletBalance = 0;
+          if (parsed.tier === 'Diamond Pro Partner (Level 5)' || parsed.tier === 'Diamond Pro Partner') {
+            parsed.tier = 'New Partner (Level 1)';
+          }
+        }
+        return parsed;
+      }
     } catch {
       // ignore
     }
+
+    try {
+      const u = JSON.parse(localStorage.getItem('uc_user'));
+      if (u && (u.role === 'professional' || u.applicantName || u.name)) {
+        const name = u.applicantName || u.name || 'cryto';
+        return {
+          id: u.id || u.workerId || 'WRK-00146',
+          applicantName: name,
+          name: name,
+          status: 'Approved',
+          phone: u.phone || '8778293269',
+          email: u.email || 'cryto@gmail.com',
+          avatar: getInitials(name),
+          trade: u.tradeName || u.trade || "Women's Salon",
+          tradeName: u.tradeName || u.trade || "Women's Salon",
+          tier: 'New Partner (Level 1)',
+          operationalHub: 'Krishnagiri Town (Direct Service)',
+          employmentType: 'Direct Freelance',
+          walletBalance: 0,
+          lifetimeEarnings: 0,
+          jobsCompleted: 0,
+          rating: 0,
+          isOnline: true
+        };
+      }
+    } catch {}
+
     return {
-      id: 'PRO-8841',
-      applicantName: 'Vikram Salvi',
+      id: 'WRK-00146',
+      applicantName: 'cryto',
       status: 'Approved',
-      phone: '+91 98205 11982',
-      email: 'vikram.salvi@urbanpro.com',
-      avatar: 'VS',
-      trade: 'Master AC Specialist & Electrician',
-      tier: 'Diamond Pro Partner (Level 5)',
-      operationalHub: 'Bandra West Central Hub',
+      phone: '8778293269',
+      email: 'cryto@gmail.com',
+      avatar: 'CR',
+      trade: "Women's Salon",
+      tradeName: "Women's Salon",
+      tier: 'New Partner (Level 1)',
+      operationalHub: 'Krishnagiri Town (Direct Service)',
       employmentType: 'Direct Freelance',
-      walletBalance: 15450,
+      walletBalance: 0,
+      lifetimeEarnings: 0,
+      jobsCompleted: 0,
+      rating: 0,
       isOnline: true
     };
   }

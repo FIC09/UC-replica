@@ -50,7 +50,15 @@ export async function verifyProfessionalAuth(req, res, next) {
     }
 
     // Try finding professional in database or mock dataset
-    let pro = await WorkerApplication.findOne({ id: proId });
+    let pro = await WorkerApplication.findOne({
+      $or: [
+        { id: proId },
+        { applicationNumber: proId },
+        { id: (proId || '').toUpperCase() },
+        { applicationNumber: (proId || '').toUpperCase() },
+        { email: (proId || '').toLowerCase() }
+      ]
+    });
     if (!pro) {
       // Mock lookup fallback
       const mockPros = [
@@ -248,18 +256,41 @@ export async function verifyProfessionalAuth(req, res, next) {
       }
     }
 
+    const name = pro.applicantName || pro.name || 'Professional';
+    const cleanName = name.trim();
+    const nameParts = cleanName.split(/\s+/);
+    const computedInitials = nameParts.length >= 2
+      ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
+      : cleanName.slice(0, 2).toUpperCase() || 'P';
+
+    const jobs = pro.jobsCompleted != null ? Number(pro.jobsCompleted) : 0;
+    const computedTier = (pro.tier && pro.tier !== 'Diamond Pro Partner' && pro.tier !== 'Diamond Pro Partner (Level 5)')
+      ? pro.tier
+      : (jobs >= 500 ? 'Diamond Pro Partner (Level 5)' : jobs >= 200 ? 'Platinum Partner (Level 4)' : jobs >= 50 ? 'Gold Partner (Level 3)' : jobs >= 10 ? 'Silver Partner (Level 2)' : 'New Partner (Level 1)');
+
     req.professional = {
-      id: pro.id,
-      name: pro.applicantName || pro.name,
+      id: pro.id || pro.applicationNumber || (pro._id ? pro._id.toString() : proId),
+      applicationNumber: pro.applicationNumber || pro.id,
+      applicantName: name,
+      name: name,
+      avatar: (pro.avatar && pro.avatar.length <= 3 && !pro.avatar.includes('/') && !pro.avatar.includes('.')) ? pro.avatar.toUpperCase() : computedInitials,
       phone: pro.phone,
       email: pro.email,
-      trade: pro.trade,
-      tradeName: pro.tradeName,
+      trade: pro.tradeName || pro.trade || 'Home Services',
+      tradeName: pro.tradeName || pro.trade || 'Home Services',
+      categories: pro.categories || [],
+      skills: pro.skills || [],
+      locality: pro.locality || 'Krishnagiri Town',
+      city: pro.city || 'Krishnagiri',
+      operationalHub: pro.operationalHub || (pro.locality ? `${pro.locality} Service Hub` : 'Krishnagiri Operational Hub'),
       employmentType: pro.employmentType || 'Direct Freelance',
       partnerAgencyId: pro.partnerAgencyId || '',
       partnerAgencyName: pro.partnerAgencyName || '',
-      tier: pro.tier || 'Diamond Pro Partner',
-      rating: pro.rating || 4.9,
+      tier: computedTier,
+      rating: pro.rating != null ? Number(pro.rating) : 0,
+      jobsCompleted: jobs,
+      walletBalance: pro.walletBalance != null ? Number(pro.walletBalance) : 0,
+      lifetimeEarnings: pro.lifetimeEarnings != null ? Number(pro.lifetimeEarnings) : 0,
       status: pro.status || 'Pending Review',
       applicationStatus: pro.applicationStatus || pro.status || 'Pending Review',
       suspendReason: pro.suspendReason || '',

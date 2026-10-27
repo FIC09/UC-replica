@@ -235,7 +235,8 @@ export function PaymentGatewayModal({
   hideCOD = false
 }) {
   // Navigation & Flow State
-  // stages: 'gateway' | 'upi_collect' | 'card_3ds' | 'cod_verify' | 'processing' | 'success'
+  // stages: 'gateway' | 'upi_collect' | 'card_3ds' | 'processing' | 'success'
+  const payableAmount = amount;
   const [activeTab, setActiveTab] = useState(initialMethod === 'cod' && hideCOD ? 'gpay' : initialMethod);
   const [paymentStage, setPaymentStage] = useState('gateway');
   const [processingStatus, setProcessingStatus] = useState('Connecting to NPCI Payments Switch...');
@@ -454,7 +455,7 @@ export function PaymentGatewayModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingId: bId,
-          amount: payableAmount,
+          amount: amount,
           currency: 'INR',
           customerPhone: user?.phone || '+91 98400 12345',
           customerEmail: user?.email
@@ -499,7 +500,7 @@ export function PaymentGatewayModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingId: bId,
-          amount: payableAmount,
+          amount: amount,
           currency: 'INR',
           customerPhone: user?.phone || '+91 98400 12345'
         })
@@ -570,7 +571,7 @@ export function PaymentGatewayModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingId: bId,
-          amount: payableAmount,
+          amount: amount,
           currency: 'INR',
           customerPhone: user?.phone || '+91 98400 12345'
         })
@@ -601,23 +602,9 @@ export function PaymentGatewayModal({
     }
   }
 
-  // 6. Flow: Initiate Cash on Delivery -> Security Code Check
-  function handleInitiateCOD() {
-    generateTxnIdentifiers();
-    setCodInput('');
-    setCodError('');
-    setCodCaptcha(Math.floor(1000 + Math.random() * 9000).toString());
-    setPaymentStage('cod_verify');
-  }
-
-  // 7. Flow: Confirm COD Order (Real Backend Verification)
+  // 6. Flow: Direct Cash on Delivery Confirmation (Instant booking, zero captcha)
   async function handleConfirmCOD() {
-    if (codInput.trim() !== codCaptcha.trim()) {
-      setCodError('Incorrect security code. Please enter the 4-digit number displayed.');
-      return;
-    }
-
-    setCodError('');
+    generateTxnIdentifiers();
     setPaymentStage('processing');
     setProcessingStatus('Registering Cash on Delivery booking with partner dispatch...');
 
@@ -628,7 +615,7 @@ export function PaymentGatewayModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           bookingId: bId,
-          amount: payableAmount,
+          amount: amount,
           currency: 'INR',
           customerPhone: user?.phone || '+91 98400 12345'
         })
@@ -638,8 +625,8 @@ export function PaymentGatewayModal({
 
       setPaymentStage('success');
     } catch (err) {
-      setCodError(`Order Error: ${err.message}`);
-      setPaymentStage('cod_verify');
+      alert(`Order Error: ${err.message}`);
+      setPaymentStage('gateway');
     }
   }
 
@@ -1307,164 +1294,6 @@ export function PaymentGatewayModal({
               >
                 <Lock size={16} />
                 <span>Submit OTP &amp; Authorize ₹{amount.toLocaleString('en-IN')}</span>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ========================================================= */}
-        {/* STAGE 3: CASH ON DELIVERY BOT-PROTECTION CAPTCHA         */}
-        {/* ========================================================= */}
-        {paymentStage === 'cod_verify' && (
-          <div style={{
-            padding: '28px 30px',
-            backgroundColor: '#F8FAFC',
-            minHeight: 440,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between'
-          }}>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                <CODBrandIcon size={38} />
-                <div>
-                  <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                    Confirm Cash on Delivery Order
-                  </h3>
-                  <div style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>
-                    Pay ₹{amount.toLocaleString('en-IN')} in Cash or UPI when the service is completed
-                  </div>
-                </div>
-              </div>
-
-              <div style={{
-                backgroundColor: '#FFFFFF',
-                borderRadius: 14,
-                border: '1px solid #E2E8F0',
-                padding: '20px',
-                textAlign: 'center',
-                marginBottom: 20
-              }}>
-                <div style={{ fontSize: 13, color: '#475569', marginBottom: 12, fontWeight: 600 }}>
-                  Enter the 4-digit security confirmation code to confirm your booking:
-                </div>
-
-                {/* Styled Security Captcha Badge */}
-                <div style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  backgroundColor: '#0F172A',
-                  color: '#38BDF8',
-                  padding: '10px 24px',
-                  borderRadius: 10,
-                  fontSize: 26,
-                  fontWeight: 900,
-                  letterSpacing: 10,
-                  marginBottom: 14,
-                  userSelect: 'none',
-                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.5)'
-                }}>
-                  <span>{codCaptcha}</span>
-                  <button
-                    type="button"
-                    onClick={() => setCodCaptcha(Math.floor(1000 + Math.random() * 9000).toString())}
-                    title="Refresh code"
-                    style={{ background: 'none', border: 'none', color: '#94A3B8', cursor: 'pointer', padding: 2 }}
-                  >
-                    <RefreshCw size={16} />
-                  </button>
-                </div>
-
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
-                  <input
-                    type="text"
-                    maxLength={4}
-                    value={codInput}
-                    onChange={(e) => {
-                      setCodInput(e.target.value.replace(/\D/g, ''));
-                      setCodError('');
-                    }}
-                    placeholder="Enter code"
-                    style={{
-                      width: 140,
-                      textAlign: 'center',
-                      fontSize: 18,
-                      fontWeight: 800,
-                      letterSpacing: 4,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      border: codError ? '2px solid #EF4444' : '2px solid #CBD5E1',
-                      outline: 'none'
-                    }}
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setCodInput(codCaptcha)}
-                    style={{
-                      backgroundColor: '#F1F5F9',
-                      border: '1px solid #CBD5E1',
-                      borderRadius: 8,
-                      padding: '8px 12px',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: '#334155',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Auto-fill
-                  </button>
-                </div>
-
-                {codError && (
-                  <div style={{ color: '#EF4444', fontSize: 12, fontWeight: 600 }}>
-                    {codError}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => setPaymentStage('gateway')}
-                style={{
-                  flex: 1,
-                  padding: '13px',
-                  backgroundColor: '#FFFFFF',
-                  color: '#475569',
-                  border: '1.5px solid #CBD5E1',
-                  borderRadius: 12,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmCOD}
-                style={{
-                  flex: 2,
-                  padding: '13px',
-                  backgroundColor: '#059669',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: 12,
-                  fontSize: 14.5,
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 8,
-                  boxShadow: '0 4px 14px rgba(5, 150, 105, 0.35)'
-                }}
-              >
-                <CheckCircle2 size={18} />
-                <span>Confirm Order with Cash on Delivery</span>
               </button>
             </div>
           </div>
@@ -2598,7 +2427,7 @@ export function PaymentGatewayModal({
 
                   <button
                     type="button"
-                    onClick={handleInitiateCOD}
+                    onClick={handleConfirmCOD}
                     style={{
                       width: '100%',
                       padding: '14px 20px',
@@ -2617,8 +2446,8 @@ export function PaymentGatewayModal({
                       transition: 'all 0.15s'
                     }}
                   >
-                    <span>Confirm Booking with Cash on Delivery • ₹{amount.toLocaleString('en-IN')}</span>
-                    <ArrowRight size={16} />
+                    <CheckCircle2 size={18} />
+                    <span>Confirm Order with Cash on Delivery • ₹{amount.toLocaleString('en-IN')}</span>
                   </button>
                 </div>
               )}

@@ -1,10 +1,14 @@
 import { Booking, canTransitionLifecycle, VALID_LIFECYCLE_TRANSITIONS } from '../models/Booking.js';
 import { WorkerApplication } from '../models/WorkerApplication.js';
-import { generate143Bookings } from '../data/initialBookingsData.js';
 import { getOrCreateConversation } from '../services/chatService.js';
-
 import { assignWorkerTransactionally, syncBookingToPostgres } from '../services/postgresService.js';
 import { emitEvent } from '../services/websocketService.js';
+import {
+  findEligibleProfessionals,
+  sendAssignmentOffer,
+  triggerAutoAssignment
+} from '../services/assignmentEngine.js';
+
 
 // Authoritative Database Persistence (Zero mock bookings)
 
@@ -137,10 +141,6 @@ export async function getBookingDetail(req, res) {
     } catch {}
 
     if (!booking) {
-      booking = mockBookings.find(b => b.id === id || b.bookingReference === id);
-    }
-
-    if (!booking) {
       return res.status(404).json({ success: false, error: `Booking ${id} not found.` });
     }
 
@@ -240,8 +240,6 @@ export async function createBookingOnBehalf(req, res) {
       await Booking.create(newBooking);
     } catch {}
 
-    mockBookings.unshift(newBooking);
-
     return res.status(201).json({
       success: true,
       message: `Booking #${newId} created successfully on behalf of ${userName}.`,
@@ -261,12 +259,14 @@ export async function updateLifecycleStatus(req, res) {
 
     let booking = null;
     try {
-      booking = await Booking.findOne({ id });
+      booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
     } catch {}
 
-    let mockBooking = mockBookings.find(b => b.id === id);
+    if (!booking) {
+      return res.status(404).json({ success: false, error: `Booking ${id} not found.` });
+    }
 
-    const currentStatus = booking?.status || mockBooking?.status || 'Pending';
+    const currentStatus = booking.status || 'Pending';
 
     // Strict validation
     if (!canTransitionLifecycle(currentStatus, newStatus)) {
@@ -287,16 +287,9 @@ export async function updateLifecycleStatus(req, res) {
       timestamp: new Date()
     };
 
-    if (booking) {
-      booking.status = newStatus;
-      booking.timeline.push(timelineEvent);
-      await booking.save();
-    }
-
-    if (mockBooking) {
-      mockBooking.status = newStatus;
-      mockBooking.timeline.push(timelineEvent);
-    }
+    booking.status = newStatus;
+    booking.timeline.push(timelineEvent);
+    await booking.save();
 
     return res.json({
       success: true,
@@ -342,14 +335,6 @@ export async function assignProfessional(req, res) {
           ]
         }).lean();
       } catch {}
-
-      if (existingBookings.length === 0) {
-        existingBookings = mockBookings.filter(b =>
-          b.id !== id &&
-          ['Assigned', 'En Route', 'In Progress'].includes(b.status) &&
-          (b.assignedPartner === professionalName || b.assignedProfessional?.id === professionalId)
-        );
-      }
 
       // Check slot conflict (e.g. same day / overlapping hours)
       const hasConflict = existingBookings.some(b => {
@@ -463,11 +448,13 @@ export async function rescheduleBooking(req, res) {
 
     let booking = null;
     try {
-      booking = await Booking.findOne({ id });
+      booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
     } catch {}
-    let mockBooking = mockBookings.find(b => b.id === id);
+    if (!booking) {
+      return res.status(404).json({ success: false, error: `Booking #${id} not found.` });
+    }
 
-    const oldSlot = booking?.slot || mockBooking?.slot || 'Previous Slot';
+    const oldSlot = booking.slot || 'Previous Slot';
 
     const rescheduleRecord = {
       previousSlot: oldSlot,
@@ -479,7 +466,7 @@ export async function rescheduleBooking(req, res) {
 
     const timelineEvent = {
       id: `tl-${Date.now()}`,
-      status: booking?.status || mockBooking?.status || 'Confirmed',
+      status: booking.status || 'Confirmed',
       title: 'Appointment Rescheduled',
       description: `Shifted from '${oldSlot}' to '${newSlot}'. Reason: ${reason}`,
       actor: req.admin?.name || 'Operations Lead',
@@ -487,21 +474,11 @@ export async function rescheduleBooking(req, res) {
       timestamp: new Date()
     };
 
-    if (booking) {
-      booking.slot = newSlot;
-      if (newDate) booking.scheduledDate = new Date(newDate);
-      booking.rescheduleHistory.push(rescheduleRecord);
-      booking.timeline.push(timelineEvent);
-      await booking.save();
-    }
-
-    if (mockBooking) {
-      mockBooking.slot = newSlot;
-      if (newDate) mockBooking.scheduledDate = new Date(newDate);
-      mockBooking.rescheduleHistory = mockBooking.rescheduleHistory || [];
-      mockBooking.rescheduleHistory.push(rescheduleRecord);
-      mockBooking.timeline.push(timelineEvent);
-    }
+    booking.slot = newSlot;
+    if (newDate) booking.scheduledDate = new Date(newDate);
+    booking.rescheduleHistory.push(rescheduleRecord);
+    booking.timeline.push(timelineEvent);
+    await booking.save();
 
     return res.json({
       success: true,
@@ -525,9 +502,11 @@ export async function cancelBooking(req, res) {
 
     let booking = null;
     try {
-      booking = await Booking.findOne({ id });
+      booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
     } catch {}
-    let mockBooking = mockBookings.find(b => b.id === id);
+    if (!booking) {
+      return res.status(404).json({ success: false, error: `Booking #${id} not found.` });
+    }
 
     const cancelDetails = {
       reason,
@@ -546,20 +525,11 @@ export async function cancelBooking(req, res) {
       timestamp: new Date()
     };
 
-    if (booking) {
-      booking.status = 'Cancelled';
-      booking.cancelReason = reason;
-      booking.cancelDetails = cancelDetails;
-      booking.timeline.push(timelineEvent);
-      await booking.save();
-    }
-
-    if (mockBooking) {
-      mockBooking.status = 'Cancelled';
-      mockBooking.cancelReason = reason;
-      mockBooking.cancelDetails = cancelDetails;
-      mockBooking.timeline.push(timelineEvent);
-    }
+    booking.status = 'Cancelled';
+    booking.cancelReason = reason;
+    booking.cancelDetails = cancelDetails;
+    booking.timeline.push(timelineEvent);
+    await booking.save();
 
     return res.json({
       success: true,
@@ -591,19 +561,14 @@ export async function addInternalNote(req, res) {
 
     let booking = null;
     try {
-      booking = await Booking.findOne({ id });
+      booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
     } catch {}
-    let mockBooking = mockBookings.find(b => b.id === id);
-
-    if (booking) {
-      booking.internalNotes.push(noteObj);
-      await booking.save();
+    if (!booking) {
+      return res.status(404).json({ success: false, error: `Booking #${id} not found.` });
     }
 
-    if (mockBooking) {
-      mockBooking.internalNotes = mockBooking.internalNotes || [];
-      mockBooking.internalNotes.push(noteObj);
-    }
+    booking.internalNotes.push(noteObj);
+    await booking.save();
 
     return res.status(201).json({
       success: true,
@@ -623,11 +588,13 @@ export async function initiateBookingRefund(req, res) {
 
     let booking = null;
     try {
-      booking = await Booking.findOne({ id });
+      booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
     } catch {}
-    let mockBooking = mockBookings.find(b => b.id === id);
+    if (!booking) {
+      return res.status(404).json({ success: false, error: `Booking #${id} not found.` });
+    }
 
-    const refundAmount = Number(amount) || booking?.totalAmount || mockBooking?.totalAmount || 699;
+    const refundAmount = Number(amount) || booking.totalAmount || 699;
     const gatewayRef = `rzp_rf_${Date.now()}`;
 
     const timelineEvent = {
@@ -640,26 +607,14 @@ export async function initiateBookingRefund(req, res) {
       timestamp: new Date()
     };
 
-    if (booking) {
-      booking.paymentStatus = 'Refunded';
-      booking.paymentDetails = booking.paymentDetails || {};
-      booking.paymentDetails.refundAmount = refundAmount;
-      booking.paymentDetails.refundReason = reason;
-      booking.paymentDetails.refundGatewayRef = gatewayRef;
-      booking.paymentDetails.refundedAt = new Date();
-      booking.timeline.push(timelineEvent);
-      await booking.save();
-    }
-
-    if (mockBooking) {
-      mockBooking.paymentStatus = 'Refunded';
-      mockBooking.paymentDetails = mockBooking.paymentDetails || {};
-      mockBooking.paymentDetails.refundAmount = refundAmount;
-      mockBooking.paymentDetails.refundReason = reason;
-      mockBooking.paymentDetails.refundGatewayRef = gatewayRef;
-      mockBooking.paymentDetails.refundedAt = new Date();
-      mockBooking.timeline.push(timelineEvent);
-    }
+    booking.paymentStatus = 'Refunded';
+    booking.paymentDetails = booking.paymentDetails || {};
+    booking.paymentDetails.refundAmount = refundAmount;
+    booking.paymentDetails.refundReason = reason;
+    booking.paymentDetails.refundGatewayRef = gatewayRef;
+    booking.paymentDetails.refundedAt = new Date();
+    booking.timeline.push(timelineEvent);
+    await booking.save();
 
     return res.json({
       success: true,
@@ -679,10 +634,6 @@ export async function getBookingInvoice(req, res) {
     try {
       booking = await Booking.findOne({ id }).lean();
     } catch {}
-    if (!booking) {
-      booking = mockBookings.find(b => b.id === id);
-    }
-
     if (!booking) {
       return res.status(404).json({ success: false, error: `Booking ${id} not found.` });
     }
@@ -729,3 +680,287 @@ export async function getBookingInvoice(req, res) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
+// 11. Searchable, ranked eligible professionals for a booking
+export async function getEligibleProfessionals(req, res) {
+  try {
+    const { id } = req.params;
+    const { search = '', partnerAgencyId } = req.query;
+    const scopePartnerId = req.admin?.partnerAgencyId || partnerAgencyId || null;
+
+    const booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
+    if (!booking) {
+      return res.status(404).json({ success: false, error: `Booking ${id} not found` });
+    }
+
+    const { customerCoords, candidates } = await findEligibleProfessionals(booking, { scopePartnerId });
+
+    let filteredCandidates = candidates;
+    if (search) {
+      const q = search.toLowerCase();
+      filteredCandidates = candidates.filter(c => {
+        const name = (c.worker?.applicantName || c.name || '').toLowerCase();
+        const trade = (c.worker?.trade || c.worker?.tradeName || c.trade || '').toLowerCase();
+        const skills = (c.worker?.skills || c.skills || []).map(s => s.toLowerCase()).join(' ');
+        const categories = (c.worker?.categories || c.categories || []).map(cat => cat.toLowerCase()).join(' ');
+        return name.includes(q) || trade.includes(q) || skills.includes(q) || categories.includes(q);
+      });
+    }
+
+    const normalizedCandidates = filteredCandidates.map(c => {
+      const w = c.worker || {};
+      const proId = w.id || c.id || (w._id ? w._id.toString() : '');
+      const proName = w.applicantName || w.name || c.name || 'Professional';
+      const isOnline = c.isOnline !== false && w.dispatchState !== 'Offline';
+      const isAvailable = !c.isBusy && !c.isSlotConflict;
+
+      return {
+        id: proId,
+        name: proName,
+        phone: w.phone || c.phone || '',
+        email: w.email || c.email || '',
+        avatar: w.avatar || c.avatar || (proName ? proName.slice(0, 2).toUpperCase() : 'PR'),
+        trade: w.tradeName || w.trade || c.trade || 'Specialist',
+        tradeName: w.tradeName || w.trade || c.trade || 'Specialist',
+        skills: w.skills || c.skills || [],
+        categories: w.categories || c.categories || [],
+        locality: w.locality || c.locality || 'Krishnagiri Town',
+        city: w.city || c.city || 'Krishnagiri',
+        rating: w.rating != null ? Number(w.rating) : (c.rating != null ? Number(c.rating) : 5.0),
+        jobsCompleted: w.jobsCompleted != null ? Number(w.jobsCompleted) : (c.jobsCompleted || 0),
+        isVerified: w.status === 'Approved',
+        isOnline: isOnline,
+        isAvailable: isAvailable,
+        isEligible: true,
+        distanceKm: c.distanceKm != null ? c.distanceKm : 1.5,
+        etaMinutes: c.etaMinutes || 6,
+        score: c.totalScore != null ? c.totalScore : (c.score || 80),
+        totalScore: c.totalScore != null ? c.totalScore : (c.score || 80),
+        activeBookingsCount: c.activeBookingsCount || 0,
+        worker: w
+      };
+    });
+
+    return res.json({
+      success: true,
+      booking: {
+        id: booking.id,
+        serviceName: booking.serviceName,
+        serviceCategory: booking.serviceCategory,
+        slot: booking.slot,
+        address: booking.address,
+        city: booking.city,
+        serviceZone: booking.serviceZone,
+        assignmentMode: booking.assignmentMode || 'AUTO',
+        assignmentStatus: booking.assignmentStatus || 'UNASSIGNED',
+        offerStatus: booking.offerStatus,
+        offeredTo: booking.offeredTo,
+        offerExpiry: booking.offerExpiry
+      },
+      customerCoords,
+      candidates: normalizedCandidates,
+      eligibleProfessionals: normalizedCandidates
+    });
+  } catch (err) {
+    console.error('getEligibleProfessionals error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// 12. Send manual assignment offer to a professional
+export async function manualAssignOffer(req, res) {
+  try {
+    const { id } = req.params;
+    const professionalId = req.body.professionalId || req.body.proId;
+    const timeoutSeconds = req.body.timeoutSeconds || 90;
+
+    if (!professionalId) {
+      return res.status(400).json({ success: false, error: 'Professional ID is required to send assignment offer.' });
+    }
+
+    // Partner scope protection (Requirement A.11)
+    const scopePartnerId = req.admin?.partnerAgencyId || req.partner?.id || null;
+    if (scopePartnerId) {
+      const worker = await WorkerApplication.findOne({ $or: [{ id: professionalId }, { applicationNumber: professionalId }] });
+      if (!worker || worker.partnerAgencyId !== scopePartnerId) {
+        return res.status(403).json({ success: false, error: 'Unauthorized: You can only assign professionals belonging to your agency.' });
+      }
+    }
+
+    const offeredBy = req.admin?.name || req.partner?.name || 'Owner Dispatcher';
+    const result = await sendAssignmentOffer(id, professionalId, {
+      mode: 'MANUAL',
+      timeoutSeconds: parseInt(timeoutSeconds, 10) || 90,
+      offeredBy
+    });
+
+    return res.json({
+      success: true,
+      message: `Assignment offer sent to ${result.offer.proName} (${result.offer.timeoutSeconds}s countdown). Awaiting acceptance.`,
+      booking: result.booking,
+      offer: result.offer
+    });
+  } catch (err) {
+    console.error('manualAssignOffer error:', err);
+    return res.status(400).json({ success: false, error: err.message });
+  }
+}
+
+// 13. Retry Automatic Assignment
+export async function retryAutoAssign(req, res) {
+  try {
+    const { id } = req.params;
+    const booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
+    if (!booking) {
+      return res.status(404).json({ success: false, error: `Booking ${id} not found.` });
+    }
+
+    booking.assignmentMode = 'AUTO';
+    await booking.save();
+
+    const result = await triggerAutoAssignment(booking.id);
+    return res.json({
+      success: true,
+      message: result.success ? 'Auto assignment offer dispatched to top eligible professional.' : (result.message || 'Auto assignment evaluation complete.'),
+      result
+    });
+  } catch (err) {
+    console.error('retryAutoAssign error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// 14. Switch Assignment Mode (MANUAL <-> AUTO)
+export async function switchAssignmentMode(req, res) {
+  try {
+    const { id } = req.params;
+    const { mode } = req.body;
+
+    if (!['MANUAL', 'AUTO'].includes(mode)) {
+      return res.status(400).json({ success: false, error: "Mode must be 'MANUAL' or 'AUTO'." });
+    }
+
+    const booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
+    if (!booking) {
+      return res.status(404).json({ success: false, error: `Booking ${id} not found.` });
+    }
+
+    booking.assignmentMode = mode;
+    booking.timeline.push({
+      id: `tl-${Date.now()}`,
+      status: booking.status,
+      title: `Assignment Mode Switched to ${mode}`,
+      description: `Owner switched assignment mode to ${mode}.`,
+      actor: req.admin?.name || 'Owner',
+      actorRole: 'Admin',
+      timestamp: new Date()
+    });
+    await booking.save();
+
+    let autoResult = null;
+    if (mode === 'AUTO' && ['UNASSIGNED', 'EXPIRED', 'REJECTED', 'AWAITING_OWNER_ATTENTION'].includes(booking.assignmentStatus) && booking.status !== 'Assigned') {
+      autoResult = await triggerAutoAssignment(booking.id);
+    }
+
+    emitEvent('ASSIGNMENT_MODE_CHANGED', {
+      entityId: booking.id,
+      room: 'admin:operations',
+      payload: { bookingId: booking.id, mode, autoResult }
+    });
+
+    return res.json({
+      success: true,
+      message: `Assignment mode switched to ${mode}.`,
+      booking,
+      autoResult
+    });
+  } catch (err) {
+    console.error('switchAssignmentMode error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// 15. Aggregated Assignment Management Stats from actual MongoDB records
+export async function getAssignmentManagementStats(req, res) {
+  try {
+    const now = new Date();
+
+    const [
+      totalUnassigned,
+      pendingOffers,
+      autoAssigned,
+      manuallyAssigned,
+      rejectedOffers,
+      expiredOffers,
+      awaitingOwnerAttention
+    ] = await Promise.all([
+      Booking.countDocuments({
+        status: { $in: ['Pending', 'Confirmed'] },
+        $or: [{ assignedPartner: '' }, { assignedPartner: { $exists: false } }],
+        assignmentStatus: { $in: ['UNASSIGNED', 'EXPIRED', 'REJECTED', 'AWAITING_OWNER_ATTENTION'] }
+      }),
+      Booking.countDocuments({
+        offerStatus: 'offered',
+        offerExpiry: { $gt: now },
+        status: { $in: ['Pending', 'Confirmed'] }
+      }),
+      Booking.countDocuments({
+        assignmentMode: 'AUTO',
+        status: { $in: ['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'] }
+      }),
+      Booking.countDocuments({
+        assignmentMode: 'MANUAL',
+        status: { $in: ['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'] }
+      }),
+      Booking.countDocuments({
+        assignmentStatus: 'REJECTED'
+      }),
+      Booking.countDocuments({
+        assignmentStatus: 'EXPIRED'
+      }),
+      Booking.countDocuments({
+        assignmentStatus: 'AWAITING_OWNER_ATTENTION'
+      })
+    ]);
+
+    const rejectedOrExpired = rejectedOffers + expiredOffers;
+    const requiringAttention = awaitingOwnerAttention + rejectedOrExpired;
+
+    return res.json({
+      success: true,
+      stats: {
+        totalUnassigned,
+        pendingOffers,
+        autoAssigned,
+        manuallyAssigned,
+        rejectedOffers,
+        expiredOffers,
+        rejectedOrExpired,
+        awaitingOwnerAttention,
+        requiringAttention
+      }
+    });
+  } catch (err) {
+    console.error('getAssignmentManagementStats error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// 12. Delete Booking Permanently from Real Database
+export async function deleteBooking(req, res) {
+  try {
+    const { id } = req.params;
+    const deleted = await Booking.findOneAndDelete({ $or: [{ id }, { bookingReference: id }] });
+    if (!deleted) {
+      return res.status(404).json({ success: false, error: `Booking #${id} not found.` });
+    }
+    return res.json({
+      success: true,
+      message: `Booking #${id} deleted permanently from database.`
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+

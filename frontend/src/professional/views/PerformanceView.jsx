@@ -1,31 +1,35 @@
 import React, { useState, useEffect } from 'react';
-import { professionalClient } from '../professionalClient';
+import { professionalClient, getPartnerTier } from '../professionalClient';
 
-export function PerformanceView({ showToast }) {
+export function PerformanceView({ profile, showToast }) {
   const [loading, setLoading] = useState(true);
+  const jobs = profile?.jobsCompleted != null ? Number(profile.jobsCompleted) : 0;
+  const isNew = jobs < 10;
+  const initialTier = getPartnerTier(profile);
+
   const [performanceData, setPerformanceData] = useState({
-    tier: 'Diamond Pro Partner (Level 5)',
-    reviewPeriod: 'Rolling 30-Day Evaluation Window (23 Sep 2026 – 23 Oct 2026)',
+    tier: initialTier,
+    reviewPeriod: 'Rolling 30-Day Evaluation Window (Current Cycle)',
     reviewCycleExplanation: 'Performance metrics are evaluated continuously over a rolling 30-day window. Tier promotions and guaranteed monthly bonus payouts execute on the 1st of every calendar month.',
-    insufficientData: false,
-    insufficientDataNotice: null,
+    insufficientData: isNew,
+    insufficientDataNotice: isNew ? 'Insufficient data for tier ranking. A minimum of 10 completed dispatches within the 30-day evaluation period is required to generate reliable performance scorecards and tier rankings. Keep taking assignments to establish your baseline.' : null,
     scorecard: {
-      averageRating: { value: 4.94, target: 4.90, unit: 'Stars', definition: 'Weighted average of 1-to-5 star customer ratings received across verified completed jobs during the rolling 30-day review period.' },
-      reviewCount: { value: 1520, target: 10, unit: 'Reviews', definition: 'Total number of verified homeowner service ratings registered on platform.' },
-      completionRate: { value: 99.4, target: 98.0, unit: '%', definition: 'Percentage of accepted service dispatches completed successfully without cancellation: (Completed Jobs / Total Accepted Jobs) × 100.' },
-      cancellationRate: { value: 0.6, target: 1.0, unit: '%', definition: 'Percentage of accepted bookings initiated for cancellation by the professional: (Cancelled by Worker / Total Accepted) × 100.' },
-      onTimeArrivalRate: { value: 99.2, target: 98.0, unit: '%', definition: 'Percentage of bookings where the technician arrived at the doorstep on or before the scheduled service window start time based on GPS geo-fence timestamp.' },
-      revisitRate: { value: 0.4, target: 0.5, unit: '%', definition: 'Percentage of completed jobs requiring a customer-initiated rework or warranty revisit within 14 days of original service.' },
-      jobsCompleted: { value: 42, target: 45, unit: 'Jobs', definition: 'Total completed service dispatches executed in current rolling calendar month.' }
+      averageRating: { value: isNew ? 0 : 4.94, target: 4.90, unit: 'Stars', definition: 'Weighted average of 1-to-5 star customer ratings received across verified completed jobs during the rolling 30-day review period.' },
+      reviewCount: { value: isNew ? 0 : jobs, target: 10, unit: 'Reviews', definition: 'Total number of verified homeowner service ratings registered on platform.' },
+      completionRate: { value: 100, target: 98.0, unit: '%', definition: 'Percentage of accepted service dispatches completed successfully without cancellation: (Completed Jobs / Total Accepted Jobs) × 100.' },
+      cancellationRate: { value: 0, target: 1.0, unit: '%', definition: 'Percentage of accepted bookings initiated for cancellation by the professional: (Cancelled by Worker / Total Accepted) × 100.' },
+      onTimeArrivalRate: { value: 100, target: 98.0, unit: '%', definition: 'Percentage of bookings where the technician arrived at the doorstep on or before the scheduled service window start time based on GPS geo-fence timestamp.' },
+      revisitRate: { value: 0, target: 0.5, unit: '%', definition: 'Percentage of completed jobs requiring a customer-initiated rework or warranty revisit within 14 days of original service.' },
+      jobsCompleted: { value: jobs, target: 10, unit: 'Jobs', definition: 'Total completed service dispatches executed in current rolling calendar month.' }
     },
     trainingRecommendations: [
-      { courseId: 'TRN-103', title: 'Inverter PCB Diagnostics & High-Voltage Safety', reason: 'Recommended based on seasonal inverter split AC maintenance demand in Mumbai region.' },
-      { courseId: 'TRN-104', title: 'R32 / R410A Eco Refrigerant Safe Recovery & Vacuum SOP', reason: 'Recommended for Diamond Pro Partners to qualify for zero-emission eco-refrigerant premium bonuses.' }
+      { courseId: 'TRN-101', title: 'Customer Hospitality & Doorstep Protocol', reason: 'Foundational standard for all registered platform professionals.' },
+      { courseId: 'TRN-102', title: 'Digital Inspection & Safe Service SOP', reason: 'Recommended to maintain 5-star customer ratings and 100% first-time resolution.' }
     ],
     tierEligibility: {
-      currentTier: 'Diamond Pro Partner (Level 5)',
-      nextTier: 'Master Elite Partner (Level 6)',
-      progressPercent: 93,
+      currentTier: initialTier,
+      nextTier: 'Silver Partner (Level 2)',
+      progressPercent: isNew ? Math.min(100, Math.round((jobs / 10) * 100)) : 93,
       thresholds: { minRating: 4.90, minCompletionRate: 98.0, maxCancellationRate: 1.0, minOnTimeArrival: 98.0 }
     },
     appeals: []
@@ -166,7 +170,7 @@ export function PerformanceView({ showToast }) {
                 💎 {performanceData.tier}
               </h2>
               <div style={{ fontSize: 13, opacity: 0.9 }}>
-                Eligible for priority dispatch in Bandra Central Operational Hub
+                Eligible for priority dispatch in {profile?.operationalHub || (profile?.locality ? `${profile.locality} Operational Hub` : 'Local Operational Hub')}
               </div>
             </div>
 

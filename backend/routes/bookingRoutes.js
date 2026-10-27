@@ -1,7 +1,7 @@
 import express from 'express';
 import { Booking } from '../models/Booking.js';
 import { User } from '../models/User.js';
-import { autoAssignWorkerToBooking } from '../services/assignmentEngine.js';
+import { autoAssignWorkerToBooking, triggerAutoAssignment } from '../services/assignmentEngine.js';
 import { validateKrishnagiriServiceArea } from '../services/geofenceService.js';
 import { syncBookingToPostgres } from '../services/postgresService.js';
 import { emitEvent } from '../services/websocketService.js';
@@ -55,28 +55,36 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Cart items and total amount are required' });
     }
 
-    // Phase 14: Krishnagiri Town Service Coverage Verification
+    // City & Service Area Verification
     const targetAddress = bookingData.address || bookingData.addressDetails?.fullAddress || '';
-    const targetLocality = bookingData.serviceZone || bookingData.addressDetails?.locality || 'Rayakottai Road';
-    const targetCity = bookingData.city || bookingData.addressDetails?.city || 'Krishnagiri';
+    const targetLocality = bookingData.serviceZone || bookingData.addressDetails?.locality || 'Bandra West';
+    const targetCity = bookingData.city || bookingData.addressDetails?.city || 'Mumbai';
     const targetLat = bookingData.addressDetails?.lat;
     const targetLng = bookingData.addressDetails?.lng;
 
-    const coverageCheck = validateKrishnagiriServiceArea({
-      address: targetAddress,
-      locality: targetLocality,
-      city: targetCity,
-      lat: targetLat,
-      lng: targetLng
-    });
+    const isKrishnagiri = targetCity.toLowerCase().includes('krishnagiri') || 
+                          targetAddress.toLowerCase().includes('krishnagiri') ||
+                          targetLocality.toLowerCase().includes('rayakottai') ||
+                          targetLocality.toLowerCase().includes('kattiganapalli');
 
-    if (!coverageCheck.allowed) {
-      return res.status(400).json({
-        success: false,
-        serviceUnavailable: true,
-        reason: coverageCheck.reason,
-        message: coverageCheck.message || 'Service is currently operational exclusively within Krishnagiri Town.'
+    let coverageCheck = { allowed: true, serviceZone: targetLocality, city: targetCity };
+    if (isKrishnagiri) {
+      coverageCheck = validateKrishnagiriServiceArea({
+        address: targetAddress,
+        locality: targetLocality,
+        city: targetCity,
+        lat: targetLat,
+        lng: targetLng
       });
+
+      if (!coverageCheck.allowed) {
+        return res.status(400).json({
+          success: false,
+          serviceUnavailable: true,
+          reason: coverageCheck.reason,
+          message: coverageCheck.message || 'Service is currently operational exclusively within Krishnagiri Town.'
+        });
+      }
     }
 
     if (!bookingData.id) {
@@ -112,8 +120,17 @@ router.post('/', async (req, res) => {
     if (!bookingData.serviceCategory) {
       bookingData.serviceCategory = firstItem.category || 'Home Services';
     }
-    bookingData.city = 'Krishnagiri';
-    bookingData.serviceZone = coverageCheck.serviceZone || targetLocality || 'Rayakottai Road';
+    bookingData.city = targetCity || 'Mumbai';
+    bookingData.serviceZone = bookingData.serviceZone || coverageCheck.serviceZone || targetLocality || 'Bandra West';
+    bookingData.assignmentMode = bookingData.assignmentMode || 'AUTO';
+    bookingData.assignmentStatus = 'UNASSIGNED';
+
+    const coordsLng = targetLng || coverageCheck.center?.lng || (isKrishnagiri ? 78.2090 : 72.8295);
+    const coordsLat = targetLat || coverageCheck.center?.lat || (isKrishnagiri ? 12.5200 : 19.0596);
+    bookingData.location = {
+      type: 'Point',
+      coordinates: [coordsLng, coordsLat]
+    };
 
     if (!bookingData.status) {
       bookingData.status = 'Confirmed';
@@ -159,18 +176,22 @@ router.post('/', async (req, res) => {
       }];
     }
 
-    // Upsert or create customer profile in User collection
-    if (bookingData.userPhone) {
+    // Upsert or link customer profile in User collection safely
+    if (bookingData.userPhone || bookingData.userEmail) {
       try {
-        const rawPhone = bookingData.userPhone.trim();
+        const rawPhone = (bookingData.userPhone || '').trim();
         const digitsOnly = rawPhone.replace(/\D/g, '').slice(-10);
-        let user = await User.findOne({
-          $or: [
-            { phone: rawPhone },
-            { phone: digitsOnly },
-            { phone: `+91 ${digitsOnly}` }
-          ]
-        });
+        const searchConditions = [];
+        if (rawPhone) searchConditions.push({ phone: rawPhone });
+        if (digitsOnly) {
+          searchConditions.push({ phone: digitsOnly });
+          searchConditions.push({ phone: `+91 ${digitsOnly}` });
+        }
+        if (bookingData.userEmail) {
+          searchConditions.push({ email: bookingData.userEmail.toLowerCase().trim() });
+        }
+
+        let user = searchConditions.length > 0 ? await User.findOne({ $or: searchConditions }) : null;
 
         const street = bookingData.address || bookingData.addressDetails?.fullAddress || '';
         const city = bookingData.city;
@@ -178,25 +199,34 @@ router.post('/', async (req, res) => {
         const pincode = bookingData.addressDetails?.pincode || '';
 
         if (!user) {
-          user = await User.create({
-            name: bookingData.userName || 'Customer',
-            phone: rawPhone.startsWith('+91') ? rawPhone : `+91 ${digitsOnly || rawPhone}`,
-            email: bookingData.userEmail || `${(bookingData.userName || 'customer').toLowerCase().replace(/\s+/g, '.')}@example.com`,
-            role: 'user',
-            status: 'Active',
-            city,
-            locality,
-            hasUCPlus: !!bookingData.hasUCPlus,
-            savedAddresses: street ? [{
-              id: `addr-${Date.now()}`,
-              type: 'Home',
-              streetAddress: street,
-              locality,
+          try {
+            user = await User.create({
+              name: bookingData.userName || 'Customer',
+              phone: rawPhone ? (rawPhone.startsWith('+91') ? rawPhone : `+91 ${digitsOnly || rawPhone}`) : `+91 ${Math.floor(6000000000 + Math.random() * 3999999999)}`,
+              email: bookingData.userEmail || `${(bookingData.userName || 'customer').toLowerCase().replace(/\s+/g, '.')}-${Date.now()}@example.com`,
+              role: 'user',
+              status: 'Active',
               city,
-              pincode,
-              isDefault: true
-            }] : []
-          });
+              locality,
+              hasUCPlus: !!bookingData.hasUCPlus,
+              savedAddresses: street ? [{
+                id: `addr-${Date.now()}`,
+                type: 'Home',
+                streetAddress: street,
+                locality,
+                city,
+                pincode,
+                isDefault: true
+              }] : []
+            });
+          } catch (createErr) {
+            user = await User.findOne({
+              $or: [
+                ...(rawPhone ? [{ phone: rawPhone }, { phone: digitsOnly }, { phone: `+91 ${digitsOnly}` }] : []),
+                ...(bookingData.userEmail ? [{ email: bookingData.userEmail.toLowerCase().trim() }] : [])
+              ]
+            });
+          }
         } else {
           // Update profile details if newly provided
           let updated = false;
@@ -258,14 +288,16 @@ router.post('/', async (req, res) => {
       payload: booking
     });
 
-    // Trigger Intelligent Auto-Assignment Engine (Module 4)
-    try {
-      const assignmentResult = await autoAssignWorkerToBooking(booking);
-      if (assignmentResult.success) {
-        console.log(`[Booking] Auto-assigned ${assignmentResult.assignedWorker?.applicantName} to Booking ${booking.id}`);
+    // Trigger Intelligent Auto-Assignment Engine if AUTO mode
+    if (booking.assignmentMode === 'AUTO') {
+      try {
+        const assignmentResult = await triggerAutoAssignment(booking);
+        if (assignmentResult.success) {
+          console.log(`[Booking] Auto-assignment offer dispatched for Booking ${booking.id}`);
+        }
+      } catch (assignErr) {
+        console.warn('[Booking] Auto-assignment notice:', assignErr.message);
       }
-    } catch (assignErr) {
-      console.warn('[Booking] Auto-assignment notice:', assignErr.message);
     }
 
     res.status(201).json({ success: true, booking });
@@ -281,7 +313,9 @@ router.post('/:id/auto-assign', async (req, res) => {
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
-    const result = await autoAssignWorkerToBooking(booking);
+    booking.assignmentMode = 'AUTO';
+    await booking.save();
+    const result = await triggerAutoAssignment(booking);
     res.json({ success: result.success, message: result.message || 'Auto-assignment evaluated', result });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

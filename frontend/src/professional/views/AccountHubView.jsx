@@ -24,57 +24,22 @@ import {
   CheckCircle2,
   AlertCircle
 } from 'lucide-react';
-import { professionalClient } from '../professionalClient';
+import { professionalClient, getInitials, getPartnerTier } from '../professionalClient';
 
 export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, showToast, onUpdateProfile }) {
   const [copiedId, setCopiedId] = useState(false);
-  const [switchingPersona, setSwitchingPersona] = useState(false);
 
   const isOnline = profile?.isOnline !== false;
   const isApproved = profile?.status === 'Approved' || profile?.status === 'Active';
 
   const handleCopyId = (e) => {
     e.stopPropagation();
-    const idToCopy = profile?.id || 'PRO-8841';
+    const idToCopy = profile?.id || '';
+    if (!idToCopy) return;
     navigator.clipboard?.writeText(idToCopy).catch(() => {});
     setCopiedId(true);
     if (showToast) showToast(`Partner ID "${idToCopy}" copied to clipboard!`);
     setTimeout(() => setCopiedId(false), 2500);
-  };
-
-  const handleSwitchPersona = (demo) => {
-    setSwitchingPersona(true);
-    try {
-      const updatedUser = {
-        id: demo.id,
-        applicantName: demo.name,
-        phone: demo.phone,
-        email: demo.email,
-        avatar: demo.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase(),
-        trade: demo.role,
-        tier: demo.tier,
-        employmentType: demo.type.includes('Agency') ? 'Agency Employed' : 'Direct Freelance',
-        partnerAgencyName: demo.type.includes('Agency') ? 'Apex Home Solutions LLP' : undefined,
-        status: demo.status,
-        walletBalance: demo.status === 'Approved' ? 15450 : 0,
-        rating: demo.status === 'Approved' ? 4.94 : 0,
-        jobsCompleted: demo.status === 'Approved' ? 1520 : 0,
-        operationalHub: 'Bandra West Central Hub',
-        isOnline: true
-      };
-
-      professionalClient.setAuth('simulated-pro-jwt-token', updatedUser);
-      if (onUpdateProfile) {
-        onUpdateProfile(updatedUser);
-      }
-      if (showToast) {
-        showToast(`Switched active persona to ${demo.name} (${demo.role})`);
-      }
-    } catch (err) {
-      if (showToast) showToast('Failed to switch persona');
-    } finally {
-      setTimeout(() => setSwitchingPersona(false), 300);
-    }
   };
 
   const menuSections = [
@@ -113,7 +78,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
           iconColor: '#d97706',
           iconBg: '#fffbeb',
           path: '/professional/performance',
-          badge: profile?.tier ? profile.tier.split('(')[0].trim() : 'Diamond Pro',
+          badge: getPartnerTier(profile).split('(')[0].trim(),
           badgeType: 'amber'
         }
       ]
@@ -210,49 +175,6 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
       bg: '#eff6ff',
       borderColor: '#dbeafe',
       path: '/professional/availability'
-    }
-  ];
-
-  const demoAccounts = [
-    {
-      id: 'PRO-8841',
-      name: 'Vikram Salvi',
-      role: 'Master AC Specialist & Electrician',
-      tier: 'Diamond Pro Partner (Level 5)',
-      status: 'Approved',
-      type: 'Direct Freelance (Independent)',
-      phone: '+91 98205 11982',
-      email: 'vikram.salvi@urbanpro.com'
-    },
-    {
-      id: 'PRO-8842',
-      name: 'Rajesh Kumar',
-      role: 'Appliance Repair Specialist',
-      tier: 'Platinum Pro Partner (Level 4)',
-      status: 'Approved',
-      type: 'Independent Professional',
-      phone: '+91 98201 44521',
-      email: 'rajesh.kumar@urbanpro.com'
-    },
-    {
-      id: 'PRO-8843',
-      name: 'Sunil Vishwakarma',
-      role: 'Cleaning & Housekeeping Specialist',
-      tier: 'Gold Pro Partner (Level 3)',
-      status: 'Approved',
-      type: 'Agency Employed (Apex Home Solutions LLP)',
-      phone: '+91 98332 10984',
-      email: 'sunil.v@urbanpro.com'
-    },
-    {
-      id: 'PRO-8845',
-      name: 'Kavita Sharma',
-      role: 'Salon & Skin Care Specialist',
-      tier: 'Onboarding Partner',
-      status: 'Under Review',
-      type: 'Direct Freelance',
-      phone: '+91 98209 88123',
-      email: 'kavita.sharma@urbanpro.com'
     }
   ];
 
@@ -375,7 +297,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
                 boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
                 border: '3px solid rgba(255,255,255,0.3)'
               }}>
-                {profile?.avatar || 'VS'}
+                {getInitials(profile?.applicantName || profile?.name, profile?.avatar)}
               </div>
               <div style={{
                 position: 'absolute',
@@ -396,8 +318,8 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.2 }}>
-                  {profile?.applicantName || 'Vikram Salvi (Master Pro)'}
+                <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0, letterSpacing: -0.2, textTransform: 'capitalize' }}>
+                  {profile?.applicantName || profile?.name || 'Professional'}
                 </h1>
 
                 {/* Copyable ID Badge */}
@@ -422,14 +344,14 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
                   onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.28)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.18)'}
                 >
-                  <span>{profile?.id || 'PRO-8841'}</span>
+                  <span>{profile?.id || profile?.applicationNumber || 'WRK-00146'}</span>
                   {copiedId ? <Check size={12} color="#86efac" /> : <Copy size={12} color="rgba(255,255,255,0.8)" />}
                 </button>
               </div>
 
               {/* Trade & Certification Subtitle */}
               <div style={{ fontSize: 13, opacity: 0.95, marginTop: 5, fontWeight: 500 }}>
-                {profile?.trade || 'Master AC Specialist & Electrician'}
+                {profile?.tradeName || profile?.trade || "Women's Salon"}
               </div>
 
               {/* Badges Row */}
@@ -445,7 +367,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
                   gap: 5
                 }}>
                   <Award size={13} color="#fde047" />
-                  <span>{profile?.tier ? profile.tier.split('(')[0].trim() : 'Diamond Pro'}</span>
+                  <span>{getPartnerTier(profile).split('(')[0].trim()}</span>
                 </span>
 
                 <span style={{
@@ -882,8 +804,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
           <span>Call Safety Hotline</span>
         </button>
       </div>
-
-      {/* Persona Switcher & Session Controls */}
+      {/* Session Controls */}
       <div style={{
         background: '#ffffff',
         borderRadius: 18,
@@ -891,131 +812,31 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
         padding: '22px 24px',
         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>
-              Evaluation & Persona Switcher
-            </div>
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
-              Instant one-click profile switching to test different partner trades and approval stages.
-            </div>
-          </div>
-          <span style={{
-            background: '#f1f5f9',
-            padding: '3px 10px',
+        <button
+          onClick={onLogout}
+          style={{
+            width: '100%',
+            background: '#fef2f2',
+            border: '1px solid #fecaca',
+            color: '#b91c1c',
+            padding: '12px 16px',
             borderRadius: 10,
-            fontSize: 11,
+            fontSize: 13,
             fontWeight: 700,
-            color: '#475569'
-          }}>
-            Demo Sandbox
-          </span>
-        </div>
-
-        {/* Persona Options Grid */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 10,
-          marginBottom: 18
-        }}>
-          {demoAccounts.map(demo => {
-            const isCurrent = profile?.id === demo.id;
-            return (
-              <button
-                key={demo.id}
-                onClick={() => handleSwitchPersona(demo)}
-                disabled={switchingPersona}
-                style={{
-                  background: isCurrent ? '#faf5ff' : '#f8fafc',
-                  border: isCurrent ? '1.5px solid #7c3aed' : '1px solid #e2e8f0',
-                  borderRadius: 12,
-                  padding: '12px 14px',
-                  textAlign: 'left',
-                  cursor: isCurrent ? 'default' : 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  transition: 'all 0.15s ease'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isCurrent) e.currentTarget.style.background = '#f1f5f9';
-                }}
-                onMouseLeave={(e) => {
-                  if (!isCurrent) e.currentTarget.style.background = '#f8fafc';
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 13, fontWeight: 800, color: isCurrent ? '#7c3aed' : '#0f172a' }}>
-                      {demo.name}
-                    </span>
-                    <span style={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      padding: '1px 6px',
-                      borderRadius: 6,
-                      background: demo.status === 'Approved' ? '#ecfdf5' : '#fffbeb',
-                      color: demo.status === 'Approved' ? '#065f46' : '#b45309'
-                    }}>
-                      {demo.status}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
-                    {demo.role}
-                  </div>
-                </div>
-
-                {isCurrent && (
-                  <span style={{
-                    width: 22,
-                    height: 22,
-                    borderRadius: '50%',
-                    background: '#7c3aed',
-                    color: '#ffffff',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <Check size={14} color="#ffffff" strokeWidth={3} />
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Action Controls - Only Log Out Option */}
-        <div style={{
-          paddingTop: 16,
-          borderTop: '1px solid #f1f5f9'
-        }}>
-          <button
-            onClick={onLogout}
-            style={{
-              width: '100%',
-              background: '#fef2f2',
-              border: '1px solid #fecaca',
-              color: '#b91c1c',
-              padding: '12px 16px',
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-              minHeight: 44,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              transition: 'all 0.15s ease'
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
-            onMouseLeave={(e) => e.currentTarget.style.background = '#fef2f2'}
-          >
-            <LogOut size={16} color="#b91c1c" />
-            <span>Log Out of Partner Portal</span>
-          </button>
-        </div>
+            cursor: 'pointer',
+            minHeight: 44,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = '#fee2e2'}
+          onMouseLeave={(e) => e.currentTarget.style.background = '#fef2f2'}
+        >
+          <LogOut size={16} color="#b91c1c" />
+          <span>Log Out of Partner Portal</span>
+        </button>
       </div>
     </div>
   );

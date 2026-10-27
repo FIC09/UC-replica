@@ -17,7 +17,7 @@ export const PERMISSION_MATRIX = {
   'Operations Manager': {
     overview: ['view'],
     bookings: ['view', 'create', 'edit', 'approve', 'export'],
-    customers: ['view', 'edit', 'suspend', 'export'],
+    customers: ['view', 'create', 'edit', 'suspend', 'export'],
     professionals: ['view', 'create', 'edit', 'approve', 'suspend', 'export'],
     partners: ['view', 'create', 'edit', 'approve', 'suspend', 'export'],
     services: ['view', 'create', 'edit'],

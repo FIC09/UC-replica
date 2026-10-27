@@ -28,6 +28,35 @@ export function JobsView({ onNavigate, showToast }) {
   const [declineReason, setDeclineReason] = useState('schedule_conflict');
   const [isDeclining, setIsDeclining] = useState(false);
 
+  // Shift Availability State
+  const [workerAvailability, setWorkerAvailability] = useState('Available'); // 'Available' | 'Busy' | 'Offline'
+
+  // Fetch active dispatch  offers
+  const fetchOffers = async () => {
+    try {
+      const res = await professionalClient.getJobOffers();
+      if (res && res.success && res.offers) {
+        setOffers(res.offers);
+      }
+    } catch (err) {
+      console.warn('Fetch offers notice:', err.message);
+    }
+  };
+
+  // 1-second countdown ticker for offers
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setOffers(prev => prev.map(o => {
+        if (o.remainingSeconds == null) return o;
+        return {
+          ...o,
+          remainingSeconds: Math.max(0, o.remainingSeconds - 1)
+        };
+      }));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   useEffect(() => {
     // If URL has ?tab=offers, preselect offers tab
     const urlParams = new URLSearchParams(window.location.search);
@@ -36,21 +65,47 @@ export function JobsView({ onNavigate, showToast }) {
       setActiveTab('offers');
     }
 
-    const workerId = professionalClient.getStoredUser()?.id || 'WRK-KRI-101';
+    const workerId = professionalClient.getStoredUser()?.id || 'WRK-00146';
     const socket = io();
-    socket.emit('join:room', `worker:${workerId}`);
 
-    const handleLiveEvent = (event) => {
-      if (!event) return;
-      if (['ASSIGNMENT_OFFERED', 'ASSIGNMENT_ACCEPTED', 'BOOKING_CONFIRMED', 'WORKER_REASSIGNED'].includes(event.eventType)) {
-        loadData();
+    const joinRoom = () => {
+      socket.emit('join:room', `worker:${workerId}`);
+    };
+
+    const handleOfferEvent = (event) => {
+      loadData();
+      fetchOffers();
+      if (event?.eventType === 'DISPATCH_OFFER' || event?.type === 'DISPATCH_OFFER') {
+        showToast && showToast('⚡ New dispatch job offer received! Check timer to accept.');
+      } else if (event?.eventType === 'OFFER_EXPIRED' || event?.type === 'OFFER_EXPIRED') {
+        showToast && showToast('⌛ Dispatch offer has expired.');
       }
     };
 
-    socket.on('realtime:event', handleLiveEvent);
+    socket.on('connect', () => {
+      joinRoom();
+      fetchOffers();
+      loadData();
+    });
+
+    socket.on('realtime:event', (event) => {
+      if (!event) return;
+      if (['DISPATCH_OFFER', 'OFFER_EXPIRED', 'ASSIGNMENT_OFFERED', 'ASSIGNMENT_ACCEPTED', 'BOOKING_CONFIRMED', 'WORKER_REASSIGNED'].includes(event.eventType)) {
+        handleOfferEvent(event);
+      }
+    });
+
+    socket.on('DISPATCH_OFFER', handleOfferEvent);
+    socket.on('OFFER_EXPIRED', handleOfferEvent);
+    socket.on('OFFER_REJECTED', handleOfferEvent);
+    socket.on('ASSIGNMENT_ACCEPTED', handleOfferEvent);
 
     return () => {
-      socket.off('realtime:event', handleLiveEvent);
+      socket.off('realtime:event');
+      socket.off('DISPATCH_OFFER', handleOfferEvent);
+      socket.off('OFFER_EXPIRED', handleOfferEvent);
+      socket.off('OFFER_REJECTED', handleOfferEvent);
+      socket.off('ASSIGNMENT_ACCEPTED', handleOfferEvent);
       socket.disconnect();
     };
   }, []);
@@ -62,6 +117,7 @@ export function JobsView({ onNavigate, showToast }) {
   async function loadData() {
     setLoading(true);
     try {
+      fetchOffers();
       if (activeTab === 'offers') {
         const res = await professionalClient.getJobOffers();
         if (res.success && res.offers) {
@@ -181,8 +237,47 @@ export function JobsView({ onNavigate, showToast }) {
           </div>
         </div>
 
-        {/* Search input */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {/* Search & Shift Availability Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          {/* Availability Toggle */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            backgroundColor: '#FFFFFF',
+            padding: '4px',
+            borderRadius: 10,
+            border: '1px solid #CBD5E1',
+            gap: 4
+          }}>
+            {[
+              { id: 'Available', label: '● Available', color: '#16A34A', bg: '#DCFCE7' },
+              { id: 'Busy', label: '● Busy', color: '#D97706', bg: '#FEF3C7' },
+              { id: 'Offline', label: '○ Offline', color: '#64748B', bg: '#F1F5F9' }
+            ].map(st => (
+              <button
+                key={st.id}
+                type="button"
+                onClick={() => {
+                  setWorkerAvailability(st.id);
+                  showToast && showToast(`Shift status updated to ${st.id}`);
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 7,
+                  border: 'none',
+                  backgroundColor: workerAvailability === st.id ? st.bg : 'transparent',
+                  color: workerAvailability === st.id ? st.color : '#64748B',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+              >
+                {st.label}
+              </button>
+            ))}
+          </div>
+
           <input
             type="text"
             placeholder="Search booking ref, customer, area..."
@@ -196,12 +291,100 @@ export function JobsView({ onNavigate, showToast }) {
               borderRadius: 8,
               border: '1px solid #cbd5e1',
               fontSize: 13,
-              width: 280,
+              width: 260,
               boxSizing: 'border-box'
             }}
           />
         </div>
       </div>
+
+      {/* High-Priority Incoming Offer Banner (displayed anywhere across tabs) */}
+      {offers.filter(o => o.remainingSeconds == null || o.remainingSeconds > 0).length > 0 && (() => {
+        const topOffer = offers.find(o => o.remainingSeconds == null || o.remainingSeconds > 0);
+        return (
+          <div style={{
+            background: 'linear-gradient(135deg, #6D28D9 0%, #4F46E5 100%)',
+            color: '#FFFFFF',
+            borderRadius: 14,
+            padding: '16px 20px',
+            marginBottom: 20,
+            boxShadow: '0 10px 25px -5px rgba(109, 40, 217, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 14,
+            border: '1.5px solid rgba(255,255,255,0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: 'rgba(255,255,255,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 22
+              }}>
+                ⚡
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, textTransform: 'uppercase', background: '#FDE047', color: '#854D0E', padding: '2px 8px', borderRadius: 10 }}>
+                    Incoming Dispatch Offer
+                  </span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#E0E7FF' }}>
+                    ⏳ Expires in {topOffer.remainingSeconds != null ? `${topOffer.remainingSeconds}s` : '60s'}
+                  </span>
+                </div>
+                <div style={{ fontSize: 16, fontWeight: 800, marginTop: 3 }}>
+                  {topOffer.serviceName} • ₹{topOffer.payout || topOffer.totalAmount} Technician Payout
+                </div>
+                <div style={{ fontSize: 12, color: '#C7D2FE', marginTop: 2 }}>
+                  Area: <strong>{topOffer.area}</strong> • Scheduled: <strong>{topOffer.slot}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => setDeclineOfferModal(topOffer)}
+                style={{
+                  background: 'rgba(255,255,255,0.15)',
+                  color: '#FFFFFF',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  borderRadius: 8,
+                  padding: '9px 16px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                Decline
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAcceptOffer(topOffer.id)}
+                style={{
+                  background: '#10B981',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '9px 22px',
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.4)'
+                }}
+              >
+                ✓ Accept Booking ({topOffer.remainingSeconds != null ? `${topOffer.remainingSeconds}s` : ''})
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Primary Lifecycle Tabs */}
       <div style={{
@@ -353,14 +536,14 @@ export function JobsView({ onNavigate, showToast }) {
                           Offer Ref: {offer.id} ({offer.bookingReference})
                         </span>
                         <span style={{
-                          background: '#fee2e2',
-                          color: '#991b1b',
+                          background: (offer.remainingSeconds ?? 60) > 0 ? '#fee2e2' : '#f1f5f9',
+                          color: (offer.remainingSeconds ?? 60) > 0 ? '#991b1b' : '#64748b',
                           padding: '3px 10px',
                           borderRadius: 12,
                           fontSize: 12,
                           fontWeight: 700
                         }}>
-                          ⏳ Expires in ~{Math.ceil((offer.remainingSeconds || 600) / 60)} mins
+                          {(offer.remainingSeconds ?? 60) > 0 ? `⏳ Expires in ${offer.remainingSeconds ?? 60}s` : '⌛ Offer Expired'}
                         </span>
                       </div>
                       <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '6px 0 4px 0' }}>
@@ -418,20 +601,21 @@ export function JobsView({ onNavigate, showToast }) {
                       </button>
 
                       <button
+                        disabled={(offer.remainingSeconds ?? 60) <= 0}
                         onClick={() => handleAcceptOffer(offer.id)}
                         style={{
-                          background: '#059669',
+                          background: (offer.remainingSeconds ?? 60) > 0 ? '#059669' : '#cbd5e1',
                           color: '#ffffff',
                           border: 'none',
                           padding: '9px 22px',
                           borderRadius: 8,
                           fontSize: 13,
                           fontWeight: 700,
-                          cursor: 'pointer',
-                          boxShadow: '0 4px 6px -1px rgba(5, 150, 105, 0.2)'
+                          cursor: (offer.remainingSeconds ?? 60) > 0 ? 'pointer' : 'not-allowed',
+                          boxShadow: (offer.remainingSeconds ?? 60) > 0 ? '0 4px 6px -1px rgba(5, 150, 105, 0.2)' : 'none'
                         }}
                       >
-                        ✓ Accept Booking
+                        {(offer.remainingSeconds ?? 60) > 0 ? `✓ Accept Booking (${offer.remainingSeconds ?? 60}s)` : 'Offer Expired'}
                       </button>
                     </div>
                   </div>
@@ -780,7 +964,7 @@ export function JobsView({ onNavigate, showToast }) {
               color: '#475569',
               marginBottom: 16
             }}>
-              💡 <strong>Demo Code:</strong> Enter <strong>4829</strong> to simulate live customer authorization.
+              Enter the 4-digit Safety PIN provided by the customer at the doorstep.
             </div>
 
             {otpError && (

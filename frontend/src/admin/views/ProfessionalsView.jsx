@@ -77,6 +77,21 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
     trainerNotes: 'Mandatory certification course for Diamond Level upgrade.'
   });
 
+  // Create Professional Modal State
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [newProfessional, setNewProfessional] = useState({
+    applicantName: '',
+    phone: '',
+    email: '',
+    trade: 'ac-appliances',
+    tradeName: 'AC & Appliance Care',
+    city: 'Krishnagiri',
+    locality: 'Rayakottai Road',
+    experience: '2 years',
+    expectedIncome: '₹45,000 / month',
+    employmentType: 'Direct Freelance'
+  });
+
   const [newProNote, setNewProNote] = useState('');
 
   // Fetch Professionals List
@@ -126,6 +141,57 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
         setLoadingDetail(false);
       });
   }, [selectedPro]);
+
+  // Handle Create Professional in Real-Time Database
+  function handleCreateProfessionalSubmit(e) {
+    e.preventDefault();
+    if (!newProfessional.applicantName.trim()) {
+      onShowToast && onShowToast('Professional full name is required');
+      return;
+    }
+    if (!newProfessional.phone.trim()) {
+      onShowToast && onShowToast('Phone number is required');
+      return;
+    }
+    adminClient.createProfessional(newProfessional)
+      .then(res => {
+        onShowToast && onShowToast(`✓ Professional "${newProfessional.applicantName}" registered successfully in database!`);
+        setIsCreateOpen(false);
+        setNewProfessional({
+          applicantName: '',
+          phone: '',
+          email: '',
+          trade: 'ac-appliances',
+          tradeName: 'AC & Appliance Care',
+          city: 'Krishnagiri',
+          locality: 'Rayakottai Road',
+          experience: '2 years',
+          expectedIncome: '₹45,000 / month',
+          employmentType: 'Direct Freelance'
+        });
+        fetchProfessionalsList();
+      })
+      .catch(err => {
+        onShowToast && onShowToast(`Error: ${err.message}`);
+      });
+  }
+
+  // Handle Delete / Deregister Professional
+  function handleDeleteProfessional() {
+    if (!selectedPro) return;
+    if (!window.confirm(`Permanently deregister and delete "${selectedPro.applicantName || selectedPro.name}" from database?`)) {
+      return;
+    }
+    adminClient.deleteProfessional(selectedPro.id || selectedPro._id)
+      .then(() => {
+        onShowToast && onShowToast(`✓ Professional #${selectedPro.id || selectedPro._id} permanently removed.`);
+        setSelectedPro(null);
+        fetchProfessionalsList();
+      })
+      .catch(err => {
+        onShowToast && onShowToast(`Error deleting professional: ${err.message}`);
+      });
+  }
 
   // Handle Approve or Reject Application
   function handleApproveRejectSubmit() {
@@ -376,6 +442,25 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              backgroundColor: '#6E42E5',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: 8,
+              padding: '9px 16px',
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(110, 66, 229, 0.25)'
+            }}
+          >
+            <Plus size={16} /> Add Professional
+          </button>
           <button
             onClick={fetchProfessionalsList}
             title="Refresh Directory"
@@ -1007,6 +1092,27 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                   }}
                 >
                   {selectedPro.status === 'Suspended' ? 'Reactivate' : 'Suspend Pro'}
+                </button>
+
+                <button
+                  onClick={handleDeleteProfessional}
+                  style={{
+                    flex: '1 1 auto',
+                    padding: '8px 14px',
+                    borderRadius: 6,
+                    border: '1px solid #FCA5A5',
+                    backgroundColor: '#FFF1F2',
+                    color: '#BE123C',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6
+                  }}
+                >
+                  <Ban size={14} /> Deregister
                 </button>
               </div>
 
@@ -2017,6 +2123,197 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                   }}
                 >
                   Confirm Schedule
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* ADD PROFESSIONAL MODAL DIALOG                             */}
+      {/* ======================================================== */}
+      {isCreateOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          zIndex: 1100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(3px)'
+        }}>
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 14,
+            width: '100%',
+            maxWidth: 540,
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+              <div>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>Add New Professional</h3>
+                <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0 0' }}>Register a technician directly into the real-time database</p>
+              </div>
+              <button
+                onClick={() => setIsCreateOpen(false)}
+                style={{ backgroundColor: '#F1F5F9', border: 'none', borderRadius: '50%', width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X size={16} color="#64748B" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProfessionalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Technician Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. cryto"
+                  value={newProfessional.applicantName}
+                  onChange={e => setNewProfessional({ ...newProfessional, applicantName: e.target.value })}
+                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Phone Number *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="8778293269"
+                    value={newProfessional.phone}
+                    onChange={e => setNewProfessional({ ...newProfessional, phone: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Email</label>
+                  <input
+                    type="email"
+                    placeholder="pro@urbancompany.pro"
+                    value={newProfessional.email}
+                    onChange={e => setNewProfessional({ ...newProfessional, email: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Primary Trade</label>
+                  <select
+                    value={newProfessional.trade}
+                    onChange={e => {
+                      const t = e.target.value;
+                      const nameMap = {
+                        'ac-appliances': 'AC & Appliance Care',
+                        'quick-repairs': 'Quick Home Repairs & Handyman',
+                        'cleaning-pest': 'Cleaning & Pest Control',
+                        'womens-salon': "Women's Salon",
+                        'mens-grooming': "Men's Grooming & Spa",
+                        'painting-decor': 'Home Painting & Wall Decor'
+                      };
+                      setNewProfessional({
+                        ...newProfessional,
+                        trade: t,
+                        tradeName: nameMap[t] || 'Home Services'
+                      });
+                    }}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box', backgroundColor: '#FFFFFF' }}
+                  >
+                    <option value="ac-appliances">AC & Appliance Care</option>
+                    <option value="quick-repairs">Quick Home Repairs</option>
+                    <option value="cleaning-pest">Cleaning & Pest Control</option>
+                    <option value="womens-salon">Women's Salon</option>
+                    <option value="mens-grooming">Men's Grooming</option>
+                    <option value="painting-decor">Home Painting</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>City</label>
+                  <select
+                    value={newProfessional.city}
+                    onChange={e => setNewProfessional({ ...newProfessional, city: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box', backgroundColor: '#FFFFFF' }}
+                  >
+                    <option value="Krishnagiri">Krishnagiri</option>
+                    <option value="Mumbai">Mumbai</option>
+                    <option value="Bengaluru">Bengaluru</option>
+                    <option value="Delhi NCR">Delhi NCR</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Locality</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Rayakottai Road"
+                    value={newProfessional.locality}
+                    onChange={e => setNewProfessional({ ...newProfessional, locality: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Experience</label>
+                  <select
+                    value={newProfessional.experience}
+                    onChange={e => setNewProfessional({ ...newProfessional, experience: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box', backgroundColor: '#FFFFFF' }}
+                  >
+                    <option value="1-2 years">1-2 years</option>
+                    <option value="3-5 years">3-5 years</option>
+                    <option value="5+ years">5+ years</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Employment Type</label>
+                  <select
+                    value={newProfessional.employmentType}
+                    onChange={e => setNewProfessional({ ...newProfessional, employmentType: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box', backgroundColor: '#FFFFFF' }}
+                  >
+                    <option value="Direct Freelance">Direct Freelance</option>
+                    <option value="Agency Employed">Agency Employed</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Expected Income</label>
+                  <input
+                    type="text"
+                    value={newProfessional.expectedIncome}
+                    onChange={e => setNewProfessional({ ...newProfessional, expectedIncome: e.target.value })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCreateOpen(false)}
+                  style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  style={{ padding: '9px 20px', borderRadius: 8, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  Register Professional
                 </button>
               </div>
             </form>
