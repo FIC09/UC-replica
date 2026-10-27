@@ -1,6 +1,6 @@
 /**
  * RAPIDO-STYLE IN-APP CHAT VERIFICATION SUITE
- * 
+ *
  * Verifies 100% of the customer-to-professional chat system:
  * 1. Bilingual Quick Replies (English & Tamil Unicode)
  * 2. Chat Activation only after confirmed worker assignment
@@ -91,7 +91,7 @@ async function runChatVerificationSuite() {
     // MODULE 2: CHAT ACTIVATION LIFECYCLE (UNASSIGNED VS ASSIGNED)
     // -------------------------------------------------------------
     console.log('\n--- MODULE 2: Chat Activation & Assignment Gate ---');
-    
+
     // Create an unassigned booking first
     const unassignedBookingId = `UC-CHAT-UNASGN-${Date.now().toString().slice(-5)}`;
     const createUnasgnRes = await makeRequest('POST', '/api/bookings', {
@@ -154,7 +154,7 @@ async function runChatVerificationSuite() {
     // MODULE 3: SECURITY & PARTICIPANT AUTHORIZATION
     // -------------------------------------------------------------
     console.log('\n--- MODULE 3: Security & Participant Authorization ---');
-    
+
     // Unauthorized technician (WRK-IMPOSTER-999) attempts to access conversation
     const unauthorizedProRes = await makeRequest('GET', `/api/chat/conversations/${conversationId}`, null, {
       'x-professional-id': 'WRK-IMPOSTER-999',
@@ -278,7 +278,7 @@ async function runChatVerificationSuite() {
     // MODULE 8: SECURE IMAGE ATTACHMENTS & VALIDATION
     // -------------------------------------------------------------
     console.log('\n--- MODULE 8: Secure Image Attachments & File Validation ---');
-    
+
     // Valid Image Upload
     const uploadRes = await makeRequest('POST', `/api/chat/conversations/${conversationId}/attachments`, {
       fileName: 'ac_water_leakage_evidence.jpg',
@@ -319,8 +319,10 @@ async function runChatVerificationSuite() {
     // MODULE 9: WORKER REASSIGNMENT & PRIVACY SEPARATION
     // -------------------------------------------------------------
     console.log('\n--- MODULE 9: Worker Reassignment & Privacy Separation ---');
-    const replacementWorkerId = 'WRK-KRI-102'; // M. Prakash (Electrical & Plumbing specialist)
-    
+    const replacementWorkerId = assignedWorkerId === 'WRK-KRI-102' ? 'WRK-KRI-101' : 'WRK-KRI-102';
+    const replacementWorkerName = replacementWorkerId === 'WRK-KRI-101' ? 'V. Saravanan' : 'M. Prakash';
+    const replacementTrade = replacementWorkerId === 'WRK-KRI-101' ? 'AC Technician' : 'Plumbing & Electrical Specialist';
+
     // Simulate booking reassignment via admin assignment endpoint
     const adminLoginRes = await makeRequest('POST', '/api/admin/auth/login', {
       email: 'admin@urbancompany.com',
@@ -330,8 +332,8 @@ async function runChatVerificationSuite() {
 
     const reassignRes = await makeRequest('PUT', `/api/admin/bookings/${testBookingId}/assign`, {
       professionalId: replacementWorkerId,
-      professionalName: 'M. Prakash',
-      trade: 'Plumbing & Electrical Specialist',
+      professionalName: replacementWorkerName,
+      trade: replacementTrade,
       bypassOverlapCheck: true
     }, {
       'Authorization': `Bearer ${adminToken}`

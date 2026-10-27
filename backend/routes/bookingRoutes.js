@@ -3,6 +3,8 @@ import { Booking } from '../models/Booking.js';
 import { User } from '../models/User.js';
 import { autoAssignWorkerToBooking } from '../services/assignmentEngine.js';
 import { validateKrishnagiriServiceArea } from '../services/geofenceService.js';
+import { syncBookingToPostgres } from '../services/postgresService.js';
+import { emitEvent } from '../services/websocketService.js';
 
 const router = express.Router();
 
@@ -83,6 +85,9 @@ router.post('/', async (req, res) => {
     if (!bookingData.bookingReference) {
       bookingData.bookingReference = bookingData.id;
     }
+    if (!bookingData.safetyPin) {
+      bookingData.safetyPin = String(Math.floor(1000 + Math.random() * 9000));
+    }
 
     // Parse contact string if userName/userPhone missing
     if (!bookingData.userName && bookingData.contact) {
@@ -115,6 +120,9 @@ router.post('/', async (req, res) => {
     }
     if (!bookingData.paymentStatus) {
       bookingData.paymentStatus = 'Paid';
+    }
+    if (!bookingData.slot) {
+      bookingData.slot = bookingData.time ? `${bookingData.date || 'Today'}, ${bookingData.time}` : '10:00 AM - 11:30 AM';
     }
 
     if (!bookingData.createdAtFormatted) {
@@ -230,6 +238,25 @@ router.post('/', async (req, res) => {
     }
 
     const booking = await Booking.create(bookingData);
+
+    // Persist booking in PostgreSQL
+    try {
+      await syncBookingToPostgres(booking);
+    } catch (pgErr) {
+      console.warn('[PostgreSQL Sync Warning]:', pgErr.message);
+    }
+
+    // Emit real-time WebSocket event
+    emitEvent('BOOKING_CREATED', {
+      entityId: booking.id,
+      room: 'admin:operations',
+      payload: booking
+    });
+    emitEvent('BOOKING_CREATED', {
+      entityId: booking.id,
+      room: `user:${booking.userId || booking.userPhone}`,
+      payload: booking
+    });
 
     // Trigger Intelligent Auto-Assignment Engine (Module 4)
     try {

@@ -16,6 +16,8 @@ import {
   evaluateBookingLifecycleClosure,
   QUICK_REPLIES
 } from '../services/chatService.js';
+import { query } from '../config/postgres.js';
+import { emitEvent } from '../services/websocketService.js';
 
 const router = express.Router();
 
@@ -92,15 +94,17 @@ function authorizeConversationAccess(conversation, user) {
   }
 
   // Check customer participant
-  const matchesId = Boolean(user.id && user.id === conversation.customerId);
-  const matchesPhone = Boolean(user.phone && conversation.customerPhone && user.phone === conversation.customerPhone);
+  const matchesId = Boolean(user.id && (user.id === conversation.customerId || user.id === `cust-${conversation.bookingId}`));
+  const cleanUserPhone = user.phone ? user.phone.replace(/\D/g, '').slice(-10) : '';
+  const cleanCustPhone = conversation.customerPhone ? conversation.customerPhone.replace(/\D/g, '').slice(-10) : '';
+  const matchesPhone = Boolean(cleanUserPhone && cleanCustPhone && cleanUserPhone === cleanCustPhone);
 
   if (matchesId || matchesPhone) {
     return { authorized: true, role: 'customer' };
   }
 
   // If customer ID is provided and does not match
-  if (user.id && user.id !== conversation.customerId) {
+  if (user.id && user.id !== conversation.customerId && user.id !== `cust-${conversation.bookingId}`) {
     return { authorized: false, reason: 'Customer is not authorized for this private conversation.' };
   }
 
@@ -657,6 +661,107 @@ router.get('/stream/:conversationId', async (req, res) => {
     clearInterval(heartbeat);
     unregisterChatClient(conversationId, res);
   });
+});
+
+// POST /messages - Booking-scoped message sending with automatic conversation creation and PostgreSQL dual-persistence
+router.post('/messages', async (req, res) => {
+  try {
+    const { bookingId, senderId, senderRole = 'customer', senderName, messageText, clientMessageId } = req.body;
+    if (!bookingId || !messageText) {
+      return res.status(400).json({ success: false, message: 'bookingId and messageText are required' });
+    }
+
+    const conversation = await getOrCreateConversation(bookingId);
+    const msgId = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+
+    // 1. Persist in MongoDB
+    const mongoMsg = await ChatMessage.create({
+      id: msgId,
+      conversationId: conversation.id,
+      bookingId,
+      senderId: senderId || (senderRole === 'worker' ? conversation.workerId : conversation.customerId),
+      senderRole: senderRole === 'worker' ? 'professional' : senderRole,
+      senderName: senderName || (senderRole === 'worker' ? conversation.workerName : conversation.customerName),
+      messageText: String(messageText).trim(),
+      messageType: 'text',
+      clientMessageId,
+      status: 'delivered'
+    });
+
+    // 2. Persist in PostgreSQL (Module 9 & 10)
+    try {
+      await query(`
+        INSERT INTO chat_conversations (id, booking_id, customer_id, customer_name, worker_id, worker_name, status, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6, 'active', NOW())
+        ON CONFLICT (id) DO NOTHING;
+      `, [
+        conversation.id,
+        bookingId,
+        conversation.customerId || 'cust-user',
+        conversation.customerName || 'Customer',
+        conversation.workerId || 'WRK-KRI-101',
+        conversation.workerName || 'A. Kumar'
+      ]);
+
+      await query(`
+        INSERT INTO chat_messages (
+          id, conversation_id, client_message_id, sender_id, sender_role, sender_name, message_text, message_type, status, created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'text', 'delivered', NOW())
+      `, [
+        msgId,
+        conversation.id,
+        clientMessageId || null,
+        senderId || (senderRole === 'worker' ? conversation.workerId : conversation.customerId),
+        senderRole,
+        senderName || (senderRole === 'worker' ? conversation.workerName : conversation.customerName),
+        String(messageText).trim()
+      ]);
+
+      await query(`
+        INSERT INTO chat_receipts (id, message_id, conversation_id, recipient_id, delivered_at)
+        VALUES ($1, $2, $3, $4, NOW())
+      `, [
+        `rcpt-${msgId}`,
+        msgId,
+        conversation.id,
+        senderRole === 'worker' ? conversation.customerId : conversation.workerId
+      ]);
+    } catch (pgErr) {
+      console.warn('[PostgreSQL Chat Warning]:', pgErr.message);
+    }
+
+    // 3. Emit real-time WebSocket event
+    emitEvent('CHAT_MESSAGE_RECEIVED', {
+      entityId: bookingId,
+      room: `booking:${bookingId}`,
+      payload: mongoMsg
+    });
+
+    res.status(201).json({
+      success: true,
+      message: mongoMsg,
+      conversationId: conversation.id
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET /conversation/:bookingId - Fetch conversation and its ordered messages
+router.get('/conversation/:bookingId', async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const conversation = await getOrCreateConversation(bookingId);
+    const messages = await ChatMessage.find({ conversationId: conversation.id }).sort({ createdAt: 1 });
+
+    res.json({
+      success: true,
+      conversation,
+      messages
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 });
 
 export default router;

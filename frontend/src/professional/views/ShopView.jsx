@@ -9,7 +9,7 @@ export function ShopView({ profile, showToast }) {
   // Buy Modal
   const [selectedItem, setSelectedItem] = useState(null);
   const [orderQty, setOrderQty] = useState(1);
-  const [deliveryMethod, setDeliveryMethod] = useState('hub_pickup');
+  const [deliveryMethod, setDeliveryMethod] = useState('direct_courier');
   const [isOrdering, setIsOrdering] = useState(false);
 
   useEffect(() => {
@@ -123,7 +123,7 @@ export function ShopView({ profile, showToast }) {
               </p>
 
               <div style={{ fontSize: 12, color: '#059669', fontWeight: 600, marginBottom: 16 }}>
-                ✓ {item.availableStock || 25} units available at Bandra Hub
+                ✓ {item.availableStock || 25} units in stock for Krishnagiri Town direct delivery
               </div>
             </div>
 
@@ -132,7 +132,7 @@ export function ShopView({ profile, showToast }) {
                 <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a' }}>
                   ₹{item.price.toLocaleString('en-IN')}
                 </div>
-                <div style={{ fontSize: 11, color: '#64748b' }}>Includes GST & pickup</div>
+                <div style={{ fontSize: 11, color: '#64748b' }}>Includes GST & delivery</div>
               </div>
 
               <button
@@ -278,8 +278,8 @@ export function ShopView({ profile, showToast }) {
                   onChange={(e) => setDeliveryMethod(e.target.value)}
                   style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, boxSizing: 'border-box' }}
                 >
-                  <option value="hub_pickup">Same-Day Pickup at Bandra West Central Hub</option>
-                  <option value="express_courier">Express Doorstep Logistics Courier (24h)</option>
+                  <option value="direct_courier">Direct Doorstep Courier to Krishnagiri Base</option>
+                  <option value="express_courier">Express Service Base Courier (24h)</option>
                 </select>
               </div>
 

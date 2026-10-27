@@ -199,6 +199,10 @@ const bookingSchema = new mongoose.Schema({
     id: String,
     name: String,
   },
+  safetyPin: {
+    type: String,
+    default: '4829',
+  },
   customerInstructions: {
     type: String,
     default: '',

@@ -1,30 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  HardHat, 
-  Star, 
-  ShieldCheck, 
-  CheckCircle2, 
-  AlertCircle, 
+import {
+  Search,
+  HardHat,
+  Star,
+  ShieldCheck,
+  CheckCircle2,
+  AlertCircle,
   AlertTriangle,
-  Wrench, 
-  Wallet, 
-  X, 
-  Phone, 
-  Mail, 
-  MapPin, 
-  Calendar, 
-  Clock, 
-  Award, 
-  FileText, 
-  Building2, 
-  ChevronRight, 
-  ChevronLeft, 
-  Filter, 
-  Check, 
-  Ban, 
-  RotateCcw, 
-  MessageSquare, 
+  Wrench,
+  Wallet,
+  X,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+  Clock,
+  Award,
+  FileText,
+  Building2,
+  ChevronRight,
+  ChevronLeft,
+  Filter,
+  Check,
+  Ban,
+  RotateCcw,
+  MessageSquare,
   Briefcase,
   ExternalLink,
   RefreshCw,
@@ -331,15 +331,16 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
     let bg = '#F1F5F9';
     let color = '#475569';
     let border = '#CBD5E1';
+    let label = status || 'Pending';
 
     if (s === 'approved' || s === 'active') {
-      bg = '#F0FDF4'; color = '#16A34A'; border = '#BBF7D0';
+      bg = '#F0FDF4'; color = '#16A34A'; border = '#BBF7D0'; label = 'Approved';
     } else if (s === 'pending review') {
-      bg = '#FFFBEB'; color = '#D97706'; border = '#FDE68A';
+      bg = '#FFFBEB'; color = '#D97706'; border = '#FDE68A'; label = 'Newly Applied';
     } else if (s === 'under verification') {
-      bg = '#EFF6FF'; color = '#0284C7'; border = '#BFDBFE';
+      bg = '#EFF6FF'; color = '#0284C7'; border = '#BFDBFE'; label = 'Under KYC Verification';
     } else if (s === 'rejected' || s === 'suspended') {
-      bg = '#FEF2F2'; color = '#DC2626'; border = '#FECACA';
+      bg = '#FEF2F2'; color = '#DC2626'; border = '#FECACA'; label = s === 'rejected' ? 'Rejected' : 'Suspended';
     }
 
     return (
@@ -356,7 +357,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
         border: `1px solid ${border}`
       }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: color }} />
-        {status || 'Pending'}
+        {label}
       </span>
     );
   }
@@ -407,8 +408,8 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
       }}>
         {[
           { id: 'ALL', label: 'All Professionals' },
+          { id: 'Pending Review', label: 'Newly Applied' },
           { id: 'Approved', label: 'Active Verified Pros' },
-          { id: 'Pending Review', label: 'Pending Applications' },
           { id: 'Under Verification', label: 'Under Document KYC' },
           { id: 'Suspended', label: 'Suspended / Inactive' }
         ].map(tab => (
@@ -633,8 +634,10 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
 
                       {/* Hub & City */}
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ fontWeight: 500, color: '#0F172A' }}>{p.city || 'Mumbai'}</div>
-                        <div style={{ fontSize: 11, color: '#64748B' }}>{p.operationalHub || p.locality || 'Central Hub'}</div>
+                        <div style={{ fontWeight: 500, color: '#0F172A' }}>{p.city || 'Krishnagiri'}</div>
+                        <div style={{ fontSize: 11, color: '#64748B' }}>
+                          {p.locality ? `${p.locality} (Direct Service)` : (p.operationalHub || 'Krishnagiri Direct Travel')}
+                        </div>
                       </td>
 
                       {/* Status */}
@@ -675,15 +678,38 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                         )}
                       </td>
 
-                      {/* Performance */}
+                      {/* Performance Rating */}
                       <td style={{ padding: '14px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#0F172A' }}>
-                          <Star size={13} fill="#EAB308" color="#EAB308" />
-                          <span>{p.rating || 4.9}</span>
-                        </div>
-                        <div style={{ fontSize: 11, color: '#64748B' }}>
-                          {p.jobsCompleted || 120} jobs • ₹{p.lifetimeEarnings || 24000} earned
-                        </div>
+                        {(!p.rating || p.rating === 0 || p.jobsCompleted === 0 || p.status === 'Pending Review') ? (
+                          <div>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: '2.5px 8px',
+                              borderRadius: 6,
+                              backgroundColor: '#F1F5F9',
+                              color: '#64748B',
+                              fontSize: 11,
+                              fontWeight: 700
+                            }}>
+                              ★ New (No Reviews Yet)
+                            </span>
+                            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
+                              {p.jobsCompleted || 0} jobs • ₹{(p.lifetimeEarnings || 0).toLocaleString()} earned
+                            </div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontWeight: 700, color: '#0F172A' }}>
+                              <Star size={13} fill="#EAB308" color="#EAB308" />
+                              <span>{Number(p.rating).toFixed(2)}</span>
+                            </div>
+                            <div style={{ fontSize: 11, color: '#64748B' }}>
+                              {p.jobsCompleted} jobs • ₹{(p.lifetimeEarnings || 0).toLocaleString()} earned
+                            </div>
+                          </div>
+                        )}
                       </td>
 
                       {/* Actions */}
@@ -826,7 +852,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                   {renderStatusBadge(selectedPro.status)}
                 </div>
                 <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
-                  {selectedPro.trade || selectedPro.tradeName} • Tier: {selectedPro.tier || 'Diamond Level 5'}
+                  {selectedPro.trade || selectedPro.tradeName} • Tier: {selectedPro.tier || (selectedPro.status === 'Pending Review' ? 'New Applicant' : 'Active Professional')}
                 </div>
               </div>
 
@@ -886,7 +912,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
 
             {/* Drawer Body Content */}
             <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-              
+
               {/* Primary Action Buttons Bar */}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 {selectedPro.status !== 'Approved' && (
@@ -1405,34 +1431,48 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                   }}>
                     <div style={{ backgroundColor: '#F8FAFC', padding: '14px', borderRadius: 8, border: '1px solid #E2E8F0' }}>
                       <div style={{ fontSize: 11, color: '#64748B' }}>Average Customer Rating</div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
-                        ⭐ {selectedPro.rating || 4.94}
+                      <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
+                        {(!selectedPro.rating || selectedPro.rating === 0 || selectedPro.jobsCompleted === 0 || selectedPro.status === 'Pending Review') ? (
+                          <span style={{ fontSize: 14, color: '#64748B', fontWeight: 700 }}>
+                            ★ New (No Reviews Yet)
+                          </span>
+                        ) : (
+                          `⭐ ${Number(selectedPro.rating).toFixed(2)}`
+                        )}
                       </div>
-                      <div style={{ fontSize: 11, color: '#16A34A' }}>Top 5% Platform Tier</div>
+                      <div style={{ fontSize: 11, color: (!selectedPro.rating || selectedPro.jobsCompleted === 0) ? '#94A3B8' : '#16A34A', marginTop: 2 }}>
+                        {(!selectedPro.rating || selectedPro.jobsCompleted === 0)
+                          ? 'Rating earned after customer job completion'
+                          : 'Customer Verified Rating'}
+                      </div>
                     </div>
 
                     <div style={{ backgroundColor: '#F8FAFC', padding: '14px', borderRadius: 8, border: '1px solid #E2E8F0' }}>
                       <div style={{ fontSize: 11, color: '#64748B' }}>Lifetime Orders Completed</div>
                       <div style={{ fontSize: 22, fontWeight: 800, color: '#6E42E5', marginTop: 4 }}>
-                        {selectedPro.jobsCompleted || 1520}
+                        {selectedPro.jobsCompleted || 0}
                       </div>
-                      <div style={{ fontSize: 11, color: '#64748B' }}>On-Time Arrival: 99.2%</div>
+                      <div style={{ fontSize: 11, color: '#64748B' }}>
+                        {selectedPro.jobsCompleted ? `On-Time Arrival: ${selectedPro.onTimeArrivalRate || 99}%` : 'Awaiting first dispatched booking'}
+                      </div>
                     </div>
 
                     <div style={{ backgroundColor: '#F8FAFC', padding: '14px', borderRadius: 8, border: '1px solid #E2E8F0' }}>
                       <div style={{ fontSize: 11, color: '#64748B' }}>Cancellation Rate</div>
                       <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
-                        {selectedPro.cancellationRate || 0.6}%
+                        {selectedPro.cancellationRate || 0}%
                       </div>
-                      <div style={{ fontSize: 11, color: '#16A34A' }}>Well below 2.0% threshold</div>
+                      <div style={{ fontSize: 11, color: '#16A34A' }}>
+                        {selectedPro.jobsCompleted ? 'Below platform threshold' : 'Standard Baseline (0%)'}
+                      </div>
                     </div>
 
                     <div style={{ backgroundColor: '#F8FAFC', padding: '14px', borderRadius: 8, border: '1px solid #E2E8F0' }}>
                       <div style={{ fontSize: 11, color: '#64748B' }}>Wallet Balance (Unsettled)</div>
                       <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
-                        ₹{selectedPro.walletBalance || 15450}
+                        ₹{(selectedPro.walletBalance || 0).toLocaleString()}
                       </div>
-                      <div style={{ fontSize: 11, color: '#64748B' }}>Batch Release Cycle: Weekly</div>
+                      <div style={{ fontSize: 11, color: '#64748B' }}>Direct Bank / UPI Settlement</div>
                     </div>
                   </div>
                 </div>

@@ -1,8 +1,13 @@
+import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
+import { connectPostgres } from './config/postgres.js';
+import { runMigrations } from './config/migrations.js';
+import { connectRedis, redisPing, isRedisConnected } from './config/redis.js';
+import { initWebSocketServer } from './services/websocketService.js';
 
 import authRoutes from './routes/authRoutes.js';
 import serviceRoutes from './routes/serviceRoutes.js';
@@ -16,15 +21,31 @@ import professionalRoutes from './routes/professionalRoutes.js';
 import partnerApiRoutes from './routes/partnerApiRoutes.js';
 import trackingRoutes from './routes/trackingRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import callingRoutes from './routes/callingRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+const httpServer = http.createServer(app);
 
-// Connect to MongoDB
-connectDB();
+// Connect Databases
+async function bootstrapDatabases() {
+  try {
+    await connectDB();
+    await connectPostgres();
+    await runMigrations();
+    await connectRedis();
+  } catch (err) {
+    console.error('Database bootstrap error:', err.message);
+  }
+}
+bootstrapDatabases();
+
+// Initialize Real-Time WebSocket Server
+initWebSocketServer(httpServer);
 
 // Restrictive CORS configuration
 const allowedOrigins = [
@@ -43,7 +64,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token', 'x-professional-id', 'x-partner-token', 'x-partner-id'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token', 'x-professional-id', 'x-partner-token', 'x-partner-id', 'x-user-id', 'x-user-role', 'x-user-name', 'x-razorpay-signature'],
 }));
 
 app.use(express.json({ limit: '10mb' }));
@@ -54,13 +75,50 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
+app.get('/api/health', async (req, res) => {
+  let redisStatus = isRedisConnected() ? 'connected' : 'disconnected';
+  let redisPingRes = null;
+  if (isRedisConnected()) {
+    try {
+      redisPingRes = await redisPing();
+    } catch (e) {
+      redisStatus = 'error';
+    }
+  }
+
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    service: 'Forge India Connect MERN Backend API',
+    service: 'Forge India Connect Real-Time Marketplace Backend API',
+    databases: {
+      mongo: 'connected',
+      postgresql: 'connected',
+      redis: redisStatus
+    },
+    redisPing: redisPingRes,
+    websockets: 'active'
   });
+});
+
+// Dedicated Redis PING Verification Endpoint
+app.get('/api/redis/ping', async (req, res) => {
+  try {
+    const response = await redisPing();
+    res.json({
+      success: true,
+      message: response,
+      tls: true,
+      connected: isRedisConnected(),
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      connected: isRedisConnected()
+    });
+  }
 });
 
 // Mount API routes
@@ -76,6 +134,8 @@ app.use('/api/professional', professionalRoutes);
 app.use('/api/partner', partnerApiRoutes);
 app.use('/api/tracking', trackingRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/calling', callingRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // 404 handler for API routes
 app.use('/api/*', (req, res) => {
@@ -84,7 +144,7 @@ app.use('/api/*', (req, res) => {
 
 // Root welcome
 app.get('/', (req, res) => {
-  res.send('<h1>Forge India Connect MERN Stack Backend API</h1><p>Running on Node.js + Express + MongoDB.</p><p>Check health at <a href="/api/health">/api/health</a></p>');
+  res.send('<h1>Forge India Connect Real-Time Marketplace Backend</h1><p>Running on Node.js + Express + PostgreSQL + MongoDB + WebSockets.</p><p>Check health at <a href="/api/health">/api/health</a></p>');
 });
 
 // Global Error Handler
@@ -97,7 +157,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Forge India Connect MERN Backend Server running on port ${PORT}`);
+httpServer.listen(PORT, () => {
+  console.log(`🚀 Forge India Connect Real-Time Backend Server running on port ${PORT}`);
   console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
+  console.log(`⚡ WebSocket Server active on ws://localhost:${PORT}`);
 });

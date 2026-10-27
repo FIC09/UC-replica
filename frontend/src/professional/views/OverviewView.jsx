@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import { professionalClient } from '../professionalClient';
 import {
   ShieldAlert,
@@ -41,6 +42,9 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
   const [showSosModal, setShowSosModal] = useState(false);
   const [sosSent, setSosSent] = useState(false);
 
+  // Incoming Live Dispatch Offer state
+  const [incomingOffer, setIncomingOffer] = useState(null);
+
   // Advisories Hub collapsed/expanded state
   const [advisoriesExpanded, setAdvisoriesExpanded] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState({});
@@ -50,7 +54,48 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
 
   useEffect(() => {
     loadDashboard();
-  }, []);
+
+    const workerId = profile?.id || professional?.id || 'WRK-KRI-101';
+    const socket = io();
+    socket.emit('join:room', `worker:${workerId}`);
+
+    const handleLiveEvent = (event) => {
+      if (!event) return;
+      if (event.eventType === 'ASSIGNMENT_OFFERED') {
+        setIncomingOffer({
+          ...event.payload,
+          remainingSeconds: event.payload.remainingSeconds || 60
+        });
+        showToast?.('⚡ New Urgent Dispatch Offer Received!');
+      } else if (['ASSIGNMENT_ACCEPTED', 'BOOKING_CONFIRMED', 'WORKER_REASSIGNED'].includes(event.eventType)) {
+        loadDashboard();
+      }
+    };
+
+    socket.on('realtime:event', handleLiveEvent);
+
+    return () => {
+      socket.off('realtime:event', handleLiveEvent);
+      socket.disconnect();
+    };
+  }, [profile?.id, professional?.id]);
+
+  // Countdown timer for incoming offer
+  useEffect(() => {
+    if (!incomingOffer || incomingOffer.remainingSeconds <= 0) return;
+    const timer = setInterval(() => {
+      setIncomingOffer(prev => {
+        if (!prev) return null;
+        if (prev.remainingSeconds <= 1) {
+          clearInterval(timer);
+          showToast?.('Dispatch offer expired.');
+          return null;
+        }
+        return { ...prev, remainingSeconds: prev.remainingSeconds - 1 };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [incomingOffer]);
 
   async function loadDashboard() {
     try {
@@ -66,6 +111,33 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
       setRefreshing(false);
     }
   }
+
+  const handleAcceptIncomingOffer = async () => {
+    if (!incomingOffer) return;
+    try {
+      const offerId = incomingOffer.offerId || incomingOffer.id;
+      const res = await professionalClient.acceptJobOffer(offerId);
+      if (res.success) {
+        showToast?.('Offer Accepted! Job assigned to your schedule.');
+        setIncomingOffer(null);
+        loadDashboard();
+      }
+    } catch (err) {
+      showToast?.(err.message || 'Failed to accept offer');
+    }
+  };
+
+  const handleRejectIncomingOffer = async () => {
+    if (!incomingOffer) return;
+    try {
+      const offerId = incomingOffer.offerId || incomingOffer.id;
+      await professionalClient.declineJobOffer(offerId, 'Declined by professional');
+      showToast?.('Offer declined.');
+      setIncomingOffer(null);
+    } catch (err) {
+      showToast?.(err.message || 'Failed to decline offer');
+    }
+  };
 
   // Handle Lifecycle Transitions directly from Today Dashboard
   const handleLifecycleTransition = async (job, targetStatus, requiresOtp = false) => {
@@ -109,7 +181,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
 
   const handleTriggerSosAlert = () => {
     setSosSent(true);
-    showToast('🚨 SOS Broadcast Sent: Bandra West Hub Safety Dispatch & Emergency Support Alerted!');
+    showToast('🚨 SOS Broadcast Sent: Krishnagiri Town Safety Dispatch & Emergency Support Alerted!');
     setTimeout(() => {
       setSosSent(false);
       setShowSosModal(false);
@@ -154,7 +226,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
       boxSizing: 'border-box',
       fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
     }}>
-      
+
       {/* ----------------------------------------------------------------- */}
       {/* 1. OPERATIONAL NODE & SYNC RIBBON                                  */}
       {/* ----------------------------------------------------------------- */}
@@ -184,12 +256,12 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)'
             }} />
             <span style={{ fontWeight: 700, color: '#0F172A' }}>
-              Operational Hub: {dashboardData?.availability?.operationalHub || profile?.operationalHub || 'Bandra West Central Hub'}
+              Service Territory: {dashboardData?.availability?.operationalCity || profile?.operationalCity || 'Krishnagiri Town'} (Direct Doorstep Travel)
             </span>
           </div>
           <span style={{ color: '#CBD5E1' }}>•</span>
           <span style={{ color: '#64748B', fontSize: 12.5 }}>
-            Mumbai Region · Live Database Synced
+            Tamil Nadu · PostgreSQL & Real-time WebSockets Active
           </span>
           <span style={{ color: '#CBD5E1' }}>•</span>
           <span style={{
@@ -322,9 +394,9 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               </span>
             </div>
 
-            {/* Trade & Hub */}
+            {/* Trade & Operational Territory */}
             <div style={{ fontSize: 14.5, opacity: 0.95, marginTop: 4, fontWeight: 500 }}>
-              {profile?.trade || 'Master AC Specialist & Electrician'} • {profile?.operationalHub || 'Bandra West Central Hub'}
+              {profile?.trade || 'Master AC Specialist & Electrician'} • {profile?.locality || 'Krishnagiri Town, Tamil Nadu'}
             </div>
 
             {/* Operational Chips Row */}
@@ -751,7 +823,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
         gap: 24,
         alignItems: 'start'
       }}>
-        
+
         {/* =============================================================== */}
         {/* LEFT COLUMN: ACTIVE DISPATCH SPOTLIGHT + APPOINTMENTS TIMELINE   */}
         {/* =============================================================== */}
@@ -1034,7 +1106,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 No Active Dispatches at the Moment
               </h3>
               <p style={{ fontSize: 13.5, color: '#64748B', margin: 0 }}>
-                You are currently online. Keep duty active to receive upcoming job dispatches from Mumbai Hub.
+                You are currently online. Keep duty active to receive direct customer bookings in Krishnagiri Town.
               </p>
             </div>
           )}
@@ -1060,7 +1132,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                   Today's Appointments ({appointments.length})
                 </h3>
                 <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 2 }}>
-                  {dashboardData?.availability?.operationalHub || 'Bandra West Central Hub'}
+                  {dashboardData?.availability?.operationalCity || profile?.operationalCity || 'Krishnagiri Town, Tamil Nadu'} (Doorstep Direct Travel)
                 </div>
               </div>
 
@@ -1367,10 +1439,10 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               <span style={{ fontSize: 20 }}>📞</span>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A' }}>
-                  Hub Manager & Helpdesk
+                  Partner Operations Desk & Helpdesk
                 </div>
                 <div style={{ fontSize: 12, color: '#64748B' }}>
-                  Bandra West Hub · Rahul Deshmukh
+                  Krishnagiri Operations · K. Murugan
                 </div>
               </div>
             </div>
@@ -1392,7 +1464,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                   cursor: 'pointer'
                 }}
               >
-                Hub Support →
+                Ops Support →
               </button>
               <button
                 onClick={() => onNavigate('/professional/availability')}
@@ -1597,7 +1669,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             </div>
 
             <p style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.45, margin: '0 0 20px 0' }}>
-              If you feel unsafe or have met with an accident, tap below to broadcast your live GPS coordinates to Bandra Hub response team and dial emergency helplines.
+              If you feel unsafe or have met with an accident, tap below to broadcast your live GPS coordinates to the Krishnagiri Safety Operations Desk and dial emergency helplines.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
@@ -1621,7 +1693,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 }}
               >
                 <span>📍</span>
-                <span>{sosSent ? 'Broadcast Sent to Hub Manager!' : 'Broadcast GPS to Bandra Hub SOS Desk'}</span>
+                <span>{sosSent ? 'Broadcast Sent to Safety Desk!' : 'Broadcast GPS to Krishnagiri Safety Desk'}</span>
               </button>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -1708,6 +1780,150 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             >
               Close Emergency Window
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ------------------------------------------------------------- */}
+      {/* 5. URGENT INCOMING DISPATCH OFFER POPUP MODAL (MODULE 5 & 7)   */}
+      {/* ------------------------------------------------------------- */}
+      {incomingOffer && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          padding: 20
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: 20,
+            width: '100%',
+            maxWidth: 480,
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            border: '2px solid #3B82F6',
+            overflow: 'hidden',
+            animation: 'fadeIn 0.2s ease-out'
+          }}>
+            {/* Countdown Banner */}
+            <div style={{
+              background: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
+              padding: '16px 20px',
+              color: '#FFFFFF',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 24 }}>⚡</span>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0 }}>New Dispatch Offer</h3>
+                  <div style={{ fontSize: 12, opacity: 0.9 }}>Krishnagiri Town Direct Assignment</div>
+                </div>
+              </div>
+              <div style={{
+                background: incomingOffer.remainingSeconds <= 15 ? '#EF4444' : 'rgba(255,255,255,0.25)',
+                color: '#FFFFFF',
+                padding: '6px 14px',
+                borderRadius: 20,
+                fontSize: 14,
+                fontWeight: 900,
+                letterSpacing: 0.5,
+                boxShadow: incomingOffer.remainingSeconds <= 15 ? '0 0 12px rgba(239, 68, 68, 0.6)' : 'none',
+                transition: 'all 0.3s'
+              }}>
+                ⏱️ {incomingOffer.remainingSeconds}s
+              </div>
+            </div>
+
+            {/* Offer Details */}
+            <div style={{ padding: '24px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                    Booking Ref: {incomingOffer.bookingReference || incomingOffer.bookingId || 'BK-NEW'}
+                  </div>
+                  <h4 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: '4px 0 2px 0' }}>
+                    {incomingOffer.serviceName || 'Home Service'}
+                  </h4>
+                  <div style={{ fontSize: 13, color: '#64748B' }}>
+                    Scheduled: <strong style={{ color: '#0F172A' }}>{incomingOffer.scheduledDate || 'Today'}, {incomingOffer.scheduledTime || 'Immediate'}</strong>
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: '#059669' }}>
+                    ₹{incomingOffer.payout || Math.round((incomingOffer.totalAmount || 499) * 0.75)}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748B' }}>Your Estimated Earning</div>
+                </div>
+              </div>
+
+              {/* Service Address */}
+              <div style={{
+                background: '#F8FAFC',
+                borderRadius: 12,
+                padding: '12px 16px',
+                border: '1px solid #E2E8F0',
+                marginBottom: 20
+              }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 2 }}>
+                  📍 Customer Service Location
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#0F172A' }}>
+                  {incomingOffer.address || 'Gandhi Nagar, Krishnagiri Town'}
+                </div>
+                <div style={{ fontSize: 12, color: '#059669', fontWeight: 600, marginTop: 4 }}>
+                  Estimated Travel: ~{incomingOffer.travelDistanceKm || 2.4} km ({incomingOffer.estimatedTravelMins || 8} mins by two-wheeler)
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: 12 }}>
+                <button
+                  type="button"
+                  onClick={handleRejectIncomingOffer}
+                  style={{
+                    flex: 1,
+                    background: '#FFFFFF',
+                    border: '1.5px solid #CBD5E1',
+                    color: '#64748B',
+                    padding: '14px 0',
+                    borderRadius: 12,
+                    fontSize: 14,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Decline
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAcceptIncomingOffer}
+                  style={{
+                    flex: 1.6,
+                    background: '#059669',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    padding: '14px 0',
+                    borderRadius: 12,
+                    fontSize: 14,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px rgba(5, 150, 105, 0.4)'
+                  }}
+                >
+                  ✓ Accept Booking
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

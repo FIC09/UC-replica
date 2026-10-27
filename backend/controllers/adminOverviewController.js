@@ -4,11 +4,6 @@ import { WorkerApplication } from '../models/WorkerApplication.js';
 import { PartnerApplication } from '../models/PartnerApplication.js';
 import { Service } from '../models/Service.js';
 import { AdminSetting } from '../models/AdminSetting.js';
-import { generate143Bookings } from '../data/initialBookingsData.js';
-
-// Pre-seeded master 143 bookings baseline for dispatch operations
-const initialMasterBookings = generate143Bookings();
-
 // Helper to safely calculate percentage comparison without zero denominator division error
 function calculatePercentageChange(current, previous) {
   if (previous > 0) {
@@ -39,10 +34,8 @@ export async function getOverviewDashboardMetrics(req, res) {
       console.warn('Overview data fetch warning:', e.message);
     }
 
-    // Merge real MongoDB bookings at the top with master initial bookings (avoiding duplicate IDs)
-    const dbIds = new Set(dbBookings.map(b => b.id || b.bookingReference));
-    const nonDupeMaster = initialMasterBookings.filter(b => !dbIds.has(b.id) && !dbIds.has(b.bookingReference));
-    const allBookings = [...dbBookings, ...nonDupeMaster];
+    // Authoritative real MongoDB bookings
+    const allBookings = dbBookings;
 
     // 2. Filter bookings based on Hub/City, Category, and Supply Partner
     function matchFilters(b) {

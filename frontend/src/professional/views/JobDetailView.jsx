@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { professionalClient } from '../professionalClient';
 import { RapidoChatDrawer } from '../../components/RapidoChatDrawer';
+import { useWebRtcVoiceCall } from '../../utils/useWebRtcVoiceCall';
+import { WebRtcCallModal } from '../../components/WebRtcCallModal';
 
 export function JobDetailView({ jobId, onNavigate, showToast }) {
   const [job, setJob] = useState(null);
@@ -8,6 +10,26 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('checklists'); // 'checklists' | 'extra_work' | 'communication' | 'incidents' | 'financials'
   const [isChatDrawerOpen, setIsChatDrawerOpen] = useState(false);
+
+  // High-Fidelity WebRTC Voice Calling Hook (Free P2P Internet Voice)
+  const webrtcVoice = useWebRtcVoiceCall({
+    currentUserRole: 'professional',
+    currentUserId: professionalClient.getStoredUser()?.id || job?.assignedProfessional?.id || 'WRK-KRI-101',
+    currentBookingId: job?.id || jobId
+  });
+
+  function handleInitiateCallToCustomer() {
+    webrtcVoice.initiateCall({
+      bookingId: job?.id || jobId,
+      callerRole: 'professional',
+      callerName: professionalClient.getStoredUser()?.applicantName || job?.assignedProfessional?.name || 'Professional Technician',
+      peerName: job?.customerName || job?.userName || 'Customer'
+    });
+  }
+
+  // Real Device GPS Tracking Stream
+  const gpsWatchIdRef = useRef(null);
+  const [gpsStatus, setGpsStatus] = useState('Standby');
 
   // Start OTP verification modal
   const [otpInput, setOtpInput] = useState('');
@@ -128,6 +150,64 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       console.warn('Policy load error:', e);
     }
   }
+
+  // Real Device GPS Telemetry Stream (Module 6 & Module 8)
+  useEffect(() => {
+    const isTravelling = job?.status === 'En Route' || job?.status === 'Travelling';
+    if (isTravelling) {
+      if ('geolocation' in navigator) {
+        setGpsStatus('Live GPS Active (Transmitting)');
+        const sendLocation = (position) => {
+          const { latitude, longitude, speed, heading, accuracy } = position.coords;
+          fetch('/api/tracking/ping', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-professional-id': job.assignedProfessional?.id || 'WRK-KRI-101'
+            },
+            body: JSON.stringify({
+              bookingId: job.id,
+              lat: latitude,
+              lng: longitude,
+              speed: speed ? Math.round(speed * 3.6) : 22,
+              heading: heading || 0,
+              accuracy: accuracy || 5
+            })
+          }).catch(err => console.warn('Worker GPS stream ping error:', err.message));
+        };
+
+        navigator.geolocation.getCurrentPosition(sendLocation, (err) => {
+          console.warn('Initial GPS query:', err.message);
+          setGpsStatus('Location Permission Required');
+        });
+
+        const watchId = navigator.geolocation.watchPosition(
+          sendLocation,
+          (err) => {
+            console.warn('Worker GPS stream error:', err.message);
+            setGpsStatus('Location Unavailable');
+          },
+          { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+        );
+        gpsWatchIdRef.current = watchId;
+      } else {
+        setGpsStatus('Device Geolocation Not Supported');
+      }
+    } else {
+      if (gpsWatchIdRef.current != null) {
+        navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+        gpsWatchIdRef.current = null;
+        setGpsStatus('Standby');
+      }
+    }
+
+    return () => {
+      if (gpsWatchIdRef.current != null) {
+        navigator.geolocation.clearWatch(gpsWatchIdRef.current);
+        gpsWatchIdRef.current = null;
+      }
+    };
+  }, [job?.status, job?.id]);
 
   async function loadChatMessages() {
     setIsRefreshingChat(true);
@@ -436,7 +516,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
 
   return (
     <div style={{ padding: '24px 20px', maxWidth: 1100, margin: '0 auto', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      
+
       {/* Top Breadcrumb & Status */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, flexWrap: 'wrap', gap: 12 }}>
         <button
@@ -695,6 +775,30 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
             </button>
           )}
 
+          {['Assigned', 'En Route', 'Arrived', 'In Progress'].includes(job.status) && (
+            <button
+              type="button"
+              onClick={handleInitiateCallToCustomer}
+              title="Free Privacy-Protected WebRTC Internet Voice Call"
+              style={{
+                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
+                color: '#ffffff',
+                border: 'none',
+                padding: '12px 20px',
+                borderRadius: 10,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                boxShadow: '0 4px 10px rgba(16, 185, 129, 0.25)'
+              }}
+            >
+              📞 Voice Call Customer (Free)
+            </button>
+          )}
+
           {['Assigned', 'En Route', 'Arrived'].includes(job.status) && (
             <button
               onClick={() => setActiveTab('incidents')}
@@ -793,7 +897,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       {activeTab === 'checklists' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, alignItems: 'start' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            
+
             {/* Before-Service Checks */}
             <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -912,7 +1016,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
 
           {/* Right Column: Evidence Photos Vault & Completion Notes */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            
+
             {/* Photo Evidence Vault */}
             <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
               <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: '0 0 6px 0' }}>
@@ -1052,7 +1156,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       {/* TAB 2: Extra Work & Parts (Customer Approval Workflow) */}
       {activeTab === 'extra_work' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 24, alignItems: 'start' }}>
-          
+
           {/* Propose Extra Work Form */}
           <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px 26px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
@@ -1254,7 +1358,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       {/* TAB 3: Customer Communication, Telephony & Navigation */}
       {activeTab === 'communication' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 24, alignItems: 'start' }}>
-          
+
           {/* Booking-Scoped In-App Chat */}
           <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
@@ -1357,7 +1461,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
 
           {/* Telephony Channels & Navigation Cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            
+
             {/* Customer Access Instructions */}
             {job.customerInstructions && (
               <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 14, padding: '18px 20px' }}>
@@ -1375,6 +1479,45 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 10px 0' }}>
                 📞 Voice Telephony Channels
               </h3>
+
+              {/* Free WebRTC Audio Call Channel */}
+              <div style={{
+                padding: '14px 16px',
+                background: 'linear-gradient(135deg, #ecfdf5 0%, #f0fdf4 100%)',
+                borderRadius: 12,
+                border: '1.5px solid #a7f3d0',
+                marginBottom: 14
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: '#047857', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>⚡ Free WebRTC Internet Voice (Primary)</span>
+                    <span style={{ background: '#10b981', color: '#ffffff', fontSize: 9, padding: '2px 5px', borderRadius: 4 }}>FREE</span>
+                  </div>
+                </div>
+                <div style={{ fontSize: 12, color: '#065f46', lineHeight: 1.4, marginBottom: 10 }}>
+                  High-fidelity audio directly over internet. No phone numbers shared, zero telephony costs.
+                </div>
+                <button
+                  type="button"
+                  onClick={handleInitiateCallToCustomer}
+                  style={{
+                    background: '#059669',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    boxShadow: '0 2px 4px rgba(5, 150, 105, 0.2)'
+                  }}
+                >
+                  📞 Call Customer Now (Free Audio)
+                </button>
+              </div>
 
               {/* Masked Call Channel */}
               <div style={{ padding: '12px 14px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', marginBottom: 12 }}>
@@ -1459,7 +1602,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       {/* TAB 4: Incident, Delays & Cancellation Reporting */}
       {activeTab === 'incidents' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: 24, alignItems: 'start' }}>
-          
+
           {/* Policy-Controlled Report Form */}
           <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px 26px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
@@ -1606,7 +1749,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       {/* TAB 5: Authorized Financial Ledger (Minor Currency Units: Paisa) */}
       {activeTab === 'financials' && (
         <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 24, alignItems: 'start' }}>
-          
+
           {/* Main Financial Statement */}
           <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px 28px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -2043,6 +2186,27 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           id: professionalClient.getStoredUser()?.id || 'WRK-KRI-101',
           name: professionalClient.getStoredUser()?.applicantName || 'Technician'
         }}
+      />
+
+      {/* Free WebRTC Voice Call Modal & Incoming Call Prompt */}
+      <WebRtcCallModal
+        callState={webrtcVoice.callState}
+        callStatusText={webrtcVoice.callStatusText}
+        callError={webrtcVoice.callError}
+        callSeconds={webrtcVoice.callSeconds}
+        formattedCallTime={webrtcVoice.formattedCallTime}
+        isMuted={webrtcVoice.isMuted}
+        isSpeaker={webrtcVoice.isSpeaker}
+        activeCall={webrtcVoice.activeCall}
+        incomingCall={webrtcVoice.incomingCall}
+        onAccept={webrtcVoice.acceptCall}
+        onReject={webrtcVoice.rejectCall}
+        onToggleMute={webrtcVoice.toggleMute}
+        onToggleSpeaker={webrtcVoice.toggleSpeaker}
+        onEndCall={webrtcVoice.endCall}
+        peerName={job?.customerName || job?.userName || 'Customer'}
+        peerRole="Customer"
+        peerAvatar="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"
       />
     </div>
   );

@@ -45,7 +45,9 @@ export function RapidoChatDrawer({
 
   // Derive role and IDs
   const userRole = currentUser?.role || (currentUser?.id?.startsWith('WRK') ? 'professional' : 'customer');
-  const userId = currentUser?.id || currentUser?.phone || booking?.userId || booking?.userPhone || 'cust-user';
+  const userId = currentUser?.id && currentUser.id !== 'cust-user'
+    ? currentUser.id
+    : (booking?.userId || booking?.userPhone || (booking?.id ? `cust-${booking.id}` : 'cust-user'));
   const userName = currentUser?.name || (userRole === 'professional' ? (booking?.assignedProfessional?.name || 'Technician') : (booking?.userName || 'Customer'));
 
   const authHeaders = {

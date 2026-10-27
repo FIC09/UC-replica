@@ -3,8 +3,10 @@ import { WorkerApplication } from '../models/WorkerApplication.js';
 import { generate143Bookings } from '../data/initialBookingsData.js';
 import { getOrCreateConversation } from '../services/chatService.js';
 
-// In-memory fallback dataset for offline/demo resilience (143 real-world home services dispatches)
-let mockBookings = generate143Bookings();
+import { assignWorkerTransactionally, syncBookingToPostgres } from '../services/postgresService.js';
+import { emitEvent } from '../services/websocketService.js';
+
+// Authoritative Database Persistence (Zero mock bookings)
 
 
 // 1. Searchable, filterable, sortable, paginated Bookings Table
@@ -33,9 +35,7 @@ export async function getBookings(req, res) {
       console.warn('Booking.find in getBookings:', err.message);
     }
 
-    const dbIds = new Set(dbBookings.map(b => b.id || b.bookingReference));
-    const nonDupeMocks = mockBookings.filter(b => !dbIds.has(b.id) && !dbIds.has(b.bookingReference));
-    let all = [...dbBookings, ...nonDupeMocks];
+    let all = dbBookings;
 
     // Apply Filter Criteria
     let filtered = all.filter(b => {
@@ -322,12 +322,11 @@ export async function assignProfessional(req, res) {
     try {
       booking = await Booking.findOne({ id });
     } catch {}
-    let mockBooking = mockBookings.find(b => b.id === id);
 
-    const targetBooking = booking || mockBooking;
-    if (!targetBooking) {
+    if (!booking) {
       return res.status(404).json({ success: false, error: `Booking ${id} not found.` });
     }
+    const targetBooking = booking;
 
     // Concurrency & Overlap Conflict Protection:
     // Check if the professional already has an active overlapping booking in the same slot window
@@ -345,8 +344,8 @@ export async function assignProfessional(req, res) {
       } catch {}
 
       if (existingBookings.length === 0) {
-        existingBookings = mockBookings.filter(b => 
-          b.id !== id && 
+        existingBookings = mockBookings.filter(b =>
+          b.id !== id &&
           ['Assigned', 'En Route', 'In Progress'].includes(b.status) &&
           (b.assignedPartner === professionalName || b.assignedProfessional?.id === professionalId)
         );
@@ -384,29 +383,61 @@ export async function assignProfessional(req, res) {
       timestamp: new Date()
     };
 
-    if (booking) {
-      booking.assignedPartner = professionalName;
-      booking.assignedProfessional = assignedProData;
-      if (booking.status === 'Confirmed' || booking.status === 'Pending') {
-        booking.status = 'Assigned';
-      }
-      booking.timeline.push(timelineEvent);
-      await booking.save();
-    }
+    const previousWorkerId = booking.assignedProfessional?.id;
 
-    if (mockBooking) {
-      mockBooking.assignedPartner = professionalName;
-      mockBooking.assignedProfessional = assignedProData;
-      if (mockBooking.status === 'Confirmed' || mockBooking.status === 'Pending') {
-        mockBooking.status = 'Assigned';
-      }
-      mockBooking.timeline.push(timelineEvent);
+    booking.assignedPartner = professionalName;
+    booking.assignedProfessional = assignedProData;
+    if (booking.status === 'Confirmed' || booking.status === 'Pending') {
+      booking.status = 'Assigned';
+    }
+    booking.timeline.push(timelineEvent);
+    await booking.save();
+
+    // Transactionally confirm exclusive worker assignment in PostgreSQL
+    try {
+      await assignWorkerTransactionally({
+        bookingId: id,
+        workerId: professionalId,
+        workerName: professionalName,
+        assignedBy: req.admin?.name || 'admin'
+      });
+      await syncBookingToPostgres(booking);
+    } catch (pgErr) {
+      console.warn('PostgreSQL transactional assign note:', pgErr.message);
     }
 
     try {
       await getOrCreateConversation(id, assignedProData);
     } catch (chatErr) {
       console.warn('Chat sync on assignment warning:', chatErr.message);
+    }
+
+    // Emit real-time WebSocket events to Admin, Customer, and Professional rooms
+    emitEvent('ASSIGNMENT_ACCEPTED', {
+      entityId: id,
+      room: 'admin:operations',
+      payload: { bookingId: id, worker: assignedProData, status: 'Assigned' }
+    });
+    emitEvent('ASSIGNMENT_ACCEPTED', {
+      entityId: id,
+      room: `booking:${id}`,
+      payload: { bookingId: id, worker: assignedProData, status: 'Assigned' }
+    });
+    emitEvent('ASSIGNMENT_ACCEPTED', {
+      entityId: id,
+      room: `worker:${professionalId}`,
+      payload: { bookingId: id, worker: assignedProData, status: 'Assigned' }
+    });
+
+    if (previousWorkerId && previousWorkerId !== professionalId) {
+      emitEvent('WORKER_REASSIGNED', {
+        entityId: id,
+        payload: {
+          bookingId: id,
+          newWorkerId: professionalId,
+          previousWorkerId
+        }
+      });
     }
 
     return res.json({

@@ -42,6 +42,16 @@ router.post('/', async (req, res) => {
       appData.password = appData.password.trim();
     }
 
+    // New applicants strictly start as Pending Review with 0 ratings and 0 jobs
+    appData.status = 'Pending Review';
+    appData.rating = 0;
+    appData.jobsCompleted = 0;
+    appData.lifetimeEarnings = 0;
+    appData.walletBalance = 0;
+    appData.tier = 'New Applicant';
+    appData.city = appData.city || 'Krishnagiri';
+    appData.operationalHub = appData.operationalHub || 'Krishnagiri Town (Direct Service)';
+
     const application = await WorkerApplication.create(appData);
     res.status(201).json({ success: true, application });
   } catch (error) {

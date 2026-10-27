@@ -173,7 +173,7 @@ export function SupportView({ showToast }) {
             Support & Safety Command Center
           </h1>
           <div style={{ fontSize: 13, color: '#64748b' }}>
-            Multi-channel ticket resolution, verified safety escalations, and 24x7 hub assistance
+            Multi-channel ticket resolution, verified safety escalations, and 24x7 Krishnagiri operations desk assistance
           </div>
         </div>
 
@@ -603,7 +603,7 @@ export function SupportView({ showToast }) {
               Create Support Ticket
             </h3>
             <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0' }}>
-              Tickets are routed directly to regional hub operations specialists.
+              Tickets are routed directly to Krishnagiri operations specialists.
             </p>
 
             <form onSubmit={handleCreateTicket}>
@@ -771,7 +771,7 @@ export function SupportView({ showToast }) {
               </h3>
             </div>
             <p style={{ fontSize: 13, color: '#475569', margin: '0 0 16px 0', lineHeight: 1.5 }}>
-              Use this form to trigger an authorized priority alert to the Rapid Safety Cell and Bandra Regional Hub Manager.
+              Use this form to trigger an authorized priority alert to the Rapid Safety Cell and Krishnagiri Operations Desk.
             </p>
 
             <form onSubmit={handleSafetyEscalation}>
@@ -834,7 +834,7 @@ export function SupportView({ showToast }) {
                     style={{ marginTop: 2, cursor: 'pointer' }}
                   />
                   <span>
-                    <strong>Authorized Workflow Consent:</strong> I authorize the Urban Company Platform Safety Cell to transmit my device GPS coordinates (19.0596, 72.8295) and contact the Regional Hub Manager for emergency coordination.
+                    <strong>Authorized Workflow Consent:</strong> I authorize the Forge India Connect Safety Cell to transmit my device GPS coordinates (12.5200, 78.2090) and alert the Krishnagiri Operations Team for emergency doorstep coordination.
                   </span>
                 </label>
               </div>

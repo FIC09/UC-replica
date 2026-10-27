@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { 
-  Navigation, MapPin, Play, Pause, RotateCcw, 
+import {
+  Navigation, MapPin, Play, Pause, RotateCcw,
   Compass, Maximize2, Crosshair, Sparkles, CheckCircle2,
   CornerUpLeft, CornerUpRight, ArrowUp
 } from 'lucide-react';
@@ -45,8 +45,8 @@ export function LiveMapTracker({
   const defaultWorkerCoords = { lat: 12.5200, lng: 78.2090 }; // Rayakottai Road, Krishnagiri
 
   const customerCoords = session?.customerCoords || defaultCustomerCoords;
-  const waypoints = session?.routePolyline && session.routePolyline.length > 0 
-    ? session.routePolyline 
+  const waypoints = session?.routePolyline && session.routePolyline.length > 0
+    ? session.routePolyline
     : [defaultWorkerCoords, { lat: 12.5215, lng: 78.2140 }, defaultCustomerCoords];
 
   // Optimistic local waypoint index to eliminate network round-trip lag
@@ -63,7 +63,7 @@ export function LiveMapTracker({
   const nextWaypoint = waypoints[localWaypointIndex + 1] || currentWaypoint;
 
   // Compute instantaneous bearing
-  const currentHeading = localWaypointIndex > 0 
+  const currentHeading = localWaypointIndex > 0
     ? calculateInstantBearing(waypoints[localWaypointIndex - 1], currentWaypoint)
     : calculateInstantBearing(currentWaypoint, nextWaypoint);
 
@@ -105,8 +105,17 @@ export function LiveMapTracker({
       map.invalidateSize();
     }, 200);
 
+    let resizeObserver;
+    if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        map.invalidateSize();
+      });
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
     return () => {
       clearTimeout(timer);
+      if (resizeObserver) resizeObserver.disconnect();
       map.remove();
       mapInstanceRef.current = null;
     };
@@ -379,7 +388,7 @@ export function LiveMapTracker({
   // Instant Optimistic Step Advancement (Zero Network Lag)
   const handleAdvanceStep = async () => {
     if (!bookingId || waypoints.length === 0) return;
-    
+
     // 1. Immediately advance local index (0ms UI latency)
     const nextIndex = (localWaypointIndex + 1) >= waypoints.length ? 0 : localWaypointIndex + 1;
     setLocalWaypointIndex(nextIndex);
@@ -416,7 +425,8 @@ export function LiveMapTracker({
     <div style={{
       position: 'relative',
       width: '100%',
-      height: `${height}px`,
+      height: typeof height === 'number' ? `${height}px` : height,
+      minHeight: typeof height === 'number' ? `${height}px` : undefined,
       borderRadius: '16px',
       overflow: 'hidden',
       border: '1px solid #E2E8F0',
@@ -447,9 +457,9 @@ export function LiveMapTracker({
       `}</style>
 
       {/* Leaflet DOM Canvas */}
-      <div 
-        ref={mapContainerRef} 
-        style={{ width: '100%', height: '100%', background: '#F8FAFC' }} 
+      <div
+        ref={mapContainerRef}
+        style={{ width: '100%', height: '100%', background: '#F8FAFC' }}
       />
 
       {/* Rapido / Swiggy Turn-by-Turn Navigation HUD Banner */}
@@ -486,17 +496,17 @@ export function LiveMapTracker({
             fontSize: 18,
             boxShadow: '0 2px 10px rgba(16, 185, 129, 0.45)'
           }}>
-            {localWaypointIndex >= waypoints.length - 2 ? '📍' : 
-             localWaypointIndex > 20 ? '↩️' : 
+            {localWaypointIndex >= waypoints.length - 2 ? '📍' :
+             localWaypointIndex > 20 ? '↩️' :
              localWaypointIndex > 10 ? '➡️' : '⬆️'}
           </div>
           <div>
             <div style={{ fontSize: 13.5, fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.01em' }}>
-              {localWaypointIndex >= waypoints.length - 1 
+              {localWaypointIndex >= waypoints.length - 1
                 ? 'Arrived at Customer Doorstep (Krishnagiri Town)'
-                : localWaypointIndex > 20 
+                : localWaypointIndex > 20
                   ? 'In 180m, Turn Left onto Gandhi Nagar Main Road'
-                  : localWaypointIndex > 10 
+                  : localWaypointIndex > 10
                     ? 'Continue onto Bangalore Road past Krishnagiri Roundana'
                     : 'Direct Dispatch: Heading via Rayakottai Main Road towards Customer Address'}
             </div>

@@ -342,7 +342,7 @@ const workerApplicationSchema = new mongoose.Schema({
   },
   city: {
     type: String,
-    default: 'Mumbai',
+    default: 'Krishnagiri',
   },
   locality: {
     type: String,
@@ -351,7 +351,7 @@ const workerApplicationSchema = new mongoose.Schema({
   serviceAreas: [String],
   operationalHub: {
     type: String,
-    default: 'Bandra West Central Hub',
+    default: 'Krishnagiri Town (Direct Service)',
   },
   toolsAvailable: {
     type: String,
@@ -406,7 +406,7 @@ const workerApplicationSchema = new mongoose.Schema({
   },
   rating: {
     type: Number,
-    default: 4.88,
+    default: 0,
   },
   jobsCompleted: {
     type: Number,
@@ -414,15 +414,15 @@ const workerApplicationSchema = new mongoose.Schema({
   },
   cancellationRate: {
     type: Number,
-    default: 1.2,
+    default: 0,
   },
   revisitRate: {
     type: Number,
-    default: 0.8,
+    default: 0,
   },
   onTimeArrivalRate: {
     type: Number,
-    default: 98.4,
+    default: 0,
   },
   walletBalance: {
     type: Number,
@@ -434,7 +434,7 @@ const workerApplicationSchema = new mongoose.Schema({
   },
   tier: {
     type: String,
-    default: 'Gold Pro (Level 3)',
+    default: 'New Applicant',
   },
   documents: {
     aadhaar: verificationDocSchema,

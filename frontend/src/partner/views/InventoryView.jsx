@@ -33,7 +33,7 @@ export function InventoryView({ showToast, staff }) {
   const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [orderingItem, setOrderingItem] = useState(null);
   const [orderQty, setOrderQty] = useState(2);
-  const [orderAddress, setOrderAddress] = useState('Bandra Central Depot, 18 Hill Road, Mumbai 400050');
+  const [orderAddress, setOrderAddress] = useState('Forge India Partner Office, Rayakottai Road, Krishnagiri Town, Tamil Nadu 635001');
   const [orderNotes, setOrderNotes] = useState('Standard operational restock');
   const [submittingOrder, setSubmittingOrder] = useState(false);
 

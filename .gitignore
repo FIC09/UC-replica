@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 scratch/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and local database files
+node_modules/
+backend/data/pgdata/

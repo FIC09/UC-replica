@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { io } from 'socket.io-client';
 import { professionalClient } from '../professionalClient';
 import { RapidoChatDrawer } from '../../components/RapidoChatDrawer';
 
@@ -34,6 +35,24 @@ export function JobsView({ onNavigate, showToast }) {
     if (tabParam === 'offers') {
       setActiveTab('offers');
     }
+
+    const workerId = professionalClient.getStoredUser()?.id || 'WRK-KRI-101';
+    const socket = io();
+    socket.emit('join:room', `worker:${workerId}`);
+
+    const handleLiveEvent = (event) => {
+      if (!event) return;
+      if (['ASSIGNMENT_OFFERED', 'ASSIGNMENT_ACCEPTED', 'BOOKING_CONFIRMED', 'WORKER_REASSIGNED'].includes(event.eventType)) {
+        loadData();
+      }
+    };
+
+    socket.on('realtime:event', handleLiveEvent);
+
+    return () => {
+      socket.off('realtime:event', handleLiveEvent);
+      socket.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -150,7 +169,7 @@ export function JobsView({ onNavigate, showToast }) {
 
   return (
     <div style={{ padding: '20px 24px', width: '100%', boxSizing: 'border-box', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      
+
       {/* Title & Search Header */}
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 20 }}>
         <div>

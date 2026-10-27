@@ -1,194 +1,197 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Navbar 
+import {
+  Navbar
 } from './components/Navbar';
-import { 
-  HeroSection 
+import {
+  HeroSection
 } from './components/HeroSection';
-import { 
-  PromoCarousel 
+import {
+  PromoCarousel
 } from './components/PromoCarousel';
-import { 
-  ServiceDetailModal 
+import {
+  ServiceDetailModal
 } from './components/ServiceDetailModal';
-import { 
-  NativeSpotlightSection 
+import {
+  NativeSpotlightSection
 } from './components/NativeSpotlightSection';
-import { 
-  CartDrawer 
+import {
+  CartDrawer
 } from './components/CartDrawer';
-import { 
-  CheckoutModal 
+import {
+  CheckoutModal
 } from './components/CheckoutModal';
-import { 
-  OrderTrackingModal 
+import {
+  OrderTrackingModal
 } from './components/OrderTrackingModal';
-import { 
-  PaymentGatewayModal 
+import {
+  RapidoChatDrawer
+} from './components/RapidoChatDrawer';
+import {
+  PaymentGatewayModal
 } from './components/PaymentGatewayModal';
-import { 
-  CityLocalityModal 
+import {
+  CityLocalityModal
 } from './components/CityLocalityModal';
-import { 
-  AuthModal 
+import {
+  AuthModal
 } from './components/AuthModal';
-import { 
-  MyBookingsModal 
+import {
+  MyBookingsModal
 } from './components/MyBookingsModal';
-import { 
-  AddressManagerModal 
+import {
+  AddressManagerModal
 } from './components/AddressManagerModal';
-import { 
-  AdminServicesModal 
+import {
+  AdminServicesModal
 } from './components/AdminServicesModal';
-import { 
-  AdminDashboardModal 
+import {
+  AdminDashboardModal
 } from './components/AdminDashboardModal';
-import { 
-  AdminLoginModal 
+import {
+  AdminLoginModal
 } from './components/AdminLoginModal';
 import { AdminRouter } from './admin/AdminRouter';
 import { ProfessionalRouter } from './professional/ProfessionalRouter';
 import { professionalClient } from './professional/professionalClient';
 import { PartnerRouter } from './partner/PartnerRouter';
-import { 
-  PartnerDashboardModal 
+import {
+  PartnerDashboardModal
 } from './components/PartnerDashboardModal';
-import { 
-  ProfessionalDashboardModal 
+import {
+  ProfessionalDashboardModal
 } from './components/ProfessionalDashboardModal';
-import { 
-  PartnerOnboardingModal 
+import {
+  PartnerOnboardingModal
 } from './components/PartnerOnboardingModal';
-import { 
-  WorkerOnboardingModal 
+import {
+  WorkerOnboardingModal
 } from './components/WorkerOnboardingModal';
-import { 
-  OnboardingShowcaseSection 
+import {
+  OnboardingShowcaseSection
 } from './components/OnboardingShowcaseSection';
-import { 
-  UCPlusSection 
+import {
+  UCPlusSection
 } from './components/UCPlusSection';
-import { 
-  UCPromiseSection 
+import {
+  UCPromiseSection
 } from './components/UCPromiseSection';
-import { 
-  CustomerReviewsSection 
+import {
+  CustomerReviewsSection
 } from './components/CustomerReviewsSection';
-import { 
-  FAQSection 
+import {
+  FAQSection
 } from './components/FAQSection';
-import { 
-  Footer 
+import {
+  Footer
 } from './components/Footer';
-import { 
-  HomesSections 
+import {
+  HomesSections
 } from './components/HomesSections';
-import { 
-  ApplianceRepairModal 
+import {
+  ApplianceRepairModal
 } from './components/ApplianceRepairModal';
-import { 
-  BathroomKitchenCleaningModal 
+import {
+  BathroomKitchenCleaningModal
 } from './components/BathroomKitchenCleaningModal';
-import { 
-  ElectricianPlumberCarpenterModal 
+import {
+  ElectricianPlumberCarpenterModal
 } from './components/ElectricianPlumberCarpenterModal';
-import { 
-  FullHomeCleaningModal 
+import {
+  FullHomeCleaningModal
 } from './components/FullHomeCleaningModal';
-import { 
-  ACServicePage 
+import {
+  ACServicePage
 } from './components/ACServicePage';
-import { 
-  ChimneyServicePage 
+import {
+  ChimneyServicePage
 } from './components/ChimneyServicePage';
-import { 
-  GeyserServicePage 
+import {
+  GeyserServicePage
 } from './components/GeyserServicePage';
-import { 
-  LaptopServicePage 
+import {
+  LaptopServicePage
 } from './components/LaptopServicePage';
-import { 
-  RefrigeratorServicePage 
+import {
+  RefrigeratorServicePage
 } from './components/RefrigeratorServicePage';
-import { 
-  WashingMachineServicePage 
+import {
+  WashingMachineServicePage
 } from './components/WashingMachineServicePage';
-import { 
-  MicrowaveServicePage 
+import {
+  MicrowaveServicePage
 } from './components/MicrowaveServicePage';
-import { 
-  TelevisionServicePage 
+import {
+  TelevisionServicePage
 } from './components/TelevisionServicePage';
-import { 
-  WaterPurifierServicePage 
+import {
+  WaterPurifierServicePage
 } from './components/WaterPurifierServicePage';
-import { 
-  NativeWaterPurifierPage 
+import {
+  NativeWaterPurifierPage
 } from './components/NativeWaterPurifierPage';
-import { 
-  NativeSmartLocksPage 
+import {
+  NativeSmartLocksPage
 } from './components/NativeSmartLocksPage';
-import { 
-  QuickRepairsServicePage 
+import {
+  QuickRepairsServicePage
 } from './components/QuickRepairsServicePage';
-import { 
-  ElectricianServicePage 
+import {
+  ElectricianServicePage
 } from './components/ElectricianServicePage';
-import { 
-  PlumberServicePage 
+import {
+  PlumberServicePage
 } from './components/PlumberServicePage';
-import { 
-  CarpenterServicePage 
+import {
+  CarpenterServicePage
 } from './components/CarpenterServicePage';
-import { 
-  BathroomCleaningServicePage 
+import {
+  BathroomCleaningServicePage
 } from './components/BathroomCleaningServicePage';
-import { 
-  KitchenCleaningServicePage 
+import {
+  KitchenCleaningServicePage
 } from './components/KitchenCleaningServicePage';
-import { 
-  FullHomeCleaningServicePage 
+import {
+  FullHomeCleaningServicePage
 } from './components/FullHomeCleaningServicePage';
-import { 
-  CockroachControlServicePage 
+import {
+  CockroachControlServicePage
 } from './components/CockroachControlServicePage';
-import { 
-  UrbanCheckoutPage 
+import {
+  UrbanCheckoutPage
 } from './components/UrbanCheckoutPage';
-import { 
-  SalonPrimeServicePage 
+import {
+  SalonPrimeServicePage
 } from './components/SalonPrimeServicePage';
-import { 
-  HairStudioWomenServicePage 
+import {
+  HairStudioWomenServicePage
 } from './components/HairStudioWomenServicePage';
-import { 
-  SelectMenSalonPreferenceModal 
+import {
+  SelectMenSalonPreferenceModal
 } from './components/SelectMenSalonPreferenceModal';
-import { 
-  SalonRoyaleServicePage 
+import {
+  SalonRoyaleServicePage
 } from './components/SalonRoyaleServicePage';
-import { 
-  SalonMenPrimeServicePage 
+import {
+  SalonMenPrimeServicePage
 } from './components/SalonMenPrimeServicePage';
 
-import { 
-  CATEGORIES, 
-  PROMO_BANNERS, 
-  SERVICES as INITIAL_SERVICES 
+import {
+  CATEGORIES,
+  PROMO_BANNERS,
+  SERVICES as INITIAL_SERVICES
 } from './data/servicesData';
 import { ShoppingBag, ArrowRight, Sparkles, CheckCircle2, Plus, Wrench, RotateCcw } from 'lucide-react';
 import { StickyCategoryNav } from './components/StickyCategoryNav';
 import { ServiceCard } from './components/ServiceCard';
-import { 
-  servicesApi, 
-  bookingsApi, 
-  addressesApi, 
-  workerApi, 
-  partnerApi, 
-  adminApi, 
+import {
+  servicesApi,
+  bookingsApi,
+  addressesApi,
+  workerApi,
+  partnerApi,
+  adminApi,
   authApi,
-  couponsApi 
+  couponsApi
 } from './api/apiClient';
 
 function App() {
@@ -382,6 +385,8 @@ function App() {
         const bRes = await bookingsApi.getAll();
         if (isMounted && bRes?.bookings?.length > 0) {
           setBookings(bRes.bookings);
+          const active = bRes.bookings.find(b => b.status === 'Confirmed' || b.status === 'Assigned' || b.status === 'In Progress') || bRes.bookings[0];
+          if (active) setLatestLiveBooking(active);
         }
       } catch {}
 
@@ -540,7 +545,7 @@ function App() {
 
   // Proactively auto-heal any existing saved addresses holding Chennai ISP exchange false-positives
   useEffect(() => {
-    const hasStaleIsp = savedAddresses.some(addr => 
+    const hasStaleIsp = savedAddresses.some(addr =>
       /chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(
         `${addr.city} ${addr.locality} ${addr.formatted || ''} ${addr.flat || ''}`
       )
@@ -913,7 +918,7 @@ function App() {
       return;
     }
     if (
-      option.id === 'single-bathroom' || 
+      option.id === 'single-bathroom' ||
       option.id === 'bathroom-cleaning' ||
       option.id === 'bathroom-kitchen-combo' ||
       option.title?.toLowerCase().includes('bathroom')
@@ -1266,7 +1271,17 @@ function App() {
   const [editingServiceForAdmin, setEditingServiceForAdmin] = useState(null);
   const [selectedDetailService, setSelectedDetailService] = useState(null);
   const [activeTrackingBooking, setActiveTrackingBooking] = useState(null);
-  const [latestLiveBooking, setLatestLiveBooking] = useState(null);
+  const [latestLiveBooking, setLatestLiveBooking] = useState(() => {
+    try {
+      const saved = localStorage.getItem('uc_bookings');
+      if (saved) {
+        const list = JSON.parse(saved);
+        return list.find(b => b.status === 'Confirmed' || b.status === 'Assigned' || b.status === 'In Progress') || list[0] || null;
+      }
+    } catch {}
+    return null;
+  });
+  const [activeChatBooking, setActiveChatBooking] = useState(null);
 
   function handleOpenCreateService() {
     setEditingServiceForAdmin('NEW');
@@ -1808,6 +1823,8 @@ function App() {
         user={user}
         onOpenBookings={() => setIsBookingsModalOpen(true)}
         bookingsCount={bookings.filter(b => b.status !== 'Cancelled').length}
+        activeBooking={latestLiveBooking}
+        onOpenChat={() => setActiveChatBooking(latestLiveBooking)}
         onOpenAddresses={() => setIsAddressModalOpen(true)}
         addressesCount={savedAddresses.length}
         onOpenAdmin={handleOpenAdminPortal}
@@ -1843,9 +1860,9 @@ function App() {
             setCurrentView('television-service-page');
             window.scrollTo({ top: 0, behavior: 'smooth' });
           } else if (
-            s?.category === 'quick-repairs' || 
-            s?.subcategory === 'Electrician' || 
-            s?.subcategory === 'Plumber' || 
+            s?.category === 'quick-repairs' ||
+            s?.subcategory === 'Electrician' ||
+            s?.subcategory === 'Plumber' ||
             s?.subcategory === 'Carpenter' ||
             s?.title?.toLowerCase().includes('electrician') ||
             s?.title?.toLowerCase().includes('plumber') ||
@@ -1956,7 +1973,7 @@ function App() {
 
         {/* Homes Extended Sections (Promo banners, New & noteworthy, Most booked, Appliances, Cleaning) */}
         {activeNavTab === 'homes' && (
-          <HomesSections 
+          <HomesSections
             onSelectCategory={handleCategorySelection}
             onOpenApplianceModal={() => setIsApplianceModalOpen(true)}
             onOpenElectricianModal={(trade) => {
@@ -2067,7 +2084,7 @@ function App() {
           const matchedKey = Object.keys(CITY_LOCALITIES).find(
             k => k.toLowerCase() === (city || '').trim().toLowerCase()
           );
-          const defaultLocality = (matchedKey && CITY_LOCALITIES[matchedKey]?.[0]) 
+          const defaultLocality = (matchedKey && CITY_LOCALITIES[matchedKey]?.[0])
             || 'Central';
           handleLocationSelect(city, defaultLocality);
         }}
@@ -2159,10 +2176,9 @@ function App() {
         onClose={() => setActiveTrackingBooking(null)}
       />
 
-      {/* Persistent Floating Real-Time Live Order Bar */}
-      {latestLiveBooking && !activeTrackingBooking && (
+      {/* Persistent Floating Real-Time Live Order & Chat Bar */}
+      {latestLiveBooking && !activeTrackingBooking && !activeChatBooking && (
         <div
-          onClick={() => setActiveTrackingBooking(latestLiveBooking)}
           style={{
             position: 'fixed',
             bottom: 24,
@@ -2171,37 +2187,70 @@ function App() {
             background: 'linear-gradient(135deg, #1E1B4B 0%, #4C1D95 100%)',
             color: '#FFFFFF',
             borderRadius: 50,
-            padding: '10px 18px',
+            padding: '8px 16px 8px 14px',
             display: 'flex',
             alignItems: 'center',
             gap: 12,
             boxShadow: '0 12px 28px rgba(76, 29, 149, 0.45), 0 0 0 1px rgba(255,255,255,0.15)',
-            cursor: 'pointer',
-            border: '1.5px solid #8B5CF6',
-            transition: 'transform 0.2s, box-shadow 0.2s',
-            animation: 'pulse 3s infinite'
+            border: '1.5px solid #8B5CF6'
           }}
-          title="Click to view Live Service Tracking"
         >
-          <div style={{
-            width: 32,
-            height: 32,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 16
-          }}>
-            🛵
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: '#F3E8FF' }}>Live Service Active</span>
-              <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+          <div
+            onClick={() => setActiveTrackingBooking(latestLiveBooking)}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+            title="Click to view Live GPS Tracking"
+          >
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 16
+            }}>
+              🛵
             </div>
-            <div style={{ fontSize: 11, color: '#DDD6FE' }}>Rajesh Sharma en route • Track Live ➔</div>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#F3E8FF' }}>Live Service Active</span>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+              </div>
+              <div style={{ fontSize: 11, color: '#DDD6FE' }}>
+                {latestLiveBooking.assignedProfessional?.name || latestLiveBooking.assignedPartner || 'Technician'} • Track ➔
+              </div>
+            </div>
           </div>
+
+          <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.2)' }} />
+
+          {/* Quick-Chat Trigger Button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setActiveChatBooking(latestLiveBooking);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              background: '#10B981',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: 20,
+              padding: '6px 12px',
+              fontSize: 11.5,
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.4)',
+              transition: 'transform 0.15s'
+            }}
+            title="Chat in real-time with your assigned professional (Rapido Style)"
+          >
+            <span>💬 Chat</span>
+          </button>
         </div>
       )}
 
@@ -2219,6 +2268,21 @@ function App() {
         onCancelBooking={handleCancelBooking}
         onDeleteBookingHistory={handleDeleteBookingHistory}
       />
+
+      {/* Top-Level Rapido-Style Real-Time Customer Chat Drawer */}
+      {activeChatBooking && (
+        <RapidoChatDrawer
+          isOpen={Boolean(activeChatBooking)}
+          onClose={() => setActiveChatBooking(null)}
+          booking={activeChatBooking}
+          currentUser={{
+            role: 'customer',
+            id: activeChatBooking.userId || activeChatBooking.userPhone || (activeChatBooking.id ? `cust-${activeChatBooking.id}` : 'cust-user'),
+            name: activeChatBooking.userName || user?.name || 'Customer',
+            phone: activeChatBooking.userPhone || user?.phone
+          }}
+        />
+      )}
 
       {/* 7. Saved Addresses Modal */}
       <AddressManagerModal

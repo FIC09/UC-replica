@@ -1,20 +1,22 @@
 import React, { useState } from 'react';
-import { 
-  X, 
-  Calendar, 
-  MapPin, 
-  Clock, 
-  CheckCircle2, 
-  ChevronRight, 
+import {
+  X,
+  Calendar,
+  MapPin,
+  Clock,
+  CheckCircle2,
+  ChevronRight,
   ShoppingBag,
   Edit3,
   Trash2,
   AlertTriangle,
   RotateCcw,
   Check,
-  FileText
+  FileText,
+  MessageSquare
 } from 'lucide-react';
 import { getAvailableServiceDates } from '../utils/slotDates';
+import { RapidoChatDrawer } from './RapidoChatDrawer';
 
 export function MyBookingsModal({
   isOpen,
@@ -27,6 +29,7 @@ export function MyBookingsModal({
   onDeleteBookingHistory
 }) {
   const [filter, setFilter] = useState('all'); // all, active, completed, cancelled
+  const [chatBooking, setChatBooking] = useState(null);
 
   // Reschedule Sub-modal state
   const availableRescheduleDates = getAvailableServiceDates();
@@ -88,8 +91,8 @@ export function MyBookingsModal({
 
   return (
     <div className="cart-drawer-overlay" onClick={onClose}>
-      <div 
-        className="cart-drawer-content" 
+      <div
+        className="cart-drawer-content"
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: 520 }}
       >
@@ -281,6 +284,30 @@ export function MyBookingsModal({
                           >
                             <span>Live Tracker</span>
                             <ChevronRight size={13} />
+                          </button>
+
+                          {/* In-App Rapido Chat with Assigned Professional */}
+                          <button
+                            type="button"
+                            onClick={() => setChatBooking(b)}
+                            style={{
+                              padding: '8px 14px',
+                              borderRadius: 8,
+                              background: '#ECFDF5',
+                              color: '#059669',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              border: '1px solid #A7F3D0',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 5px rgba(5, 150, 105, 0.15)'
+                            }}
+                            title="Chat in real-time with assigned technician"
+                          >
+                            <MessageSquare size={13} />
+                            <span>💬 Chat with Pro</span>
                           </button>
 
                           {/* UPDATE: Reschedule Slot */}
@@ -623,6 +650,21 @@ export function MyBookingsModal({
               </div>
             </div>
           </div>
+        )}
+
+        {/* Real-Time Rapido-Style In-App Chat Drawer */}
+        {chatBooking && (
+          <RapidoChatDrawer
+            isOpen={Boolean(chatBooking)}
+            onClose={() => setChatBooking(null)}
+            booking={chatBooking}
+            currentUser={{
+              role: 'customer',
+              id: chatBooking.userId || chatBooking.userPhone || (chatBooking.id ? `cust-${chatBooking.id}` : 'cust-user'),
+              name: chatBooking.userName || 'Customer',
+              phone: chatBooking.userPhone
+            }}
+          />
         )}
       </div>
     </div>

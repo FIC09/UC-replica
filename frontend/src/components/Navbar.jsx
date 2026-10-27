@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  MapPin, 
-  Search, 
-  ShoppingCart, 
-  CircleUserRound, 
-  X, 
-  ChevronDown, 
-  Calendar, 
-  Home, 
-  Star, 
-  Briefcase, 
-  Building2, 
+import {
+  MapPin,
+  Search,
+  ShoppingCart,
+  CircleUserRound,
+  X,
+  ChevronDown,
+  Calendar,
+  Home,
+  Star,
+  Briefcase,
+  Building2,
   ShieldCheck,
   LogOut,
   UserCheck,
@@ -44,7 +44,9 @@ export function Navbar({
   services,
   onSelectCategory,
   activeNavTab = 'homes',
-  onSelectNavTab
+  onSelectNavTab,
+  activeBooking = null,
+  onOpenChat
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -101,8 +103,8 @@ export function Navbar({
       <div className="container-custom uc-nav-row">
         {/* Left: UC Logo + Exact Stacked Text + Header Nav Tabs (Matches Screenshot) */}
         <div className="uc-nav-left">
-          <div 
-            className="uc-exact-logo" 
+          <div
+            className="uc-exact-logo"
             onClick={() => {
               if (onSelectNavTab) onSelectNavTab('homes');
               onSelectCategory('all');
@@ -117,20 +119,20 @@ export function Navbar({
 
           {/* Exact Header Nav Tabs: Homes, Native, Beauty */}
           <nav className="uc-sublinks">
-            <span 
-              className={`uc-sublink-item ${activeNavTab === 'homes' ? 'active' : ''}`} 
+            <span
+              className={`uc-sublink-item ${activeNavTab === 'homes' ? 'active' : ''}`}
               onClick={() => onSelectNavTab ? onSelectNavTab('homes') : onSelectCategory('all')}
             >
               Homes
             </span>
-            <span 
-              className={`uc-sublink-item ${activeNavTab === 'native' ? 'active' : ''}`} 
+            <span
+              className={`uc-sublink-item ${activeNavTab === 'native' ? 'active' : ''}`}
               onClick={() => onSelectNavTab ? onSelectNavTab('native') : onSelectCategory('native-ro')}
             >
               Native
             </span>
-            <span 
-              className={`uc-sublink-item ${activeNavTab === 'beauty' ? 'active' : ''}`} 
+            <span
+              className={`uc-sublink-item ${activeNavTab === 'beauty' ? 'active' : ''}`}
               onClick={() => onSelectNavTab ? onSelectNavTab('beauty') : onSelectCategory('womens-salon')}
             >
               Beauty
@@ -141,9 +143,9 @@ export function Navbar({
         {/* Right / Center Controls: Location, Search, Cart, Profile (Exact layout from screenshot) */}
         <div className="uc-nav-right">
           {/* Location Selector Box (Rounded rectangle with pin and chevron) */}
-          <div 
-            className="uc-exact-loc-box" 
-            onClick={onOpenLocationModal} 
+          <div
+            className="uc-exact-loc-box"
+            onClick={onOpenLocationModal}
             title="Change Delivery Location"
           >
             <MapPin size={16} color="#4B5563" />
@@ -161,10 +163,10 @@ export function Navbar({
                 type="text"
                 className="uc-search-bare-input"
                 placeholder={
-                  activeNavTab === 'beauty' 
-                    ? "Search for 'Ayurvedic massage'" 
-                    : activeNavTab === 'native' 
-                      ? "Search for 'Water Purifier'" 
+                  activeNavTab === 'beauty'
+                    ? "Search for 'Ayurvedic massage'"
+                    : activeNavTab === 'native'
+                      ? "Search for 'Water Purifier'"
                       : "Search for 'Electricians'"
                 }
                 value={searchQuery}
@@ -175,9 +177,9 @@ export function Navbar({
                 onFocus={() => setShowSearchDropdown(true)}
               />
               {searchQuery && (
-                <button 
-                  type="button" 
-                  onClick={() => setSearchQuery('')} 
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
                   style={{ color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >
                   <X size={14} />
@@ -193,8 +195,8 @@ export function Navbar({
                     <div>
                       <div className="search-section-header">Services matching "{searchQuery}"</div>
                       {filteredServices.map(service => (
-                        <div 
-                          key={service.id} 
+                        <div
+                          key={service.id}
                           className="search-result-item"
                           onClick={() => {
                             onSelectService(service);
@@ -229,7 +231,7 @@ export function Navbar({
                     <div className="search-section-header">Trending Searches in {selectedCity || 'your city'}</div>
                     <div style={{ padding: '8px 16px 14px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                       {['Kitchen Cleaning', 'Powerjet AC', 'Rica Waxing', 'Men Haircut', 'Water Purifier RO'].map(trend => (
-                        <span 
+                        <span
                           key={trend}
                           onClick={() => setSearchQuery(trend)}
                           style={{
@@ -254,9 +256,36 @@ export function Navbar({
 
 
 
+          {/* Quick Live Chat Button when an active service is underway */}
+          {activeBooking && onOpenChat && (
+            <button
+              type="button"
+              onClick={onOpenChat}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                background: '#ECFDF5',
+                color: '#059669',
+                border: '1.5px solid #A7F3D0',
+                padding: '6px 13px',
+                borderRadius: 20,
+                fontSize: 12.5,
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 2px 6px rgba(5, 150, 105, 0.15)',
+                transition: 'all 0.15s'
+              }}
+              title="Open Live Chat with assigned professional (Rapido Style)"
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+              <span>💬 Live Chat</span>
+            </button>
+          )}
+
           {/* Cart Icon in Circular Border Button (Exact match from screenshot) */}
-          <button 
-            type="button" 
+          <button
+            type="button"
             className="uc-cart-circle-btn"
             onClick={onOpenCart}
             title="Shopping Cart"
@@ -269,9 +298,9 @@ export function Navbar({
 
           {/* Profile Icon in Circle */}
           <div className="uc-profile-wrap" ref={profileRef} style={{ position: 'relative' }}>
-            <button 
-              type="button" 
-              className="uc-profile-btn" 
+            <button
+              type="button"
+              className="uc-profile-btn"
               onClick={() => {
                 if (!user) {
                   onOpenAuth('login');
@@ -287,9 +316,9 @@ export function Navbar({
 
             {/* Profile Dropdown: strictly conditional on user state */}
             {showProfileMenu && (
-              <div 
-                className="uc-profile-dropdown" 
-                style={{ 
+              <div
+                className="uc-profile-dropdown"
+                style={{
                   position: 'absolute',
                   top: 'calc(100% + 8px)',
                   right: 0,

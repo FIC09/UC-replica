@@ -57,22 +57,22 @@ async function runTestSuite() {
     const health = await request('GET', '/api/health');
     assert(health.status === 200 && health.body.status === 'ok', 'Backend server is healthy and responding');
 
-    // TEST 2: Customer creates AC repair booking in Chennai
-    console.log('\n--- TEST 2: Customer Books AC Repair in Chennai ---');
+    // TEST 2: Customer creates AC repair booking in Krishnagiri Town
+    console.log('\n--- TEST 2: Customer Books AC Repair in Krishnagiri Town ---');
     const bookingPayload = {
       userName: 'Vignesh Ramanathan',
       userPhone: '+91 98409 55678',
       userEmail: 'vignesh.raman@example.com',
       serviceName: 'Powerjet AC Servicing',
       serviceCategory: 'AC & Appliance Repair',
-      city: 'Chennai',
-      serviceZone: 'T. Nagar',
-      address: 'Plot 18, Habibullah Road, T. Nagar, Chennai - 600017',
+      city: 'Krishnagiri',
+      serviceZone: 'Rayakottai Road',
+      address: 'Near Government Hospital, Rayakottai Road, Krishnagiri - 635001',
       addressDetails: {
-        locality: 'T. Nagar',
-        city: 'Chennai',
-        pincode: '600017',
-        fullAddress: 'Plot 18, Habibullah Road, T. Nagar, Chennai - 600017'
+        locality: 'Rayakottai Road',
+        city: 'Krishnagiri',
+        pincode: '635001',
+        fullAddress: 'Near Government Hospital, Rayakottai Road, Krishnagiri - 635001'
       },
       slot: 'Tomorrow, 10:00 AM - 11:00 AM',
       items: [
@@ -100,7 +100,7 @@ async function runTestSuite() {
     assert(updatedBooking.status === 'Assigned', `Booking status is "Assigned" (actual: ${updatedBooking.status})`);
     assert(updatedBooking.assignedProfessional && updatedBooking.assignedProfessional.name, `Worker assigned: ${updatedBooking.assignedProfessional?.name}`);
     console.log(`  Assigned Professional: ${updatedBooking.assignedProfessional?.name} (${updatedBooking.assignedProfessional?.trade})`);
-    assert(updatedBooking.assignedProfessional.name === 'K. Murugan', 'Scoring engine prioritized K. Murugan for T. Nagar Chennai AC repair');
+    assert(updatedBooking.assignedProfessional.name === 'V. Saravanan' || updatedBooking.assignedProfessional.name === 'M. Prakash', 'Scoring engine prioritized top Krishnagiri AC specialist');
 
     // TEST 4: Verify Tracking Session Initialization
     console.log('\n--- TEST 4: Verify Live GPS Tracking Session ---');

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Navigation, MapPin, HardHat, Clock, AlertTriangle, 
+import {
+  Navigation, MapPin, HardHat, Clock, AlertTriangle,
   CheckCircle2, RefreshCw, Phone, ShieldCheck, ChevronRight,
-  TrendingUp, Users, ArrowUpRight, Filter, Play
+  TrendingUp, Users, ArrowUpRight, Filter, Radio, Activity
 } from 'lucide-react';
+import { io } from 'socket.io-client';
 import { LiveMapTracker } from '../../components/LiveMapTracker';
 
 export function OperationsView({ onNavigate, onShowToast }) {
@@ -13,16 +14,76 @@ export function OperationsView({ onNavigate, onShowToast }) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastRefreshed, setLastRefreshed] = useState(new Date());
-  const [simulatingStep, setSimulatingStep] = useState(false);
+  const [liveSocketConnected, setLiveSocketConnected] = useState(false);
 
   useEffect(() => {
     fetchOperations();
+
+    // Connect to real-time WebSockets
+    const socket = io();
+    socket.on('connect', () => {
+      setLiveSocketConnected(true);
+      socket.emit('join:room', 'admin:operations');
+    });
+
+    socket.on('disconnect', () => {
+      setLiveSocketConnected(false);
+    });
+
+    const handleLiveEvent = (event) => {
+      if (!event) return;
+      const { eventType, payload } = event;
+
+      if (['WORKER_LOCATION_UPDATED', 'ETA_UPDATED', 'ASSIGNMENT_ACCEPTED', 'WORKER_ARRIVED', 'SERVICE_STARTED', 'SERVICE_COMPLETED'].includes(eventType)) {
+        setSessions(prev => {
+          return prev.map(s => {
+            if (s.bookingId === payload.bookingId) {
+              return {
+                ...s,
+                currentCoords: payload.latitude && payload.longitude ? { lat: Number(payload.latitude), lng: Number(payload.longitude) } : s.currentCoords,
+                remainingEtaMinutes: payload.remainingEtaMinutes !== undefined ? payload.remainingEtaMinutes : s.remainingEtaMinutes,
+                remainingDistanceKm: payload.remainingDistanceKm !== undefined ? payload.remainingDistanceKm : s.remainingDistanceKm,
+                speed: payload.speed !== undefined ? payload.speed : s.speed,
+                status: payload.status || (eventType === 'WORKER_ARRIVED' ? 'arrived' : eventType === 'SERVICE_STARTED' ? 'in_progress' : s.status),
+                lastPingAt: payload.timestamp || new Date().toISOString()
+              };
+            }
+            return s;
+          });
+        });
+
+        setSelectedSession(prev => {
+          if (prev && prev.bookingId === payload.bookingId) {
+            return {
+              ...prev,
+              currentCoords: payload.latitude && payload.longitude ? { lat: Number(payload.latitude), lng: Number(payload.longitude) } : prev.currentCoords,
+              remainingEtaMinutes: payload.remainingEtaMinutes !== undefined ? payload.remainingEtaMinutes : prev.remainingEtaMinutes,
+              remainingDistanceKm: payload.remainingDistanceKm !== undefined ? payload.remainingDistanceKm : prev.remainingDistanceKm,
+              speed: payload.speed !== undefined ? payload.speed : prev.speed,
+              status: payload.status || (eventType === 'WORKER_ARRIVED' ? 'arrived' : eventType === 'SERVICE_STARTED' ? 'in_progress' : prev.status),
+              lastPingAt: payload.timestamp || new Date().toISOString()
+            };
+          }
+          return prev;
+        });
+
+        setLastRefreshed(new Date());
+      } else if (eventType === 'BOOKING_CREATED') {
+        fetchOperations();
+      }
+    };
+
+    socket.on('realtime:event', handleLiveEvent);
+
     let interval = null;
     if (autoRefresh) {
-      interval = setInterval(fetchOperations, 4000);
+      interval = setInterval(fetchOperations, 10000);
     }
+
     return () => {
       if (interval) clearInterval(interval);
+      socket.off('realtime:event', handleLiveEvent);
+      socket.disconnect();
     };
   }, [autoRefresh]);
 
@@ -44,23 +105,6 @@ export function OperationsView({ onNavigate, onShowToast }) {
       console.warn('Failed to fetch tracking operations:', err.message);
     } finally {
       setLoading(false);
-    }
-  }
-
-  async function handleSimulateStep(bookingId) {
-    if (!bookingId) return;
-    setSimulatingStep(true);
-    try {
-      const res = await fetch(`/api/tracking/advance-step/${bookingId}`, { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        onShowToast?.(`Advanced worker GPS step for booking ${bookingId}`);
-        fetchOperations();
-      }
-    } catch (err) {
-      onShowToast?.('Simulation error: ' + err.message);
-    } finally {
-      setSimulatingStep(false);
     }
   }
 
@@ -300,7 +344,7 @@ export function OperationsView({ onNavigate, onShowToast }) {
               <div style={{ textAlign: 'center', padding: '40px 20px', color: '#94A3B8' }}>
                 <Navigation size={32} style={{ margin: '0 auto 10px', opacity: 0.5 }} />
                 <p style={{ fontSize: 13, fontWeight: 600, margin: 0 }}>No active tracking sessions found.</p>
-                <p style={{ fontSize: 11.5, margin: '4px 0 0' }}>When a customer books in Chennai/Mumbai, worker assignment and GPS tracking appear here automatically.</p>
+                <p style={{ fontSize: 11.5, margin: '4px 0 0' }}>When a customer books in Krishnagiri Town, Tamil Nadu, worker assignment and GPS tracking appear here automatically.</p>
               </div>
             ) : (
               filteredSessions.map(session => {
@@ -379,33 +423,26 @@ export function OperationsView({ onNavigate, onShowToast }) {
                       <span>⏱️ ETA: {session.remainingEtaMinutes || 5} min ({session.remainingDistanceKm || 0} km)</span>
                     </div>
 
-                    {/* Quick Step Simulation Button */}
-                    <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSimulateStep(session.bookingId);
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '5px 8px',
-                          background: '#7C3AED',
-                          color: '#FFFFFF',
-                          border: 'none',
-                          borderRadius: 6,
-                          fontSize: 11,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 4
-                        }}
-                      >
-                        <Play size={11} fill="#FFFFFF" />
-                        <span>Simulate GPS Step</span>
-                      </button>
+                    {/* Real Device Telemetry Status */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginTop: 8,
+                      padding: '5px 8px',
+                      background: '#F8FAFC',
+                      borderRadius: 6,
+                      fontSize: 10.5,
+                      color: '#475569',
+                      border: '1px solid #E2E8F0'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
+                        <span style={{ fontWeight: 600 }}>Real Device GPS</span>
+                      </div>
+                      <span style={{ color: '#64748B' }}>
+                        {session.lastPingAt ? new Date(session.lastPingAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Verified'}
+                      </span>
                     </div>
                   </div>
                 );

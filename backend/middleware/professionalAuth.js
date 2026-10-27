@@ -179,7 +179,55 @@ export async function verifyProfessionalAuth(req, res, next) {
         }
       ];
       pro = mockPros.find(p => p.id === proId);
-      if (!pro && proId && proId.startsWith('WRK-')) {
+
+      // Check PostgreSQL workers table
+      if (!pro && proId) {
+        try {
+          const { query } = await import('../config/postgres.js');
+          const pgRes = await query('SELECT * FROM workers WHERE id = $1', [proId]);
+          if (pgRes.rows.length > 0) {
+            const w = pgRes.rows[0];
+            pro = {
+              id: w.id,
+              applicantName: w.name,
+              phone: w.phone,
+              email: w.email,
+              trade: 'Master AC Specialist & Technician',
+              tradeName: 'Home Services',
+              employmentType: 'Direct Freelance',
+              status: 'Approved',
+              applicationStatus: 'Approved',
+              tier: 'Krishnagiri Verified Specialist',
+              rating: Number(w.rating) || 4.9,
+              jobsCompleted: 120,
+              walletBalance: 12500,
+              lifetimeEarnings: 85000,
+              isOnline: w.is_online !== false
+            };
+          }
+        } catch (dbErr) {
+          // ignore error
+        }
+      }
+
+      if (!pro && proId && proId.startsWith('WRK-KRI-')) {
+        pro = {
+          id: proId,
+          applicantName: 'A. Kumar',
+          phone: '+91 94432 10984',
+          email: 'a.kumar@forgeindia.in',
+          trade: 'AC & Appliance Repair Lead',
+          tradeName: 'Appliance Repair',
+          status: 'Approved',
+          applicationStatus: 'Approved',
+          tier: 'Krishnagiri Certified Partner',
+          employmentType: 'Direct Freelance',
+          walletBalance: 5000,
+          lifetimeEarnings: 45000,
+          rating: 4.92,
+          isOnline: true
+        };
+      } else if (!pro && proId && proId.startsWith('WRK-')) {
         pro = {
           id: proId,
           applicantName: 'Pending Applicant',
