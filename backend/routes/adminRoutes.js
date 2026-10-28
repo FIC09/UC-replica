@@ -184,10 +184,12 @@ router.get('/bookings/:id/eligible-professionals', requireAdminAuth, requirePerm
 router.post('/bookings/:id/offer', requireAdminAuth, requirePermission('bookings', 'edit'), manualAssignOffer);
 router.post('/bookings/:id/auto-assign', requireAdminAuth, requirePermission('bookings', 'edit'), retryAutoAssign);
 router.post('/bookings/:id/mode', requireAdminAuth, requirePermission('bookings', 'edit'), switchAssignmentMode);
+router.put('/bookings/:id/mode', requireAdminAuth, requirePermission('bookings', 'edit'), switchAssignmentMode);
 router.get('/bookings/:id', requireAdminAuth, requirePermission('bookings', 'view'), getBookingDetail);
 router.put('/bookings/:id/lifecycle', requireAdminAuth, requirePermission('bookings', 'edit'), updateLifecycleStatus);
 router.put('/bookings/:id/status', requireAdminAuth, requirePermission('bookings', 'edit'), updateLifecycleStatus);
 router.put('/bookings/:id/assign', requireAdminAuth, requirePermission('bookings', 'edit'), assignProfessional);
+router.post('/bookings/:id/assign', requireAdminAuth, requirePermission('bookings', 'edit'), assignProfessional);
 router.put('/bookings/:id/reschedule', requireAdminAuth, requirePermission('bookings', 'edit'), rescheduleBooking);
 router.put('/bookings/:id/cancel', requireAdminAuth, requirePermission('bookings', 'edit'), cancelBooking);
 router.post('/bookings/:id/notes', requireAdminAuth, requirePermission('bookings', 'edit'), addInternalNote);

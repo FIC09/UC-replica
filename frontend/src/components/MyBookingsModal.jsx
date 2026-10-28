@@ -21,7 +21,9 @@ import { RapidoChatDrawer } from './RapidoChatDrawer';
 export function MyBookingsModal({
   isOpen,
   onClose,
-  bookings,
+  bookings = [],
+  currentUser,
+  onOpenAuth,
   onTrackBooking,
   onUpdateBookingSlot,
   onUpdateBookingAddress,
@@ -48,9 +50,31 @@ export function MyBookingsModal({
 
   if (!isOpen) return null;
 
-  const filteredBookings = bookings.filter((b) => {
+  // Strict Customer Isolation: Customer can ONLY see bookings belonging to their own account
+  const customerIsolatedBookings = bookings.filter((b) => {
+    if (!currentUser) return false;
+    const userPhoneDigits = (currentUser.phone || '').replace(/\D/g, '').slice(-10);
+    const userId = (currentUser._id || currentUser.id || '').toString().trim();
+    const userEmail = (currentUser.email || '').trim().toLowerCase();
+    const userName = (currentUser.name || '').trim().toLowerCase();
+
+    if (userId && b.customerId && (b.customerId.toString() === userId)) return true;
+    if (userPhoneDigits && b.userPhone) {
+      const bPhoneDigits = b.userPhone.replace(/\D/g, '').slice(-10);
+      if (bPhoneDigits && bPhoneDigits === userPhoneDigits) return true;
+    }
+    if (userEmail && b.userEmail && b.userEmail.toLowerCase() === userEmail) return true;
+    const bName = (b.userName || b.customerName || '').trim().toLowerCase();
+    if (userName && bName && bName === userName) return true;
+
+    return false;
+  });
+
+  const displayBookings = currentUser ? customerIsolatedBookings : [];
+
+  const filteredBookings = displayBookings.filter((b) => {
     if (filter === 'all') return true;
-    if (filter === 'active') return b.status === 'Confirmed' || b.status === 'In Progress';
+    if (filter === 'active') return b.status === 'Confirmed' || b.status === 'Assigned' || b.status === 'In Progress';
     if (filter === 'completed') return b.status === 'Completed';
     if (filter === 'cancelled') return b.status === 'Cancelled';
     return true;
@@ -151,7 +175,49 @@ export function MyBookingsModal({
         {/* Body Content */}
         <div className="cart-drawer-body">
           {/* READ: List of Bookings */}
-          {filteredBookings.length === 0 ? (
+          {!currentUser ? (
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6B7280' }}>
+              <div style={{
+                width: 64,
+                height: 64,
+                borderRadius: '50%',
+                background: '#EEF2FF',
+                color: '#4F46E5',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px'
+              }}>
+                <Calendar size={28} />
+              </div>
+              <h4 style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>
+                Please log in to view your bookings
+              </h4>
+              <p style={{ fontSize: 13, marginBottom: 18, color: '#64748B' }}>
+                Sign in with your customer account to view and manage your scheduled services.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  if (onOpenAuth) onOpenAuth('login');
+                }}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: 10,
+                  backgroundColor: '#6E42E5',
+                  color: '#FFFFFF',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(110, 66, 229, 0.25)'
+                }}
+              >
+                Log In / Sign Up
+              </button>
+            </div>
+          ) : filteredBookings.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6B7280' }}>
               <div style={{
                 width: 64,
@@ -167,9 +233,9 @@ export function MyBookingsModal({
                 <Calendar size={28} />
               </div>
               <h4 style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', marginBottom: 6 }}>
-                No {filter !== 'all' ? filter : ''} bookings found
+                No {filter !== 'all' ? filter : ''} bookings for {currentUser?.name || 'your account'}
               </h4>
-              <p style={{ fontSize: 13 }}>
+              <p style={{ fontSize: 13, color: '#64748B' }}>
                 You have no orders in this category.
               </p>
             </div>

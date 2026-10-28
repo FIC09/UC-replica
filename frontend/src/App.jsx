@@ -247,6 +247,25 @@ function App() {
     return () => window.removeEventListener('popstate', handleLocationSync);
   }, []);
 
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem('uc_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (user) {
+        localStorage.setItem('uc_user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('uc_user');
+      }
+    } catch {}
+  }, [user]);
+
   const [currentView, setCurrentView] = useState('home');
   const [quickRepairsTrade, setQuickRepairsTrade] = useState('electrician');
 
@@ -374,7 +393,10 @@ function App() {
       try {
         const res = await servicesApi.getAll();
         if (isMounted && res?.services?.length > 0) {
-          setServices(res.services);
+          const backendServices = res.services;
+          const backendIds = new Set(backendServices.map(s => s.id));
+          const missing = INITIAL_SERVICES.filter(s => !backendIds.has(s.id));
+          setServices([...backendServices, ...missing]);
           setIsBackendConnected(true);
         }
       } catch (err) {
@@ -391,9 +413,11 @@ function App() {
       } catch {}
 
       try {
-        const aRes = await addressesApi.getAll();
-        if (isMounted && aRes?.addresses?.length > 0) {
-          setSavedAddresses(aRes.addresses);
+        if (user) {
+          const aRes = await addressesApi.getAll();
+          if (isMounted && aRes?.addresses?.length > 0) {
+            setSavedAddresses(aRes.addresses);
+          }
         }
       } catch {}
 
@@ -482,66 +506,74 @@ function App() {
   }, [services, monsoonSurge]);
 
   // ==========================================
-  // 2. SAVED ADDRESSES CRUD STATE
+  // 2. SAVED ADDRESSES CRUD STATE (User-Scoped)
   // ==========================================
+  const getUserAddressKey = (currentUser) => {
+    if (!currentUser) return null;
+    return `uc_addresses_${currentUser._id || currentUser.id || currentUser.phone || currentUser.email}`;
+  };
+
   const [savedAddresses, setSavedAddresses] = useState(() => {
     try {
-      const saved = localStorage.getItem('uc_addresses');
+      const storedUser = localStorage.getItem('uc_user');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      if (!currentUser) return [];
+
+      const key = `uc_addresses_${currentUser._id || currentUser.id || currentUser.phone || currentUser.email}`;
+      const saved = localStorage.getItem(key) || localStorage.getItem('uc_addresses');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Sanitize any false-positive Chennai ISP gateway addresses to Krishnagiri
-          return parsed.map(addr => {
-            const isIspGateway = /chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(
-              `${addr.city} ${addr.locality} ${addr.formatted || ''} ${addr.flat || ''}`
-            );
-            if (isIspGateway) {
-              return {
-                ...addr,
-                city: 'Krishnagiri',
-                locality: 'Rayakottai Road',
-                pincode: '635001',
-                flat: addr.flat && !/adayalampattu|chennai/i.test(addr.flat) ? addr.flat : 'Door 14/2, Rayakottai Road',
-                landmark: 'GPS Verified (Krishnagiri)',
-                formatted: `Door 14/2, Rayakottai Road, Krishnagiri - 635001 (GPS Verified)`
-              };
-            }
-            return addr;
-          });
+          return parsed.filter(addr => 
+            addr && 
+            addr.id !== 'ADDR-KG-1' && 
+            addr.id !== 'ADDR-1' && 
+            !addr.flat?.includes('Door 14/2') && 
+            !addr.flat?.includes('Flat 402')
+          );
         }
       }
     } catch {}
-    return [
-      {
-        id: 'ADDR-KG-1',
-        label: 'Home',
-        flat: 'Door 14/2, Rayakottai Road',
-        locality: 'Rayakottai Road',
-        city: 'Krishnagiri',
-        pincode: '635001',
-        landmark: 'Near New Bus Stand',
-        isDefault: true,
-        formatted: 'Door 14/2, Rayakottai Road, Krishnagiri - 635001 (Near New Bus Stand)'
-      },
-      {
-        id: 'ADDR-1',
-        label: 'Work',
-        flat: 'Flat 402, Sea Green Heights',
-        locality: 'Bandra West',
-        city: 'Mumbai',
-        pincode: '400050',
-        landmark: 'Opposite Mehboob Studio',
-        isDefault: false,
-        formatted: 'Flat 402, Sea Green Heights, Bandra West, Mumbai - 400050 (Opposite Mehboob Studio)'
-      }
-    ];
+    return [];
   });
 
+  // Keep savedAddresses in sync when user logs in or out
   useEffect(() => {
+    if (!user) {
+      setSavedAddresses([]);
+      try {
+        localStorage.removeItem('uc_addresses');
+      } catch {}
+      return;
+    }
+    const key = getUserAddressKey(user);
+    if (!key) return;
     try {
-      localStorage.setItem('uc_addresses', JSON.stringify(savedAddresses));
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setSavedAddresses(parsed.filter(addr => 
+            addr && 
+            addr.id !== 'ADDR-KG-1' && 
+            addr.id !== 'ADDR-1' && 
+            !addr.flat?.includes('Door 14/2') && 
+            !addr.flat?.includes('Flat 402')
+          ));
+        }
+      }
     } catch {}
-  }, [savedAddresses]);
+  }, [user]);
+
+  // Persist addresses under current user key
+  useEffect(() => {
+    if (!user) return;
+    const key = getUserAddressKey(user);
+    if (!key) return;
+    try {
+      localStorage.setItem(key, JSON.stringify(savedAddresses));
+    } catch {}
+  }, [savedAddresses, user]);
 
   // Proactively auto-heal any existing saved addresses holding Chennai ISP exchange false-positives
   useEffect(() => {
@@ -561,9 +593,9 @@ function App() {
             city: 'Krishnagiri',
             locality: 'Rayakottai Road',
             pincode: '635001',
-            flat: addr.flat && !/adayalampattu|chennai/i.test(addr.flat) ? addr.flat : 'Door 14/2, Rayakottai Road',
-            landmark: 'GPS Verified (Krishnagiri)',
-            formatted: 'Door 14/2, Rayakottai Road, Krishnagiri - 635001 (GPS Verified)'
+            flat: addr.flat && !/adayalampattu|chennai/i.test(addr.flat) ? addr.flat : '',
+            landmark: addr.landmark || '',
+            formatted: addr.formatted || ''
           };
         }
         return addr;
@@ -606,20 +638,7 @@ function App() {
       const saved = localStorage.getItem('uc_bookings');
       if (saved) return JSON.parse(saved);
     } catch {}
-    return [
-      {
-        id: 'UC-829410',
-        items: [
-          { title: 'Powerjet AC Servicing (Split / Window)', qty: 1, price: 499 }
-        ],
-        totalAmount: 548,
-        address: 'Flat 402, Sea Green Heights, Bandra West, Mumbai - 400050',
-        slot: 'Today (13 Oct), 02:00 PM - 03:00 PM',
-        status: 'Confirmed',
-        createdAt: '13 Oct, 11:30 AM',
-        paymentMethod: 'UPI'
-      }
-    ];
+    return [];
   });
 
   useEffect(() => {
@@ -629,15 +648,19 @@ function App() {
   }, [bookings]);
 
   async function handleConfirmOrder(bookingDetails) {
-    const rawPhone = (bookingDetails.userPhone || user?.phone || '9820144521').toString().trim();
-    const formattedPhone = rawPhone.startsWith('+91') ? rawPhone : `+91 ${rawPhone.replace(/\D/g, '').slice(-10) || rawPhone}`;
+    const custName = user?.name || bookingDetails.customerName || bookingDetails.userName || 'Customer';
+    const rawPhone = (user?.phone || bookingDetails.userPhone || '').toString().trim();
+    const formattedPhone = rawPhone.startsWith('+91') ? rawPhone : (rawPhone ? `+91 ${rawPhone.replace(/\D/g, '').slice(-10) || rawPhone}` : '');
+    const custEmail = user?.email || bookingDetails.userEmail || '';
+    const custId = user?._id || user?.id || bookingDetails.customerId || '';
+
     const enriched = {
       ...bookingDetails,
-      userName: bookingDetails.userName || user?.name || 'Customer',
-      customerName: bookingDetails.customerName || bookingDetails.userName || user?.name || 'Customer',
+      userName: custName,
+      customerName: custName,
       userPhone: formattedPhone,
-      userEmail: bookingDetails.userEmail || user?.email || '',
-      customerId: bookingDetails.customerId || user?._id || user?.id || '',
+      userEmail: custEmail,
+      customerId: custId,
       city: bookingDetails.city || selectedCity || 'Krishnagiri',
       serviceZone: bookingDetails.serviceZone || selectedLocality || 'Rayakottai Road',
       status: bookingDetails.status || 'Confirmed',
@@ -652,37 +675,72 @@ function App() {
 
     try {
       const serverRes = await bookingsApi.create(enriched);
+      const finalBooking = serverRes?.booking || enriched;
       if (serverRes?.booking) {
         setBookings(prev => prev.map(b => b.id === enriched.id ? { ...b, ...serverRes.booking } : b));
       }
-      showToast(`🎉 Booking ${enriched.id} confirmed!`);
+      showToast(`🎉 Booking ${finalBooking.id} confirmed!`);
+
+      // Instantly broadcast to Admin Dashboard and all open tabs in real-time
+      try {
+        const syncChannel = new BroadcastChannel('uc_sync_channel');
+        syncChannel.postMessage({ type: 'BOOKING_CREATED', booking: finalBooking, timestamp: Date.now() });
+        syncChannel.close();
+      } catch (bcErr) {}
+      try {
+        localStorage.setItem('uc_last_booking_event', JSON.stringify({ type: 'BOOKING_CREATED', id: finalBooking.id, timestamp: Date.now() }));
+      } catch (lsErr) {}
     } catch (err) {
       console.warn('Backend booking sync notice:', err.message);
       showToast(`🎉 Booking ${enriched.id} confirmed!`);
+      // Broadcast even on fallback
+      try {
+        const syncChannel = new BroadcastChannel('uc_sync_channel');
+        syncChannel.postMessage({ type: 'BOOKING_CREATED', booking: enriched, timestamp: Date.now() });
+        syncChannel.close();
+      } catch (bcErr) {}
+      try {
+        localStorage.setItem('uc_last_booking_event', JSON.stringify({ type: 'BOOKING_CREATED', id: enriched.id, timestamp: Date.now() }));
+      } catch (lsErr) {}
     }
+  }
+
+  function broadcastBookingSync(type, data = {}) {
+    try {
+      const syncChannel = new BroadcastChannel('uc_sync_channel');
+      syncChannel.postMessage({ type, ...data, timestamp: Date.now() });
+      syncChannel.close();
+    } catch (bcErr) {}
+    try {
+      localStorage.setItem('uc_last_booking_event', JSON.stringify({ type, ...data, timestamp: Date.now() }));
+    } catch (lsErr) {}
   }
 
   function handleUpdateBookingSlot(id, newSlot) {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, slot: newSlot } : b));
     bookingsApi.update(id, { slot: newSlot }).catch(err => console.warn('Backend slot update failed:', err));
+    broadcastBookingSync('BOOKING_UPDATED', { id, slot: newSlot });
     showToast(`🕒 Booking ${id} rescheduled to ${newSlot}`);
   }
 
   function handleUpdateBookingAddress(id, newAddress, newNotes) {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, address: newAddress, notes: newNotes } : b));
     bookingsApi.update(id, { address: newAddress, notes: newNotes }).catch(err => console.warn('Backend address update failed:', err));
+    broadcastBookingSync('BOOKING_UPDATED', { id, address: newAddress });
     showToast(`📍 Delivery details updated for ${id}`);
   }
 
   function handleCancelBooking(id, reason) {
     setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'Cancelled', cancelReason: reason } : b));
     bookingsApi.update(id, { status: 'Cancelled', cancelReason: reason }).catch(err => console.warn('Backend cancel sync failed:', err));
+    broadcastBookingSync('BOOKING_UPDATED', { id, status: 'Cancelled' });
     showToast(`🚫 Booking ${id} has been cancelled.`);
   }
 
   function handleDeleteBookingHistory(id) {
     setBookings(prev => prev.filter(b => b.id !== id));
     bookingsApi.delete(id).catch(err => console.warn('Backend booking delete failed:', err));
+    broadcastBookingSync('BOOKING_DELETED', { id });
     showToast(`🗑️ Removed booking record from history.`);
   }
 
@@ -699,6 +757,7 @@ function App() {
       status: newStatus,
       assignedPartner: partnerName || 'Rajesh Kumar'
     }).catch(err => console.warn('Backend status update failed:', err));
+    broadcastBookingSync('BOOKING_UPDATED', { id, status: newStatus });
     showToast(`✓ Order #${id} updated to ${newStatus}`);
   }
 
@@ -796,40 +855,62 @@ function App() {
     showToast(`🎉 Payment of ₹299 successful via ${paymentDetails?.methodLabel || 'Online Payment'}! UC Plus VIP Membership activated for 6 months.`);
   }
 
-  const [user, setUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('uc_user');
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
-  });
+  // Personal customer bookings for the logged-in customer (Tenant isolation)
+  const customerBookings = useMemo(() => {
+    if (!user) return [];
+    const userPhoneDigits = (user.phone || '').replace(/\D/g, '').slice(-10);
+    const userId = (user._id || user.id || '').toString().trim();
+    const userEmail = (user.email || '').trim().toLowerCase();
+    const userName = (user.name || '').trim().toLowerCase();
+
+    return bookings.filter(b => {
+      // 1. Match by customerId
+      if (userId && b.customerId && (b.customerId.toString() === userId)) return true;
+      // 2. Match by 10-digit phone number
+      if (userPhoneDigits && b.userPhone) {
+        const bPhoneDigits = b.userPhone.replace(/\D/g, '').slice(-10);
+        if (bPhoneDigits && bPhoneDigits === userPhoneDigits) return true;
+      }
+      // 3. Match by email
+      if (userEmail && b.userEmail && b.userEmail.toLowerCase() === userEmail) return true;
+      // 4. Match by customer/user name
+      const bCustName = (b.userName || b.customerName || '').trim().toLowerCase();
+      if (userName && bCustName && bCustName === userName) return true;
+
+      return false;
+    });
+  }, [bookings, user]);
 
   useEffect(() => {
-    try {
-      if (user) {
-        localStorage.setItem('uc_user', JSON.stringify(user));
-      } else {
-        localStorage.removeItem('uc_user');
-      }
-    } catch {}
-  }, [user]);
+    if (user && customerBookings.length > 0) {
+      const active = customerBookings.find(b => b.status === 'Confirmed' || b.status === 'Assigned' || b.status === 'In Progress') || customerBookings[0] || null;
+      setLatestLiveBooking(active);
+    } else {
+      setLatestLiveBooking(null);
+    }
+  }, [customerBookings, user]);
 
   useEffect(() => {
     function handleAuthEvent(e) {
       if (e.detail?.user === null) {
         setUser(null);
+      } else if (e.detail?.user) {
+        setUser(e.detail.user);
       }
     }
     function handleStorageEvent(e) {
-      if (e.key === 'uc_user' && !e.newValue) {
+      if ((e.key === 'uc_user' || e.key === 'uc_auth_user') && !e.newValue) {
         setUser(null);
+      } else if ((e.key === 'uc_user' || e.key === 'uc_auth_user') && e.newValue) {
+        try { setUser(JSON.parse(e.newValue)); } catch {}
       }
     }
     window.addEventListener('uc:auth-changed', handleAuthEvent);
+    window.addEventListener('uc_auth_event', handleAuthEvent);
     window.addEventListener('storage', handleStorageEvent);
     return () => {
       window.removeEventListener('uc:auth-changed', handleAuthEvent);
+      window.removeEventListener('uc_auth_event', handleAuthEvent);
       window.removeEventListener('storage', handleStorageEvent);
     };
   }, []);
@@ -1101,8 +1182,10 @@ function App() {
 
   function handleLogout() {
     setUser(null);
+    setSavedAddresses([]);
     setIsAdminAuthenticated(false);
     try {
+      localStorage.removeItem('uc_addresses');
       localStorage.removeItem('uc_user');
       sessionStorage.removeItem('uc_admin_auth');
       sessionStorage.removeItem('uc_admin_token');
@@ -1124,8 +1207,8 @@ function App() {
     setCurrentView('home');
     setActiveNavTab('homes');
     if (window.location.pathname !== '/') {
-      window.history.pushState({}, '', '/');
-      window.dispatchEvent(new PopStateEvent('popstate'));
+      window.location.href = '/';
+      return;
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
     showToast(`👋 Logged out successfully. Returning to Home.`);
@@ -1442,6 +1525,7 @@ function App() {
           onOpenCart={handleOpenCartView}
           onOpenCheckout={handleProceedToCheckout}
           showToast={showToast}
+          services={services}
         />
       ) : currentView === 'chimney-service-page' ? (
         <ChimneyServicePage
@@ -1933,6 +2017,15 @@ function App() {
           ) {
             setCurrentView('bathroom-cleaning-page');
             window.scrollTo({ top: 0, behavior: 'smooth' });
+          } else if (
+            s?.title?.toLowerCase().includes('ac') ||
+            s?.subcategory?.toLowerCase().includes('ac') ||
+            s?.category === 'ac-appliances' ||
+            s?.id?.includes('ac') ||
+            s?.id?.includes('srv-')
+          ) {
+            setCurrentView('ac-service-page');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
           } else {
             setSelectedDetailService(s);
           }
@@ -1986,6 +2079,15 @@ function App() {
         {/* Homes Extended Sections (Promo banners, New & noteworthy, Most booked, Appliances, Cleaning) */}
         {activeNavTab === 'homes' && (
           <HomesSections
+            services={services}
+            onSelectService={(s) => {
+              if (s?.category === 'ac-appliances' || s?.title?.toLowerCase().includes('ac') || s?.id?.includes('srv-')) {
+                setCurrentView('ac-service-page');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              } else {
+                setSelectedDetailService(s);
+              }
+            }}
             onSelectCategory={handleCategorySelection}
             onOpenApplianceModal={() => setIsApplianceModalOpen(true)}
             onOpenElectricianModal={(trade) => {
@@ -2270,7 +2372,9 @@ function App() {
       <MyBookingsModal
         isOpen={isBookingsModalOpen}
         onClose={() => setIsBookingsModalOpen(false)}
-        bookings={bookings}
+        bookings={customerBookings}
+        currentUser={user}
+        onOpenAuth={handleOpenAuth}
         onTrackBooking={(b) => {
           setActiveTrackingBooking(b);
           setLatestLiveBooking(b);
@@ -2334,6 +2438,16 @@ function App() {
         onOpenPartnerDashboard={handleOpenPartnerPortal}
         onLogin={(loggedInUser) => {
           setUser(loggedInUser);
+          // Instantly broadcast new customer registration across all tabs to Admin Dashboard
+          try {
+            const syncChannel = new BroadcastChannel('uc_sync_channel');
+            syncChannel.postMessage({ type: 'CUSTOMER_CREATED', customer: loggedInUser, timestamp: Date.now() });
+            syncChannel.close();
+          } catch (e) {}
+          try {
+            localStorage.setItem('uc_last_customer_event', JSON.stringify({ type: 'CUSTOMER_CREATED', customer: loggedInUser, timestamp: Date.now() }));
+          } catch (e) {}
+
           if (loggedInUser.role === 'admin') {
             setIsAdminAuthenticated(true);
             try {

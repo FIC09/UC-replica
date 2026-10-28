@@ -1,12 +1,15 @@
 import { Booking, canTransitionLifecycle, VALID_LIFECYCLE_TRANSITIONS } from '../models/Booking.js';
 import { WorkerApplication } from '../models/WorkerApplication.js';
+import { TrackingSession } from '../models/TrackingSession.js';
 import { getOrCreateConversation } from '../services/chatService.js';
 import { assignWorkerTransactionally, syncBookingToPostgres } from '../services/postgresService.js';
 import { emitEvent } from '../services/websocketService.js';
 import {
   findEligibleProfessionals,
   sendAssignmentOffer,
-  triggerAutoAssignment
+  triggerAutoAssignment,
+  resolveCoordinates,
+  fetchRoadRouteWaypoints
 } from '../services/assignmentEngine.js';
 
 
@@ -61,10 +64,10 @@ export async function getBookings(req, res) {
       }
 
       // Status
-      if (status !== 'ALL' && b.status !== status) return false;
+      if (status !== 'ALL' && (b.status || '').toLowerCase() !== status.toLowerCase()) return false;
 
       // Payment Status
-      if (paymentStatus !== 'ALL' && b.paymentStatus !== paymentStatus) return false;
+      if (paymentStatus !== 'ALL' && (b.paymentStatus || '').toLowerCase() !== paymentStatus.toLowerCase()) return false;
 
       // City
       if (city !== 'ALL' && (b.city || '').toLowerCase() !== city.toLowerCase()) return false;
@@ -87,8 +90,9 @@ export async function getBookings(req, res) {
       }
 
       // Assigned vs Unassigned
-      if (assigned === 'assigned' && !b.assignedPartner) return false;
-      if (assigned === 'unassigned' && b.assignedPartner) return false;
+      const isAssigned = Boolean(b.assignedPartner || b.assignedWorker || b.assignedProfessional?.name || b.assignedProfessional?.id);
+      if (assigned === 'assigned' && !isAssigned) return false;
+      if (assigned === 'unassigned' && isAssigned) return false;
 
       return true;
     });
@@ -320,7 +324,7 @@ export async function assignProfessional(req, res) {
 
     let booking = null;
     try {
-      booking = await Booking.findOne({ id });
+      booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
     } catch {}
 
     if (!booking) {
@@ -379,11 +383,62 @@ export async function assignProfessional(req, res) {
 
     booking.assignedPartner = professionalName;
     booking.assignedProfessional = assignedProData;
+    booking.assignmentStatus = 'ASSIGNED';
+    booking.offerStatus = 'accepted';
     if (booking.status === 'Confirmed' || booking.status === 'Pending') {
       booking.status = 'Assigned';
     }
     booking.timeline.push(timelineEvent);
     await booking.save();
+
+    // Synchronize or create TrackingSession immediately so technician is instantly tracked
+    try {
+      const customerCoords = resolveCoordinates(booking.address, booking.serviceZone, booking.city || 'Krishnagiri');
+      const workerCoords = {
+        lat: parseFloat((customerCoords.lat + 0.0055).toFixed(6)),
+        lng: parseFloat((customerCoords.lng - 0.0045).toFixed(6))
+      };
+      const roadRoute = await fetchRoadRouteWaypoints(workerCoords, customerCoords);
+
+      let trackingSession = await TrackingSession.findOne({
+        $or: [{ bookingId: id }, { bookingReference: booking.bookingReference || id }]
+      });
+
+      if (!trackingSession) {
+        trackingSession = new TrackingSession({
+          id: `TRK-${id}`,
+          bookingId: id,
+          bookingReference: booking.bookingReference || id,
+          workerId: professionalId || assignedProData.id,
+          workerName: professionalName,
+          workerPhone: assignedProData.phone,
+          workerTrade: assignedProData.trade,
+          workerRating: 4.95,
+          customerName: booking.userName || booking.customerName || 'Customer',
+          customerPhone: booking.userPhone || '',
+          customerAddress: booking.address,
+          customerCoords,
+          currentCoords: roadRoute.origin || workerCoords,
+          heading: 45,
+          speed: 22,
+          status: booking.status === 'En Route' ? 'en_route' : 'assigned',
+          routePolyline: roadRoute.waypoints,
+          remainingDistanceKm: roadRoute.distanceKm || 2.4,
+          remainingEtaMinutes: roadRoute.etaMinutes || 6,
+          safetyPin: booking.safetyPin || '4829',
+          lastPingAt: new Date()
+        });
+      } else {
+        trackingSession.workerId = professionalId || assignedProData.id;
+        trackingSession.workerName = professionalName;
+        trackingSession.workerTrade = assignedProData.trade;
+        trackingSession.status = booking.status === 'En Route' ? 'en_route' : 'assigned';
+        trackingSession.lastPingAt = new Date();
+      }
+      await trackingSession.save();
+    } catch (trkErr) {
+      console.warn('TrackingSession sync warning on assignment:', trkErr.message);
+    }
 
     // Transactionally confirm exclusive worker assignment in PostgreSQL
     try {
@@ -737,13 +792,22 @@ export async function getEligibleProfessionals(req, res) {
         jobsCompleted: w.jobsCompleted != null ? Number(w.jobsCompleted) : (c.jobsCompleted || 0),
         isVerified: w.status === 'Approved',
         isOnline: isOnline,
-        isAvailable: isAvailable,
+        isAvailable: c.isAvailable != null ? c.isAvailable : isAvailable,
         isEligible: true,
         distanceKm: c.distanceKm != null ? c.distanceKm : 1.5,
         etaMinutes: c.etaMinutes || 6,
         score: c.totalScore != null ? c.totalScore : (c.score || 80),
         totalScore: c.totalScore != null ? c.totalScore : (c.score || 80),
         activeBookingsCount: c.activeBookingsCount || 0,
+        maxDailyJobs: c.maxDailyJobs || 4,
+        attendanceStatus: c.attendanceStatus || (w.dispatchState === 'Offline' ? 'OFFLINE' : 'PRESENT'),
+        attendanceLabel: c.attendanceLabel || (w.dispatchState === 'Offline' ? 'Offline' : 'Present & Available'),
+        attendanceScore: c.attendanceScore != null ? c.attendanceScore : 30,
+        workloadStatus: c.workloadStatus || 'OPTIMAL',
+        workloadLabel: c.workloadLabel || 'Optimal (0 active jobs)',
+        workloadScore: c.workloadScore != null ? c.workloadScore : 30,
+        isCapacityReached: !!c.isCapacityReached,
+        isSlotConflict: !!c.isSlotConflict,
         worker: w
       };
     });

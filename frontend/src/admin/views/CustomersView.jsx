@@ -89,7 +89,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
     fetchCustomersList();
   }, [search, statusFilter, cityFilter, page]);
 
-  // Live real-time sync when a new customer registers or when tab refocuses
+  // Live real-time sync when a new customer registers or updates across any tab
   useEffect(() => {
     function handleCustomerChange() {
       fetchCustomersList();
@@ -98,14 +98,42 @@ export function CustomersView({ onShowToast, onNavigate }) {
     window.addEventListener('uc:auth-changed', handleCustomerChange);
     window.addEventListener('focus', handleCustomerChange);
 
+    // 1. Cross-Tab Sync via BroadcastChannel
+    let broadcastChannel = null;
+    try {
+      broadcastChannel = new BroadcastChannel('uc_sync_channel');
+      broadcastChannel.onmessage = (event) => {
+        const data = event.data || {};
+        if (data.type === 'CUSTOMER_CREATED' || data.type === 'CUSTOMER_UPDATED' || data.type === 'CUSTOMER_DELETED' || data.type === 'BOOKING_CREATED') {
+          fetchCustomersList();
+          if (data.type === 'CUSTOMER_CREATED' && data.customer?.name) {
+            onShowToast && onShowToast(`👤 New customer registered: ${data.customer.name}!`);
+          }
+        }
+      };
+    } catch (bcErr) {}
+
+    // 2. Cross-Tab Storage Event Fallback
+    const handleStorageEvent = (e) => {
+      if (e.key === 'uc_last_customer_event' || e.key === 'uc_last_booking_event') {
+        fetchCustomersList();
+      }
+    };
+    window.addEventListener('storage', handleStorageEvent);
+
+    // 3. 3-second Silent Polling for guaranteed real-time updates
     const interval = setInterval(() => {
       fetchCustomersList();
-    }, 8000);
+    }, 3000);
 
     return () => {
       window.removeEventListener('uc:customer-registered', handleCustomerChange);
       window.removeEventListener('uc:auth-changed', handleCustomerChange);
       window.removeEventListener('focus', handleCustomerChange);
+      window.removeEventListener('storage', handleStorageEvent);
+      if (broadcastChannel) {
+        try { broadcastChannel.close(); } catch (e) {}
+      }
       clearInterval(interval);
     };
   }, [search, statusFilter, cityFilter, page]);

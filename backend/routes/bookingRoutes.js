@@ -19,13 +19,33 @@ router.post('/validate-coverage', async (req, res) => {
   }
 });
 
-// GET all bookings or by user phone
+// GET all bookings or by user phone / customerId / email / name
 router.get('/', async (req, res) => {
   try {
-    const { phone } = req.query;
+    const { phone, customerId, userEmail, userName } = req.query;
     let query = {};
     if (phone) {
-      query.userPhone = phone;
+      const cleanDigits = phone.replace(/\D/g, '').slice(-10);
+      if (cleanDigits) {
+        query.$or = [
+          { userPhone: phone },
+          { userPhone: { $regex: cleanDigits + '$', $options: 'i' } }
+        ];
+      } else {
+        query.userPhone = phone;
+      }
+    } else if (customerId) {
+      query.$or = [
+        { customerId: customerId },
+        { customerId: String(customerId) }
+      ];
+    } else if (userEmail) {
+      query.userEmail = { $regex: new RegExp(`^${userEmail.trim()}$`, 'i') };
+    } else if (userName) {
+      query.$or = [
+        { userName: { $regex: new RegExp(`^${userName.trim()}$`, 'i') } },
+        { customerName: { $regex: new RegExp(`^${userName.trim()}$`, 'i') } }
+      ];
     }
     const bookings = await Booking.find(query).sort({ createdAt: -1 });
     res.json({ success: true, count: bookings.length, bookings });
@@ -51,9 +71,22 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const bookingData = { ...req.body };
-    delete bookingData.createdAt; // Ensure server generates authoritative current timestamp
-    if (!bookingData.items || !bookingData.totalAmount) {
-      return res.status(400).json({ success: false, message: 'Cart items and total amount are required' });
+    // Flexible items and totalAmount validation
+    if (!bookingData.items || !Array.isArray(bookingData.items) || bookingData.items.length === 0) {
+      if (bookingData.serviceName) {
+        bookingData.items = [{
+          id: 'srv-' + Date.now(),
+          title: bookingData.serviceName,
+          name: bookingData.serviceName,
+          price: bookingData.totalAmount || bookingData.amount || 299,
+          qty: 1
+        }];
+      } else {
+        return res.status(400).json({ success: false, message: 'Cart items are required' });
+      }
+    }
+    if (bookingData.totalAmount == null) {
+      bookingData.totalAmount = bookingData.amount != null ? bookingData.amount : (bookingData.items.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0));
     }
 
     // City & Service Area Verification
@@ -175,11 +208,14 @@ router.post('/', async (req, res) => {
     }
 
     // Upsert or link customer profile in User collection safely
-    if (bookingData.userPhone || bookingData.userEmail) {
+    if (bookingData.userPhone || bookingData.userEmail || bookingData.customerId) {
       try {
         const rawPhone = (bookingData.userPhone || '').trim();
         const digitsOnly = rawPhone.replace(/\D/g, '').slice(-10);
         const searchConditions = [];
+        if (bookingData.customerId) {
+          searchConditions.push({ _id: bookingData.customerId });
+        }
         if (rawPhone) searchConditions.push({ phone: rawPhone });
         if (digitsOnly) {
           searchConditions.push({ phone: digitsOnly });
@@ -190,6 +226,13 @@ router.post('/', async (req, res) => {
         }
 
         let user = searchConditions.length > 0 ? await User.findOne({ $or: searchConditions }) : null;
+        if (user) {
+          bookingData.customerId = user._id.toString();
+          if (user.name && user.name !== 'Customer' && (!bookingData.userName || bookingData.userName === 'Customer')) {
+            bookingData.userName = user.name;
+            bookingData.customerName = user.name;
+          }
+        }
 
         const street = bookingData.address || bookingData.addressDetails?.fullAddress || '';
         const city = bookingData.city;

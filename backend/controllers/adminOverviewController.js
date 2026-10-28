@@ -168,23 +168,23 @@ export async function getOverviewDashboardMetrics(req, res) {
     const totalPendingApplications = pendingWorkerCount + pendingPartnerCount;
 
     // Approved & Available Professionals
-    const approvedProfessionals = workerApps.filter(w => w.status === 'Approved' || w.status === 'Active').length || 18;
-    const availableProfessionals = Math.max(1, Math.round(approvedProfessionals * 0.78));
+    const approvedProfessionals = workerApps.filter(w => w.status === 'Approved' || w.status === 'Active').length;
+    const availableProfessionals = workerApps.filter(w => (w.status === 'Approved' || w.status === 'Active') && (w.dispatchState === 'Available' || !w.dispatchState)).length;
 
     // Support Tickets & Rating
-    const openSupportTickets = 3;
+    const openSupportTickets = 0;
     const ratedBookings = periodBookings.filter(b => b.rating && b.rating > 0);
     const averageRating = ratedBookings.length > 0
       ? (ratedBookings.reduce((sum, b) => sum + b.rating, 0) / ratedBookings.length).toFixed(2)
-      : '4.88';
+      : (allBookings.length > 0 ? '5.00' : '0.00');
 
     // 5. Booking Trends & Revenue Trends (7 chronological buckets)
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const bucketSize = Math.max(1, Math.floor(periodBookings.length / 7));
     const bookingTrends = days.map((day, idx) => {
       const slice = periodBookings.slice(idx * bucketSize, (idx + 1) * bucketSize);
-      const orders = Math.max(1, slice.length);
-      const gmv = slice.reduce((acc, b) => acc + (Number(b.totalAmount) || 0), 0) || (orders * 850);
+      const orders = slice.length;
+      const gmv = slice.reduce((acc, b) => acc + (Number(b.totalAmount) || 0), 0);
       return {
         label: day,
         orders,
@@ -242,27 +242,43 @@ export async function getOverviewDashboardMetrics(req, res) {
         orders: catMap[catName].orders,
         revenue: `₹${catMap[catName].revenue.toLocaleString('en-IN')}`,
         share: Math.round((catMap[catName].revenue / totalCatRevenue) * 100),
-        growth: `+${(14.5 - (idx * 2.3)).toFixed(1)}%`,
+        growth: `${catMap[catName].orders} orders`,
         color: catColors[idx % catColors.length]
       };
     }).sort((a, b) => b.orders - a.orders).slice(0, 5);
 
-    // 8. City Performance (Dynamically calculated)
+    // 8. City Performance (Dynamically calculated from real workers and bookings)
     const cityMap = {};
     periodBookings.forEach(b => {
-      const c = b.city || 'Mumbai';
+      const c = b.city || 'Krishnagiri';
       if (!cityMap[c]) cityMap[c] = { bookings: 0, revenue: 0 };
       cityMap[c].bookings++;
       cityMap[c].revenue += (Number(b.totalAmount) || 0);
     });
-    const cityPerformance = Object.keys(cityMap).map(cityName => ({
-      city: cityName,
-      bookings: cityMap[cityName].bookings,
-      gmv: `₹${cityMap[cityName].revenue.toLocaleString('en-IN')}`,
-      slaRate: '98.5%',
-      rating: 4.88,
-      activePros: cityName === 'Mumbai' ? 14 : (cityName === 'Bengaluru' ? 10 : (cityName === 'Krishnagiri' ? 8 : 6))
-    })).sort((a, b) => b.bookings - a.bookings);
+    const cityPerformance = Object.keys(cityMap).map(cityName => {
+      const cityProsCount = workerApps.filter(w => 
+        (w.city || '').toLowerCase() === cityName.toLowerCase() && 
+        (w.status === 'Approved' || w.status === 'Active')
+      ).length;
+      const cityBookings = periodBookings.filter(b => (b.city || '').toLowerCase() === cityName.toLowerCase());
+      const ratedCityBookings = cityBookings.filter(b => b.rating && b.rating > 0);
+      const avgCityRating = ratedCityBookings.length > 0
+        ? Number((ratedCityBookings.reduce((sum, b) => sum + b.rating, 0) / ratedCityBookings.length).toFixed(2))
+        : 5.0;
+      const completedCount = cityBookings.filter(b => b.status === 'Completed').length;
+      const slaRate = cityBookings.length > 0 
+        ? `${Math.round(((completedCount || 1) / cityBookings.length) * 100)}%` 
+        : '100%';
+
+      return {
+        city: cityName,
+        bookings: cityMap[cityName].bookings,
+        gmv: `₹${cityMap[cityName].revenue.toLocaleString('en-IN')}`,
+        slaRate,
+        rating: avgCityRating,
+        activePros: cityProsCount
+      };
+    }).sort((a, b) => b.bookings - a.bookings);
 
     // 9. Operational Alerts (Dynamically generated from real numbers)
     const operationalAlerts = [];
@@ -302,7 +318,7 @@ export async function getOverviewDashboardMetrics(req, res) {
       pendingWorkerApplications: pendingWorkerCount,
       pendingPartnerAgencies: pendingPartnerCount,
       pendingRefundDisputes: cancelledBookings,
-      pendingPayoutBatches: Math.ceil(outstandingPayouts / 50000) || 1
+      pendingPayoutBatches: outstandingPayouts > 0 ? Math.ceil(outstandingPayouts / 50000) : 0
     };
 
     // 11. Metric Click Targets
@@ -344,7 +360,7 @@ export async function getOverviewDashboardMetrics(req, res) {
           proEarnings: { value: proEarnings, formatted: `₹${proEarnings.toLocaleString('en-IN')}`, label: 'Pro & Partner Payout Pool' },
           refunds: { value: totalRefunds, formatted: `₹${totalRefunds.toLocaleString('en-IN')}`, change: refundsChange, clickTarget: clickTargets.refunds },
           outstandingPayouts: { value: outstandingPayouts, formatted: `₹${outstandingPayouts.toLocaleString('en-IN')}`, clickTarget: clickTargets.outstandingPayouts },
-          activeCustomers: { value: allUsersCount || 5, formatted: (allUsersCount || 5).toLocaleString('en-IN'), clickTarget: clickTargets.activeCustomers },
+          activeCustomers: { value: allUsersCount, formatted: allUsersCount.toLocaleString('en-IN'), clickTarget: clickTargets.activeCustomers },
           approvedProfessionals: { value: approvedProfessionals, formatted: approvedProfessionals.toLocaleString('en-IN'), clickTarget: clickTargets.approvedProfessionals },
           availableProfessionals: { value: availableProfessionals, formatted: availableProfessionals.toLocaleString('en-IN'), clickTarget: clickTargets.availableProfessionals },
           pendingApplications: { value: totalPendingApplications, alert: totalPendingApplications > 0, clickTarget: clickTargets.pendingApplications },

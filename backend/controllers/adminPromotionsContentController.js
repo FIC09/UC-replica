@@ -15,65 +15,7 @@ function sanitizeHtml(str) {
     .replace(/javascript\s*:/gi, '');
 }
 
-let mockPromotions = [
-  {
-    id: 'PROMO-1',
-    code: 'AUTO100',
-    discountType: 'fixed',
-    discountValue: 100,
-    minOrderValue: 499,
-    maxDiscount: 100,
-    validFrom: '2026-01-01',
-    validTill: '2026-12-31',
-    eligibleUsers: 'All Users',
-    eligibleCategories: ['All Services'],
-    eligibleCities: ['All Cities'],
-    eligiblePartners: ['All Partners'],
-    usageLimitTotal: 10000,
-    usageLimitPerCustomer: 1,
-    usedCount: 4180,
-    status: 'Active',
-    description: 'Automatic ₹100 discount on first home booking'
-  },
-  {
-    id: 'PROMO-2',
-    code: 'MONSOON20',
-    discountType: 'percentage',
-    discountValue: 20,
-    minOrderValue: 799,
-    maxDiscount: 250,
-    validFrom: '2026-06-01',
-    validTill: '2026-11-15',
-    eligibleUsers: 'All Users',
-    eligibleCategories: ['Cleaning & Pest Control', 'AC & Appliance Repair'],
-    eligibleCities: ['Mumbai', 'Bengaluru'],
-    eligiblePartners: ['All Partners'],
-    usageLimitTotal: 5000,
-    usageLimitPerCustomer: 2,
-    usedCount: 1840,
-    status: 'Active',
-    description: '20% off on all deep cleaning & AC services'
-  },
-  {
-    id: 'PROMO-3',
-    code: 'UCPLUS200',
-    discountType: 'fixed',
-    discountValue: 200,
-    minOrderValue: 999,
-    maxDiscount: 200,
-    validFrom: '2026-01-01',
-    validTill: '2027-02-28',
-    eligibleUsers: 'UC Plus Members Only',
-    eligibleCategories: ['All Services'],
-    eligibleCities: ['All Cities'],
-    eligiblePartners: ['All Partners'],
-    usageLimitTotal: 2500,
-    usageLimitPerCustomer: 3,
-    usedCount: 920,
-    status: 'Active',
-    description: 'Exclusive VIP Member benefit voucher'
-  }
-];
+let mockPromotions = [];
 
 let mockContent = {
   heroBannerHeadline: 'Beauty & Home Services At Your Doorstep',
@@ -96,50 +38,7 @@ let mockContent = {
   }
 };
 
-let mockNotifications = [
-  {
-    id: 'NOTIF-1',
-    title: 'Monsoon Rain Surge Activated',
-    message: 'Rain allowance of +₹49 has been activated across Mumbai Metro zone.',
-    channel: 'In-App Push',
-    audience: 'Professionals Only',
-    scheduledTime: 'Immediate',
-    status: 'Delivered',
-    providerConfirmed: true,
-    outboxQueued: false,
-    recipientsCount: 1200,
-    openRate: '98.2%',
-    sentAt: 'Today, 09:00 AM'
-  },
-  {
-    id: 'NOTIF-2',
-    title: 'Weekly Payout Batch W42 Dispatched',
-    message: 'Payout batches for weekly earnings have been processed to bank accounts.',
-    channel: 'SMS Gateway',
-    audience: 'Business Partners',
-    scheduledTime: 'Immediate',
-    status: 'Delivered',
-    providerConfirmed: true,
-    outboxQueued: false,
-    recipientsCount: 42,
-    openRate: '100%',
-    sentAt: '21 Oct 2026, 06:00 PM'
-  },
-  {
-    id: 'NOTIF-3',
-    title: 'Weekend AC Care VIP Slots Open',
-    message: 'Pre-book your summer AC jet servicing with complimentary chemical coil rinse.',
-    channel: 'Email Gateway',
-    audience: 'All Customers',
-    scheduledTime: 'Scheduled for 25 Oct 2026, 08:00 AM',
-    status: 'Queued in Local Outbox (Provider Gateway Offline)',
-    providerConfirmed: false,
-    outboxQueued: true, // Local outbox queue: does not claim external delivery without provider confirmation
-    recipientsCount: 24500,
-    openRate: 'Pending Dispatch',
-    sentAt: 'Queued for delivery'
-  }
-];
+let mockNotifications = [];
 
 // ==========================================
 // 1. PROMOTIONS CONTROLLERS (Database-Backed)
@@ -168,9 +67,7 @@ export async function getPromotions(req, res) {
       usageLimitPerCustomer: 2
     }));
 
-    const existingCodes = new Set(mappedDb.map(x => x.code));
-    const nonDupeMocks = mockPromotions.filter(m => !existingCodes.has(m.code));
-    const list = [...mappedDb, ...nonDupeMocks];
+    const list = mappedDb;
 
     return res.json({
       success: true,

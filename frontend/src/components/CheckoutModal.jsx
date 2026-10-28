@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   MapPin, 
@@ -44,14 +44,24 @@ export function CheckoutModal({
   const [selectedAddressId, setSelectedAddressId] = useState(matchingSaved ? matchingSaved.id : 'custom');
 
   // Custom address inputs (if not choosing existing saved address)
-  const [flatNumber, setFlatNumber] = useState(matchingSaved?.flat || 'Flat 102, Main Road');
+  const [flatNumber, setFlatNumber] = useState(matchingSaved?.flat || '');
   const [locality, setLocality] = useState(matchingSaved?.locality || selectedLocality || currentLocalities[0] || 'Central');
   const [pincode, setPincode] = useState(matchingSaved?.pincode || (selectedCity === 'Krishnagiri' ? '635001' : '400050'));
-  const [userName, setUserName] = useState(user?.name || 'Rahul Sharma');
+  const [userName, setUserName] = useState(user?.name || '');
   const [userPhone, setUserPhone] = useState(
-    user?.phone ? user.phone.replace(/\D/g, '').slice(-10) : '9820144521'
+    user?.phone ? user.phone.replace(/\D/g, '').slice(-10) : ''
   );
   const [deliveryNotes, setDeliveryNotes] = useState('');
+
+  // Dynamically synchronize customer name and phone when logged-in user changes or modal opens
+  useEffect(() => {
+    if (user?.name) {
+      setUserName(user.name);
+    }
+    if (user?.phone) {
+      setUserPhone(user.phone.replace(/\D/g, '').slice(-10));
+    }
+  }, [user, isOpen]);
 
   const availableDates = getAvailableServiceDates();
 
@@ -80,6 +90,11 @@ export function CheckoutModal({
   ];
 
   function handleSubmit() {
+    if (selectedAddressId === 'custom' && !flatNumber.trim()) {
+      alert('Please enter your house / flat / door number to complete delivery address');
+      return;
+    }
+
     let finalAddressText = `${flatNumber}, ${locality}, ${selectedCity} - ${pincode}`;
     
     if (selectedAddressId !== 'custom') {
@@ -92,15 +107,16 @@ export function CheckoutModal({
     const bookingId = 'UC-' + Math.floor(100000 + Math.random() * 900000);
     const cartList = Object.values(cart);
     const firstItem = cartList[0] || {};
-    const rawPhone = (userPhone || user?.phone || '9820144521').toString().trim();
-    const formattedPhone = rawPhone.startsWith('+91') ? rawPhone : `+91 ${rawPhone.replace(/\D/g, '').slice(-10) || rawPhone}`;
-    const custName = userName || user?.name || 'Customer';
+    const rawPhone = (user?.phone || userPhone || '').toString().trim();
+    const formattedPhone = rawPhone.startsWith('+91') ? rawPhone : (rawPhone ? `+91 ${rawPhone.replace(/\D/g, '').slice(-10) || rawPhone}` : '');
+    const custName = user?.name || userName || 'Customer';
 
     const bookingDetails = {
       id: bookingId,
       bookingReference: bookingId,
       customerId: user?._id || user?.id || '',
       userName: custName,
+      customerName: custName,
       userPhone: formattedPhone,
       userEmail: user?.email || '',
       city: selectedCity || 'Krishnagiri',

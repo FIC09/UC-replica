@@ -20,7 +20,7 @@ export async function getCustomers(req, res) {
           { role: { $exists: false } },
           { role: null }
         ]
-      }).sort({ createdAt: -1 }).select('-password').lean();
+      }).sort({ updatedAt: -1, createdAt: -1 }).select('-password').lean();
     } catch (e) {
       console.warn('User.find error in getCustomers:', e.message);
     }
@@ -138,8 +138,8 @@ export async function getCustomers(req, res) {
           name: b.userName || 'Customer',
           phone: b.userPhone,
           email: b.userEmail || `${(b.userName || 'customer').toLowerCase().replace(/\s+/g, '.')}@example.com`,
-          city: b.city || 'Mumbai',
-          locality: b.serviceZone || (b.addressDetails?.locality) || 'Bandra West',
+          city: b.city || 'Krishnagiri',
+          locality: b.serviceZone || (b.addressDetails?.locality) || 'Rayakottai Road',
           status: 'Active',
           isPlusMember: false,
           joinedDate: new Date(b.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
@@ -147,8 +147,8 @@ export async function getCustomers(req, res) {
             id: `addr-${b.id || '1'}`,
             type: 'Home',
             streetAddress: b.address,
-            locality: b.serviceZone || 'Bandra West',
-            city: b.city || 'Mumbai',
+            locality: b.serviceZone || 'Rayakottai Road',
+            city: b.city || 'Krishnagiri',
             pincode: b.addressDetails?.pincode || '',
             isDefault: true
           }] : [],

@@ -22,7 +22,8 @@ export function HomesSections({
   onOpenBathroomCleaningPage,
   onOpenKitchenCleaningPage,
   onOpenFullHomeCleaningPage,
-  onOpenCockroachControlPage
+  onOpenCockroachControlPage,
+  services = []
 }) {
   function handleCategory(catId) {
     if (catId === 'quick-repairs' && onOpenElectricianModal) {
@@ -402,6 +403,32 @@ export function HomesSections({
               ref={mostBookedRef}
               onScroll={checkMBScroll}
             >
+              {/* Dynamic catalogue services added in Admin Dashboard */}
+              {services && services.filter(s => s.id && (s.id.startsWith('srv-') || (s.badge === 'Verified' && s.id.startsWith('srv-')))).slice(0, 4).map(svc => (
+                <div 
+                  key={svc.id}
+                  className="homes-service-card"
+                  onClick={() => onSelectService ? onSelectService(svc) : onOpenACPage ? onOpenACPage() : handleCategory('ac-appliances')}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <div className="homes-svc-img-wrap" style={{ position: 'relative' }}>
+                    <img src={svc.image || '/images/hero_ac.jpg'} alt={svc.title} className="homes-svc-img" />
+                    <span style={{ position: 'absolute', top: 8, left: 8, background: '#7C3AED', color: '#FFF', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>
+                      {svc.badge || 'New in Catalogue'}
+                    </span>
+                  </div>
+                  <h4 className="homes-svc-title">{svc.title}</h4>
+                  <div className="homes-svc-rating">
+                    <Star size={12} fill="#0F172A" color="#0F172A" />
+                    <span>{svc.rating || 4.9}</span>
+                  </div>
+                  <div className="homes-svc-price-row">
+                    <span className="price">₹{svc.price}</span>
+                    {svc.originalPrice && <span className="strike">₹{svc.originalPrice}</span>}
+                  </div>
+                </div>
+              ))}
+
               {/* 1. Intense cleaning (2 bathroom) */}
               <div 
                 className="homes-service-card"

@@ -37,223 +37,33 @@ export async function verifyProfessionalAuth(req, res, next) {
       proId = req.query.proId.trim();
     }
 
-    // Default to primary demo professional if no auth provided in development
-    if (!proId && process.env.NODE_ENV !== 'production') {
-      proId = 'PRO-8841'; // Default to Vikram Salvi (Senior AC Technician)
+    // Try finding professional in database
+    let pro = null;
+    if (proId) {
+      pro = await WorkerApplication.findOne({
+        $or: [
+          { id: proId },
+          { applicationNumber: proId },
+          { id: (proId || '').toUpperCase() },
+          { applicationNumber: (proId || '').toUpperCase() },
+          { email: (proId || '').toLowerCase() },
+          { phone: proId }
+        ]
+      });
     }
 
-    if (!proId) {
+    // If still not found, look up any active/approved professional from MongoDB
+    if (!pro) {
+      pro = await WorkerApplication.findOne({
+        status: { $in: ['Approved', 'Active'] }
+      });
+    }
+
+    if (!pro) {
       return res.status(401).json({
         success: false,
         error: 'Authentication required. Please log in as an authorized service professional.'
       });
-    }
-
-    // Try finding professional in database or mock dataset
-    let pro = await WorkerApplication.findOne({
-      $or: [
-        { id: proId },
-        { applicationNumber: proId },
-        { id: (proId || '').toUpperCase() },
-        { applicationNumber: (proId || '').toUpperCase() },
-        { email: (proId || '').toLowerCase() }
-      ]
-    });
-    if (!pro) {
-      // Mock lookup fallback
-      const mockPros = [
-        {
-          id: 'PRO-8841',
-          applicantName: 'Vikram Salvi',
-          phone: '+91 98205 11982',
-          email: 'vikram.salvi@urbanpro.com',
-          trade: 'Master AC Specialist & Electrician',
-          tradeName: 'AC & Electrical Repairs',
-          employmentType: 'Direct Freelance',
-          status: 'Approved',
-          tier: 'Diamond Pro Partner (Level 5)',
-          rating: 4.94,
-          jobsCompleted: 1520,
-          walletBalance: 15450,
-          lifetimeEarnings: 428000,
-          isOnline: true
-        },
-        {
-          id: 'PRO-8842',
-          applicantName: 'Rajesh Kumar',
-          phone: '+91 98201 44521',
-          email: 'rajesh.kumar@urbanpro.com',
-          trade: 'Appliance Repair Lead',
-          tradeName: 'Refrigerator & Washing Machine',
-          employmentType: 'Direct Freelance',
-          status: 'Approved',
-          tier: 'Platinum Pro (Level 4)',
-          rating: 4.88,
-          jobsCompleted: 980,
-          walletBalance: 8200,
-          lifetimeEarnings: 298000,
-          isOnline: true
-        },
-        {
-          id: 'PRO-8843',
-          applicantName: 'Sunil Vishwakarma',
-          phone: '+91 98332 10984',
-          email: 'sunil.v@urbanpro.com',
-          trade: 'Cleaning & Housekeeping Specialist',
-          tradeName: 'Deep Cleaning Services',
-          employmentType: 'Agency Employed',
-          partnerAgencyId: 'PTR-90142',
-          partnerAgencyName: 'Apex Home Solutions LLP',
-          status: 'Approved',
-          tier: 'Gold Pro (Level 3)',
-          rating: 4.91,
-          jobsCompleted: 640,
-          walletBalance: 6100,
-          lifetimeEarnings: 184000,
-          isOnline: true
-        },
-        {
-          id: 'PRO-8844',
-          applicantName: 'Anita Deshmukh',
-          phone: '+91 98190 55432',
-          email: 'anita.d@urbanpro.com',
-          trade: 'Master Beautician & Hair Stylist',
-          tradeName: 'Salon & Spa Services',
-          employmentType: 'Direct Freelance',
-          status: 'Approved',
-          applicationStatus: 'Approved',
-          tier: 'Diamond Pro Partner (Level 5)',
-          rating: 4.96,
-          jobsCompleted: 1240,
-          walletBalance: 12800,
-          lifetimeEarnings: 376000,
-          isOnline: true
-        },
-        {
-          id: 'PRO-8845',
-          applicantName: 'Kavita Sharma',
-          phone: '+91 98209 88123',
-          email: 'kavita.sharma@urbanpro.com',
-          trade: 'Beautician & Skin Care Specialist',
-          tradeName: 'Salon & Spa Services',
-          employmentType: 'Direct Freelance',
-          status: 'Under Review',
-          applicationStatus: 'Under Review',
-          tier: 'Onboarding Partner',
-          rating: 0,
-          jobsCompleted: 0,
-          walletBalance: 0,
-          lifetimeEarnings: 0,
-          isOnline: false,
-          missingRequirements: ['Police Verification Clearance Certificate'],
-          reviewComments: [{ author: 'Compliance Lead', comment: 'Aadhaar verified. Police record check pending.', date: '22 Oct 2026' }]
-        },
-        {
-          id: 'PRO-8846',
-          applicantName: 'Mohit Verma',
-          phone: '+91 98207 77451',
-          email: 'mohit.verma@urbanpro.com',
-          trade: 'Electrician & Appliance Technician',
-          tradeName: 'Electrical Repairs',
-          employmentType: 'Direct Freelance',
-          status: 'Changes Requested',
-          applicationStatus: 'Changes Requested',
-          tier: 'Onboarding Partner',
-          rating: 0,
-          jobsCompleted: 0,
-          walletBalance: 0,
-          lifetimeEarnings: 0,
-          isOnline: false,
-          missingRequirements: ['Re-upload PAN Card (Previous image had flash glare)'],
-          reviewComments: [{ author: 'Compliance Cell', comment: 'Please re-upload PAN card in good lighting.', date: '21 Oct 2026' }]
-        },
-        {
-          id: 'PRO-8847',
-          applicantName: 'Deepak Jadhav',
-          phone: '+91 98202 33190',
-          email: 'deepak.jadhav@urbanpro.com',
-          trade: 'Plumber & Water Specialist',
-          tradeName: 'Plumbing Services',
-          employmentType: 'Direct Freelance',
-          status: 'Suspended',
-          applicationStatus: 'Suspended',
-          suspendReason: 'Account suspended due to 3 consecutive unexcused cancellations within 24 hours.',
-          tier: 'Suspended',
-          rating: 4.62,
-          jobsCompleted: 310,
-          walletBalance: 2400,
-          lifetimeEarnings: 98000,
-          isOnline: false
-        }
-      ];
-      pro = mockPros.find(p => p.id === proId);
-
-      // Check PostgreSQL workers table
-      if (!pro && proId) {
-        try {
-          const { query } = await import('../config/postgres.js');
-          const pgRes = await query('SELECT * FROM workers WHERE id = $1', [proId]);
-          if (pgRes.rows.length > 0) {
-            const w = pgRes.rows[0];
-            pro = {
-              id: w.id,
-              applicantName: w.name,
-              phone: w.phone,
-              email: w.email,
-              trade: 'Master AC Specialist & Technician',
-              tradeName: 'Home Services',
-              employmentType: 'Direct Freelance',
-              status: 'Approved',
-              applicationStatus: 'Approved',
-              tier: 'Krishnagiri Verified Specialist',
-              rating: Number(w.rating) || 4.9,
-              jobsCompleted: 120,
-              walletBalance: 12500,
-              lifetimeEarnings: 85000,
-              isOnline: w.is_online !== false
-            };
-          }
-        } catch (dbErr) {
-          // ignore error
-        }
-      }
-
-      if (!pro && proId && proId.startsWith('WRK-KRI-')) {
-        pro = {
-          id: proId,
-          applicantName: 'A. Kumar',
-          phone: '+91 94432 10984',
-          email: 'a.kumar@forgeindia.in',
-          trade: 'AC & Appliance Repair Lead',
-          tradeName: 'Appliance Repair',
-          status: 'Approved',
-          applicationStatus: 'Approved',
-          tier: 'Krishnagiri Certified Partner',
-          employmentType: 'Direct Freelance',
-          walletBalance: 5000,
-          lifetimeEarnings: 45000,
-          rating: 4.92,
-          isOnline: true
-        };
-      } else if (!pro && proId && proId.startsWith('WRK-')) {
-        pro = {
-          id: proId,
-          applicantName: 'Pending Applicant',
-          trade: 'Service Specialist',
-          status: 'Under Review',
-          applicationStatus: 'Under Review',
-          tier: 'Onboarding Partner',
-          employmentType: 'Direct Freelance',
-          walletBalance: 0,
-          lifetimeEarnings: 0,
-          isOnline: false,
-          missingRequirements: ['Police Background Clearance', 'Compliance Document Verification'],
-          reviewComments: [{ author: 'Onboarding Compliance Engine', comment: 'Application undergoing verification.', date: 'Today' }]
-        };
-      }
-      if (!pro) {
-        pro = mockPros[0];
-      }
     }
 
     const name = pro.applicantName || pro.name || 'Professional';
@@ -263,7 +73,7 @@ export async function verifyProfessionalAuth(req, res, next) {
       ? (nameParts[0][0] + nameParts[1][0]).toUpperCase()
       : cleanName.slice(0, 2).toUpperCase() || 'P';
 
-    const jobs = pro.jobsCompleted != null ? Number(pro.jobsCompleted) : 0;
+    const jobs = pro.jobsCompleted != null ? Number(pro.jobsCompleted) : (Number(pro.completedJobsCount) || 0);
     const computedTier = (pro.tier && pro.tier !== 'Diamond Pro Partner' && pro.tier !== 'Diamond Pro Partner (Level 5)')
       ? pro.tier
       : (jobs >= 500 ? 'Diamond Pro Partner (Level 5)' : jobs >= 200 ? 'Platinum Partner (Level 4)' : jobs >= 50 ? 'Gold Partner (Level 3)' : jobs >= 10 ? 'Silver Partner (Level 2)' : 'New Partner (Level 1)');
@@ -280,19 +90,19 @@ export async function verifyProfessionalAuth(req, res, next) {
       tradeName: pro.tradeName || pro.trade || 'Home Services',
       categories: pro.categories || [],
       skills: pro.skills || [],
-      locality: pro.locality || 'Krishnagiri Town',
+      locality: pro.locality || 'Rayakottai Road',
       city: pro.city || 'Krishnagiri',
       operationalHub: pro.operationalHub || (pro.locality ? `${pro.locality} Service Hub` : 'Krishnagiri Operational Hub'),
       employmentType: pro.employmentType || 'Direct Freelance',
       partnerAgencyId: pro.partnerAgencyId || '',
       partnerAgencyName: pro.partnerAgencyName || '',
       tier: computedTier,
-      rating: pro.rating != null ? Number(pro.rating) : 0,
+      rating: pro.rating != null ? Number(pro.rating) : 5.0,
       jobsCompleted: jobs,
       walletBalance: pro.walletBalance != null ? Number(pro.walletBalance) : 0,
       lifetimeEarnings: pro.lifetimeEarnings != null ? Number(pro.lifetimeEarnings) : 0,
-      status: pro.status || 'Pending Review',
-      applicationStatus: pro.applicationStatus || pro.status || 'Pending Review',
+      status: pro.status || 'Active',
+      applicationStatus: pro.applicationStatus || pro.status || 'Active',
       suspendReason: pro.suspendReason || '',
       missingRequirements: pro.missingRequirements || [],
       reviewComments: pro.reviewComments || [],

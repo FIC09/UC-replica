@@ -137,6 +137,7 @@ export function OperationsView({ onNavigate, onShowToast }) {
     return s.status === statusFilter;
   });
 
+  const assignedCount = sessions.filter(s => s.status === 'assigned').length;
   const enRouteCount = sessions.filter(s => s.status === 'en_route').length;
   const arrivedCount = sessions.filter(s => s.status === 'arrived').length;
   const inProgressCount = sessions.filter(s => s.status === 'in_progress').length;
@@ -255,6 +256,22 @@ export function OperationsView({ onNavigate, onShowToast }) {
           border: '1px solid #E2E8F0',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
         }}>
+          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Assigned Technicians</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: '#2563EB', marginTop: 4 }}>
+            {assignedCount}
+          </div>
+          <div style={{ fontSize: 11.5, color: '#1D4ED8', fontWeight: 600, marginTop: 4 }}>
+            ⚡ Ready for transit
+          </div>
+        </div>
+
+        <div style={{
+          background: '#FFFFFF',
+          borderRadius: 12,
+          padding: 16,
+          border: '1px solid #E2E8F0',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+        }}>
           <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Travelling to Customer</div>
           <div style={{ fontSize: 26, fontWeight: 800, color: '#7C3AED', marginTop: 4 }}>
             {enRouteCount}
@@ -326,7 +343,7 @@ export function OperationsView({ onNavigate, onShowToast }) {
 
             {/* Filter buttons */}
             <div style={{ display: 'flex', gap: 4 }}>
-              {['all', 'en_route', 'arrived', 'in_progress'].map(f => (
+              {['all', 'assigned', 'en_route', 'arrived', 'in_progress'].map(f => (
                 <button
                   key={f}
                   type="button"
@@ -342,7 +359,7 @@ export function OperationsView({ onNavigate, onShowToast }) {
                     color: statusFilter === f ? '#FFFFFF' : '#64748B'
                   }}
                 >
-                  {f === 'all' ? 'All' : f === 'en_route' ? 'En Route' : f === 'arrived' ? 'Arrived' : 'In Work'}
+                  {f === 'all' ? 'All' : f === 'assigned' ? 'Assigned' : f === 'en_route' ? 'En Route' : f === 'arrived' ? 'Arrived' : 'In Work'}
                 </button>
               ))}
             </div>

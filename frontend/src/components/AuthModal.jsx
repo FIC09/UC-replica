@@ -427,6 +427,11 @@ export function AuthModal({
       localStorage.setItem('uc_user', JSON.stringify(newUser));
       window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: newUser } }));
       window.dispatchEvent(new CustomEvent('uc:customer-registered', { detail: newUser }));
+      // Cross-tab broadcast for real-time reflection in Admin Dashboard
+      const syncChannel = new BroadcastChannel('uc_sync_channel');
+      syncChannel.postMessage({ type: 'CUSTOMER_CREATED', customer: newUser, timestamp: Date.now() });
+      syncChannel.close();
+      localStorage.setItem('uc_last_customer_event', JSON.stringify({ type: 'CUSTOMER_CREATED', customer: newUser, timestamp: Date.now() }));
     } catch {}
 
     setSuccessMsg('Account created successfully! Logging you in...');

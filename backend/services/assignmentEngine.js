@@ -197,72 +197,124 @@ export function resolveCoordinates(addressText = '', locality = '', city = 'Kris
 }
 
 /**
- * Multi-factor Scoring Algorithm as mandated by Module 4.2:
- * 35% Travel ETA / Distance
- * 25% Skill Compatibility
- * 15% Availability & Schedule Fit
- * 10% Worker Reliability
- * 10% Workload Fairness
+ * Multi-factor Scoring Algorithm strictly driven by:
+ * 30% Attendance & Schedule Fit (Present on duty, not on leave, within operational hours)
+ * 30% Workload Fairness & Active Capacity (Fewer active jobs = highest priority, daily cap protection)
+ * 20% Skill & Category Match
+ * 15% Travel Distance / ETA
  * 5% Customer Rating
  */
-export function calculateWorkerScore(worker, booking, customerCoords) {
-  const workerLocality = worker.locality || worker.operationalHub || 'T. Nagar';
-  const workerCoords = resolveCoordinates('', workerLocality, worker.city || 'Chennai');
+export function calculateWorkerScore(worker, booking, customerCoords, activeJobsCount = 0, isSlotConflict = false) {
+  const workerLocality = worker.locality || worker.operationalHub || 'Rayakottai Road';
+  const workerCoords = resolveCoordinates('', workerLocality, worker.city || 'Krishnagiri');
   const distanceKm = calculateDistanceKm(workerCoords, customerCoords);
 
-  // 1. Travel ETA Score (35%)
-  // Workers within 2km get near full 35 pts, drops down to 0 at 15km
-  const travelScore = Math.max(0, (1 - Math.min(distanceKm, 15) / 15)) * 35;
+  // 1. Attendance & Schedule Fit (30% Weight)
+  const bookingDateStr = (booking.slot || '').toLowerCase();
+  const hasApprovedLeave = (worker.leaves || []).some(leave => {
+    if (leave.status !== 'Approved') return false;
+    const lDate = (leave.date || '').toLowerCase();
+    if (!lDate) return false;
+    return bookingDateStr.includes(lDate) || lDate.includes('today') || lDate === new Date().toISOString().slice(0, 10);
+  });
 
-  // 2. Skill Compatibility (25%)
-  let skillScore = 15; // baseline trade match
+  let attendanceStatus = 'PRESENT';
+  let attendanceLabel = 'Present & Clocked In';
+  let attendanceScore = 30; // Max 30 pts
+
+  if (hasApprovedLeave) {
+    attendanceStatus = 'ON_LEAVE';
+    attendanceLabel = 'On Approved Leave';
+    attendanceScore = 0;
+  } else if (worker.dispatchState === 'Offline') {
+    attendanceStatus = 'OFFLINE';
+    attendanceLabel = 'Offline / Off Duty';
+    attendanceScore = 0;
+  } else if (worker.dispatchState === 'Suspended') {
+    attendanceStatus = 'SUSPENDED';
+    attendanceLabel = 'Account Suspended';
+    attendanceScore = 0;
+  } else if (worker.dispatchState === 'Busy on Booking') {
+    attendanceStatus = 'BUSY';
+    attendanceLabel = 'Present (On Live Job)';
+    attendanceScore = 18;
+  }
+
+  // 2. Workload Fairness & Active Capacity (30% Weight)
+  const maxDailyJobs = worker.availabilityPreferences?.maxDailyJobs || 4;
+  const isCapacityReached = activeJobsCount >= maxDailyJobs;
+  let workloadScore = 30; // Max 30 pts
+  let workloadStatus = 'OPTIMAL';
+  let workloadLabel = `Optimal (0/${maxDailyJobs} active)`;
+
+  if (isCapacityReached) {
+    workloadScore = 0;
+    workloadStatus = 'CAPACITY_REACHED';
+    workloadLabel = `Max Capacity (${activeJobsCount}/${maxDailyJobs} active)`;
+  } else if (activeJobsCount === 0) {
+    workloadScore = 30;
+    workloadStatus = 'OPTIMAL';
+    workloadLabel = `Optimal (0/${maxDailyJobs} active)`;
+  } else if (activeJobsCount === 1) {
+    workloadScore = 22;
+    workloadStatus = 'MODERATE';
+    workloadLabel = `Moderate (1/${maxDailyJobs} active)`;
+  } else if (activeJobsCount === 2) {
+    workloadScore = 14;
+    workloadStatus = 'MODERATE';
+    workloadLabel = `Moderate (2/${maxDailyJobs} active)`;
+  } else {
+    workloadScore = 6;
+    workloadStatus = 'HEAVY';
+    workloadLabel = `Heavy (${activeJobsCount}/${maxDailyJobs} active)`;
+  }
+
+  if (isSlotConflict) {
+    workloadScore = Math.max(0, workloadScore - 20);
+  }
+
+  // 3. Skill & Category Compatibility (20% Weight)
+  let skillScore = 10;
   const bookingCategory = (booking.serviceCategory || booking.serviceName || '').toLowerCase();
   const workerTrade = (worker.trade || worker.tradeName || '').toLowerCase();
   const workerSkills = (worker.skills || []).map(s => s.toLowerCase());
   const workerCategories = (worker.categories || []).map(c => c.toLowerCase());
 
-  if (workerTrade.includes(bookingCategory) || bookingCategory.includes(workerTrade)) {
+  if (workerTrade.includes(bookingCategory) || bookingCategory.includes(workerTrade) || workerTrade.includes('all services')) {
     skillScore += 5;
   }
   const matchedSkill = workerSkills.some(s => bookingCategory.includes(s) || s.includes(bookingCategory)) ||
                        workerCategories.some(c => bookingCategory.includes(c) || c.includes(bookingCategory));
   if (matchedSkill) {
-    skillScore = 25;
+    skillScore = 20;
   }
 
-  // 3. Availability & Schedule Fit (15%)
-  let availScore = 10;
-  if (worker.dispatchState === 'Available') {
-    availScore = 15;
-  } else if (worker.dispatchState === 'Busy on Booking') {
-    availScore = 4;
-  }
+  // 4. Travel ETA Score (15% Weight)
+  const travelScore = Math.max(0, (1 - Math.min(distanceKm, 15) / 15)) * 15;
 
-  // 4. Worker Reliability (10%)
-  const onTimeRate = worker.onTimeArrivalRate != null ? worker.onTimeArrivalRate : 98;
-  const cancelRate = worker.cancellationRate != null ? worker.cancellationRate : 1.5;
-  const reliabilityScore = ((onTimeRate / 100) * 6) + (((100 - cancelRate) / 100) * 4);
-
-  // 5. Workload Fairness (10%)
-  // Lower recent jobs completed today = higher score to prevent burnout
-  const jobsCompletedToday = worker.jobsToday || (worker.jobsCompleted % 4) || 0;
-  const workloadScore = Math.max(0, (4 - jobsCompletedToday) / 4) * 10;
-
-  // 6. Customer Rating (5%)
+  // 5. Customer Rating (5% Weight)
   const rating = worker.rating || 4.85;
   const ratingScore = (Math.min(5, Math.max(1, rating)) / 5) * 5;
 
-  const totalScore = parseFloat((travelScore + skillScore + availScore + reliabilityScore + workloadScore + ratingScore).toFixed(2));
+  const totalScore = parseFloat((attendanceScore + workloadScore + skillScore + travelScore + ratingScore).toFixed(2));
 
   return {
     worker,
     totalScore,
+    attendanceStatus,
+    attendanceLabel,
+    attendanceScore: parseFloat(attendanceScore.toFixed(2)),
+    workloadStatus,
+    workloadLabel,
+    workloadScore: parseFloat(workloadScore.toFixed(2)),
+    activeJobsCount,
+    maxDailyJobs,
+    isCapacityReached,
     breakdown: {
-      travelScore: parseFloat(travelScore.toFixed(2)),
-      skillScore: parseFloat(skillScore.toFixed(2)),
-      availScore: parseFloat(availScore.toFixed(2)),
-      reliabilityScore: parseFloat(reliabilityScore.toFixed(2)),
+      attendanceScore: parseFloat(attendanceScore.toFixed(2)),
       workloadScore: parseFloat(workloadScore.toFixed(2)),
+      skillScore: parseFloat(skillScore.toFixed(2)),
+      travelScore: parseFloat(travelScore.toFixed(2)),
       ratingScore: parseFloat(ratingScore.toFixed(2)),
       distanceKm,
       workerCoords
@@ -294,8 +346,7 @@ export async function findEligibleProfessionals(bookingIdOrDoc, { scopePartnerId
 
   // 2. Query Approved Workers from MongoDB
   const query = {
-    status: 'Approved',
-    dispatchState: { $nin: ['Offline', 'Suspended'] }
+    status: 'Approved'
   };
 
   // Partner Scope Check (Requirement A.11)
@@ -338,7 +389,7 @@ export async function findEligibleProfessionals(bookingIdOrDoc, { scopePartnerId
     onlineWorkerIds = await getOnlineWorkerIds();
   } catch {}
 
-  // 5. Score & Rank Each Worker
+  // 5. Score & Rank Each Worker based on Attendance, Workload Fairness, Distance & Skills
   const scoredCandidates = allWorkers.map(worker => {
     // Determine worker coordinates
     let workerCoords;
@@ -354,10 +405,13 @@ export async function findEligibleProfessionals(bookingIdOrDoc, { scopePartnerId
     const distanceKm = calculateDistanceKm(workerCoords, customerCoords);
     const etaMinutes = Math.max(4, Math.round(distanceKm * 3.0 + 3));
 
-    const scoreResult = calculateWorkerScore(worker, booking, customerCoords);
+    const activeJobsCount = workerActiveCountMap[worker.id] || 0;
     const isSlotConflict = busyWorkerIds.has(worker.id);
-    const isBusy = isSlotConflict || worker.dispatchState === 'Busy on Booking';
+    const scoreResult = calculateWorkerScore(worker, booking, customerCoords, activeJobsCount, isSlotConflict);
+
+    const isAvailable = (scoreResult.attendanceStatus === 'PRESENT') && !isSlotConflict && !scoreResult.isCapacityReached;
     const isOnline = onlineWorkerIds.includes(worker.id) || worker.dispatchState !== 'Offline';
+    const isBusy = isSlotConflict || worker.dispatchState === 'Busy on Booking';
 
     return {
       worker: {
@@ -379,7 +433,8 @@ export async function findEligibleProfessionals(bookingIdOrDoc, { scopePartnerId
         partnerAgencyId: worker.partnerAgencyId || '',
         partnerAgencyName: worker.partnerAgencyName || '',
         tier: worker.tier || 'Verified Partner',
-        location: worker.location
+        location: worker.location,
+        leaves: worker.leaves || []
       },
       distanceKm,
       etaMinutes,
@@ -387,16 +442,32 @@ export async function findEligibleProfessionals(bookingIdOrDoc, { scopePartnerId
       isOnline,
       isBusy,
       isSlotConflict,
-      activeBookingsCount: workerActiveCountMap[worker.id] || 0,
+      isAvailable,
+      attendanceStatus: scoreResult.attendanceStatus,
+      attendanceLabel: scoreResult.attendanceLabel,
+      attendanceScore: scoreResult.attendanceScore,
+      workloadStatus: scoreResult.workloadStatus,
+      workloadLabel: scoreResult.workloadLabel,
+      workloadScore: scoreResult.workloadScore,
+      activeBookingsCount: activeJobsCount,
+      maxDailyJobs: scoreResult.maxDailyJobs,
+      isCapacityReached: scoreResult.isCapacityReached,
       totalScore: scoreResult.totalScore,
       scoreBreakdown: scoreResult.breakdown
     };
   });
 
-  // Sort by available first, then highest score, then closest distance
+  // Sort by:
+  // 1. Available first (present & not capacity reached)
+  // 2. Least active jobs (Workload fairness)
+  // 3. Highest overall score
+  // 4. Closest distance
   scoredCandidates.sort((a, b) => {
-    if (a.isBusy !== b.isBusy) {
-      return a.isBusy ? 1 : -1;
+    if (a.isAvailable !== b.isAvailable) {
+      return a.isAvailable ? -1 : 1;
+    }
+    if (a.activeBookingsCount !== b.activeBookingsCount) {
+      return a.activeBookingsCount - b.activeBookingsCount;
     }
     if (b.totalScore !== a.totalScore) {
       return b.totalScore - a.totalScore;
@@ -970,9 +1041,11 @@ export async function triggerAutoAssignment(bookingIdOrDoc, { excludeProIds = []
 
   const { candidates } = await findEligibleProfessionals(booking, { excludeProIds: combinedExcluded });
 
-  // Pick top available candidate (must be online, available, not conflicting, and category-compatible)
+  // Pick top available candidate (strictly based on attendance: PRESENT & not on leave, and workload: not capacity reached & not slot conflict, plus trade-compatible)
   const availableCandidate = candidates.find(c => {
-    if (!c.isOnline || c.isBusy || c.isSlotConflict) return false;
+    if (c.attendanceStatus !== 'PRESENT') return false;
+    if (c.isCapacityReached || c.isSlotConflict) return false;
+    if (!c.isAvailable) return false;
     
     // Check trade/category compatibility
     const wTrade = (c.worker.trade || '').toLowerCase();

@@ -98,6 +98,34 @@ export function Navbar({
 
   const cartItemCount = Object.values(cart).reduce((sum, item) => sum + item.qty, 0);
 
+  const handleExecuteSearch = (overrideQuery) => {
+    const q = (typeof overrideQuery === 'string' ? overrideQuery : searchQuery).trim();
+    if (!q) {
+      setShowSearchDropdown(true);
+      return;
+    }
+    const qTokens = q.toLowerCase().split(/\s+/).filter(Boolean);
+    const matches = services.filter(s => {
+      const title = (s.title || '').toLowerCase();
+      const subcategory = (s.subcategory || '').toLowerCase();
+      const category = (s.category || '').toLowerCase();
+      const description = (s.description || '').toLowerCase();
+      const combined = `${title} ${subcategory} ${category} ${description}`;
+      if (combined.includes(q.toLowerCase())) return true;
+      if (qTokens.every(token => combined.includes(token))) return true;
+      return false;
+    });
+
+    if (matches.length > 0) {
+      if (onSelectService) {
+        onSelectService(matches[0]);
+      }
+      setShowSearchDropdown(false);
+    } else {
+      setShowSearchDropdown(true);
+    }
+  };
+
   return (
     <header className="uc-navbar-exact">
       <div className="container-custom uc-nav-row">
@@ -155,19 +183,43 @@ export function Navbar({
             <ChevronDown size={14} color="#6B7280" />
           </div>
 
-          {/* Search Box (Rounded box with "Search for 'Electricians'") */}
+          {/* Search Box with Clickable Search Button and Enter key support */}
           <div className="uc-exact-search-container" ref={searchRef}>
-            <div className="uc-exact-search-box">
-              <Search size={16} color="#6B7280" />
+            <form
+              className="uc-exact-search-box"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleExecuteSearch();
+              }}
+            >
+              <button
+                type="submit"
+                id="landing-search-btn"
+                className="uc-search-submit-btn"
+                title="Search services"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#6B7280'
+                }}
+              >
+                <Search size={16} />
+              </button>
               <input
                 type="text"
+                id="landing-search-input"
                 className="uc-search-bare-input"
                 placeholder={
                   activeNavTab === 'beauty'
                     ? "Search for 'Ayurvedic massage'"
                     : activeNavTab === 'native'
                       ? "Search for 'Water Purifier'"
-                      : "Search for 'Electricians'"
+                      : "Search for 'Electricians', 'AC Repair'..."
                 }
                 value={searchQuery}
                 onChange={(e) => {
@@ -175,6 +227,12 @@ export function Navbar({
                   setShowSearchDropdown(true);
                 }}
                 onFocus={() => setShowSearchDropdown(true)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleExecuteSearch();
+                  }
+                }}
               />
               {searchQuery && (
                 <button
@@ -185,7 +243,7 @@ export function Navbar({
                   <X size={14} />
                 </button>
               )}
-            </div>
+            </form>
 
             {/* Live Autocomplete Dropdown */}
             {showSearchDropdown && (

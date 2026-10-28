@@ -1,14 +1,17 @@
+import { WorkerApplication } from '../models/WorkerApplication.js';
+import { Booking } from '../models/Booking.js';
+
 let mockLocations = [
   {
     id: 'LOC-1',
     city: 'Mumbai',
     state: 'Maharashtra',
     status: 'Active',
-    activeSurge: true,
-    surgeAmount: 49,
+    activeSurge: false,
+    surgeAmount: 0,
     coverageRadiusKm: 40,
-    activePros: 820,
-    monthlyGMV: 4843294,
+    activePros: 0,
+    monthlyGMV: 0,
     workingHours: { start: '08:00', end: '21:00', timezone: 'Asia/Kolkata (IST, UTC+05:30)' },
     slotCapacityPerHour: 35,
     holidays: ['26 Jan 2027 (Republic Day)', '15 Aug 2027 (Independence Day)', '24 Oct 2027 (Diwali)'],
@@ -106,10 +109,32 @@ let mockLocations = [
 // 1. Get All Locations & Operational Zones
 export async function getLocations(req, res) {
   try {
+    const [workers, bookings] = await Promise.all([
+      WorkerApplication.find().lean().catch(() => []),
+      Booking.find().lean().catch(() => [])
+    ]);
+
+    const enrichedLocations = mockLocations.map(loc => {
+      const cityWorkers = workers.filter(w => 
+        (w.city || '').toLowerCase() === loc.city.toLowerCase() && 
+        (w.status === 'Approved' || w.status === 'Active')
+      );
+      const cityBookings = bookings.filter(b => 
+        (b.city || '').toLowerCase() === loc.city.toLowerCase()
+      );
+      const cityGmv = cityBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
+
+      return {
+        ...loc,
+        activePros: cityWorkers.length,
+        monthlyGMV: cityGmv
+      };
+    });
+
     return res.json({
       success: true,
-      count: mockLocations.length,
-      locations: mockLocations
+      count: enrichedLocations.length,
+      locations: enrichedLocations
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });

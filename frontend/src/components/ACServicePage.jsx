@@ -84,7 +84,8 @@ export function ACServicePage({
   onUpdateQty,
   onOpenCart,
   onOpenCheckout,
-  showToast = () => {}
+  showToast = () => {},
+  services = []
 }) {
   const [activeSubTab, setActiveSubTab] = useState('packages'); // 'packages' | 'service' | 'repair' | 'install'
   const [activeBannerSlide, setActiveBannerSlide] = useState(0); // 0 = Co-Pilot, 1 = Foam Jet
@@ -427,14 +428,53 @@ export function ACServicePage({
     }
   ];
 
+  // Dynamic AC services added in Admin Dashboard Catalogue
+  const effectiveACServices = React.useMemo(() => {
+    const baseIds = new Set(AC_SERVICES.map(s => s.id));
+    const dynamicAC = (services || []).filter(s => {
+      if (baseIds.has(s.id)) return false;
+      const cat = (s.category || '').toLowerCase();
+      const catName = (s.categoryName || '').toLowerCase();
+      const sub = (s.subcategory || '').toLowerCase();
+      const title = (s.title || '').toLowerCase();
+      return (
+        cat === 'ac-appliances' ||
+        cat.includes('ac') ||
+        catName.includes('ac') ||
+        sub.includes('ac') ||
+        title.includes('ac') ||
+        title.includes('foam')
+      );
+    }).map(s => ({
+      id: s.id,
+      sectionId: 'packages',
+      sectionTitle: s.subcategory || 'Featured Catalogue Services',
+      title: s.title,
+      rating: s.rating ? String(s.rating) : '4.85',
+      reviews: s.reviewsCount || '1.2K reviews',
+      price: s.price,
+      originalPrice: s.originalPrice || Math.round(s.price * 1.25),
+      duration: s.duration || `${s.durationMins || 60} mins`,
+      perUnitNote: 'Verified Admin Catalogue Service',
+      isHero: true,
+      hasGasCheckBadge: true,
+      image: s.image || '/images/hero_ac.jpg',
+      inclusions: s.includedWork && s.includedWork.length > 0
+        ? s.includedWork
+        : ['Comprehensive doorstep inspection and servicing', 'Pre-service diagnostics and safety testing', '30-day service guarantee']
+    }));
+
+    return [...dynamicAC, ...AC_SERVICES];
+  }, [services]);
+
   // Filter based on search query
   const filteredServices = searchQuery.trim()
-    ? AC_SERVICES.filter(s => 
+    ? effectiveACServices.filter(s => 
         s.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         s.sectionTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (s.options && s.options.some(opt => opt.title.toLowerCase().includes(searchQuery.toLowerCase())))
       )
-    : AC_SERVICES;
+    : effectiveACServices;
 
   // Cart totals
   const cartEntries = Object.entries(cart);
@@ -450,7 +490,7 @@ export function ACServicePage({
   }
 
   // Hero package (2 ACs)
-  const heroPackage = AC_SERVICES.find(s => s.id === 'foam-jet-service-2') || AC_SERVICES[0];
+  const heroPackage = effectiveACServices.find(s => s.id === 'foam-jet-service-2') || effectiveACServices[0];
   const heroPkgQty = cart[heroPackage.id]?.qty || 0;
 
   return (

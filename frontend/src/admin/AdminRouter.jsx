@@ -138,20 +138,15 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
     localStorage.removeItem('uc_admin_token');
     localStorage.removeItem('uc_admin_user');
     localStorage.removeItem('uc_user');
+    localStorage.removeItem('uc_open_portal');
     setIsAuthenticated(false);
     
     // Broadcast event across app
     window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: null } }));
 
-    if (onAppLogout) {
-      onAppLogout();
-    } else if (onExitToMarketplace) {
-      onExitToMarketplace();
-    } else {
-      window.history.pushState({}, '', '/');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    }
-  }, [onAppLogout, onExitToMarketplace]);
+    // Unconditionally redirect straight to landing page
+    window.location.href = '/';
+  }, []);
 
   const handleToggleWeatherSurge = useCallback((active) => {
     setWeatherSurge(active);
@@ -165,13 +160,8 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
   }, [showToast]);
 
   const handleExitToMarketplace = useCallback(() => {
-    if (onExitToMarketplace) {
-      onExitToMarketplace();
-    } else {
-      window.history.pushState({}, '', '/');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    }
-  }, [onExitToMarketplace]);
+    window.location.href = '/';
+  }, []);
 
   // If path is specifically /admin/login or user is unauthenticated
   if (!isAuthenticated || currentPath === '/admin/login') {

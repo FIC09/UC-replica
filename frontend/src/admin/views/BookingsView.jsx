@@ -129,73 +129,111 @@ export function BookingsView({ onShowToast, onNavigate }) {
     fetchAssignmentStats();
   }, []);
 
-  // WebSocket real-time subscription for operations dispatch, bookings & offers
-  useEffect(() => {
-    const adminToken = sessionStorage.getItem('uc_admin_token') || localStorage.getItem('uc_admin_token') || '';
-    const socket = getSocket({ role: 'admin', token: adminToken });
-    socket.emit('join:room', { room: 'admin:operations', token: adminToken });
+  // Active filters ref for instant real-time synchronization
+  const filtersRef = useRef({});
+  filtersRef.current = {
+    search,
+    statusFilter,
+    paymentFilter,
+    cityFilter,
+    categoryFilter,
+    partnerFilter,
+    assignedFilter,
+    dateRangeFilter,
+    sortBy,
+    sortOrder,
+    page
+  };
 
-    const handleAssignmentEvent = (event) => {
-      if (!event) return;
-      const type = event.eventType || event.type;
-      const payload = event.payload || {};
-
-      if ([
-        'ASSIGNMENT_OFFERED',
-        'ASSIGNMENT_ACCEPTED',
-        'OFFER_REJECTED',
-        'OFFER_EXPIRED',
-        'ASSIGNMENT_FAILED',
-        'ASSIGNMENT_MODE_CHANGED',
-        'BOOKING_CREATED',
-        'BOOKING_CONFIRMED'
-      ].includes(type)) {
-        fetchBookingsList();
-        fetchAssignmentStats();
-
-        if (type === 'BOOKING_CREATED') {
-          onShowToast && onShowToast(`🛎️ New booking received: ${event.entityId || payload.id || 'Order Placed'}!`);
-        } else if (type === 'ASSIGNMENT_ACCEPTED') {
-          onShowToast && onShowToast(`✓ Professional accepted offer for booking ${event.entityId || payload.bookingId}!`);
-        } else if (type === 'OFFER_REJECTED') {
-          onShowToast && onShowToast(`⚠️ Professional declined offer for ${event.entityId || payload.bookingId}: ${payload.reason || 'declined'}`);
-        } else if (type === 'OFFER_EXPIRED') {
-          onShowToast && onShowToast(`⌛ Assignment offer expired for booking ${event.entityId || payload.bookingId}`);
-        } else if (type === 'ASSIGNMENT_FAILED') {
-          onShowToast && onShowToast(`🚨 Auto-assignment exhausted candidates for ${event.entityId || payload.bookingId}. Marked Awaiting Owner Attention.`);
-        } else if (type === 'ASSIGNMENT_OFFERED') {
-          onShowToast && onShowToast(`📡 Offer dispatched to ${payload.proName || 'candidate'} for booking ${event.entityId || payload.bookingId}`);
-        }
-      }
+  // Fetch bookings with current filters (supports silent background refresh)
+  const fetchBookingsList = (showLoadingSpinner = true) => {
+    if (showLoadingSpinner) {
+      setLoading(true);
+    }
+    const current = filtersRef.current || {};
+    const params = {
+      search: current.search || search,
+      status: current.statusFilter || statusFilter,
+      paymentStatus: current.paymentFilter || paymentFilter,
+      city: current.cityFilter || cityFilter,
+      category: current.categoryFilter || categoryFilter,
+      partnerAgency: current.partnerFilter || partnerFilter,
+      assigned: current.assignedFilter || assignedFilter,
+      dateRange: current.dateRangeFilter || dateRangeFilter,
+      sortBy: current.sortBy || sortBy,
+      sortOrder: current.sortOrder || sortOrder,
+      page: current.page || page,
+      limit: 10
     };
 
-    socket.on('realtime:event', handleAssignmentEvent);
-    socket.on('BOOKING_CREATED', handleAssignmentEvent);
-    socket.on('BOOKING_CONFIRMED', handleAssignmentEvent);
-    socket.on('ASSIGNMENT_OFFERED', handleAssignmentEvent);
-    socket.on('ASSIGNMENT_ACCEPTED', handleAssignmentEvent);
-    socket.on('OFFER_REJECTED', handleAssignmentEvent);
-    socket.on('OFFER_EXPIRED', handleAssignmentEvent);
-    socket.on('ASSIGNMENT_FAILED', handleAssignmentEvent);
-    socket.on('ASSIGNMENT_MODE_CHANGED', handleAssignmentEvent);
+    return adminClient.getBookings(params)
+      .then(res => {
+        setBookings(res.bookings || []);
+        if (res.pagination) {
+          setPagination(res.pagination);
+        }
+        if (showLoadingSpinner) {
+          setLoading(false);
+        }
+        return res;
+      })
+      .catch(() => {
+        if (showLoadingSpinner) {
+          setLoading(false);
+        }
+      });
+  };
 
-    // Safety background polling every 10 seconds ensures fresh booking updates always reflect
-    const pollInterval = setInterval(() => {
-      fetchBookingsList();
+  // Automatic Real-Time Synchronization Engine (BroadcastChannel + LocalStorage + Focus + 3s Silent Poll)
+  useEffect(() => {
+    // 1. Instant 0ms Cross-Tab Sync via BroadcastChannel
+    let broadcastChannel = null;
+    try {
+      broadcastChannel = new BroadcastChannel('uc_sync_channel');
+      broadcastChannel.onmessage = (event) => {
+        const data = event.data || {};
+        if (data.type === 'BOOKING_CREATED' || data.type === 'BOOKING_UPDATED' || data.type === 'BOOKING_DELETED') {
+          fetchBookingsList(false); // Immediate silent refresh
+          fetchAssignmentStats();
+          const bookingId = data.booking?.id || data.bookingId || data.id || 'Order';
+          if (data.type === 'BOOKING_DELETED') {
+            onShowToast && onShowToast(`🗑️ Booking record ${bookingId} removed.`);
+          } else {
+            onShowToast && onShowToast(`🛎️ Real-time sync: ${bookingId} updated!`);
+          }
+        }
+      };
+    } catch (bcErr) {}
+
+    // 2. Cross-Tab Fallback via Storage Event
+    const handleStorageEvent = (e) => {
+      if (e.key === 'uc_last_booking_event') {
+        fetchBookingsList(false);
+        fetchAssignmentStats();
+      }
+    };
+    window.addEventListener('storage', handleStorageEvent);
+
+    // 3. Immediate Refresh when switching to the Admin Dashboard Tab
+    const handleTabFocus = () => {
+      fetchBookingsList(false);
       fetchAssignmentStats();
-    }, 10000);
+    };
+    window.addEventListener('focus', handleTabFocus);
+
+    // 4. Continuous Fast Silent Background Polling (Every 3 seconds)
+    const pollInterval = setInterval(() => {
+      fetchBookingsList(false);
+      fetchAssignmentStats();
+    }, 3000);
 
     return () => {
       clearInterval(pollInterval);
-      socket.off('realtime:event', handleAssignmentEvent);
-      socket.off('BOOKING_CREATED', handleAssignmentEvent);
-      socket.off('BOOKING_CONFIRMED', handleAssignmentEvent);
-      socket.off('ASSIGNMENT_OFFERED', handleAssignmentEvent);
-      socket.off('ASSIGNMENT_ACCEPTED', handleAssignmentEvent);
-      socket.off('OFFER_REJECTED', handleAssignmentEvent);
-      socket.off('OFFER_EXPIRED', handleAssignmentEvent);
-      socket.off('ASSIGNMENT_FAILED', handleAssignmentEvent);
-      socket.off('ASSIGNMENT_MODE_CHANGED', handleAssignmentEvent);
+      window.removeEventListener('storage', handleStorageEvent);
+      window.removeEventListener('focus', handleTabFocus);
+      if (broadcastChannel) {
+        try { broadcastChannel.close(); } catch (e) {}
+      }
     };
   }, []);
 
@@ -229,7 +267,17 @@ export function BookingsView({ onShowToast, onNavigate }) {
             isAvailable: c.isAvailable != null ? c.isAvailable : (!c.isBusy),
             isEligible: c.isEligible != null ? c.isEligible : true,
             distanceKm: c.distanceKm != null ? c.distanceKm : 1.5,
-            score: c.score != null ? c.score : (c.totalScore || 80)
+            score: c.score != null ? c.score : (c.totalScore || 80),
+            attendanceStatus: c.attendanceStatus || (w.dispatchState === 'Offline' ? 'OFFLINE' : 'PRESENT'),
+            attendanceLabel: c.attendanceLabel || (w.dispatchState === 'Offline' ? 'Offline' : 'Present & Available'),
+            attendanceScore: c.attendanceScore != null ? c.attendanceScore : 30,
+            workloadStatus: c.workloadStatus || 'OPTIMAL',
+            workloadLabel: c.workloadLabel || 'Optimal (0 active jobs)',
+            workloadScore: c.workloadScore != null ? c.workloadScore : 30,
+            activeBookingsCount: c.activeBookingsCount || 0,
+            maxDailyJobs: c.maxDailyJobs || 4,
+            isCapacityReached: !!c.isCapacityReached,
+            isSlotConflict: !!c.isSlotConflict
           };
         });
         setEligiblePros(normalized);
@@ -267,6 +315,40 @@ export function BookingsView({ onShowToast, onNavigate }) {
     }
   };
 
+  const handleDirectAssignWorker = async () => {
+    const booking = manualAssignBooking || selectedBooking;
+    if (!booking || !selectedCandidate) return;
+    setIsSubmittingOffer(true);
+    try {
+      const res = await adminClient.assignProfessional(booking.id || booking.bookingReference, {
+        professionalId: selectedCandidate.id,
+        professionalName: selectedCandidate.name,
+        professionalPhone: selectedCandidate.phone,
+        trade: selectedCandidate.trade || selectedCandidate.tradeName || 'Specialist Technician',
+        partnerAgency: selectedCandidate.partnerAgencyName || ''
+      });
+      if (res && res.success !== false) {
+        onShowToast && onShowToast(`✓ Worker ${selectedCandidate.name} directly assigned to ${booking.id || booking.bookingReference}!`);
+        setManualAssignBooking(null);
+        setShowAssignModal(false);
+        setSelectedCandidate(null);
+        fetchBookingsList(false);
+        fetchAssignmentStats();
+        try {
+          const syncChannel = new BroadcastChannel('uc_sync_channel');
+          syncChannel.postMessage({ type: 'BOOKING_UPDATED', bookingId: booking.id, timestamp: Date.now() });
+          syncChannel.close();
+        } catch (e) {}
+      } else {
+        onShowToast && onShowToast(`Assignment notice: ${res?.error || res?.message || 'Error assigning professional'}`);
+      }
+    } catch (err) {
+      onShowToast && onShowToast(`Failed to assign worker: ${err.message}`);
+    } finally {
+      setIsSubmittingOffer(false);
+    }
+  };
+
   const handleSwitchMode = async (bookingId, currentMode) => {
     const newMode = currentMode === 'AUTO' ? 'MANUAL' : 'AUTO';
     try {
@@ -295,39 +377,9 @@ export function BookingsView({ onShowToast, onNavigate }) {
     }
   };
 
-  // Fetch bookings with current filters
-  const fetchBookingsList = () => {
-    setLoading(true);
-    const params = {
-      search,
-      status: statusFilter,
-      paymentStatus: paymentFilter,
-      city: cityFilter,
-      category: categoryFilter,
-      partnerAgency: partnerFilter,
-      assigned: assignedFilter,
-      dateRange: dateRangeFilter,
-      sortBy,
-      sortOrder,
-      page,
-      limit: 10
-    };
-
-    adminClient.getBookings(params)
-      .then(res => {
-        setBookings(res.bookings || []);
-        if (res.pagination) {
-          setPagination(res.pagination);
-        }
-        setLoading(false);
-      })
-      .catch(() => {
-        setLoading(false);
-      });
-  };
-
+  // Filter change listener
   useEffect(() => {
-    fetchBookingsList();
+    fetchBookingsList(true);
   }, [search, statusFilter, paymentFilter, cityFilter, categoryFilter, partnerFilter, assignedFilter, dateRangeFilter, sortBy, sortOrder, page]);
 
   // Load available professionals for assignment
@@ -824,6 +876,10 @@ export function BookingsView({ onShowToast, onNavigate }) {
     }
     if (candidateFilter === 'AVAILABLE') {
       list = list.filter(p => p.isAvailable && p.isOnline);
+    } else if (candidateFilter === 'PRESENT') {
+      list = list.filter(p => p.attendanceStatus === 'PRESENT');
+    } else if (candidateFilter === 'OPTIMAL_WORKLOAD') {
+      list = list.filter(p => (p.activeBookingsCount || 0) === 0 && !p.isCapacityReached);
     } else if (candidateFilter === 'TOP_RATED') {
       list = list.filter(p => (p.rating || 0) >= 4.5);
     } else if (candidateFilter === 'CLOSEST') {
@@ -854,7 +910,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
           </span>
           <button
             type="button"
-            onClick={fetchBookingsList}
+            onClick={() => { fetchBookingsList(true); fetchAssignmentStats(); }}
             title="Refresh bookings from Atlas"
             style={{
               display: 'inline-flex',
@@ -2397,12 +2453,13 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {[
                     { id: 'ALL', label: `All (${eligiblePros.length})` },
-                    { id: 'AVAILABLE', label: `Online & Available (${eligiblePros.filter(p => p.isOnline && p.isAvailable).length})` },
-                    { id: 'TOP_RATED', label: `Top Rated (⭐ 4.5+)` },
-                    { id: 'CLOSEST', label: `Closest Distance` }
+                    { id: 'PRESENT', label: `🟢 Present & On Duty (${eligiblePros.filter(p => p.attendanceStatus === 'PRESENT').length})` },
+                    { id: 'OPTIMAL_WORKLOAD', label: `⚡ 0 Active Jobs (${eligiblePros.filter(p => (p.activeBookingsCount || 0) === 0).length})` },
+                    { id: 'AVAILABLE', label: `Ready to Assign (${eligiblePros.filter(p => p.isAvailable).length})` },
+                    { id: 'TOP_RATED', label: `Top Rated (⭐ 4.5+)` }
                   ].map(f => (
                     <button
                       key={f.id}
@@ -2411,12 +2468,13 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       style={{
                         padding: '5px 10px',
                         borderRadius: 6,
-                        border: candidateFilter === f.id ? '1px solid #6E42E5' : '1px solid #E2E8F0',
+                        border: candidateFilter === f.id ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
                         backgroundColor: candidateFilter === f.id ? '#F5F3FF' : '#FFFFFF',
                         color: candidateFilter === f.id ? '#6E42E5' : '#64748B',
                         fontSize: 11,
-                        fontWeight: 600,
-                        cursor: 'pointer'
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
                       }}
                     >
                       {f.label}
@@ -2438,19 +2496,24 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 {loadingEligiblePros ? (
                   <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748B' }}>
                     <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px auto', display: 'block', color: '#7C3AED' }} />
-                    <div style={{ fontWeight: 600, fontSize: 13 }}>Evaluating qualified nearby professionals...</div>
-                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>Calculating real GeoJSON road distances, shift availability &amp; ratings</div>
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>Evaluating technicians by Attendance &amp; Workload criteria...</div>
+                    <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>Verifying shift presence, active bookings count, leaves, and travel distance</div>
                   </div>
                 ) : filteredCandidates.length === 0 ? (
                   <div style={{ textAlign: 'center', padding: '40px 20px', color: '#64748B' }}>
                     <AlertCircle size={28} color="#94A3B8" style={{ margin: '0 auto 8px auto', display: 'block' }} />
-                    <div style={{ fontWeight: 700, color: '#334155' }}>No qualified candidates match current filter</div>
-                    <div style={{ fontSize: 12, marginTop: 4 }}>Try clearing search keywords or switching filters to "All".</div>
+                    <div style={{ fontWeight: 700, color: '#334155' }}>No technicians match current filter</div>
+                    <div style={{ fontSize: 12, marginTop: 4 }}>Try switching filters to "All" to inspect the complete technician roster.</div>
                   </div>
                 ) : (
                   filteredCandidates.map(candidate => {
                     const isSelected = selectedCandidate?.id === candidate.id;
-                    const canAssign = candidate.isEligible && candidate.isOnline && candidate.isAvailable;
+                    const canAssign = candidate.isEligible && candidate.isAvailable;
+
+                    const isPresent = candidate.attendanceStatus === 'PRESENT';
+                    const isOnLeave = candidate.attendanceStatus === 'ON_LEAVE';
+                    const isOptimalWorkload = (candidate.activeBookingsCount || 0) === 0;
+                    const isCapacityFull = candidate.isCapacityReached;
 
                     return (
                       <div
@@ -2462,7 +2525,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                         }}
                         style={{
                           backgroundColor: '#FFFFFF',
-                          borderRadius: 10,
+                          borderRadius: 12,
                           border: isSelected ? '2px solid #7C3AED' : '1px solid #E2E8F0',
                           padding: '14px 16px',
                           display: 'flex',
@@ -2471,31 +2534,31 @@ export function BookingsView({ onShowToast, onNavigate }) {
                           gap: 14,
                           cursor: canAssign ? 'pointer' : 'not-allowed',
                           opacity: canAssign ? 1 : 0.65,
-                          boxShadow: isSelected ? '0 4px 12px rgba(124, 58, 237, 0.15)' : '0 1px 3px rgba(0,0,0,0.02)',
+                          boxShadow: isSelected ? '0 4px 14px rgba(124, 58, 237, 0.15)' : '0 1px 3px rgba(0,0,0,0.02)',
                           transition: 'all 0.15s ease'
                         }}
                       >
-                        {/* Left: Avatar, Name, Verification, Skills */}
+                        {/* Left: Avatar, Name, Verification, Attendance & Workload Badges */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
                           <div style={{
-                            width: 42,
-                            height: 42,
+                            width: 44,
+                            height: 44,
                             borderRadius: '50%',
-                            backgroundColor: isSelected ? '#7C3AED' : '#F1F5F9',
-                            color: isSelected ? '#FFFFFF' : '#475569',
+                            backgroundColor: isSelected ? '#7C3AED' : (isPresent ? '#DCFCE7' : '#F1F5F9'),
+                            color: isSelected ? '#FFFFFF' : (isPresent ? '#15803D' : '#475569'),
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             fontWeight: 800,
-                            fontSize: 15,
+                            fontSize: 16,
                             flexShrink: 0
                           }}>
                             {candidate.name.charAt(0)}
                           </div>
 
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap' }}>
                                 {candidate.name}
                               </span>
                               {candidate.isVerified && (
@@ -2503,33 +2566,36 @@ export function BookingsView({ onShowToast, onNavigate }) {
                                   <ShieldCheck size={14} color="#0284C7" />
                                 </span>
                               )}
+                              {/* 1. ATTENDANCE CRITERIA BADGE */}
                               <span style={{
                                 fontSize: 10.5,
-                                fontWeight: 700,
-                                padding: '1px 6px',
+                                fontWeight: 800,
+                                padding: '2px 8px',
                                 borderRadius: 10,
-                                backgroundColor: candidate.isOnline ? '#DCFCE7' : '#F1F5F9',
-                                color: candidate.isOnline ? '#15803D' : '#64748B',
-                                border: `1px solid ${candidate.isOnline ? '#BBF7D0' : '#E2E8F0'}`
+                                backgroundColor: isPresent ? '#DCFCE7' : (isOnLeave ? '#FEE2E2' : '#F1F5F9'),
+                                color: isPresent ? '#15803D' : (isOnLeave ? '#B91C1C' : '#64748B'),
+                                border: `1px solid ${isPresent ? '#BBF7D0' : (isOnLeave ? '#FECACA' : '#E2E8F0')}`
                               }}>
-                                {candidate.isOnline ? '● Online' : '○ Offline'}
+                                {isPresent ? '● Present & On Duty' : (isOnLeave ? '🏖️ On Approved Leave' : '○ Offline')}
                               </span>
+
+                              {/* 2. WORKLOAD FAIRNESS CRITERIA BADGE */}
                               <span style={{
                                 fontSize: 10.5,
-                                fontWeight: 700,
-                                padding: '1px 6px',
+                                fontWeight: 800,
+                                padding: '2px 8px',
                                 borderRadius: 10,
-                                backgroundColor: candidate.isAvailable ? '#EFF6FF' : '#FEF3C7',
-                                color: candidate.isAvailable ? '#1D4ED8' : '#B45309',
-                                border: `1px solid ${candidate.isAvailable ? '#BFDBFE' : '#FDE68A'}`
+                                backgroundColor: isCapacityFull ? '#FEE2E2' : (isOptimalWorkload ? '#EFF6FF' : '#FEF3C7'),
+                                color: isCapacityFull ? '#B91C1C' : (isOptimalWorkload ? '#1D4ED8' : '#B45309'),
+                                border: `1px solid ${isCapacityFull ? '#FECACA' : (isOptimalWorkload ? '#BFDBFE' : '#FDE68A')}`
                               }}>
-                                {candidate.isAvailable ? 'Available' : `Busy (${candidate.activeBookingsCount} active)`}
+                                ⚡ Workload: {candidate.activeBookingsCount || 0} / {candidate.maxDailyJobs || 4} Jobs {isOptimalWorkload ? '(Optimal)' : (isCapacityFull ? '(Max Capacity)' : '(Moderate)')}
                               </span>
                             </div>
 
-                            {/* Skills Tags */}
+                            {/* Skills Tags & Trade */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: 11, fontWeight: 600, color: '#6E42E5' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#6E42E5' }}>
                                 {candidate.trade || 'Specialist'}:
                               </span>
                               {(candidate.skills || []).slice(0, 3).map((sk, idx) => (
@@ -2538,7 +2604,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
                                   backgroundColor: '#F1F5F9',
                                   color: '#334155',
                                   padding: '1px 6px',
-                                  borderRadius: 4
+                                  borderRadius: 4,
+                                  fontWeight: 600
                                 }}>
                                   {sk}
                                 </span>
@@ -2549,7 +2616,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                             {!canAssign && (
                               <div style={{
                                 fontSize: 11,
-                                fontWeight: 600,
+                                fontWeight: 700,
                                 color: '#DC2626',
                                 marginTop: 4,
                                 display: 'flex',
@@ -2557,34 +2624,37 @@ export function BookingsView({ onShowToast, onNavigate }) {
                                 gap: 4
                               }}>
                                 <Ban size={12} />
-                                Ineligible: {(candidate.ineligibilityReasons || []).join(', ') || (!candidate.isOnline ? 'Technician is currently offline' : 'Busy with conflicting job')}
+                                Ineligible: {isOnLeave ? 'Technician is on approved leave today' : (!candidate.isOnline ? 'Technician is currently offline' : (isCapacityFull ? 'Technician reached max daily job capacity (4/4)' : 'Busy with conflicting slot'))}
                               </div>
                             )}
                           </div>
                         </div>
 
-                        {/* Right: Real GeoJSON Distance, ETA, Rating, Match Score, Selection */}
+                        {/* Right: Scores & Criteria Breakdown */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16, textAlign: 'right', flexShrink: 0 }}>
                           <div>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
+                            <div style={{ fontSize: 12, fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
                               <MapPin size={12} color="#6E42E5" />
-                              {candidate.distanceKm != null ? `${candidate.distanceKm} km` : 'Near'} • ~{candidate.etaMinutes || 15} mins ETA
+                              {candidate.distanceKm != null ? `${candidate.distanceKm} km` : '0 km'} • ~{candidate.etaMinutes || 6}m ETA
                             </div>
                             <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, color: '#F59E0B', fontWeight: 700 }}>
                                 <Star size={11} fill="#F59E0B" /> {candidate.rating || '5.0'}
                               </span>
                               <span>•</span>
-                              <span>{candidate.completedJobs || 0} jobs</span>
-                              <span>•</span>
-                              <span style={{ color: '#059669', fontWeight: 700 }}>{candidate.score || 85}% match</span>
+                              <span style={{ color: '#059669', fontWeight: 800, backgroundColor: '#ECFDF5', padding: '1px 6px', borderRadius: 4, border: '1px solid #A7F3D0' }}>
+                                {candidate.score || 85}% Score
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 10, color: '#94A3B8', marginTop: 2 }}>
+                              Att: {candidate.attendanceScore || 30}pts • Workload: {candidate.workloadScore || 30}pts
                             </div>
                           </div>
 
                           {/* Select Radio / Checkmark */}
                           <div style={{
-                            width: 22,
-                            height: 22,
+                            width: 24,
+                            height: 24,
                             borderRadius: '50%',
                             border: isSelected ? '2px solid #7C3AED' : '2px solid #CBD5E1',
                             backgroundColor: isSelected ? '#7C3AED' : '#FFFFFF',
@@ -2639,6 +2709,38 @@ export function BookingsView({ onShowToast, onNavigate }) {
                     }}
                   >
                     Cancel
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={!selectedCandidate || isSubmittingOffer}
+                    onClick={handleDirectAssignWorker}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '9px 18px',
+                      borderRadius: 8,
+                      border: 'none',
+                      backgroundColor: selectedCandidate && !isSubmittingOffer ? '#059669' : '#CBD5E1',
+                      color: '#FFFFFF',
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: selectedCandidate && !isSubmittingOffer ? 'pointer' : 'not-allowed',
+                      boxShadow: selectedCandidate ? '0 4px 10px rgba(5, 150, 105, 0.25)' : 'none'
+                    }}
+                  >
+                    {isSubmittingOffer ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        Assigning Worker...
+                      </>
+                    ) : (
+                      <>
+                        <UserCheck size={14} />
+                        Direct Assign Worker
+                      </>
+                    )}
                   </button>
 
                   <button

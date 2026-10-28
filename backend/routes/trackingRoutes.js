@@ -528,12 +528,113 @@ router.post('/complete-service/:bookingId', async (req, res) => {
 router.get('/operations/all', async (req, res) => {
   try {
     const { partnerId, status } = req.query;
+
+    // 1. Authoritative Real-Time Reconcile with active Bookings in MongoDB
+    try {
+      const activeBookings = await Booking.find({
+        status: { $in: ['Assigned', 'En Route', 'Arrived', 'In Progress'] }
+      }).lean();
+
+      for (const booking of activeBookings) {
+        const assignedProName = booking.assignedProfessional?.name || booking.assignedPartner || booking.assignedWorker;
+        if (!assignedProName) continue; // Unassigned bookings do not have live worker tracking sessions
+
+        const assignedProId = booking.assignedProfessional?.id || booking.assignedProId || `WRK-${booking.id}`;
+        const assignedProTrade = booking.assignedProfessional?.trade || booking.serviceCategory || booking.serviceName || 'Service Specialist';
+        const assignedProPhone = booking.assignedProfessional?.phone || '+91 94432 10850';
+
+        const statusMap = {
+          'Assigned': 'assigned',
+          'En Route': 'en_route',
+          'Arrived': 'arrived',
+          'In Progress': 'in_progress',
+          'Completed': 'completed',
+          'Cancelled': 'cancelled'
+        };
+        const mappedStatus = statusMap[booking.status] || 'assigned';
+
+        let session = await TrackingSession.findOne({
+          $or: [{ bookingId: booking.id }, { bookingReference: booking.bookingReference || booking.id }]
+        });
+
+        if (!session) {
+          const customerCoords = resolveCoordinates(booking.address, booking.serviceZone, booking.city || 'Krishnagiri');
+          const workerCoords = {
+            lat: parseFloat((customerCoords.lat + 0.0055).toFixed(6)),
+            lng: parseFloat((customerCoords.lng - 0.0045).toFixed(6))
+          };
+          const roadRoute = await fetchRoadRouteWaypoints(workerCoords, customerCoords);
+
+          await TrackingSession.create({
+            id: `TRK-${booking.id}`,
+            bookingId: booking.id,
+            bookingReference: booking.bookingReference || booking.id,
+            workerId: assignedProId,
+            workerName: assignedProName,
+            workerPhone: assignedProPhone,
+            workerTrade: assignedProTrade,
+            workerRating: 4.95,
+            partnerId: booking.partnerAgency || '',
+            partnerName: booking.partnerAgency || '',
+            customerName: booking.userName || booking.customerName || 'Customer',
+            customerPhone: booking.userPhone || '',
+            customerAddress: booking.address,
+            customerCoords,
+            currentCoords: roadRoute.origin || workerCoords,
+            status: mappedStatus,
+            routePolyline: roadRoute.waypoints,
+            currentWaypointIndex: 0,
+            remainingDistanceKm: roadRoute.distanceKm || 2.4,
+            remainingEtaMinutes: roadRoute.etaMinutes || 6,
+            safetyPin: booking.safetyPin || '4829',
+            lastPingAt: new Date()
+          });
+        } else {
+          let needsUpdate = false;
+          if (session.workerName !== assignedProName) {
+            session.workerName = assignedProName;
+            session.workerId = assignedProId;
+            session.workerTrade = assignedProTrade;
+            needsUpdate = true;
+          }
+          if (session.status !== mappedStatus) {
+            session.status = mappedStatus;
+            needsUpdate = true;
+          }
+          if (needsUpdate) {
+            await session.save();
+          }
+        }
+      }
+
+      // Update tracking sessions for Cancelled or Completed bookings so they do not linger as active
+      const inactiveBookings = await Booking.find({
+        status: { $in: ['Cancelled', 'Completed', 'Failed'] }
+      }).lean();
+
+      for (const ib of inactiveBookings) {
+        const inactiveStatus = ib.status === 'Cancelled' ? 'cancelled' : 'completed';
+        await TrackingSession.updateMany(
+          {
+            $or: [{ bookingId: ib.id }, { bookingReference: ib.bookingReference || ib.id }],
+            status: { $nin: ['completed', 'cancelled'] }
+          },
+          { $set: { status: inactiveStatus } }
+        );
+      }
+    } catch (syncErr) {
+      console.warn('Live operations auto-sync notice:', syncErr.message);
+    }
+
     let query = {};
     if (partnerId) {
       query.partnerId = partnerId;
     }
     if (status) {
       query.status = status;
+    } else {
+      // Return active operations tracking sessions
+      query.status = { $nin: ['completed', 'cancelled'] };
     }
 
     const sessions = await TrackingSession.find(query).sort({ updatedAt: -1 }).limit(50);

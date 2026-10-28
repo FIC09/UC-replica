@@ -31,6 +31,7 @@ import {
   isSlotPassed, 
   getFirstAvailableSlot 
 } from '../utils/slotDates';
+import { authApi } from '../api/apiClient';
 
 export function UrbanCheckoutPage({
   onBackHome,
@@ -55,6 +56,13 @@ export function UrbanCheckoutPage({
   const [showBreakup, setShowBreakup] = useState(false);
   const currentUser = user;
 
+  // Inline Quick Checkout Signup state
+  const [showInlineSignup, setShowInlineSignup] = useState(false);
+  const [inlineSignupName, setInlineSignupName] = useState('');
+  const [inlineSignupPhone, setInlineSignupPhone] = useState('');
+  const [inlineSignupEmail, setInlineSignupEmail] = useState('');
+  const [isSubmittingSignup, setIsSubmittingSignup] = useState(false);
+
   // Address & Location selection state
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
 
@@ -75,26 +83,17 @@ export function UrbanCheckoutPage({
     }
   }, [selectedCity]);
 
-  // Sanitize savedAddresses: Auto-correct any Tamil Nadu broadband ISP gateway addresses to Krishnagiri
+  // Filter out any legacy mock addresses and ensure guests start with zero addresses
   const sanitizedSavedAddresses = React.useMemo(() => {
-    return (savedAddresses || []).map(addr => {
-      const isIspGateway = /chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|600095|600056/i.test(
-        `${addr.city} ${addr.locality} ${addr.formatted || ''} ${addr.flat || ''}`
-      );
-      if (isIspGateway) {
-        return {
-          ...addr,
-          city: 'Krishnagiri',
-          locality: 'Rayakottai Road',
-          pincode: '635001',
-          flat: addr.flat && !/adayalampattu|chennai/i.test(addr.flat) ? addr.flat : 'Door 14/2, Rayakottai Road',
-          landmark: 'GPS Verified (Krishnagiri Hub)',
-          formatted: 'Door 14/2, Rayakottai Road, Krishnagiri - 635001'
-        };
-      }
-      return addr;
-    });
-  }, [savedAddresses]);
+    if (!currentUser && !user) return [];
+    return (savedAddresses || []).filter(addr => 
+      addr && 
+      addr.id !== 'ADDR-KG-1' && 
+      addr.id !== 'ADDR-1' && 
+      !addr.flat?.includes('Door 14/2') && 
+      !addr.flat?.includes('Flat 402')
+    );
+  }, [savedAddresses, currentUser, user]);
 
   const getCityLocalities = (city) => {
     const key = Object.keys(CITY_LOCALITIES).find(
@@ -104,36 +103,44 @@ export function UrbanCheckoutPage({
   };
 
   const currentLocalities = getCityLocalities(currentCity);
-  const matchingSaved = sanitizedSavedAddresses.find(
-    a => a.isDefault && a.city?.toLowerCase() === (currentCity || '').toLowerCase()
-  ) || sanitizedSavedAddresses.find(
-    a => a.city?.toLowerCase() === (currentCity || '').toLowerCase()
-  ) || sanitizedSavedAddresses[0];
+  const matchingSaved = (currentUser || user)
+    ? (sanitizedSavedAddresses.find(
+        a => a.isDefault && a.city?.toLowerCase() === (currentCity || '').toLowerCase()
+      ) || sanitizedSavedAddresses.find(
+        a => a.city?.toLowerCase() === (currentCity || '').toLowerCase()
+      ) || sanitizedSavedAddresses[0])
+    : null;
 
-  const [selectedAddressId, setSelectedAddressId] = useState(matchingSaved ? matchingSaved.id : 'custom');
+  const [selectedAddressId, setSelectedAddressId] = useState(matchingSaved ? matchingSaved.id : '');
   const [addressLabel, setAddressLabel] = useState(matchingSaved?.label || 'Home');
-  const [flatNumber, setFlatNumber] = useState(matchingSaved?.flat || 'Door 14/2, Rayakottai Road');
+  const [flatNumber, setFlatNumber] = useState(matchingSaved?.flat || '');
   const [locality, setLocality] = useState(matchingSaved?.locality || selectedLocality || currentLocalities[0] || 'Rayakottai Road');
-  const [pincode, setPincode] = useState(matchingSaved?.pincode || '635001');
-  const [landmark, setLandmark] = useState(matchingSaved?.landmark || 'Near New Bus Stand');
+  const [pincode, setPincode] = useState(matchingSaved?.pincode || '');
+  const [landmark, setLandmark] = useState(matchingSaved?.landmark || '');
+
+  // Strictly reset address inputs if user is not logged in
+  React.useEffect(() => {
+    if (!currentUser && !user) {
+      setSelectedAddressId('');
+      setFlatNumber('');
+      setLandmark('');
+      setPincode('');
+    }
+  }, [currentUser, user]);
 
   // Proactively auto-heal any existing stale checkout state holding Chennai ISP exchange false-positives
   React.useEffect(() => {
     const isStaleIsp = /chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(
-      `${currentCity} ${flatNumber} ${locality} ${landmark}`
+      `${currentCity} ${locality}`
     );
     if (isStaleIsp) {
       setCurrentCity('Krishnagiri');
       setLocality('Rayakottai Road');
-      setFlatNumber('Door 14/2, Rayakottai Road');
-      setPincode('635001');
-      setLandmark('GPS Verified (Krishnagiri Hub)');
-      setAddressLabel('Current GPS Location');
       if (onSelectLocation) {
         onSelectLocation('Krishnagiri', 'Rayakottai Road');
       }
     }
-  }, [currentCity, flatNumber, locality, landmark]);
+  }, [currentCity, locality]);
 
   // Form state inside Address Selection Modal
   const [formCity, setFormCity] = useState(currentCity);
@@ -269,12 +276,12 @@ export function UrbanCheckoutPage({
           }
 
           // Build authentic doorstep address directly from device GPS
-          const flatPart = house ? `Door ${house}, ${road || locality}` : (road ? `${road}` : 'Door 14/2, Rayakottai Road');
+          const flatPart = house ? `Door ${house}, ${road || locality}` : (road ? `${road}` : '');
           const localityPart = locality || road || 'Rayakottai Road';
-          const landmarkPart = isIspGateway ? 'GPS Verified (Krishnagiri Hub)' : `GPS Verified (±${Math.round(acc)}m accuracy)`;
-          const fullFormatted = flatPart.toLowerCase().includes(localityPart.toLowerCase())
-            ? `${flatPart}, ${city} - ${postcode}`
-            : `${flatPart}, ${localityPart}, ${city} - ${postcode}`;
+          const landmarkPart = isIspGateway ? 'GPS Verified' : `GPS Verified (±${Math.round(acc)}m accuracy)`;
+          const fullFormatted = flatPart
+            ? (flatPart.toLowerCase().includes(localityPart.toLowerCase()) ? `${flatPart}, ${city} - ${postcode}` : `${flatPart}, ${localityPart}, ${city} - ${postcode}`)
+            : `${localityPart}, ${city} - ${postcode}`;
 
           const newGpsAddr = {
             id: 'gps-' + Date.now(),
@@ -292,18 +299,18 @@ export function UrbanCheckoutPage({
           // Update active checkout state
           setCurrentCity(city);
           setLocality(localityPart);
-          setFlatNumber(flatPart);
-          setPincode(postcode);
-          setLandmark(landmarkPart);
+          if (flatPart) setFlatNumber(flatPart);
+          if (postcode) setPincode(postcode);
+          if (landmarkPart) setLandmark(landmarkPart);
           setAddressLabel('Current GPS Location');
           setSelectedAddressId(newGpsAddr.id);
 
           // Update manual form fields as well
           setFormCity(city);
           setFormLocality(localityPart);
-          setFormFlat(flatPart);
-          setFormPincode(postcode);
-          setFormLandmark(landmarkPart);
+          if (flatPart) setFormFlat(flatPart);
+          if (postcode) setFormPincode(postcode);
+          if (landmarkPart) setFormLandmark(landmarkPart);
 
           if (onSelectLocation) {
             onSelectLocation(city, localityPart);
@@ -322,7 +329,7 @@ export function UrbanCheckoutPage({
           setIsDetectingGps(false);
           setGpsStatusText('');
           setGpsError(err.message || 'Failed to resolve street address from GPS.');
-          showToast('⚠️ Could not resolve street address from GPS. Defaulted to Krishnagiri.');
+          showToast('⚠️ Could not resolve street address from GPS.');
         }
       },
       (geoError) => {
@@ -331,16 +338,13 @@ export function UrbanCheckoutPage({
         // When GPS permission is denied or unavailable on PC, accurately fall back to Krishnagiri
         setCurrentCity('Krishnagiri');
         setLocality('Rayakottai Road');
-        setFlatNumber('Door 14/2, Rayakottai Road');
-        setPincode('635001');
-        setLandmark('Near New Bus Stand');
         setAddressLabel('Current Location');
 
         if (onSelectLocation) {
           onSelectLocation('Krishnagiri', 'Rayakottai Road');
         }
 
-        let msg = 'Location set to Krishnagiri, Rayakottai Road (635001)';
+        let msg = 'Location set to Krishnagiri, Rayakottai Road';
         showToast(`📍 ${msg}`);
       },
       {
@@ -371,9 +375,9 @@ export function UrbanCheckoutPage({
     );
     const chosenCity = isIsp ? 'Krishnagiri' : (addr.city || currentCity);
     const chosenLocality = isIsp ? 'Rayakottai Road' : (addr.locality || '');
-    const chosenFlat = isIsp && (!addr.flat || /adayalampattu|chennai/i.test(addr.flat)) ? 'Door 14/2, Rayakottai Road' : (addr.flat || '');
+    const chosenFlat = addr.flat || '';
     const chosenPincode = isIsp ? '635001' : (addr.pincode || '');
-    const chosenLandmark = isIsp ? 'GPS Verified (Krishnagiri Hub)' : (addr.landmark || '');
+    const chosenLandmark = addr.landmark || '';
 
     setSelectedAddressId(addr.id);
     setAddressLabel(addr.label || 'Home');
@@ -554,8 +558,66 @@ export function UrbanCheckoutPage({
     showToast(`🎉 Applied ${found.code}: Saved ₹${found.discountAmount}!`);
   }
 
+  async function handleQuickCheckoutSignup(e) {
+    if (e) e.preventDefault();
+    const cleanName = inlineSignupName.trim();
+    const cleanPhone = inlineSignupPhone.trim();
+    const cleanEmail = inlineSignupEmail.trim().toLowerCase();
+
+    if (!cleanName || cleanName.length < 2) {
+      showToast('⚠️ Please enter your full name');
+      return;
+    }
+    if (!cleanPhone || cleanPhone.replace(/\D/g, '').length < 10) {
+      showToast('⚠️ Please enter a valid 10-digit mobile number');
+      return;
+    }
+
+    setIsSubmittingSignup(true);
+    const formattedPhone = cleanPhone.startsWith('+91')
+      ? cleanPhone
+      : `+91 ${cleanPhone.replace(/\D/g, '').slice(-10)}`;
+    const finalEmail = cleanEmail || `${cleanName.toLowerCase().replace(/\s+/g, '.')}@example.com`;
+
+    try {
+      const res = await authApi.register({
+        name: cleanName,
+        phone: formattedPhone,
+        email: finalEmail,
+        city: currentCity || selectedCity || 'Krishnagiri',
+        locality: locality || selectedLocality || 'Rayakottai Road'
+      });
+
+      const registeredUser = res?.user || {
+        name: cleanName,
+        phone: formattedPhone,
+        email: finalEmail,
+        city: currentCity || selectedCity || 'Krishnagiri',
+        locality: locality || selectedLocality || 'Rayakottai Road',
+        role: 'user',
+        status: 'Active'
+      };
+
+      try {
+        localStorage.setItem('uc_user', JSON.stringify(registeredUser));
+        window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: registeredUser } }));
+        window.dispatchEvent(new CustomEvent('uc:customer-registered', { detail: registeredUser }));
+        const syncChannel = new BroadcastChannel('uc_sync_channel');
+        syncChannel.postMessage({ type: 'CUSTOMER_CREATED', customer: registeredUser, timestamp: Date.now() });
+        syncChannel.close();
+        localStorage.setItem('uc_last_customer_event', JSON.stringify({ type: 'CUSTOMER_CREATED', customer: registeredUser, timestamp: Date.now() }));
+      } catch (e) {}
+
+      showToast(`🎉 Account created for ${cleanName}! Proceeding with your order.`);
+    } catch (err) {
+      showToast(`⚠️ Registration notice: ${err.message}`);
+    } finally {
+      setIsSubmittingSignup(false);
+    }
+  }
+
   function handleBookServiceClick() {
-    if (!currentUser) {
+    if (!currentUser && !user) {
       if (onOpenAuth) onOpenAuth('login');
       showToast('🔐 Please login or create an account with email to complete your booking');
       return;
@@ -564,9 +626,9 @@ export function UrbanCheckoutPage({
       showToast('⚠️ Your cart is empty. Add services first.');
       return;
     }
-    if (!flatNumber.trim() && !locality.trim()) {
+    if (!flatNumber || !flatNumber.trim()) {
       handleOpenAddressModal();
-      showToast('📍 Please enter your delivery address to proceed');
+      showToast('📍 Please enter your house / flat number to complete delivery address');
       return;
     }
     setIsPaymentGatewayOpen(true);
@@ -578,8 +640,8 @@ export function UrbanCheckoutPage({
     const bookingId = `UC-${Date.now().toString().slice(-6)}`;
     const fullAddress = (`${flatNumber ? flatNumber + ', ' : ''}${locality ? locality + ', ' : ''}${currentCity || selectedCity || 'Krishnagiri'}${pincode ? ' - ' + pincode : ''}${landmark ? ` (Near ${landmark})` : ''}`).trim() || 'Rayakottai Road, Krishnagiri';
     const custName = currentUser?.name || user?.name || 'Customer';
-    const rawPhone = (currentUser?.phone || user?.phone || '9820144521').toString().trim();
-    const formattedPhone = rawPhone.startsWith('+91') ? rawPhone : `+91 ${rawPhone.replace(/\D/g, '').slice(-10) || rawPhone}`;
+    const rawPhone = (currentUser?.phone || user?.phone || '').toString().trim();
+    const formattedPhone = rawPhone.startsWith('+91') ? rawPhone : (rawPhone ? `+91 ${rawPhone.replace(/\D/g, '').slice(-10) || rawPhone}` : '');
     const custEmail = currentUser?.email || user?.email || '';
     const firstItem = cartItems[0] || {};
 
@@ -860,59 +922,148 @@ export function UrbanCheckoutPage({
                 {!currentUser ? (
                   /* Guest / Logged Out state matching screenshot */
                   <div>
-                    <p style={{
-                      fontSize: 13.5,
-                      color: '#6B7280',
-                      margin: '0 0 18px 0',
-                      lineHeight: 1.4
-                    }}>
-                      To book the service, please login or sign up
-                    </p>
+                    {!showInlineSignup ? (
+                      <div>
+                        <p style={{
+                          fontSize: 13.5,
+                          color: '#6B7280',
+                          margin: '0 0 18px 0',
+                          lineHeight: 1.4
+                        }}>
+                          To book the service, please login or sign up
+                        </p>
 
-                    <button
-                      type="button"
-                      onClick={() => onOpenAuth ? onOpenAuth('login') : null}
-                      style={{
-                        width: '100%',
-                        padding: '12px 0',
-                        backgroundColor: '#5E3BEE',
-                        color: '#FFFFFF',
-                        border: 'none',
-                        borderRadius: 10,
-                        fontSize: 14.5,
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        transition: 'background-color 0.15s',
-                        boxShadow: '0 2px 8px rgba(94, 59, 238, 0.25)'
-                      }}
-                      onMouseEnter={e => e.currentTarget.style.backgroundColor = '#4F2CE0'}
-                      onMouseLeave={e => e.currentTarget.style.backgroundColor = '#5E3BEE'}
-                    >
-                      Login
-                    </button>
+                        <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+                          <button
+                            type="button"
+                            onClick={() => onOpenAuth ? onOpenAuth('login') : null}
+                            style={{
+                              flex: 1,
+                              padding: '11px 0',
+                              backgroundColor: '#5E3BEE',
+                              color: '#FFFFFF',
+                              border: 'none',
+                              borderRadius: 10,
+                              fontSize: 14,
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 8px rgba(94, 59, 238, 0.25)'
+                            }}
+                          >
+                            Login
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowInlineSignup(true)}
+                            style={{
+                              flex: 1,
+                              padding: '11px 0',
+                              backgroundColor: '#F3F0FF',
+                              color: '#5E3BEE',
+                              border: '1.5px solid #DDD6FE',
+                              borderRadius: 10,
+                              fontSize: 14,
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Quick Sign Up
+                          </button>
+                        </div>
 
-                    <div style={{
-                      marginTop: 14,
-                      textAlign: 'center',
-                      fontSize: 13,
-                      color: '#6B7280'
-                    }}>
-                      Don’t have an account?{' '}
-                      <button
-                        type="button"
-                        onClick={() => onOpenAuth ? onOpenAuth('signup') : null}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: '#5E3BEE',
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          padding: 0
-                        }}
-                      >
-                        Create Account / Sign Up
-                      </button>
-                    </div>
+                        <div style={{
+                          textAlign: 'center',
+                          fontSize: 12.5,
+                          color: '#6B7280'
+                        }}>
+                          Don’t have an account?{' '}
+                          <button
+                            type="button"
+                            onClick={() => onOpenAuth ? onOpenAuth('signup') : setShowInlineSignup(true)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#5E3BEE',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              padding: 0
+                            }}
+                          >
+                            Create Account / Sign Up
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Inline Quick Signup Form */
+                      <form onSubmit={handleQuickCheckoutSignup} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>Create Customer Account</span>
+                          <button
+                            type="button"
+                            onClick={() => setShowInlineSignup(false)}
+                            style={{ background: 'none', border: 'none', fontSize: 12, color: '#64748B', cursor: 'pointer' }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Full Name (e.g. Saturday)"
+                          value={inlineSignupName}
+                          onChange={e => setInlineSignupName(e.target.value)}
+                          required
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #CBD5E1',
+                            fontSize: 13.5
+                          }}
+                        />
+                        <input
+                          type="tel"
+                          placeholder="10-digit Mobile Number"
+                          value={inlineSignupPhone}
+                          onChange={e => setInlineSignupPhone(e.target.value)}
+                          required
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #CBD5E1',
+                            fontSize: 13.5
+                          }}
+                        />
+                        <input
+                          type="email"
+                          placeholder="Email Address (Optional)"
+                          value={inlineSignupEmail}
+                          onChange={e => setInlineSignupEmail(e.target.value)}
+                          style={{
+                            padding: '10px 12px',
+                            borderRadius: 8,
+                            border: '1px solid #CBD5E1',
+                            fontSize: 13.5
+                          }}
+                        />
+                        <button
+                          type="submit"
+                          disabled={isSubmittingSignup}
+                          style={{
+                            padding: '11px 0',
+                            backgroundColor: '#5E3BEE',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 10,
+                            fontSize: 14,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            marginTop: 4,
+                            boxShadow: '0 2px 8px rgba(94, 59, 238, 0.25)'
+                          }}
+                        >
+                          {isSubmittingSignup ? 'Creating Account...' : 'Create Account & Continue'}
+                        </button>
+                      </form>
+                    )}
                   </div>
                 ) : (
                   /* Logged In state */
@@ -954,7 +1105,7 @@ export function UrbanCheckoutPage({
                           </span>
                         </div>
                         <div style={{ fontSize: 13, color: '#4B5563', marginTop: 2 }}>
-                          {currentUser.email || 'rahul.sharma@urbancompany.com'}
+                          {currentUser.email || currentUser.phone || ''}
                         </div>
                       </div>
                     </div>
@@ -1040,7 +1191,7 @@ export function UrbanCheckoutPage({
                 </div>
 
                 {/* Selected Address Display Card */}
-                {flatNumber || locality ? (
+                {flatNumber && flatNumber.trim().length > 0 ? (
                   <div 
                     onClick={handleOpenAddressModal}
                     style={{
@@ -1123,15 +1274,20 @@ export function UrbanCheckoutPage({
                       <MapPin size={20} color="#7C3AED" />
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: '#581C87' }}>
-                          No delivery address selected
+                          No delivery address added
                         </div>
                         <div style={{ fontSize: 12.5, color: '#7E22CE' }}>
-                          Click here to select or enter your address manually
+                          Enter your house / flat number and delivery address
                         </div>
                       </div>
                     </div>
                     <button
                       type="button"
+                      id="add-delivery-address-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenAddressModal();
+                      }}
                       style={{
                         background: '#7C3AED',
                         color: '#FFFFFF',
@@ -1143,7 +1299,7 @@ export function UrbanCheckoutPage({
                         cursor: 'pointer'
                       }}
                     >
-                      Select Location
+                      + Add Address
                     </button>
                   </div>
                 )}

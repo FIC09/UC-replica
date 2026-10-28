@@ -146,17 +146,11 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
   const handleLogout = useCallback(() => {
     professionalClient.logout();
     localStorage.removeItem('uc_user');
+    localStorage.removeItem('uc_open_portal');
     setIsAuthenticated(false);
     window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: null } }));
-    if (onAppLogout) {
-      onAppLogout();
-    } else if (onExitToMarketplace) {
-      onExitToMarketplace();
-    } else {
-      window.history.pushState({}, '', '/');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    }
-  }, [onAppLogout, onExitToMarketplace]);
+    window.location.href = '/';
+  }, []);
 
   const handleToggleOnline = useCallback(async () => {
     const isApproved = !professionalUser?.status || professionalUser.status === 'Approved' || professionalUser.status === 'Active';

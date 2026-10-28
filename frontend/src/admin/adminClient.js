@@ -126,7 +126,14 @@ export const adminClient = {
 
   logout: async () => {
     try {
-      await fetchWithFallback('/auth/logout', { method: 'POST' });
+      const token = getAdminAuthToken();
+      await fetch(`${API_BASE}/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        }
+      });
     } catch {}
     sessionStorage.removeItem('uc_admin_token');
     sessionStorage.removeItem('uc_admin_auth');
@@ -174,10 +181,15 @@ export const adminClient = {
     body: JSON.stringify({ newStatus, notes })
   }),
 
-  assignProfessional: (id, professionalId, professionalName) => fetchWithFallback(`/bookings/${id}/assign`, {
-    method: 'PUT',
-    body: JSON.stringify({ professionalId, professionalName })
-  }),
+  assignProfessional: (id, professionalIdOrData, maybeName) => {
+    const payload = typeof professionalIdOrData === 'object' && professionalIdOrData !== null
+      ? professionalIdOrData
+      : { professionalId: professionalIdOrData, professionalName: maybeName };
+    return fetchWithFallback(`/bookings/${id}/assign`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+  },
 
   getAssignmentStats: () => fetchWithFallback('/bookings/assignment-stats'),
 

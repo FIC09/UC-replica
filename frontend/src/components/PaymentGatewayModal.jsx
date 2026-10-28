@@ -247,6 +247,13 @@ export function PaymentGatewayModal({
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [redirectCount, setRedirectCount] = useState(3);
+  const hasTriggeredRef = useRef(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      hasTriggeredRef.current = false;
+    }
+  }, [isOpen]);
 
   // Form Fields
   const [gpayUpi, setGpayUpi] = useState(() => {
@@ -375,12 +382,15 @@ export function PaymentGatewayModal({
   useEffect(() => {
     let interval = null;
     if (paymentStage === 'success') {
-      setRedirectCount(3);
+      // Instantly trigger final callback so booking order is placed in MongoDB Atlas without delay
+      triggerFinalSuccessCallback();
+
+      setRedirectCount(2);
       interval = setInterval(() => {
         setRedirectCount(prev => {
           if (prev <= 1) {
             clearInterval(interval);
-            setTimeout(() => triggerFinalSuccessCallback(), 0);
+            onClose();
             return 0;
           }
           return prev - 1;
@@ -632,6 +642,9 @@ export function PaymentGatewayModal({
 
   // Final Callback to Parent Checkout / App
   function triggerFinalSuccessCallback() {
+    if (hasTriggeredRef.current) return;
+    hasTriggeredRef.current = true;
+
     const methodLabels = {
       gpay: 'Google Pay (UPI)',
       phonepe: 'PhonePe (UPI)',

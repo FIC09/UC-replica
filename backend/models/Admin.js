@@ -85,8 +85,19 @@ export const PERMISSION_MATRIX = {
 
 export function checkAdminPermission(role, resource, action) {
   if (!role) return false;
-  if (role === 'Super Admin') return true;
-  const rolePermissions = PERMISSION_MATRIX[role];
+  const normalized = role.toLowerCase().replace(/[\s_-]+/g, '');
+  if (normalized === 'superadmin' || normalized === 'admin') return true;
+
+  // Exact match first
+  let rolePermissions = PERMISSION_MATRIX[role];
+  if (!rolePermissions) {
+    // Case-insensitive match against PERMISSION_MATRIX keys
+    const matchKey = Object.keys(PERMISSION_MATRIX).find(
+      k => k.toLowerCase().replace(/[\s_-]+/g, '') === normalized
+    );
+    if (matchKey) rolePermissions = PERMISSION_MATRIX[matchKey];
+  }
+
   if (!rolePermissions) return false;
   if (rolePermissions['*'] && rolePermissions['*'].includes(action)) return true;
   const resourceActions = rolePermissions[resource];
