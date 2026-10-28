@@ -4,7 +4,7 @@ import {
   CheckCircle2, RefreshCw, Phone, ShieldCheck, ChevronRight,
   TrendingUp, Users, ArrowUpRight, Filter, Radio, Activity
 } from 'lucide-react';
-import { io } from 'socket.io-client';
+import { getSocket } from '../../api/socketClient';
 import { LiveMapTracker } from '../../components/LiveMapTracker';
 
 export function OperationsView({ onNavigate, onShowToast }) {
@@ -19,16 +19,24 @@ export function OperationsView({ onNavigate, onShowToast }) {
   useEffect(() => {
     fetchOperations();
 
-    // Connect to real-time WebSockets
-    const socket = io();
-    socket.on('connect', () => {
-      setLiveSocketConnected(true);
-      socket.emit('join:room', 'admin:operations');
-    });
+    // Connect to real-time WebSockets with admin credentials
+    const adminToken = sessionStorage.getItem('uc_admin_token') || localStorage.getItem('uc_admin_token') || '';
+    const socket = getSocket({ role: 'admin', token: adminToken });
+    setLiveSocketConnected(socket.connected);
 
-    socket.on('disconnect', () => {
+    socket.emit('join:room', { room: 'admin:operations', token: adminToken });
+
+    const onConnect = () => {
+      setLiveSocketConnected(true);
+      socket.emit('join:room', { room: 'admin:operations', token: adminToken });
+    };
+
+    const onDisconnect = () => {
       setLiveSocketConnected(false);
-    });
+    };
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
 
     const handleLiveEvent = (event) => {
       if (!event) return;
@@ -82,8 +90,9 @@ export function OperationsView({ onNavigate, onShowToast }) {
 
     return () => {
       if (interval) clearInterval(interval);
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
       socket.off('realtime:event', handleLiveEvent);
-      socket.disconnect();
     };
   }, [autoRefresh]);
 

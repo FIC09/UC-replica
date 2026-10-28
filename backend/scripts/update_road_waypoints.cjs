@@ -33,7 +33,10 @@ function fetchRoad(origin, dest) {
 }
 
 async function main() {
-  await mongoose.connect('mongodb://127.0.0.1:27017/urban_company');
+  const dns = require('dns');
+  try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch (e) {}
+  const atlasUri = process.env.MONGO_URI || 'mongodb+srv://forgeindiaconnecttech26_db_user:lmyALE1vtNWEi6Ag@cluster0.my7b6sy.mongodb.net/urban_company?retryWrites=true&w=majority';
+  await mongoose.connect(atlasUri);
   const db = mongoose.connection.db;
   const hub = { lat: 13.0569, lng: 80.2425 }; // Nungambakkam Hub
   const customer = { lat: 13.0418, lng: 80.2341 }; // T. Nagar Customer Home

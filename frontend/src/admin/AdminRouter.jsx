@@ -87,6 +87,23 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  useEffect(() => {
+    function handleAuthSync() {
+      const authed = sessionStorage.getItem('uc_admin_auth') === 'true';
+      setIsAuthenticated(authed);
+      try {
+        const stored = localStorage.getItem('uc_admin_user');
+        if (stored) setAdminUser(JSON.parse(stored));
+      } catch {}
+    }
+    window.addEventListener('uc:auth-changed', handleAuthSync);
+    window.addEventListener('storage', handleAuthSync);
+    return () => {
+      window.removeEventListener('uc:auth-changed', handleAuthSync);
+      window.removeEventListener('storage', handleAuthSync);
+    };
+  }, []);
+
   const showToast = useCallback((msg) => {
     setToastMessage(msg);
     setTimeout(() => {

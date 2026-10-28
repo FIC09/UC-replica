@@ -576,7 +576,7 @@ export function UrbanCheckoutPage({
     setIsPaymentGatewayOpen(false);
 
     const bookingId = `UC-${Date.now().toString().slice(-6)}`;
-    const fullAddress = `${flatNumber ? flatNumber + ', ' : ''}${locality ? locality + ', ' : ''}${currentCity || selectedCity}${pincode ? ' - ' + pincode : ''}${landmark ? ` (Near ${landmark})` : ''}`;
+    const fullAddress = (`${flatNumber ? flatNumber + ', ' : ''}${locality ? locality + ', ' : ''}${currentCity || selectedCity || 'Krishnagiri'}${pincode ? ' - ' + pincode : ''}${landmark ? ` (Near ${landmark})` : ''}`).trim() || 'Rayakottai Road, Krishnagiri';
     const custName = currentUser?.name || user?.name || 'Customer';
     const rawPhone = (currentUser?.phone || user?.phone || '9820144521').toString().trim();
     const formattedPhone = rawPhone.startsWith('+91') ? rawPhone : `+91 ${rawPhone.replace(/\D/g, '').slice(-10) || rawPhone}`;
@@ -588,11 +588,12 @@ export function UrbanCheckoutPage({
       bookingReference: bookingId,
       customerId: currentUser?._id || currentUser?.id || user?._id || user?.id || '',
       userName: custName,
+      customerName: custName,
       userPhone: formattedPhone,
       userEmail: custEmail,
       contact: `${custName} (${formattedPhone})`,
-      city: currentCity || selectedCity || 'Mumbai',
-      serviceZone: locality || selectedLocality || 'Bandra West',
+      city: currentCity || selectedCity || 'Krishnagiri',
+      serviceZone: locality || selectedLocality || 'Rayakottai Road',
       serviceName: firstItem.title || firstItem.name || 'Home Service',
       serviceCategory: firstItem.category || 'Home Services',
       items: cartItems.map(i => ({
@@ -617,8 +618,8 @@ export function UrbanCheckoutPage({
       addressDetails: {
         fullAddress,
         flat: flatNumber,
-        locality: locality || selectedLocality || 'Bandra West',
-        city: currentCity || selectedCity || 'Mumbai',
+        locality: locality || selectedLocality || 'Rayakottai Road',
+        city: currentCity || selectedCity || 'Krishnagiri',
         pincode: pincode || '',
         landmark: landmark || '',
         contactPhone: formattedPhone
@@ -632,7 +633,6 @@ export function UrbanCheckoutPage({
         paidAt: paymentDetails?.paidAt || new Date(),
         gatewayRef: paymentDetails?.transactionId || `UC_TXN_${Date.now()}`
       },
-      createdAt: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
       createdAtFormatted: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
       notes: avoidCalling ? 'Avoid calling before reaching location' : '',
       avoidCalling: avoidCalling,

@@ -4,10 +4,6 @@ import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import { connectDB } from './config/db.js';
-import { connectPostgres } from './config/postgres.js';
-import { runMigrations } from './config/migrations.js';
-import { connectRedis, redisPing, isRedisConnected } from './config/redis.js';
-import { initWebSocketServer } from './services/websocketService.js';
 
 import authRoutes from './routes/authRoutes.js';
 import serviceRoutes from './routes/serviceRoutes.js';
@@ -33,22 +29,16 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const httpServer = http.createServer(app);
 
-// Connect Databases
+// Connect Authoritative MongoDB Atlas Database Only
 async function bootstrapDatabases() {
   try {
     await connectDB();
-    await connectPostgres();
-    await runMigrations();
-    await connectRedis();
     startAssignmentWatchdog(5000);
   } catch (err) {
     console.error('Database bootstrap error:', err.message);
   }
 }
 bootstrapDatabases();
-
-// Initialize Real-Time WebSocket Server
-initWebSocketServer(httpServer);
 
 // Restrictive CORS configuration
 const allowedOrigins = [
@@ -77,51 +67,16 @@ if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
 }
 
-// Health check endpoint
+// Health check endpoint (Pure MongoDB Atlas Mode)
 app.get('/api/health', async (req, res) => {
-  let redisStatus = isRedisConnected() ? 'connected' : 'disconnected';
-  let redisPingRes = null;
-  if (isRedisConnected()) {
-    try {
-      redisPingRes = await redisPing();
-    } catch (e) {
-      redisStatus = 'error';
-    }
-  }
-
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    service: 'Forge India Connect Real-Time Marketplace Backend API',
-    databases: {
-      mongo: 'connected',
-      postgresql: 'connected',
-      redis: redisStatus
-    },
-    redisPing: redisPingRes,
-    websockets: 'active'
+    service: 'Forge India Connect Marketplace Backend API',
+    database: 'MongoDB Atlas',
+    mongoStatus: 'connected'
   });
-});
-
-// Dedicated Redis PING Verification Endpoint
-app.get('/api/redis/ping', async (req, res) => {
-  try {
-    const response = await redisPing();
-    res.json({
-      success: true,
-      message: response,
-      tls: true,
-      connected: isRedisConnected(),
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      connected: isRedisConnected()
-    });
-  }
 });
 
 // Mount API routes
@@ -160,8 +115,37 @@ app.use((err, req, res, next) => {
   });
 });
 
+httpServer.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n❌ [PORT CONFLICT] Port ${PORT} is already in use by another running Node process.`);
+    console.error(`💡 Tip: Close any other terminal running 'npm run dev' or kill the existing process on port ${PORT}.\n`);
+    process.exit(1);
+  } else {
+    console.error('HTTP Server Error:', err);
+  }
+});
+
 httpServer.listen(PORT, () => {
-  console.log(`🚀 Forge India Connect Real-Time Backend Server running on port ${PORT}`);
+  console.log(`🚀 Forge India Connect Backend Server running on port ${PORT}`);
   console.log(`📡 Health Check: http://localhost:${PORT}/api/health`);
-  console.log(`⚡ WebSocket Server active on ws://localhost:${PORT}`);
+  console.log(`🍃 Database: MongoDB Atlas (Pure NoSQL REST Mode)`);
+});
+
+// Graceful cleanup on nodemon restart & process termination
+process.once('SIGUSR2', () => {
+  httpServer.close(() => {
+    process.kill(process.pid, 'SIGUSR2');
+  });
+});
+
+process.on('SIGINT', () => {
+  httpServer.close(() => {
+    process.exit(0);
+  });
+});
+
+process.on('SIGTERM', () => {
+  httpServer.close(() => {
+    process.exit(0);
+  });
 });

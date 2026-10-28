@@ -91,6 +91,10 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     default: 'Customer',
   },
+  customerName: {
+    type: String,
+    default: 'Customer',
+  },
   userPhone: {
     type: String,
     default: '',

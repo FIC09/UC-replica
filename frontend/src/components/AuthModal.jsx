@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { partnerClient } from '../partner/partnerClient';
 import { professionalClient } from '../professional/professionalClient';
+import { adminClient } from '../admin/adminClient';
 import { authApi } from '../api/apiClient';
 
 export function AuthModal({ 
@@ -172,7 +173,21 @@ export function AuthModal({
       localStorage.setItem('uc_pro_token', 'simulated-pro-jwt-token');
     } else if (role === 'admin') {
       sessionStorage.setItem('uc_admin_auth', 'true');
-      localStorage.setItem('uc_admin_token', 'simulated-admin-jwt-token');
+      localStorage.setItem('uc_admin_auth', 'true');
+      const adminData = {
+        id: userObj.id || userObj._id || 'ADM-01',
+        name: userObj.name || 'Super Admin',
+        email: userObj.email || 'admin@urbancompany.com',
+        role: 'Super Administrator',
+        department: 'Operations & Platform Control',
+        avatarInitials: 'SA'
+      };
+      sessionStorage.setItem('uc_admin_user', JSON.stringify(adminData));
+      localStorage.setItem('uc_admin_user', JSON.stringify(adminData));
+      if (!sessionStorage.getItem('uc_admin_token') && !localStorage.getItem('uc_admin_token')) {
+        sessionStorage.setItem('uc_admin_token', 'simulated-admin-jwt-token');
+        localStorage.setItem('uc_admin_token', 'simulated-admin-jwt-token');
+      }
     }
   }
 
@@ -189,9 +204,14 @@ export function AuthModal({
 
   // Handle escape key & initialMode sync
   useEffect(() => {
-    if (isOpen && initialMode === 'login') {
-      setIsSwitchingAccount(true);
-      setMode('login');
+    if (isOpen) {
+      if (initialMode === 'signup') {
+        setMode('signup');
+        setIsSwitchingAccount(false);
+      } else {
+        setMode('login');
+        setIsSwitchingAccount(true);
+      }
       setErrorMsg('');
       setSuccessMsg('');
     }
@@ -209,7 +229,7 @@ export function AuthModal({
 
   if (!isOpen) return null;
 
-  function handleLoginSubmit(e) {
+  async function handleLoginSubmit(e) {
     if (e) e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
@@ -234,7 +254,14 @@ export function AuthModal({
       detectedRole = 'partner';
     }
 
-    const userName = cleanEmail.includes(preset.email.split('@')[0]) ? preset.name : (cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()));
+    const preset = ROLE_PRESETS[detectedRole] || ROLE_PRESETS[selectedRole] || ROLE_PRESETS.customer;
+
+    let userName = preset.name;
+    if (cleanEmail.includes(preset.email.split('@')[0])) {
+      userName = preset.name;
+    } else {
+      userName = cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
     const userPhone = preset.phone || '+91 98201 44521';
 
     const authenticatedUser = {
@@ -247,7 +274,18 @@ export function AuthModal({
       isPlusMember: false
     };
 
-    if (detectedRole === 'customer') {
+    if (detectedRole === 'admin') {
+      try {
+        const adminRes = await adminClient.login(cleanEmail, loginPassword);
+        if (adminRes?.admin) {
+          authenticatedUser.name = adminRes.admin.name || authenticatedUser.name;
+          authenticatedUser.id = adminRes.admin.id;
+          authenticatedUser._id = adminRes.admin.id;
+        }
+      } catch (err) {
+        console.warn('Admin backend login fallback:', err?.message || err);
+      }
+    } else if (detectedRole === 'customer') {
       authApi.register(userName, userPhone, cleanEmail)
         .then(res => {
           if (res?.user?._id) {
@@ -264,6 +302,7 @@ export function AuthModal({
     } catch {}
 
     setupRoleAuth(detectedRole, authenticatedUser);
+    window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: authenticatedUser } }));
 
     setSuccessMsg(`Signing in as ${preset.label}... Opening ${preset.targetDashboard}`);
     setTimeout(() => {
@@ -272,7 +311,7 @@ export function AuthModal({
     }, 450);
   }
 
-  function handleQuickLogin(roleKey) {
+  async function handleQuickLogin(roleKey) {
     selectRole(roleKey);
     const preset = ROLE_PRESETS[roleKey];
     const authenticatedUser = {
@@ -285,11 +324,25 @@ export function AuthModal({
       isPlusMember: false
     };
 
+    if (roleKey === 'admin') {
+      try {
+        const adminRes = await adminClient.login(preset.email, preset.password);
+        if (adminRes?.admin) {
+          authenticatedUser.name = adminRes.admin.name || authenticatedUser.name;
+          authenticatedUser.id = adminRes.admin.id;
+          authenticatedUser._id = adminRes.admin.id;
+        }
+      } catch (err) {
+        console.warn('Admin backend quick login fallback:', err?.message || err);
+      }
+    }
+
     try {
       localStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
     } catch {}
 
     setupRoleAuth(preset.role, authenticatedUser);
+    window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: authenticatedUser } }));
 
     setSuccessMsg(`Instant login verified as ${preset.label}!`);
     setTimeout(() => {
@@ -332,19 +385,39 @@ export function AuthModal({
       ? cleanPhone
       : `+91 ${cleanPhone.replace(/\D/g, '').slice(-10)}`;
 
+    let currentCity = 'Krishnagiri';
+    let currentLocality = 'Rayakottai Road';
+    try {
+      const savedCity = localStorage.getItem('uc_selected_city');
+      if (savedCity) currentCity = savedCity;
+      const savedLocality = localStorage.getItem('uc_selected_locality');
+      if (savedLocality) currentLocality = savedLocality;
+    } catch {}
+
     let newUser = {
       name: cleanName,
       email: cleanEmail,
       phone: formattedPhone,
+      city: currentCity,
+      locality: currentLocality,
       role: 'customer',
       isPlusMember: false
     };
 
     try {
-      const res = await authApi.register(cleanName, formattedPhone, cleanEmail);
+      const res = await authApi.register({
+        name: cleanName,
+        phone: formattedPhone,
+        email: cleanEmail,
+        city: currentCity,
+        locality: currentLocality
+      });
       if (res?.user) {
         newUser._id = res.user._id || res.user.id;
         newUser.id = res.user.id || res.user._id;
+        if (res.user.city) newUser.city = res.user.city;
+        if (res.user.locality) newUser.locality = res.user.locality;
+        if (res.user.savedAddresses) newUser.savedAddresses = res.user.savedAddresses;
       }
     } catch (apiErr) {
       console.warn('Backend customer register notice:', apiErr.message);
@@ -352,6 +425,8 @@ export function AuthModal({
 
     try {
       localStorage.setItem('uc_user', JSON.stringify(newUser));
+      window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: newUser } }));
+      window.dispatchEvent(new CustomEvent('uc:customer-registered', { detail: newUser }));
     } catch {}
 
     setSuccessMsg('Account created successfully! Logging you in...');

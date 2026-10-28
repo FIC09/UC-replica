@@ -380,7 +380,7 @@ export function PaymentGatewayModal({
         setRedirectCount(prev => {
           if (prev <= 1) {
             clearInterval(interval);
-            triggerFinalSuccessCallback();
+            setTimeout(() => triggerFinalSuccessCallback(), 0);
             return 0;
           }
           return prev - 1;

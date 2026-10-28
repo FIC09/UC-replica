@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { io } from 'socket.io-client';
+import { getSocket } from '../../api/socketClient';
 import { 
   Search, 
   Filter, 
@@ -129,10 +129,11 @@ export function BookingsView({ onShowToast, onNavigate }) {
     fetchAssignmentStats();
   }, []);
 
-  // WebSocket real-time subscription for operations dispatch & offers
+  // WebSocket real-time subscription for operations dispatch, bookings & offers
   useEffect(() => {
-    const socket = io();
-    socket.emit('join:room', 'admin:operations');
+    const adminToken = sessionStorage.getItem('uc_admin_token') || localStorage.getItem('uc_admin_token') || '';
+    const socket = getSocket({ role: 'admin', token: adminToken });
+    socket.emit('join:room', { room: 'admin:operations', token: adminToken });
 
     const handleAssignmentEvent = (event) => {
       if (!event) return;
@@ -152,7 +153,9 @@ export function BookingsView({ onShowToast, onNavigate }) {
         fetchBookingsList();
         fetchAssignmentStats();
 
-        if (type === 'ASSIGNMENT_ACCEPTED') {
+        if (type === 'BOOKING_CREATED') {
+          onShowToast && onShowToast(`🛎️ New booking received: ${event.entityId || payload.id || 'Order Placed'}!`);
+        } else if (type === 'ASSIGNMENT_ACCEPTED') {
           onShowToast && onShowToast(`✓ Professional accepted offer for booking ${event.entityId || payload.bookingId}!`);
         } else if (type === 'OFFER_REJECTED') {
           onShowToast && onShowToast(`⚠️ Professional declined offer for ${event.entityId || payload.bookingId}: ${payload.reason || 'declined'}`);
@@ -167,6 +170,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
     };
 
     socket.on('realtime:event', handleAssignmentEvent);
+    socket.on('BOOKING_CREATED', handleAssignmentEvent);
+    socket.on('BOOKING_CONFIRMED', handleAssignmentEvent);
     socket.on('ASSIGNMENT_OFFERED', handleAssignmentEvent);
     socket.on('ASSIGNMENT_ACCEPTED', handleAssignmentEvent);
     socket.on('OFFER_REJECTED', handleAssignmentEvent);
@@ -174,15 +179,23 @@ export function BookingsView({ onShowToast, onNavigate }) {
     socket.on('ASSIGNMENT_FAILED', handleAssignmentEvent);
     socket.on('ASSIGNMENT_MODE_CHANGED', handleAssignmentEvent);
 
+    // Safety background polling every 10 seconds ensures fresh booking updates always reflect
+    const pollInterval = setInterval(() => {
+      fetchBookingsList();
+      fetchAssignmentStats();
+    }, 10000);
+
     return () => {
+      clearInterval(pollInterval);
       socket.off('realtime:event', handleAssignmentEvent);
+      socket.off('BOOKING_CREATED', handleAssignmentEvent);
+      socket.off('BOOKING_CONFIRMED', handleAssignmentEvent);
       socket.off('ASSIGNMENT_OFFERED', handleAssignmentEvent);
       socket.off('ASSIGNMENT_ACCEPTED', handleAssignmentEvent);
       socket.off('OFFER_REJECTED', handleAssignmentEvent);
       socket.off('OFFER_EXPIRED', handleAssignmentEvent);
       socket.off('ASSIGNMENT_FAILED', handleAssignmentEvent);
       socket.off('ASSIGNMENT_MODE_CHANGED', handleAssignmentEvent);
-      socket.disconnect();
     };
   }, []);
 
@@ -825,44 +838,71 @@ export function BookingsView({ onShowToast, onNavigate }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Top Header & Fast Action Bar */}
-      <div className="admin-page-header">
+      <div className="admin-page-header" style={{ padding: '10px 20px', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0', lineHeight: 1.25 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: 0, lineHeight: 1.25 }}>
             Bookings &amp; Dispatch Control
           </h2>
-          <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.2 }}>
+          <p style={{ fontSize: 11.5, color: '#64748B', margin: '2px 0 0 0', lineHeight: 1.2 }}>
             Real-time home services scheduling, lifecycle management, technician assignment, and billing
           </p>
         </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#059669', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '4px 10px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+            Live DB Active
+          </span>
+          <button
+            type="button"
+            onClick={fetchBookingsList}
+            title="Refresh bookings from Atlas"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '5px 11px',
+              borderRadius: 6,
+              border: '1px solid #CBD5E1',
+              backgroundColor: '#FFFFFF',
+              color: '#334155',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
       </div>
 
-      <div className="admin-page-body">
-        {/* Assignment & Dispatch KPI Metrics Summary Cards */}
+      <div className="admin-page-body" style={{ padding: '12px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {/* Assignment & Dispatch KPI Metrics Summary Cards - Compact 1-line Grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: 12,
-          marginBottom: 16
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: 8,
+          marginBottom: 4
         }}>
           {/* 1. Total Unassigned */}
           <div
-            onClick={() => { setAssignedFilter('unassigned'); setPage(1); }}
+            onClick={() => { setAssignedFilter(assignedFilter === 'unassigned' ? 'ALL' : 'unassigned'); setPage(1); }}
             style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: 10,
-              padding: '14px 16px',
+              backgroundColor: assignedFilter === 'unassigned' ? '#FFFBEB' : '#FFFFFF',
+              borderRadius: 8,
+              padding: '8px 12px',
               border: assignedFilter === 'unassigned' ? '2px solid #F59E0B' : '1px solid #E2E8F0',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+              gap: 10,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
             }}
           >
             <div style={{
-              width: 38,
-              height: 38,
-              borderRadius: 8,
+              width: 30,
+              height: 30,
+              borderRadius: 6,
               backgroundColor: '#FEF3C7',
               color: '#D97706',
               display: 'flex',
@@ -870,17 +910,14 @@ export function BookingsView({ onShowToast, onNavigate }) {
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              <AlertTriangle size={18} />
+              <AlertTriangle size={15} />
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
                 {assignmentStats.totalUnassigned || 0}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginTop: 3 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginTop: 2 }}>
                 Unassigned
-              </div>
-              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
-                Needs pro dispatch
               </div>
             </div>
           </div>
@@ -888,18 +925,18 @@ export function BookingsView({ onShowToast, onNavigate }) {
           {/* 2. Pending Offers */}
           <div style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 10,
-            padding: '14px 16px',
+            borderRadius: 8,
+            padding: '8px 12px',
             border: '1px solid #E2E8F0',
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+            gap: 10,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
           }}>
             <div style={{
-              width: 38,
-              height: 38,
-              borderRadius: 8,
+              width: 30,
+              height: 30,
+              borderRadius: 6,
               backgroundColor: '#F5F3FF',
               color: '#7C3AED',
               display: 'flex',
@@ -907,17 +944,14 @@ export function BookingsView({ onShowToast, onNavigate }) {
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              <Timer size={18} />
+              <Timer size={15} />
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
                 {assignmentStats.pendingOffers || 0}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginTop: 3 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginTop: 2 }}>
                 Pending Offers
-              </div>
-              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
-                Awaiting pro accept
               </div>
             </div>
           </div>
@@ -925,18 +959,18 @@ export function BookingsView({ onShowToast, onNavigate }) {
           {/* 3. Auto-Assigned */}
           <div style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 10,
-            padding: '14px 16px',
+            borderRadius: 8,
+            padding: '8px 12px',
             border: '1px solid #E2E8F0',
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+            gap: 10,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
           }}>
             <div style={{
-              width: 38,
-              height: 38,
-              borderRadius: 8,
+              width: 30,
+              height: 30,
+              borderRadius: 6,
               backgroundColor: '#EFF6FF',
               color: '#2563EB',
               display: 'flex',
@@ -944,17 +978,14 @@ export function BookingsView({ onShowToast, onNavigate }) {
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              <Zap size={18} />
+              <Zap size={15} />
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
                 {assignmentStats.autoAssigned || 0}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginTop: 3 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginTop: 2 }}>
                 Auto-Assigned
-              </div>
-              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
-                Matched via algorithm
               </div>
             </div>
           </div>
@@ -962,18 +993,18 @@ export function BookingsView({ onShowToast, onNavigate }) {
           {/* 4. Manually Assigned */}
           <div style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 10,
-            padding: '14px 16px',
+            borderRadius: 8,
+            padding: '8px 12px',
             border: '1px solid #E2E8F0',
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+            gap: 10,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
           }}>
             <div style={{
-              width: 38,
-              height: 38,
-              borderRadius: 8,
+              width: 30,
+              height: 30,
+              borderRadius: 6,
               backgroundColor: '#ECFDF5',
               color: '#059669',
               display: 'flex',
@@ -981,17 +1012,14 @@ export function BookingsView({ onShowToast, onNavigate }) {
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              <UserCheck size={18} />
+              <UserCheck size={15} />
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
                 {assignmentStats.manuallyAssigned || 0}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginTop: 3 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginTop: 2 }}>
                 Manual Assigned
-              </div>
-              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
-                Owner dispatched
               </div>
             </div>
           </div>
@@ -999,18 +1027,18 @@ export function BookingsView({ onShowToast, onNavigate }) {
           {/* 5. Rejected / Expired */}
           <div style={{
             backgroundColor: '#FFFFFF',
-            borderRadius: 10,
-            padding: '14px 16px',
+            borderRadius: 8,
+            padding: '8px 12px',
             border: '1px solid #E2E8F0',
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+            gap: 10,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
           }}>
             <div style={{
-              width: 38,
-              height: 38,
-              borderRadius: 8,
+              width: 30,
+              height: 30,
+              borderRadius: 6,
               backgroundColor: '#FFF1F2',
               color: '#BE123C',
               display: 'flex',
@@ -1018,17 +1046,14 @@ export function BookingsView({ onShowToast, onNavigate }) {
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              <Ban size={18} />
+              <Ban size={15} />
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>
                 {assignmentStats.rejectedOrExpired || 0}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginTop: 3 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: '#475569', marginTop: 2 }}>
                 Rejected / Expired
-              </div>
-              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
-                Declined or timed out
               </div>
             </div>
           </div>
@@ -1036,18 +1061,18 @@ export function BookingsView({ onShowToast, onNavigate }) {
           {/* 6. Awaiting Owner Attention */}
           <div style={{
             backgroundColor: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '#FEF2F2' : '#FFFFFF',
-            borderRadius: 10,
-            padding: '14px 16px',
+            borderRadius: 8,
+            padding: '8px 12px',
             border: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '1.5px solid #F87171' : '1px solid #E2E8F0',
             display: 'flex',
             alignItems: 'center',
-            gap: 12,
-            boxShadow: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '0 0 10px rgba(239, 68, 68, 0.15)' : '0 1px 3px rgba(0,0,0,0.02)'
+            gap: 10,
+            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
           }}>
             <div style={{
-              width: 38,
-              height: 38,
-              borderRadius: 8,
+              width: 30,
+              height: 30,
+              borderRadius: 6,
               backgroundColor: '#FEE2E2',
               color: '#DC2626',
               display: 'flex',
@@ -1055,198 +1080,211 @@ export function BookingsView({ onShowToast, onNavigate }) {
               justifyContent: 'center',
               flexShrink: 0
             }}>
-              <AlertCircle size={18} />
+              <AlertCircle size={15} />
             </div>
             <div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '#DC2626' : '#0F172A', lineHeight: 1 }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '#DC2626' : '#0F172A', lineHeight: 1 }}>
                 {assignmentStats.awaitingOwnerAttention || 0}
               </div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '#DC2626' : '#475569', marginTop: 3 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '#DC2626' : '#475569', marginTop: 2 }}>
                 Awaiting Attention
-              </div>
-              <div style={{ fontSize: 10.5, color: '#94A3B8', marginTop: 1 }}>
-                Action required
               </div>
             </div>
           </div>
         </div>
-        {/* Comprehensive Filter Bar */}
-      <div style={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: '18px 20px',
-        border: '1px solid #E2E8F0',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 14
-      }}>
-        {/* Search & Main Row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            backgroundColor: '#F8FAFC',
-            border: '1px solid #CBD5E1',
-            borderRadius: 8,
-            padding: '8px 14px',
-            flex: '1 1 280px',
-            minWidth: 260
-          }}>
-            <Search size={16} color="#64748B" />
-            <input
-              type="text"
-              placeholder="Search reference, customer, phone, service, pro, address..."
-              value={search}
-              onChange={e => { setSearch(e.target.value); setPage(1); }}
+
+        {/* Compact Filter Bar */}
+        <div style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 10,
+          padding: '10px 14px',
+          border: '1px solid #E2E8F0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10
+        }}>
+          {/* Search & Main Row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              backgroundColor: '#F8FAFC',
+              border: '1px solid #CBD5E1',
+              borderRadius: 6,
+              padding: '6px 12px',
+              flex: '1 1 240px',
+              minWidth: 200
+            }}>
+              <Search size={15} color="#64748B" />
+              <input
+                type="text"
+                placeholder="Search reference, customer, phone, service, address..."
+                value={search}
+                onChange={e => { setSearch(e.target.value); setPage(1); }}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  backgroundColor: 'transparent',
+                  width: '100%',
+                  fontSize: 12.5,
+                  color: '#0F172A'
+                }}
+              />
+              {search && (
+                <X size={14} color="#94A3B8" style={{ cursor: 'pointer' }} onClick={() => setSearch('')} />
+              )}
+            </div>
+
+            {/* Booking Status Filter */}
+            <select
+              value={statusFilter}
+              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
               style={{
-                border: 'none',
-                outline: 'none',
-                backgroundColor: 'transparent',
-                width: '100%',
-                fontSize: 13,
-                color: '#0F172A'
-              }}
-            />
-            {search && (
-              <X size={14} color="#94A3B8" style={{ cursor: 'pointer' }} onClick={() => setSearch('')} />
-            )}
-          </div>
-
-          {/* Booking Status Filter */}
-          <select
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              fontSize: 13,
-              backgroundColor: '#FFFFFF',
-              color: '#334155',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="ALL">All Booking Statuses</option>
-            <option value="Pending">Pending Dispatch</option>
-            <option value="Confirmed">Confirmed</option>
-            <option value="Assigned">Assigned to Pro</option>
-            <option value="En Route">Technician En Route</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Completed">Completed</option>
-            <option value="Cancelled">Cancelled</option>
-          </select>
-
-          {/* Payment Status Filter */}
-          <select
-            value={paymentFilter}
-            onChange={e => { setPaymentFilter(e.target.value); setPage(1); }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              fontSize: 13,
-              backgroundColor: '#FFFFFF',
-              color: '#334155',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="ALL">All Payment Statuses</option>
-            <option value="Paid">Paid</option>
-            <option value="Pending">Payment Pending</option>
-            <option value="Refunded">Refunded</option>
-            <option value="Failed">Failed</option>
-          </select>
-
-          {/* City Filter */}
-          <select
-            value={cityFilter}
-            onChange={e => { setCityFilter(e.target.value); setPage(1); }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              fontSize: 13,
-              backgroundColor: '#FFFFFF',
-              color: '#334155',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="ALL">All Cities</option>
-            <option value="Mumbai">Mumbai</option>
-            <option value="Bengaluru">Bengaluru</option>
-            <option value="Delhi NCR">Delhi NCR</option>
-            <option value="Krishnagiri">Krishnagiri</option>
-          </select>
-
-          {/* Assigned vs Unassigned */}
-          <select
-            value={assignedFilter}
-            onChange={e => { setAssignedFilter(e.target.value); setPage(1); }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              fontSize: 13,
-              backgroundColor: '#FFFFFF',
-              color: '#334155',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="ALL">All Assignments</option>
-            <option value="assigned">Assigned to Professional</option>
-            <option value="unassigned">⚠️ Unassigned (Need Pro)</option>
-          </select>
-
-          {/* Partner Agency Filter */}
-          <select
-            value={partnerFilter}
-            onChange={e => { setPartnerFilter(e.target.value); setPage(1); }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              fontSize: 13,
-              backgroundColor: '#FFFFFF',
-              color: '#334155',
-              cursor: 'pointer'
-            }}
-          >
-            <option value="ALL">All Business Partners</option>
-            <option value="Direct">Direct Freelance Pro</option>
-            <option value="Apex Home Solutions LLP">Apex Home Solutions LLP</option>
-            <option value="Selvam Fleet Services">Selvam Fleet Services</option>
-            <option value="Urban Clean Tech Agency">Urban Clean Tech Agency</option>
-          </select>
-
-          {/* Reset Filters */}
-          {(statusFilter !== 'ALL' || paymentFilter !== 'ALL' || cityFilter !== 'ALL' || partnerFilter !== 'ALL' || assignedFilter !== 'ALL' || search) && (
-            <button
-              onClick={() => {
-                setStatusFilter('ALL');
-                setPaymentFilter('ALL');
-                setCityFilter('ALL');
-                setCategoryFilter('ALL');
-                setPartnerFilter('ALL');
-                setAssignedFilter('ALL');
-                setSearch('');
-                setPage(1);
-              }}
-              style={{
-                backgroundColor: 'transparent',
-                border: 'none',
-                color: '#6E42E5',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-                padding: '4px 8px'
+                padding: '6px 10px',
+                borderRadius: 6,
+                border: '1px solid #CBD5E1',
+                fontSize: 12.5,
+                backgroundColor: '#FFFFFF',
+                color: '#334155',
+                cursor: 'pointer'
               }}
             >
-              Reset Filters
-            </button>
-          )}
+              <option value="ALL">All Statuses</option>
+              <option value="Pending">Pending</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Assigned">Assigned</option>
+              <option value="En Route">En Route</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+              <option value="Cancelled">Cancelled</option>
+            </select>
+
+            {/* Payment Status Filter */}
+            <select
+              value={paymentFilter}
+              onChange={e => { setPaymentFilter(e.target.value); setPage(1); }}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 6,
+                border: '1px solid #CBD5E1',
+                fontSize: 12.5,
+                backgroundColor: '#FFFFFF',
+                color: '#334155',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="ALL">All Payments</option>
+              <option value="Paid">Paid</option>
+              <option value="Pending">Pending</option>
+              <option value="Refunded">Refunded</option>
+              <option value="Failed">Failed</option>
+            </select>
+
+            {/* City Filter */}
+            <select
+              value={cityFilter}
+              onChange={e => { setCityFilter(e.target.value); setPage(1); }}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 6,
+                border: '1px solid #CBD5E1',
+                fontSize: 12.5,
+                backgroundColor: '#FFFFFF',
+                color: '#334155',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="ALL">All Cities</option>
+              <option value="Krishnagiri">Krishnagiri</option>
+              <option value="Mumbai">Mumbai</option>
+              <option value="Bengaluru">Bengaluru</option>
+              <option value="Delhi NCR">Delhi NCR</option>
+            </select>
+
+            {/* Assigned vs Unassigned */}
+            <select
+              value={assignedFilter}
+              onChange={e => { setAssignedFilter(e.target.value); setPage(1); }}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 6,
+                border: assignedFilter !== 'ALL' ? '1.5px solid #F59E0B' : '1px solid #CBD5E1',
+                fontSize: 12.5,
+                backgroundColor: assignedFilter !== 'ALL' ? '#FFFBEB' : '#FFFFFF',
+                color: '#334155',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="ALL">All Assignments</option>
+              <option value="assigned">Assigned to Pro</option>
+              <option value="unassigned">⚠️ Unassigned (Need Pro)</option>
+            </select>
+
+            {/* Partner Agency Filter */}
+            <select
+              value={partnerFilter}
+              onChange={e => { setPartnerFilter(e.target.value); setPage(1); }}
+              style={{
+                padding: '6px 10px',
+                borderRadius: 6,
+                border: '1px solid #CBD5E1',
+                fontSize: 12.5,
+                backgroundColor: '#FFFFFF',
+                color: '#334155',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="ALL">All Partners</option>
+              <option value="Direct">Direct Freelance Pro</option>
+              <option value="Apex Home Solutions LLP">Apex Home Solutions LLP</option>
+              <option value="Selvam Fleet Services">Selvam Fleet Services</option>
+              <option value="Urban Clean Tech Agency">Urban Clean Tech Agency</option>
+            </select>
+
+            {/* Live Count Indicator & Reset */}
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                fontSize: 12,
+                fontWeight: 700,
+                color: '#6E42E5',
+                backgroundColor: '#F5F3FF',
+                border: '1px solid #DDD6FE',
+                padding: '4px 9px',
+                borderRadius: 6
+              }}>
+                {bookings.length} {bookings.length === 1 ? 'booking' : 'bookings'}
+              </span>
+
+              {(statusFilter !== 'ALL' || paymentFilter !== 'ALL' || cityFilter !== 'ALL' || partnerFilter !== 'ALL' || assignedFilter !== 'ALL' || search) && (
+                <button
+                  onClick={() => {
+                    setStatusFilter('ALL');
+                    setPaymentFilter('ALL');
+                    setCityFilter('ALL');
+                    setCategoryFilter('ALL');
+                    setPartnerFilter('ALL');
+                    setAssignedFilter('ALL');
+                    setSearch('');
+                    setPage(1);
+                  }}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: '#6E42E5',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    padding: '4px 6px',
+                    textDecoration: 'underline'
+                  }}
+                >
+                  Reset
+                </button>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
 
       {/* Main Bookings Table */}
       <div style={{

@@ -10,7 +10,9 @@ const { createClient } = require('redis');
 
 const BASE_URL = 'http://localhost:5000';
 const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'urban_services_secret_jwt_key_2026_super_secure';
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/urban_company';
+const dns = require('dns');
+try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch (e) {}
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://forgeindiaconnecttech26_db_user:lmyALE1vtNWEi6Ag@cluster0.my7b6sy.mongodb.net/urban_company?retryWrites=true&w=majority';
 
 const adminToken = jwt.sign(
   { id: 'ADM-TEST-01', role: 'Super Admin', name: 'Super Admin Test' },

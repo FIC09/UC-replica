@@ -49,10 +49,13 @@ export async function getBookings(req, res) {
         const matches = (b.id || '').toLowerCase().includes(q) ||
           (b.bookingReference || '').toLowerCase().includes(q) ||
           (b.userName || '').toLowerCase().includes(q) ||
+          (b.customerName || '').toLowerCase().includes(q) ||
+          (b.userEmail || '').toLowerCase().includes(q) ||
           (b.userPhone || '').toLowerCase().includes(q) ||
           (b.serviceName || '').toLowerCase().includes(q) ||
           (b.assignedPartner || '').toLowerCase().includes(q) ||
           (b.partnerAgency || '').toLowerCase().includes(q) ||
+          (b.address || '').toLowerCase().includes(q) ||
           (b.city || '').toLowerCase().includes(q);
         if (!matches) return false;
       }
@@ -113,7 +116,11 @@ export async function getBookings(req, res) {
     const limitNum = parseInt(limit) || 10;
     const totalPages = Math.ceil(total / limitNum) || 1;
     const startIndex = (pageNum - 1) * limitNum;
-    const paginatedBookings = filtered.slice(startIndex, startIndex + limitNum);
+    const paginatedBookings = filtered.slice(startIndex, startIndex + limitNum).map(b => ({
+      ...b,
+      userName: b.userName || b.customerName || 'Customer',
+      customerName: b.customerName || b.userName || 'Customer'
+    }));
 
     return res.json({
       success: true,

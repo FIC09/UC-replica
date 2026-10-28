@@ -14,9 +14,14 @@ import { AdminSetting } from '../models/AdminSetting.js';
 
 import { SERVICES, COUPONS } from '../../frontend/src/data/servicesData.js';
 
+import dns from 'dns';
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/urban_company';
+const ATLAS_MONGO_URI = 'mongodb+srv://forgeindiaconnecttech26_db_user:lmyALE1vtNWEi6Ag@cluster0.my7b6sy.mongodb.net/urban_company?retryWrites=true&w=majority';
+const MONGO_URI = process.env.MONGO_URI || ATLAS_MONGO_URI;
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {}
 
 async function seedDatabase() {
   try {

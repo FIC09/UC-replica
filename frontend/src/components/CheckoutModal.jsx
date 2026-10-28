@@ -103,8 +103,8 @@ export function CheckoutModal({
       userName: custName,
       userPhone: formattedPhone,
       userEmail: user?.email || '',
-      city: selectedCity || 'Mumbai',
-      serviceZone: locality || selectedLocality || 'Bandra West',
+      city: selectedCity || 'Krishnagiri',
+      serviceZone: locality || selectedLocality || 'Rayakottai Road',
       serviceName: firstItem.title || firstItem.name || 'Home Service',
       serviceCategory: firstItem.category || 'Home Services',
       items: cartList.map(item => ({
@@ -128,8 +128,8 @@ export function CheckoutModal({
       addressDetails: {
         fullAddress: finalAddressText,
         flat: flatNumber,
-        locality: locality || selectedLocality || 'Bandra West',
-        city: selectedCity || 'Mumbai',
+        locality: locality || selectedLocality || 'Rayakottai Road',
+        city: selectedCity || 'Krishnagiri',
         pincode: pincode || '',
         contactPhone: formattedPhone
       },
@@ -138,7 +138,6 @@ export function CheckoutModal({
       contact: `${custName} (${formattedPhone})`,
       paymentMethod: paymentMethod.toUpperCase(),
       paymentStatus: 'Paid',
-      createdAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       createdAtFormatted: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
       status: 'Confirmed',
     };

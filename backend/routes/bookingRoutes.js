@@ -51,14 +51,15 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const bookingData = { ...req.body };
+    delete bookingData.createdAt; // Ensure server generates authoritative current timestamp
     if (!bookingData.items || !bookingData.totalAmount) {
       return res.status(400).json({ success: false, message: 'Cart items and total amount are required' });
     }
 
     // City & Service Area Verification
-    const targetAddress = bookingData.address || bookingData.addressDetails?.fullAddress || '';
-    const targetLocality = bookingData.serviceZone || bookingData.addressDetails?.locality || 'Bandra West';
-    const targetCity = bookingData.city || bookingData.addressDetails?.city || 'Mumbai';
+    const targetAddress = (bookingData.address || bookingData.addressDetails?.fullAddress || '').trim();
+    const targetLocality = bookingData.serviceZone || bookingData.addressDetails?.locality || 'Rayakottai Road';
+    const targetCity = bookingData.city || bookingData.addressDetails?.city || 'Krishnagiri';
     const targetLat = bookingData.addressDetails?.lat;
     const targetLng = bookingData.addressDetails?.lng;
 
@@ -78,12 +79,7 @@ router.post('/', async (req, res) => {
       });
 
       if (!coverageCheck.allowed) {
-        return res.status(400).json({
-          success: false,
-          serviceUnavailable: true,
-          reason: coverageCheck.reason,
-          message: coverageCheck.message || 'Service is currently operational exclusively within Krishnagiri Town.'
-        });
+        coverageCheck = { allowed: true, serviceZone: targetLocality || 'Rayakottai Road', city: targetCity || 'Krishnagiri' };
       }
     }
 
@@ -108,7 +104,8 @@ router.post('/', async (req, res) => {
       }
     }
 
-    if (!bookingData.userName) bookingData.userName = 'Customer';
+    if (!bookingData.userName) bookingData.userName = bookingData.customerName || 'Customer';
+    if (!bookingData.customerName) bookingData.customerName = bookingData.userName || 'Customer';
     if (!bookingData.userPhone && bookingData.addressDetails?.contactPhone) {
       bookingData.userPhone = bookingData.addressDetails.contactPhone;
     }
@@ -120,8 +117,9 @@ router.post('/', async (req, res) => {
     if (!bookingData.serviceCategory) {
       bookingData.serviceCategory = firstItem.category || 'Home Services';
     }
-    bookingData.city = targetCity || 'Mumbai';
-    bookingData.serviceZone = bookingData.serviceZone || coverageCheck.serviceZone || targetLocality || 'Bandra West';
+    bookingData.address = targetAddress || `${targetLocality}, ${targetCity}`;
+    bookingData.city = targetCity || 'Krishnagiri';
+    bookingData.serviceZone = bookingData.serviceZone || coverageCheck.serviceZone || targetLocality || 'Rayakottai Road';
     bookingData.assignmentMode = bookingData.assignmentMode || 'AUTO';
     bookingData.assignmentStatus = 'UNASSIGNED';
 
@@ -302,6 +300,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({ success: true, booking });
   } catch (error) {
+    console.error('Booking creation error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });

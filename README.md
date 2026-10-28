@@ -58,7 +58,7 @@ Urban Re/
 
 ### 1. Prerequisites
 - **Node.js**: v18+ (Tested on v24)
-- **MongoDB**: Local MongoDB instance running on `mongodb://127.0.0.1:27017` (or MongoDB Atlas connection string in `backend/.env`)
+- **MongoDB**: MongoDB Atlas Cloud Cluster configured in `backend/.env`
 
 ### 2. Install Dependencies
 Run the install command from the root directory:

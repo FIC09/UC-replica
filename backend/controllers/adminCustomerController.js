@@ -1,5 +1,6 @@
 import { User } from '../models/User.js';
 import { Booking } from '../models/Booking.js';
+import { Address } from '../models/Address.js';
 
 // =========================================================================
 // AUTHORITATIVE CUSTOMER CONTROLLER (100% REAL-TIME DATABASE OPERATIONS)
@@ -13,9 +14,39 @@ export async function getCustomers(req, res) {
 
     let dbUsers = [];
     try {
-      dbUsers = await User.find({ role: { $in: ['user', 'customer', undefined] } }).select('-password').lean();
+      dbUsers = await User.find({
+        $or: [
+          { role: { $in: ['user', 'customer'] } },
+          { role: { $exists: false } },
+          { role: null }
+        ]
+      }).sort({ createdAt: -1 }).select('-password').lean();
     } catch (e) {
       console.warn('User.find error in getCustomers:', e.message);
+    }
+
+    let allAddresses = [];
+    try {
+      allAddresses = await Address.find().lean();
+    } catch (e) {
+      console.warn('Address.find in getCustomers error:', e.message);
+    }
+
+    const addressesByPhone = {};
+    for (const a of allAddresses) {
+      const digits = (a.userPhone || '').replace(/\D/g, '').slice(-10);
+      if (digits) {
+        if (!addressesByPhone[digits]) addressesByPhone[digits] = [];
+        addressesByPhone[digits].push({
+          id: a.id || `addr-${a._id}`,
+          type: a.type || 'Home',
+          streetAddress: a.formatted || `${a.flat || ''}, ${a.locality || ''}, ${a.city || ''}`,
+          locality: a.locality || '',
+          city: a.city || 'Krishnagiri',
+          pincode: a.pincode || '',
+          isDefault: !!a.isDefault
+        });
+      }
     }
 
     let allBookings = [];
@@ -59,14 +90,14 @@ export async function getCustomers(req, res) {
       const phoneDigits = (u.phone || '').replace(/\D/g, '').slice(-10);
       const stats = statsByCustId[u._id.toString()] || statsByPhone[phoneDigits] || { count: 0, totalSpend: 0, bookings: [] };
 
-      let addresses = u.savedAddresses || [];
+      let addresses = u.savedAddresses && u.savedAddresses.length > 0 ? u.savedAddresses : (addressesByPhone[phoneDigits] || []);
       if (addresses.length === 0 && stats.latest && stats.latest.address) {
         addresses = [{
           id: `addr-${stats.latest.id || '1'}`,
           type: 'Home',
           streetAddress: stats.latest.address,
-          locality: stats.latest.serviceZone || u.locality || 'Bandra West',
-          city: stats.latest.city || u.city || 'Mumbai',
+          locality: stats.latest.serviceZone || u.locality || 'Rayakottai Road',
+          city: stats.latest.city || u.city || 'Krishnagiri',
           pincode: stats.latest.addressDetails?.pincode || '',
           isDefault: true
         }];
@@ -78,8 +109,8 @@ export async function getCustomers(req, res) {
         name: u.name,
         phone: u.phone,
         email: u.email || `${u.name.toLowerCase().replace(/\s+/g, '.')}@example.com`,
-        city: u.city || stats.latest?.city || 'Mumbai',
-        locality: u.locality || stats.latest?.serviceZone || 'Bandra West',
+        city: u.city || stats.latest?.city || (addresses[0]?.city) || 'Krishnagiri',
+        locality: u.locality || stats.latest?.serviceZone || (addresses[0]?.locality) || 'Rayakottai Road',
         status: u.status || 'Active',
         isPlusMember: !!u.hasUCPlus,
         joinedDate: new Date(u.createdAt || Date.now()).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),

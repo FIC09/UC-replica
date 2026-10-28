@@ -31,7 +31,12 @@ async function request(endpoint, options = {}) {
 // 1. Auth API
 export const authApi = {
   login: (phone, name) => request('/auth/login', { method: 'POST', body: { phone, name } }),
-  register: (name, phone, email) => request('/auth/register', { method: 'POST', body: { name, phone, email } }),
+  register: (nameOrData, phone, email, extra = {}) => {
+    if (typeof nameOrData === 'object' && nameOrData !== null) {
+      return request('/auth/register', { method: 'POST', body: nameOrData });
+    }
+    return request('/auth/register', { method: 'POST', body: { name: nameOrData, phone, email, ...extra } });
+  },
   getMe: (phone) => request(`/auth/me${phone ? `?phone=${encodeURIComponent(phone)}` : ''}`),
   updateProfile: (profileData) => request('/auth/profile', { method: 'PUT', body: profileData }),
 };

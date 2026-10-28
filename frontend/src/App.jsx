@@ -634,11 +634,12 @@ function App() {
     const enriched = {
       ...bookingDetails,
       userName: bookingDetails.userName || user?.name || 'Customer',
+      customerName: bookingDetails.customerName || bookingDetails.userName || user?.name || 'Customer',
       userPhone: formattedPhone,
       userEmail: bookingDetails.userEmail || user?.email || '',
       customerId: bookingDetails.customerId || user?._id || user?.id || '',
-      city: bookingDetails.city || selectedCity || 'Mumbai',
-      serviceZone: bookingDetails.serviceZone || selectedLocality || 'Bandra West',
+      city: bookingDetails.city || selectedCity || 'Krishnagiri',
+      serviceZone: bookingDetails.serviceZone || selectedLocality || 'Rayakottai Road',
       status: bookingDetails.status || 'Confirmed',
       paymentStatus: bookingDetails.paymentStatus || 'Paid'
     };
@@ -852,9 +853,11 @@ function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Purge any stale admin session so opening the portal strictly requires password verification
+    // Purge any stale admin session if not on admin route
     try {
-      sessionStorage.removeItem('uc_admin_auth');
+      if (!window.location.pathname.startsWith('/admin')) {
+        sessionStorage.removeItem('uc_admin_auth');
+      }
     } catch {}
   }, []);
 
@@ -2326,12 +2329,16 @@ function App() {
         onClose={() => setIsAuthModalOpen(false)}
         user={user}
         initialMode={authModalMode}
+        onOpenAdminDashboard={handleOpenAdminPortal}
+        onOpenProfessionalDashboard={handleOpenProfessionalPortal}
+        onOpenPartnerDashboard={handleOpenPartnerPortal}
         onLogin={(loggedInUser) => {
           setUser(loggedInUser);
           if (loggedInUser.role === 'admin') {
             setIsAdminAuthenticated(true);
             try {
               sessionStorage.setItem('uc_admin_auth', 'true');
+              localStorage.setItem('uc_admin_auth', 'true');
             } catch {}
             window.history.pushState({}, '', '/admin');
             setIsAdminRoute(true);

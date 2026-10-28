@@ -1,8 +1,9 @@
 const { io } = require('socket.io-client');
 const mongoose = require('mongoose');
 const http = require('http');
-
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/urban_company';
+const dns = require('dns');
+try { dns.setServers(['8.8.8.8', '1.1.1.1']); } catch (e) {}
+const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://forgeindiaconnecttech26_db_user:lmyALE1vtNWEi6Ag@cluster0.my7b6sy.mongodb.net/urban_company?retryWrites=true&w=majority';
 const BACKEND_URL = 'http://localhost:5000';
 
 async function runComprehensiveMatrix() {

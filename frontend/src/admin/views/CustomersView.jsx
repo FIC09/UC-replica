@@ -89,6 +89,27 @@ export function CustomersView({ onShowToast, onNavigate }) {
     fetchCustomersList();
   }, [search, statusFilter, cityFilter, page]);
 
+  // Live real-time sync when a new customer registers or when tab refocuses
+  useEffect(() => {
+    function handleCustomerChange() {
+      fetchCustomersList();
+    }
+    window.addEventListener('uc:customer-registered', handleCustomerChange);
+    window.addEventListener('uc:auth-changed', handleCustomerChange);
+    window.addEventListener('focus', handleCustomerChange);
+
+    const interval = setInterval(() => {
+      fetchCustomersList();
+    }, 8000);
+
+    return () => {
+      window.removeEventListener('uc:customer-registered', handleCustomerChange);
+      window.removeEventListener('uc:auth-changed', handleCustomerChange);
+      window.removeEventListener('focus', handleCustomerChange);
+      clearInterval(interval);
+    };
+  }, [search, statusFilter, cityFilter, page]);
+
   // Fetch Full Customer Detail Profile when selected
   useEffect(() => {
     if (!selectedCust) {
