@@ -366,7 +366,7 @@ export function SettingsView({ onLogout, showToast }) {
             border: '1px solid #E2E8F0',
             boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
           }}>
-            <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 14, marginBottom: 18 }}>
+            <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 14, marginBottom: 20 }}>
               <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <Compass size={18} color="#7C3AED" /> Dispatch Radar &amp; Transit Configuration
               </h3>
@@ -375,126 +375,212 @@ export function SettingsView({ onLogout, showToast }) {
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
-              {/* Max Dispatch Radius */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>
-                    Auto-Accept Dispatch Scan Radius
-                  </label>
-                  <span style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: '#7C3AED',
-                    backgroundColor: '#EDE9FE',
-                    padding: '2px 8px',
-                    borderRadius: 6
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))',
+              gap: 16,
+              alignItems: 'stretch'
+            }}>
+              {/* Tile 1: Auto-Accept Dispatch Radius */}
+              <div style={{
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: 12,
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: 10
+              }}>
+                <div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    minHeight: 28,
+                    gap: 8,
+                    marginBottom: 10
                   }}>
-                    {settings.availabilityPreferences?.autoAcceptRadiusKm || 7.5} km
-                  </span>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>
+                      Auto-Accept Dispatch Radius
+                    </label>
+                    <span style={{
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      color: '#7C3AED',
+                      backgroundColor: '#EDE9FE',
+                      padding: '3px 9px',
+                      borderRadius: 6,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}>
+                      {settings.availabilityPreferences?.autoAcceptRadiusKm || 7.5} km
+                    </span>
+                  </div>
+
+                  <select
+                    value={settings.availabilityPreferences?.autoAcceptRadiusKm || 7.5}
+                    onChange={(e) => handleUpdateAvailability('autoAcceptRadiusKm', parseFloat(e.target.value))}
+                    style={{
+                      width: '100%',
+                      height: 42,
+                      padding: '0 12px',
+                      borderRadius: 8,
+                      border: '1px solid #CBD5E1',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                      cursor: 'pointer',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="3">3 km • Hyper-local (Town Center)</option>
+                    <option value="5">5 km • Standard Hub (Gandhi Nagar)</option>
+                    <option value="7.5">7.5 km • Recommended (Town &amp; Bypass)</option>
+                    <option value="10">10 km • Extended (Kattiganapalli)</option>
+                    <option value="15">15 km • Maximum Perimeter (Inter-town)</option>
+                  </select>
                 </div>
-                <select
-                  value={settings.availabilityPreferences?.autoAcceptRadiusKm || 7.5}
-                  onChange={(e) => handleUpdateAvailability('autoAcceptRadiusKm', parseFloat(e.target.value))}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: 8,
-                    border: '1px solid #CBD5E1',
-                    fontSize: 13.5,
-                    backgroundColor: '#FFFFFF',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="3">3 km — Hyper-local (Town Center &amp; Old Bus Stand)</option>
-                  <option value="5">5 km — Standard Hub (Gandhi Nagar &amp; Rayakottai Rd)</option>
-                  <option value="7.5">7.5 km — Recommended (Krishnagiri Town &amp; Highway Bypass)</option>
-                  <option value="10">10 km — Extended (Kattiganapalli &amp; Industrial Outer)</option>
-                  <option value="15">15 km — Maximum Perimeter (Inter-town perimeter)</option>
-                </select>
-                <span style={{ fontSize: 11.5, color: '#64748B' }}>
+
+                <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.45, minHeight: 34 }}>
                   Orders outside this radius will not be offered to your device unless marked high-priority.
-                </span>
+                </div>
               </div>
 
-              {/* Max Daily Jobs */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>
-                    Maximum Daily Dispatches Ceiling
-                  </label>
-                  <span style={{
-                    fontSize: 12,
-                    fontWeight: 800,
-                    color: '#059669',
-                    backgroundColor: '#ECFDF5',
-                    padding: '2px 8px',
-                    borderRadius: 6
+              {/* Tile 2: Daily Dispatch Ceiling */}
+              <div style={{
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: 12,
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: 10
+              }}>
+                <div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    minHeight: 28,
+                    gap: 8,
+                    marginBottom: 10
                   }}>
-                    {settings.availabilityPreferences?.maxDailyJobs || 6} jobs / day
-                  </span>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>
+                      Daily Dispatch Ceiling
+                    </label>
+                    <span style={{
+                      fontSize: 11.5,
+                      fontWeight: 800,
+                      color: '#059669',
+                      backgroundColor: '#ECFDF5',
+                      padding: '3px 9px',
+                      borderRadius: 6,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}>
+                      {settings.availabilityPreferences?.maxDailyJobs || 6} jobs / day
+                    </span>
+                  </div>
+
+                  <select
+                    value={settings.availabilityPreferences?.maxDailyJobs || 6}
+                    onChange={(e) => handleUpdateAvailability('maxDailyJobs', parseInt(e.target.value))}
+                    style={{
+                      width: '100%',
+                      height: 42,
+                      padding: '0 12px',
+                      borderRadius: 8,
+                      border: '1px solid #CBD5E1',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                      cursor: 'pointer',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="4">4 jobs/day • Relaxed Shift</option>
+                    <option value="6">6 jobs/day • Optimal Balance (Recommended)</option>
+                    <option value="8">8 jobs/day • High Volume Earning Sprint</option>
+                    <option value="10">10 jobs/day • Maximum Allowed Workload</option>
+                  </select>
                 </div>
-                <select
-                  value={settings.availabilityPreferences?.maxDailyJobs || 6}
-                  onChange={(e) => handleUpdateAvailability('maxDailyJobs', parseInt(e.target.value))}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: 8,
-                    border: '1px solid #CBD5E1',
-                    fontSize: 13.5,
-                    backgroundColor: '#FFFFFF',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="4">4 jobs per day (Relaxed / Part-time shift)</option>
-                  <option value="6">6 jobs per day (Optimal balance — Recommended)</option>
-                  <option value="8">8 jobs per day (High volume earning sprint)</option>
-                  <option value="10">10 jobs per day (Maximum allowed workload)</option>
-                </select>
-                <span style={{ fontSize: 11.5, color: '#64748B' }}>
+
+                <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.45, minHeight: 34 }}>
                   Duty automatically turns off after completing this ceiling to prevent fatigue.
-                </span>
+                </div>
               </div>
 
-              {/* Preferred Map Navigation */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <label style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>
-                    Preferred Navigation Engine
-                  </label>
-                  <span style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: '#6366F1',
-                    backgroundColor: '#EEF2FF',
-                    padding: '2px 8px',
-                    borderRadius: 6
+              {/* Tile 3: Preferred Navigation Engine */}
+              <div style={{
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: 12,
+                padding: '16px 18px',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: 10
+              }}>
+                <div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    minHeight: 28,
+                    gap: 8,
+                    marginBottom: 10
                   }}>
-                    External GPS
-                  </span>
+                    <label style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>
+                      Preferred Navigation Engine
+                    </label>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: '#4F46E5',
+                      backgroundColor: '#EEF2FF',
+                      padding: '3px 9px',
+                      borderRadius: 6,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
+                    }}>
+                      External GPS
+                    </span>
+                  </div>
+
+                  <select
+                    value={settings.availabilityPreferences?.preferredMap || 'Google Maps'}
+                    onChange={(e) => handleUpdateAvailability('preferredMap', e.target.value)}
+                    style={{
+                      width: '100%',
+                      height: 42,
+                      padding: '0 12px',
+                      borderRadius: 8,
+                      border: '1px solid #CBD5E1',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#0F172A',
+                      backgroundColor: '#FFFFFF',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                      cursor: 'pointer',
+                      outline: 'none'
+                    }}
+                  >
+                    <option value="Google Maps">Google Maps (Default)</option>
+                    <option value="OpenStreetMap">OpenStreetMap / Leaflet (In-App)</option>
+                    <option value="Apple Maps">Apple Maps (iOS Devices)</option>
+                    <option value="Waze">Waze (Live Traffic Alerts)</option>
+                  </select>
                 </div>
-                <select
-                  value={settings.availabilityPreferences?.preferredMap || 'Google Maps'}
-                  onChange={(e) => handleUpdateAvailability('preferredMap', e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '10px 14px',
-                    borderRadius: 8,
-                    border: '1px solid #CBD5E1',
-                    fontSize: 13.5,
-                    backgroundColor: '#FFFFFF',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="Google Maps">Google Maps (Default)</option>
-                  <option value="OpenStreetMap">OpenStreetMap / Leaflet (In-App)</option>
-                  <option value="Apple Maps">Apple Maps (iOS Devices)</option>
-                  <option value="Waze">Waze (Traffic alerts)</option>
-                </select>
-                <span style={{ fontSize: 11.5, color: '#64748B' }}>
+
+                <div style={{ fontSize: 12, color: '#64748B', lineHeight: 1.45, minHeight: 34 }}>
                   Tapping "Navigate" on a job dispatches directions directly into this app.
-                </span>
+                </div>
               </div>
             </div>
           </div>
@@ -506,10 +592,10 @@ export function SettingsView({ onLogout, showToast }) {
             padding: '16px 20px',
             border: '1px solid #E9D5FF',
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             gap: 12
           }}>
-            <Navigation size={20} color="#7C3AED" style={{ flexShrink: 0, marginTop: 2 }} />
+            <Navigation size={20} color="#7C3AED" style={{ flexShrink: 0 }} />
             <div style={{ fontSize: 12.5, color: '#4C1D95', lineHeight: 1.5 }}>
               <strong>Krishnagiri Doorstep Navigation:</strong> Customer addresses are mapped with reverse geocoding to Rayakottai Road, Gandhi Nagar, Old Bus Stand, and nearby residential streets. A minimum 30-minute travel buffer is preserved between consecutive jobs.
             </div>
