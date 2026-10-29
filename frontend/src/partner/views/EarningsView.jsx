@@ -4,8 +4,11 @@ import {
   ArrowUpRight, Download, Calendar, CheckCircle2, ListFilter, FileText, Layers 
 } from 'lucide-react';
 import { partnerClient } from '../partnerClient';
+import { usePlatformSettings } from '../../utils/usePlatformSettings';
 
 export function EarningsView({ showToast }) {
+  const { agencyTakeRate } = usePlatformSettings();
+  const effectiveAgencyTake = agencyTakeRate ?? 14;
   const [loading, setLoading] = useState(true);
   const [earningsData, setEarningsData] = useState(null);
   const [ledgerTransactions, setLedgerTransactions] = useState([]);
@@ -40,7 +43,7 @@ export function EarningsView({ showToast }) {
     totalGrossTurnoverPaise: 32730000,
     totalPlatformCommission: 58914,
     totalPlatformCommissionPaise: 5891400,
-    commissionPercentage: '18%',
+    commissionPercentage: `${effectiveAgencyTake}%`,
     totalNetAgencyPayouts: 257781,
     totalNetAgencyPayoutsPaise: 25778100,
     pendingSettlement: 0,
@@ -157,7 +160,7 @@ export function EarningsView({ showToast }) {
 
         {/* Platform Fee */}
         <div style={{ background: '#ffffff', borderRadius: 12, padding: '18px', border: '1px solid #e2e8f0' }}>
-          <span style={{ fontSize: 12.5, fontWeight: 600, color: '#64748b' }}>Platform Commission (18%)</span>
+          <span style={{ fontSize: 12.5, fontWeight: 600, color: '#64748b' }}>Platform Commission ({effectiveAgencyTake}%)</span>
           <div style={{ fontSize: 24, fontWeight: 700, color: '#dc2626', margin: '6px 0 2px 0' }}>
             - ₹{summary.totalPlatformCommission.toLocaleString('en-IN')}
           </div>

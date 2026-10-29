@@ -1,7 +1,11 @@
 import express from 'express';
 import { Service } from '../models/Service.js';
+import { getPlatformSettings } from '../controllers/adminSettingsController.js';
 
 const router = express.Router();
+
+// GET authoritative public platform settings (real-time sync for Customer, Pro, and Partner portals)
+router.get('/platform-settings', getPlatformSettings);
 
 // GET all services with optional search & category filter
 router.get('/', async (req, res) => {

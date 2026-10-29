@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { professionalClient } from '../professionalClient';
 
-export function PayoutsView({ profile, showToast }) {
+export function PayoutsView({ profile, showToast, onBalanceUpdate }) {
   const initialBalance = profile?.walletBalance != null ? Number(profile.walletBalance) : 0;
   const initialName = profile?.applicantName || profile?.name || 'Professional';
   const initialUpi = profile?.bankDetails?.upiId || (profile?.applicantName ? `${profile.applicantName.toLowerCase().replace(/\s+/g, '')}@okaxis` : 'partner@okaxis');
@@ -65,7 +65,10 @@ export function PayoutsView({ profile, showToast }) {
     try {
       const data = await professionalClient.getPayouts();
       if (data.success) {
-        if (data.balance !== undefined) setBalance(data.balance);
+        if (data.balance !== undefined) {
+          setBalance(data.balance);
+          onBalanceUpdate?.(data.balance);
+        }
         if (data.settlementModel) setSettlementModel(data.settlementModel);
         if (data.isBusinessAssociated !== undefined) setIsBusinessAssociated(data.isBusinessAssociated);
         if (data.actualRecipient) setActualRecipient(data.actualRecipient);
@@ -101,7 +104,11 @@ export function PayoutsView({ profile, showToast }) {
         upiId: withdrawUpi
       });
       showToast(`Success! ₹${amt} transferred to ${withdrawUpi}.`);
-      setBalance(prev => prev - amt);
+      setBalance(prev => {
+        const nextBal = prev - amt;
+        onBalanceUpdate?.(nextBal);
+        return nextBal;
+      });
       setPayoutStatements(prev => [
         {
           id: res.payoutId || `PAY-${Math.floor(1000 + Math.random() * 9000)}`,

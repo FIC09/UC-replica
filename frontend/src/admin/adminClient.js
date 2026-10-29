@@ -519,7 +519,7 @@ export const adminClient = {
   // Settings
   getSettings: () => fetchWithFallback('/settings', {}, { success: true, settings: {} }),
   updateSettings: (settingsData) => fetchWithFallback('/settings', { method: 'PUT', body: JSON.stringify(settingsData) }),
-  toggleSurge: (active) => fetchWithFallback('/surge', { method: 'POST', body: JSON.stringify({ active }) }),
+  toggleSurge: (active, amount = 49) => fetchWithFallback('/surge', { method: 'POST', body: JSON.stringify({ active, amount }) }),
 
   // Sandbox Reset
   resetDemoData: () => fetchWithFallback('/demo/reset', { method: 'POST' })

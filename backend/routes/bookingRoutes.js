@@ -2,6 +2,8 @@ import express from 'express';
 import mongoose from 'mongoose';
 import { Booking } from '../models/Booking.js';
 import { User } from '../models/User.js';
+import { WorkerApplication } from '../models/WorkerApplication.js';
+import { TrackingSession } from '../models/TrackingSession.js';
 import { autoAssignWorkerToBooking, triggerAutoAssignment } from '../services/assignmentEngine.js';
 import { validateKrishnagiriServiceArea } from '../services/geofenceService.js';
 import { syncBookingToPostgres } from '../services/postgresService.js';
@@ -429,6 +431,162 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
     res.json({ success: true, message: `Booking ${req.params.id} deleted successfully` });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET booking review details
+router.get('/:id/review', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const booking = await Booking.findOne({
+      $or: [{ id }, { bookingReference: id }]
+    });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found.' });
+    }
+
+    const workerId = booking.assignedProfessional?.id;
+    let workerProfile = null;
+    if (workerId) {
+      workerProfile = await WorkerApplication.findOne({
+        $or: [{ id: workerId }, { applicationNumber: workerId }]
+      }).lean();
+    }
+
+    const effectiveWorkerName = workerProfile?.applicantName || booking.assignedProfessional?.name || 'Professional Specialist';
+    const effectiveWorkerTrade = workerProfile?.tradeName || workerProfile?.trade || booking.assignedProfessional?.trade || booking.serviceName || 'Home Services';
+    const effectiveWorkerAvatar = workerProfile?.avatar || booking.assignedProfessional?.avatar || '';
+
+    res.json({
+      success: true,
+      booking: {
+        id: booking.id,
+        bookingReference: booking.bookingReference || booking.id,
+        serviceName: booking.serviceName || (booking.items?.[0]?.name) || 'Door Repair, Trimming & Hinge Alignment',
+        status: booking.status,
+        totalAmount: booking.totalAmount,
+        slot: booking.slot,
+        address: booking.address,
+        customerName: booking.userName || 'Customer',
+        worker: {
+          id: workerId || 'WRK-79932',
+          name: effectiveWorkerName,
+          trade: effectiveWorkerTrade,
+          avatar: effectiveWorkerAvatar,
+          phone: workerProfile?.phone || booking.assignedProfessional?.phone || '',
+          rating: workerProfile?.rating || booking.assignedProfessional?.rating || 5.0
+        },
+        existingReview: booking.rating ? {
+          rating: booking.rating,
+          review: booking.review || '',
+          tags: booking.reviewTags || [],
+          reviewedAt: booking.reviewedAt || booking.updatedAt
+        } : null
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST submit review and star ratings for booking and worker
+router.post('/:id/review', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, review = '', tags = [], customerName } = req.body;
+
+    const numRating = Number(rating);
+    if (!numRating || numRating < 1 || numRating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide a valid rating between 1 and 5 stars.'
+      });
+    }
+
+    const booking = await Booking.findOne({
+      $or: [{ id }, { bookingReference: id }]
+    });
+
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found.' });
+    }
+
+    const commentText = (review || '').trim();
+    booking.rating = numRating;
+    booking.review = commentText;
+    booking.reviewedAt = new Date();
+    booking.markModified('review');
+    booking.markModified('rating');
+
+    // Timeline event
+    booking.timeline.push({
+      id: `tl-${Date.now()}`,
+      status: 'Reviewed',
+      title: 'Customer Review Submitted',
+      description: `Customer rated ${numRating}★: "${commentText.slice(0, 100)}${commentText.length > 100 ? '...' : ''}"`,
+      actor: customerName || booking.userName || 'Customer',
+      actorRole: 'Customer',
+      timestamp: new Date()
+    });
+
+    await booking.save();
+
+    // Synchronize to TrackingSession
+    try {
+      await TrackingSession.findOneAndUpdate(
+        { $or: [{ bookingId: id }, { bookingReference: id }] },
+        { rating: numRating, review: commentText }
+      );
+    } catch (trkErr) {}
+
+    // Update Worker Rating & Review History in WorkerApplication
+    const workerId = booking.assignedProfessional?.id;
+    let workerRating = numRating;
+    if (workerId) {
+      const worker = await WorkerApplication.findOne({
+        $or: [{ id: workerId }, { applicationNumber: workerId }]
+      });
+      if (worker) {
+        const currentRating = worker.rating || 0;
+        const currentJobs = worker.jobsCompleted || 1;
+        // Cumulative moving average
+        const newRating = currentRating === 0
+          ? numRating
+          : Number(((currentRating * Math.max(1, currentJobs - 1) + numRating) / Math.max(1, currentJobs)).toFixed(2));
+        
+        worker.rating = newRating;
+        workerRating = newRating;
+
+        if (!Array.isArray(worker.customerReviews)) {
+          worker.customerReviews = [];
+        }
+        worker.customerReviews.push({
+          id: `rev-${Date.now()}`,
+          bookingId: booking.id,
+          customerName: customerName || booking.userName || 'Customer',
+          rating: numRating,
+          comment: commentText,
+          tags,
+          createdAt: new Date()
+        });
+        await worker.save();
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: `Thank you! Your ${numRating}-star review for ${booking.assignedProfessional?.name || 'your technician'} has been recorded.`,
+      booking: {
+        id: booking.id,
+        rating: booking.rating,
+        review: booking.review,
+        reviewedAt: booking.reviewedAt
+      },
+      workerRating
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

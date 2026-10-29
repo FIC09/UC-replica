@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { OfflineBanner } from './views/StateViews';
 import { getInitials } from './professionalClient';
+import { usePlatformSettings } from '../utils/usePlatformSettings';
 
 // Dynamic Page Titles & Subtitles matching Admin Dashboard format
 const PAGE_METADATA = {
@@ -49,10 +50,6 @@ const PAGE_METADATA = {
     title: "KYC Documents & Verification",
     subtitle: "Aadhaar, PAN card, police verification, and trade certifications"
   },
-  '/professional/performance': {
-    title: "Partner Scorecard & Quality Tier",
-    subtitle: "Customer satisfaction, SLA punctuality rate, and Diamond Pro metrics"
-  },
   '/professional/availability': {
     title: "Shift Availability & Working Hours",
     subtitle: "Weekly slot scheduling, working hours, and emergency leave requests"
@@ -66,8 +63,8 @@ const PAGE_METADATA = {
     subtitle: "System notifications, high-demand weather advisories, and SLA reminders"
   },
   '/professional/settings': {
-    title: "App Settings & Regional Preferences",
-    subtitle: "Language preferences, dark theme, and sound alert controls"
+    title: "App Settings & Operational Preferences",
+    subtitle: "Dispatch radar, audio alerts, device sessions, and security PIN"
   }
 };
 
@@ -84,6 +81,7 @@ export function ProfessionalLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const { isSurgeActive, surgeAmount } = usePlatformSettings();
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -121,7 +119,6 @@ export function ProfessionalLayout({
   const secondaryNavItems = [
     { path: '/professional/onboarding', label: 'Onboarding Status', icon: FileCheck },
     { path: '/professional/documents', label: 'KYC & Documents', icon: ShieldCheck },
-    { path: '/professional/performance', label: 'Partner Scorecard', icon: Award },
     { path: '/professional/availability', label: 'Shift Availability', icon: Clock },
     { path: '/professional/payouts', label: 'Payouts & Banking', icon: Landmark },
     { path: '/professional/notifications', label: 'Alerts & Broadcasts', icon: Bell },
@@ -485,6 +482,25 @@ export function ProfessionalLayout({
 
           {/* Right: Duty Online Toggle + Wallet Balance + Profile Avatar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            {/* Live Weather Surge Alert Pill (Real-Time Synchronized from Admin) */}
+            {isSurgeActive && (
+              <div style={{
+                background: '#FEF3C7',
+                border: '1.5px solid #FDE68A',
+                color: '#B45309',
+                padding: '6px 12px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5
+              }}>
+                <Zap size={13} fill="#B45309" color="#B45309" />
+                <span>Surge Active (+₹{surgeAmount})</span>
+              </div>
+            )}
+
             {/* Duty Online / Offline Toggle */}
             {isApproved && (
               <button

@@ -532,6 +532,7 @@ router.post('/complete-service/:bookingId', async (req, res) => {
       { $or: [{ id: session.bookingId }, { bookingReference: session.bookingId }] },
       {
         status: 'Completed',
+        completedAt: new Date(),
         rating: Number(rating) || 5,
         review: notes || 'Service completed thoroughly and sanitized.',
         $push: {
@@ -549,7 +550,7 @@ router.post('/complete-service/:bookingId', async (req, res) => {
       { new: true }
     );
 
-    // Free worker back to 'Available' and dynamically update rating from real customer review
+    // Free worker back to 'Available' and dynamically update rating and wallet earnings
     if (session.workerId) {
       const worker = await WorkerApplication.findOne({ id: session.workerId });
       if (worker) {
@@ -560,6 +561,11 @@ router.post('/complete-service/:bookingId', async (req, res) => {
         const updatedRating = currentRating === 0
           ? incomingRating
           : Number(((currentRating * (newJobs - 1) + incomingRating) / newJobs).toFixed(2));
+
+        const earned = Math.round((Number(booking?.totalAmount || booking?.price || booking?.amount) || 548) * 0.8);
+        worker.walletBalance = (Number(worker.walletBalance) || 0) + earned;
+        worker.lifetimeEarnings = (Number(worker.lifetimeEarnings) || 0) + earned;
+        worker.earnings = (Number(worker.earnings) || 0) + earned;
 
         worker.dispatchState = 'Available';
         worker.activeBookingId = '';

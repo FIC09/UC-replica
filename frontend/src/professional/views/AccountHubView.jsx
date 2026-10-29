@@ -69,21 +69,6 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
       ]
     },
     {
-      title: 'Skill Development & Reputation',
-      items: [
-        {
-          label: 'Partner Scorecard & Tier',
-          desc: 'On-time arrival, revisit rate, cancellation metrics',
-          icon: Award,
-          iconColor: '#d97706',
-          iconBg: '#fffbeb',
-          path: '/professional/performance',
-          badge: getPartnerTier(profile).split('(')[0].trim(),
-          badgeType: 'amber'
-        }
-      ]
-    },
-    {
       title: 'Operations & Equipment',
       items: [
         {
@@ -541,7 +526,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
 
           {/* Metric 4: Punctuality */}
           <div
-            onClick={() => onNavigate('/professional/performance')}
+            onClick={() => onNavigate('/professional/availability')}
             style={{
               background: 'rgba(255, 255, 255, 0.12)',
               borderRadius: 16,

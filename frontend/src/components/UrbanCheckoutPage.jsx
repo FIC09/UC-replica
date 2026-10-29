@@ -21,7 +21,9 @@ import {
   X,
   Navigation,
   Crosshair,
-  Loader2
+  Loader2,
+  Zap,
+  AlertTriangle
 } from 'lucide-react';
 import { MUMBAI_LOCALITIES, CITY_LOCALITIES, COUPONS, CITIES } from '../data/servicesData';
 import { PaymentGatewayModal } from './PaymentGatewayModal';
@@ -32,6 +34,7 @@ import {
   getFirstAvailableSlot 
 } from '../utils/slotDates';
 import { authApi } from '../api/apiClient';
+import { usePlatformSettings } from '../utils/usePlatformSettings';
 
 export function UrbanCheckoutPage({
   onBackHome,
@@ -510,14 +513,18 @@ export function UrbanCheckoutPage({
     return sum + (orig * q);
   }, 0);
 
+  const { bookingFee, isSurgeActive, surgeAmount, gstRate, maintenanceMode } = usePlatformSettings();
+
   const itemSavings = Math.max(0, originalSubtotal - itemsSubtotal);
   const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const ucPlusDiscount = hasUCPlus ? Math.min(150, Math.round(itemsSubtotal * 0.1)) : 0;
   const totalSavings = itemSavings + couponDiscount + ucPlusDiscount;
 
-  const hygieneFee = itemsSubtotal > 0 ? (hasUCPlus ? 0 : 39) : 0;
-  const taxesFee = itemsSubtotal > 0 ? Math.round(itemsSubtotal * 0.05) : 0;
-  const finalPayable = Math.max(0, itemsSubtotal - couponDiscount - ucPlusDiscount + hygieneFee + taxesFee);
+  const effectiveBookingFee = itemsSubtotal > 0 ? (hasUCPlus ? 0 : (bookingFee ?? 49)) : 0;
+  const effectiveSurgeFee = (itemsSubtotal > 0 && isSurgeActive) ? (surgeAmount ?? 49) : 0;
+  const effectiveGstRate = (gstRate ?? 18) / 100;
+  const taxesFee = itemsSubtotal > 0 ? Math.round(itemsSubtotal * effectiveGstRate) : 0;
+  const finalPayable = Math.max(0, itemsSubtotal - couponDiscount - ucPlusDiscount + effectiveBookingFee + effectiveSurgeFee + taxesFee);
 
   // Determine Category Name for right column header (e.g. AC, Electrician, Plumber)
   const categoryName = React.useMemo(() => {
@@ -1831,24 +1838,35 @@ export function UrbanCheckoutPage({
                       </div>
                     )}
 
-                    {/* Line 5: Hygiene & Safety fee */}
+                    {/* Line 5: Convenience & Booking fee */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
-                      <span>Hygiene &amp; Safety fee</span>
+                      <span>Platform Convenience &amp; Safety fee</span>
                       <span>
                         {hasUCPlus ? (
                           <span>
-                            <span style={{ textDecoration: 'line-through', color: '#9CA3AF', marginRight: 6 }}>₹39</span>
+                            <span style={{ textDecoration: 'line-through', color: '#9CA3AF', marginRight: 6 }}>₹{effectiveBookingFee}</span>
                             <strong style={{ color: '#059669' }}>FREE</strong>
                           </span>
                         ) : (
-                          <span style={{ color: '#111827', fontWeight: 600 }}>₹{hygieneFee}</span>
+                          <span style={{ color: '#111827', fontWeight: 600 }}>₹{effectiveBookingFee}</span>
                         )}
                       </span>
                     </div>
 
+                    {/* Line 5b: Monsoon / Weather Surge (Real-time dynamic) */}
+                    {isSurgeActive && effectiveSurgeFee > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#B45309', fontWeight: 700 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                          <Zap size={13} fill="#B45309" />
+                          <span>Weather / Monsoon Surcharge</span>
+                        </span>
+                        <span>+₹{effectiveSurgeFee}</span>
+                      </div>
+                    )}
+
                     {/* Line 6: Taxes and government levies */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
-                      <span>Taxes and government levies (5%)</span>
+                      <span>Taxes &amp; GST ({gstRate ?? 18}%)</span>
                       <span style={{ fontWeight: 600, color: '#111827' }}>₹{taxesFee.toLocaleString('en-IN')}</span>
                     </div>
                   </div>
@@ -1955,25 +1973,45 @@ export function UrbanCheckoutPage({
                 )}
               </div>
 
+              {maintenanceMode && (
+                <div style={{
+                  backgroundColor: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: 10,
+                  padding: '12px 14px',
+                  marginBottom: 12,
+                  fontSize: 12.5,
+                  color: '#991B1B',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8
+                }}>
+                  <AlertTriangle size={16} color="#DC2626" style={{ flexShrink: 0 }} />
+                  <span>Platform is undergoing scheduled maintenance. New bookings are temporarily paused.</span>
+                </div>
+              )}
+
               {/* Place Order CTA Button */}
               <button
                 type="button"
                 onClick={handleBookServiceClick}
+                disabled={maintenanceMode}
                 style={{
                   width: '100%',
                   padding: '15px 0',
-                  backgroundColor: '#5E3BEE',
+                  backgroundColor: maintenanceMode ? '#94A3B8' : '#5E3BEE',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 12,
                   fontSize: 15,
                   fontWeight: 800,
-                  cursor: 'pointer',
+                  cursor: maintenanceMode ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
-                  boxShadow: '0 4px 14px rgba(94, 59, 238, 0.35)',
+                  boxShadow: maintenanceMode ? 'none' : '0 4px 14px rgba(94, 59, 238, 0.35)',
                   transition: 'background-color 0.15s, transform 0.15s'
                 }}
                 onMouseEnter={e => {

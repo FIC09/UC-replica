@@ -49,8 +49,9 @@ export function LiveMapTracker({
     ? session.routePolyline
     : [defaultWorkerCoords, { lat: 12.5215, lng: 78.2140 }, defaultCustomerCoords];
 
-  // Optimistic local waypoint index to eliminate network round-trip lag
-  const isArrivedState = session?.status === 'arrived' || session?.status === 'in_progress' || session?.status === 'completed';
+  // Status flags and optimistic local waypoint index
+  const isCompleted = session?.status === 'completed';
+  const isArrivedState = session?.status === 'arrived' || session?.status === 'in_progress' || isCompleted;
   const [localWaypointIndex, setLocalWaypointIndex] = useState(
     isArrivedState ? Math.max(0, waypoints.length - 1) : (session?.currentWaypointIndex || 0)
   );
@@ -87,28 +88,40 @@ export function LiveMapTracker({
     if (!mapContainerRef.current) return;
     if (mapInstanceRef.current) return;
 
-    const centerLat = (currentWaypoint.lat + customerCoords.lat) / 2;
-    const centerLng = (currentWaypoint.lng + customerCoords.lng) / 2;
+    const targetCenter = [customerCoords.lat, customerCoords.lng];
 
     const map = L.map(mapContainerRef.current, {
-      center: [centerLat, centerLng],
-      zoom: 15,
+      center: targetCenter,
+      zoom: 16,
+      minZoom: 13,
+      maxZoom: 19,
       zoomControl: false,
       attributionControl: false
     });
 
-    // 100% Free OpenStreetMap Humanitarian Street Tiles (Zero API key, Zero Watermarks)
-    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+    // OpenStreetMap Standard Tiles (Zero API key required, crisp street names in Krishnagiri & India)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       subdomains: ['a', 'b', 'c'],
-      attribution: '&copy; OpenStreetMap contributors'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
     mapInstanceRef.current = map;
 
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 200);
+    // Multi-stage size invalidation to guarantee proper dimensions during modal animation
+    const timers = [
+      setTimeout(() => {
+        map.invalidateSize();
+        map.setView(targetCenter, 16);
+      }, 50),
+      setTimeout(() => {
+        map.invalidateSize();
+        map.setView(targetCenter, 16);
+      }, 250),
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 600)
+    ];
 
     let resizeObserver;
     if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
@@ -119,7 +132,7 @@ export function LiveMapTracker({
     }
 
     return () => {
-      clearTimeout(timer);
+      timers.forEach(t => clearTimeout(t));
       if (resizeObserver) resizeObserver.disconnect();
       map.remove();
       mapInstanceRef.current = null;
@@ -203,49 +216,56 @@ export function LiveMapTracker({
     }
 
     // 5. Customer Doorstep Home Destination Marker
+    const isCompleted = session?.status === 'completed';
     const destIcon = L.divIcon({
       className: 'uc-dest-leaflet-marker',
       html: `
-        <div style="position: relative; width: 96px; height: 68px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; pointer-events: none;">
-          <div style="position: absolute; top: 0; background: #065F46; color: #ECFDF5; font-size: 10.5px; font-weight: 800; padding: 2.5px 8px; border-radius: 12px; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 4px; border: 1.5px solid rgba(255,255,255,0.4);">
-            <span>Customer Doorstep</span>
-            <span style="font-size: 10px;">📍</span>
+        <div style="position: relative; width: 110px; height: 68px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; pointer-events: none;">
+          <div style="position: absolute; top: 0; background: ${isCompleted ? '#047857' : '#065F46'}; color: #ECFDF5; font-size: 10.5px; font-weight: 800; padding: 2.5px 8px; border-radius: 12px; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.25); display: flex; align-items: center; gap: 4px; border: 1.5px solid rgba(255,255,255,0.4);">
+            <span>${isCompleted ? 'Doorstep (Finished) ✅' : 'Customer Doorstep 📍'}</span>
           </div>
           <div style="position: relative; width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;">
-            <div style="position: absolute; inset: -5px; border-radius: 50%; background: rgba(16, 185, 129, 0.4); animation: uc-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-            <div style="width: 32px; height: 32px; border-radius: 50%; background: #10B981; border: 3px solid #FFFFFF; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.65); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 15px;">
+            <div style="position: absolute; inset: -5px; border-radius: 50%; background: ${isCompleted ? 'rgba(5, 150, 105, 0.4)' : 'rgba(16, 185, 129, 0.4)'}; animation: uc-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${isCompleted ? '#059669' : '#10B981'}; border: 3px solid #FFFFFF; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.65); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 15px;">
               🏠
             </div>
           </div>
         </div>
       `,
-      iconSize: [96, 68],
-      iconAnchor: [48, 64]
+      iconSize: [110, 68],
+      iconAnchor: [55, 64]
     });
 
     if (destMarkerRef.current) {
       destMarkerRef.current.setLatLng([customerCoords.lat, customerCoords.lng]);
+      destMarkerRef.current.setIcon(destIcon);
     } else {
       destMarkerRef.current = L.marker([customerCoords.lat, customerCoords.lng], { icon: destIcon }).addTo(map);
     }
 
-    // Auto-fit bounds on initial session switch
-    const currentSessionId = session?.id || session?.bookingId;
-    if (currentSessionId !== lastSessionIdRef.current && latLngWaypoints.length > 0) {
+    // Auto-fit bounds on initial session switch (Always street level in Krishnagiri)
+    const currentSessionId = session?.id || session?.bookingId || session?._id;
+    if (currentSessionId !== lastSessionIdRef.current) {
       lastSessionIdRef.current = currentSessionId;
-      const bounds = L.latLngBounds(latLngWaypoints);
-      bounds.extend([customerCoords.lat, customerCoords.lng]);
-      map.fitBounds(bounds, { padding: [70, 70], maxZoom: 16, animate: true });
+      if (isArrivedState || isCompleted) {
+        map.setView([customerCoords.lat, customerCoords.lng], 16, { animate: true });
+      } else if (latLngWaypoints.length > 0) {
+        const bounds = L.latLngBounds(latLngWaypoints);
+        bounds.extend([customerCoords.lat, customerCoords.lng]);
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+        if (map.getZoom() < 14) map.setZoom(15);
+      }
     }
-  }, [session?.id, session?.bookingId, waypoints]);
+  }, [session?.id, session?.bookingId, session?._id, session?.status, waypoints, customerCoords.lat, customerCoords.lng]);
 
   // Zero-Lag 60FPS Marker Position and Directional Heading Update
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
-    const workerName = session?.workerName || 'Technician';
-    const workerSpeed = session?.speed || (localWaypointIndex === waypoints.length - 1 ? 0 : 26);
+    const isCompleted = session?.status === 'completed';
+    const workerName = session?.workerName || 'Neal';
+    const workerSpeed = isCompleted ? 0 : (session?.speed || (localWaypointIndex === waypoints.length - 1 ? 0 : 26));
 
     const workerIcon = L.divIcon({
       className: 'uc-custom-leaflet-marker',
@@ -254,15 +274,17 @@ export function LiveMapTracker({
           <!-- Floating Partner Name Tag -->
           <div style="position: absolute; top: 2px; background: #0F172A; color: #FFFFFF; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.35); display: flex; align-items: center; gap: 6px; border: 1.5px solid rgba(255,255,255,0.4); z-index: 20;">
             <span>${workerName}</span>
-            <span style="background: #7C3AED; font-size: 9.5px; padding: 1px 5px; border-radius: 6px; font-weight: 800;">${workerSpeed} km/h</span>
+            <span style="background: ${isCompleted ? '#059669' : '#7C3AED'}; font-size: 9.5px; padding: 1px 5px; border-radius: 6px; font-weight: 800;">
+              ${isCompleted ? 'Done ✅' : `${workerSpeed} km/h`}
+            </span>
           </div>
 
           <!-- Pulsing Radar Vehicle Icon with Rotational Heading -->
           <div style="position: absolute; bottom: 8px; width: 54px; height: 54px; display: flex; align-items: center; justify-content: center;">
-            <div style="position: absolute; inset: -8px; border-radius: 50%; background: rgba(124, 58, 237, 0.3); animation: uc-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-            <div style="position: absolute; inset: -3px; border-radius: 50%; background: rgba(124, 58, 237, 0.45); animation: uc-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite; animation-delay: 0.3s;"></div>
+            <div style="position: absolute; inset: -8px; border-radius: 50%; background: ${isCompleted ? 'rgba(5, 150, 105, 0.3)' : 'rgba(124, 58, 237, 0.3)'}; animation: uc-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+            <div style="position: absolute; inset: -3px; border-radius: 50%; background: ${isCompleted ? 'rgba(5, 150, 105, 0.45)' : 'rgba(124, 58, 237, 0.45)'}; animation: uc-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite; animation-delay: 0.3s;"></div>
 
-            <div style="position: relative; width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%); border: 3.5px solid #FFFFFF; box-shadow: 0 4px 16px rgba(109, 40, 217, 0.75); display: flex; align-items: center; justify-content: center; color: #FFFFFF; transform: rotate(${currentHeading}deg); transition: transform 0.35s ease-out; z-index: 10;">
+            <div style="position: relative; width: 42px; height: 42px; border-radius: 50%; background: ${isCompleted ? 'linear-gradient(135deg, #059669 0%, #10B981 100%)' : 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)'}; border: 3.5px solid #FFFFFF; box-shadow: 0 4px 16px rgba(109, 40, 217, 0.75); display: flex; align-items: center; justify-content: center; color: #FFFFFF; transform: rotate(${currentHeading}deg); transition: transform 0.35s ease-out; z-index: 10;">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.7 16 10 16 10l-1.5-4.5A2 2 0 0 0 12.6 4H8.5a1.5 1.5 0 0 0-1.5 1.5V10H4a2 2 0 0 0-2 2v4c0 .6.4 1 1 1h2" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <circle cx="7" cy="17" r="2.5" fill="#38BDF8" stroke="#FFFFFF" stroke-width="1.5"/>
@@ -373,17 +395,22 @@ export function LiveMapTracker({
     );
   };
 
-  // Fit all bounds
+  // Fit all bounds safely locked onto Krishnagiri
   const handleFitBounds = () => {
     const map = mapInstanceRef.current;
     if (!map) return;
+    if (isArrivedState || session?.status === 'completed') {
+      map.flyTo([customerCoords.lat, customerCoords.lng], 16, { animate: true, duration: 0.8 });
+      return;
+    }
     const latLngWaypoints = waypoints.map(pt => [pt.lat, pt.lng]);
     const bounds = L.latLngBounds(latLngWaypoints);
     bounds.extend([customerCoords.lat, customerCoords.lng]);
     if (userLocation) {
       bounds.extend([userLocation.lat, userLocation.lng]);
     }
-    map.fitBounds(bounds, { padding: [60, 60], animate: true });
+    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 16 });
+    if (map.getZoom() < 14) map.setZoom(15);
   };
 
   // Zoom controls
@@ -493,7 +520,7 @@ export function LiveMapTracker({
             width: 38,
             height: 38,
             borderRadius: 10,
-            background: localWaypointIndex >= waypoints.length - 1 ? '#059669' : '#10B981',
+            background: isCompleted ? '#059669' : (isArrivedState ? '#10B981' : '#7C3AED'),
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -501,13 +528,15 @@ export function LiveMapTracker({
             fontSize: 18,
             boxShadow: '0 2px 10px rgba(16, 185, 129, 0.45)'
           }}>
-            {isArrivedState || localWaypointIndex >= waypoints.length - 2 ? '📍' :
+            {isCompleted ? '🎉' : (isArrivedState || localWaypointIndex >= waypoints.length - 2 ? '📍' :
              localWaypointIndex > 20 ? '↩️' :
-             localWaypointIndex > 10 ? '➡️' : '⬆️'}
+             localWaypointIndex > 10 ? '➡️' : '⬆️')}
           </div>
           <div>
             <div style={{ fontSize: 13.5, fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.01em' }}>
-              {isArrivedState || localWaypointIndex >= waypoints.length - 1
+              {isCompleted
+                ? 'Service Completed Successfully! (Krishnagiri Town)'
+                : (isArrivedState || localWaypointIndex >= waypoints.length - 1)
                 ? (session?.status === 'in_progress' ? 'Service In Progress (Customer Doorstep)' : 'Arrived at Customer Doorstep (Krishnagiri Town)')
                 : localWaypointIndex > 20
                   ? 'In 180m, Turn Left onto Gandhi Nagar Main Road'
@@ -516,9 +545,13 @@ export function LiveMapTracker({
                     : 'Direct Dispatch: Heading via Rayakottai Main Road towards Customer Address'}
             </div>
             <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>Direct Visit by {session?.workerName || 'Assigned Specialist'}</span>
+              <span>{isCompleted ? `Delivered by ${session?.workerName || 'Neal'}` : `Direct Visit by ${session?.workerName || 'Assigned Specialist'}`}</span>
               <span>•</span>
-              <span style={{ color: '#FDE047', fontWeight: 700 }}>🔐 Start PIN: {session?.safetyPin || '----'}</span>
+              {isCompleted ? (
+                <span style={{ color: '#34D399', fontWeight: 700 }}>✅ Quality Verified & Sanitized</span>
+              ) : (
+                <span style={{ color: '#FDE047', fontWeight: 700 }}>🔐 Start PIN: {session?.safetyPin || '----'}</span>
+              )}
               {gpsStatus && (
                 <>
                   <span>•</span>
@@ -535,22 +568,22 @@ export function LiveMapTracker({
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            background: 'rgba(16, 185, 129, 0.2)',
+            background: isCompleted ? 'rgba(5, 150, 105, 0.25)' : 'rgba(16, 185, 129, 0.2)',
             color: '#34D399',
             padding: '4px 10px',
             borderRadius: 8,
             fontSize: 11,
             fontWeight: 800,
-            border: '1px solid rgba(16, 185, 129, 0.3)'
+            border: isCompleted ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(16, 185, 129, 0.3)'
           }}>
             <span style={{
               width: 7,
               height: 7,
               borderRadius: '50%',
-              backgroundColor: '#10B981',
+              backgroundColor: isCompleted ? '#34D399' : '#10B981',
               boxShadow: '0 0 0 2px rgba(16, 185, 129, 0.4)'
             }} />
-            <span>LIVE GPS</span>
+            <span>{isCompleted ? 'FINISHED ✅' : 'LIVE GPS'}</span>
           </div>
 
           <div style={{
@@ -561,10 +594,10 @@ export function LiveMapTracker({
             textAlign: 'right'
           }}>
             <div style={{ fontSize: 13, fontWeight: 900, color: '#F8FAFC' }}>
-              ⏱️ {Math.max(1, Math.round(((waypoints.length - 1 - localWaypointIndex) / Math.max(1, waypoints.length - 1)) * (session?.remainingEtaMinutes || 5)))} mins
+              {isCompleted ? '✓ Completed' : `⏱️ ${Math.max(1, Math.round(((waypoints.length - 1 - localWaypointIndex) / Math.max(1, waypoints.length - 1)) * (session?.remainingEtaMinutes || 5)))} mins`}
             </div>
             <div style={{ fontSize: 10.5, color: '#CBD5E1', fontWeight: 600 }}>
-              {Math.max(0.05, (((waypoints.length - 1 - localWaypointIndex) / Math.max(1, waypoints.length - 1)) * (session?.remainingDistanceKm || 2.4))).toFixed(1)} km • 🛵 {localWaypointIndex === waypoints.length - 1 ? 0 : (session?.speed || 26)} km/h
+              {isCompleted ? 'Krishnagiri Doorstep' : `${Math.max(0.05, (((waypoints.length - 1 - localWaypointIndex) / Math.max(1, waypoints.length - 1)) * (session?.remainingDistanceKm || 2.4))).toFixed(1)} km • 🛵 ${localWaypointIndex === waypoints.length - 1 ? 0 : (session?.speed || 26)} km/h`}
             </div>
           </div>
         </div>

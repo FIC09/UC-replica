@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { getAvailableServiceDates } from '../utils/slotDates';
 import { RapidoChatDrawer } from './RapidoChatDrawer';
+import { WorkerReviewModal } from './WorkerReviewModal';
 
 export function MyBookingsModal({
   isOpen,
@@ -32,6 +33,7 @@ export function MyBookingsModal({
 }) {
   const [filter, setFilter] = useState('all'); // all, active, completed, cancelled
   const [chatBooking, setChatBooking] = useState(null);
+  const [selectedReviewBooking, setSelectedReviewBooking] = useState(null);
 
   // Reschedule Sub-modal state
   const availableRescheduleDates = getAvailableServiceDates();
@@ -449,10 +451,61 @@ export function MyBookingsModal({
 
                       {/* If Cancelled or Completed: Allow permanently deleting history record */}
                       {!isActive && (
-                        <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                           <span style={{ fontSize: 12, color: isCancelled ? '#DC2626' : '#059669', fontWeight: 600 }}>
-                            {isCancelled ? 'Booking was cancelled' : 'Service completed'}
+                            {isCancelled ? 'Booking was cancelled' : '✓ Service completed'}
                           </span>
+
+                          {!isCancelled && (
+                            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedReviewBooking(b)}
+                                style={{
+                                  padding: '5px 10px',
+                                  borderRadius: 6,
+                                  background: '#ECFDF5',
+                                  color: '#059669',
+                                  border: '1px solid #A7F3D0',
+                                  fontSize: 11.5,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}
+                              >
+                                <span>⭐</span>
+                                <span>{b.rating ? `${b.rating}★ Reviewed` : 'Rate Specialist'}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const url = `${window.location.origin}/review/${b.id || b.bookingReference}`;
+                                  navigator.clipboard?.writeText(url);
+                                  alert(`Review Link copied to clipboard:\n${url}`);
+                                }}
+                                style={{
+                                  padding: '5px 8px',
+                                  borderRadius: 6,
+                                  background: '#F1F5F9',
+                                  color: '#334155',
+                                  border: '1px solid #CBD5E1',
+                                  fontSize: 11,
+                                  fontWeight: 700,
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 4
+                                }}
+                                title="Copy review link"
+                              >
+                                <span>🔗 Link</span>
+                              </button>
+                            </div>
+                          )}
+
                           <button
                             type="button"
                             onClick={() => {
@@ -461,19 +514,21 @@ export function MyBookingsModal({
                               }
                             }}
                             style={{
-                              padding: '6px 12px',
+                              padding: '5px 10px',
                               borderRadius: 6,
                               background: '#FEE2E2',
                               color: '#DC2626',
-                              fontSize: 11.5,
+                              fontSize: 11,
                               fontWeight: 700,
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 4
+                              gap: 4,
+                              cursor: 'pointer',
+                              border: 'none'
                             }}
                           >
                             <Trash2 size={12} />
-                            <span>Delete Record</span>
+                            <span>Delete</span>
                           </button>
                         </div>
                       )}
@@ -729,6 +784,21 @@ export function MyBookingsModal({
               id: chatBooking.userId || chatBooking.userPhone || (chatBooking.id ? `cust-${chatBooking.id}` : 'cust-user'),
               name: chatBooking.userName || 'Customer',
               phone: chatBooking.userPhone
+            }}
+          />
+        )}
+
+        {/* Dedicated Worker Review & Rating Modal */}
+        {selectedReviewBooking && (
+          <WorkerReviewModal
+            isOpen={Boolean(selectedReviewBooking)}
+            onClose={() => setSelectedReviewBooking(null)}
+            booking={selectedReviewBooking}
+            onReviewSubmitted={(reviewData) => {
+              if (selectedReviewBooking) {
+                selectedReviewBooking.rating = reviewData.rating;
+                selectedReviewBooking.review = reviewData.review;
+              }
             }}
           />
         )}

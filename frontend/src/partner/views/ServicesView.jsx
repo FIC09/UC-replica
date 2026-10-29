@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Layers, CheckCircle2, ShieldCheck, Tag, DollarSign, ArrowUpRight, Plus, Pause, Play, AlertCircle, X } from 'lucide-react';
 import { partnerClient } from '../partnerClient';
+import { usePlatformSettings } from '../../utils/usePlatformSettings';
 
 export function ServicesView({ showToast }) {
+  const { agencyTakeRate } = usePlatformSettings();
+  const effectiveAgencyTake = agencyTakeRate ?? 14;
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [platformApprovedCats, setPlatformApprovedCats] = useState([]);
@@ -168,7 +171,7 @@ export function ServicesView({ showToast }) {
           </span>
         </div>
         <span style={{ fontSize: 12, fontWeight: 600, color: '#7c3aed' }}>
-          Contract Terms: 18% Platform Fee | Minor Unit: Paise
+          Contract Terms: {effectiveAgencyTake}% Platform Fee | Direct Bank Settlements
         </span>
       </div>
 

@@ -60,6 +60,7 @@ import {
   escalateSafetyIncident,
   getNotifications,
   markNotificationRead,
+  deleteNotification,
   getDocuments,
   uploadDocument,
   getProfileChangeHistory,
@@ -168,6 +169,7 @@ router.post('/support/:id/messages', addTicketMessage);
 router.get('/notifications', getNotifications);
 router.post('/notifications', markNotificationRead);
 router.post('/notifications/read-all', markNotificationRead);
+router.delete('/notifications/:id', deleteNotification);
 
 // Documents & Compliance
 router.get('/documents', getDocuments);

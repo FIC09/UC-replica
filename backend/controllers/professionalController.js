@@ -583,7 +583,7 @@ function initProData(proId) {
         id: `notif-${proId}-1`,
         category: 'new_assignment',
         title: 'New Service Dispatch Assigned',
-        message: 'You have been assigned to Booking #UC-829410 (Split AC Powerjet Deep Servicing) for Rohan Kapoor at Pali Hill, Bandra West.',
+        message: 'You have been assigned to Booking #FIC-829410 (Split AC Powerjet Deep Servicing) for Rohan Kapoor at Krishnagiri Town.',
         read: false,
         deepLink: '/professional/jobs',
         deliveryChannel: 'in_app',
@@ -595,7 +595,7 @@ function initProData(proId) {
         id: `notif-${proId}-2`,
         category: 'offer_expiry',
         title: 'Dispatch Offer Expiry Warning',
-        message: 'Direct dispatch offer OFFER-7712 for Split AC Servicing in Bandra West will expire in 12 minutes if unaccepted.',
+        message: 'Direct dispatch offer OFFER-7712 for Split AC Servicing in Krishnagiri Hub will expire in 12 minutes if unaccepted.',
         read: false,
         deepLink: '/professional/today',
         deliveryChannel: 'in_app',
@@ -607,7 +607,7 @@ function initProData(proId) {
         id: `notif-${proId}-3`,
         category: 'booking_changes',
         title: 'Customer Schedule Time Revised',
-        message: 'Customer for Booking UC-829410 adjusted preferred arrival window to 02:00 PM - 03:00 PM.',
+        message: 'Customer for Booking #FIC-829410 adjusted preferred arrival window to 02:00 PM - 03:00 PM.',
         read: true,
         deepLink: '/professional/jobs',
         deliveryChannel: 'in_app',
@@ -619,9 +619,9 @@ function initProData(proId) {
         id: `notif-${proId}-4`,
         category: 'customer_cancellation',
         title: 'Customer Cancelled - Doorstep Travel Compensation Credited',
-        message: 'Customer cancelled booking UC-829100. ₹150 doorstep transit compensation credited to your earnings wallet.',
+        message: 'Customer cancelled booking #FIC-829100. ₹150 doorstep transit compensation credited to your earnings wallet.',
         read: true,
-        deepLink: '/professional/earnings',
+        deepLink: '/professional/payouts',
         deliveryChannel: 'local_outbox_sms',
         deliveryStatus: 'Queued in Local Outbox (Simulated SMS Gateway)',
         deduplicationKey: `DEDUP-${proId}-CANCEL-829100`,
@@ -629,14 +629,14 @@ function initProData(proId) {
       },
       {
         id: `notif-${proId}-5`,
-        category: 'reassignment',
-        title: 'Emergency Reassignment Approved',
-        message: 'Your compassionate emergency reassignment for Booking UC-829004 was approved by Bandra Hub Operations Cell without penalty.',
+        category: 'safety_advisory',
+        title: 'Safety Priority: High Humidity Weather Advisory',
+        message: 'Krishnagiri Hub Operations Cell issued a weather alert: Ensure high-voltage electrical isolation on outdoor compressor units before servicing.',
         read: true,
-        deepLink: '/professional/jobs',
+        deepLink: '/professional/today',
         deliveryChannel: 'in_app',
         deliveryStatus: 'Delivered (In-App Verified)',
-        deduplicationKey: `DEDUP-${proId}-REASSIGN-829004`,
+        deduplicationKey: `DEDUP-${proId}-SAFETY-829004`,
         createdAt: new Date(Date.now() - 28800000)
       },
       {
@@ -655,7 +655,7 @@ function initProData(proId) {
         id: `notif-${proId}-7`,
         category: 'document_review',
         title: 'Police Verification Record Approved',
-        message: 'Safety Cell verified your Maharashtra Police Background Clearance Record. Background check status is now Active.',
+        message: 'Safety Cell verified your Tamil Nadu Police Background Clearance Record. Background check status is now Active.',
         read: true,
         deepLink: '/professional/documents',
         deliveryChannel: 'in_app',
@@ -679,9 +679,9 @@ function initProData(proId) {
         id: `notif-${proId}-9`,
         category: 'earnings_updates',
         title: 'Doorstep Job Payout Credited: ₹738',
-        message: 'Booking UC-829410 marked completed. Net payout of ₹738 + ₹50 tip added to available weekly settlement balance.',
+        message: 'Booking #FIC-829410 marked completed. Net payout of ₹738 + ₹50 tip added to available weekly settlement balance.',
         read: true,
-        deepLink: '/professional/earnings',
+        deepLink: '/professional/payouts',
         deliveryChannel: 'in_app',
         deliveryStatus: 'Delivered (In-App Verified)',
         deduplicationKey: `DEDUP-${proId}-EARN-829410`,
@@ -1914,7 +1914,41 @@ export async function getProfessionalProfile(req, res) {
         const cleanName = (dbWorker.applicantName || dbWorker.name || 'Professional').trim();
         const parts = cleanName.split(/\s+/);
         const initials = parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : cleanName.slice(0, 2).toUpperCase() || 'PR';
-        const jobs = dbWorker.jobsCompleted != null ? Number(dbWorker.jobsCompleted) : 0;
+
+        // Dynamically compute real completed jobs and financial entitlements
+        let realNet = 0;
+        let realJobsCount = 0;
+        try {
+          const completedBookings = await Booking.find({
+            $or: [
+              { 'assignedProfessional.id': dbWorker.id },
+              { 'assignedWorker.id': dbWorker.id },
+              { assignedWorkerId: dbWorker.id },
+              { 'assignedWorker.name': new RegExp(`^${cleanName}$`, 'i') },
+              { 'assignedProfessional.name': new RegExp(`^${cleanName}$`, 'i') }
+            ],
+            status: 'Completed'
+          }).lean();
+          realJobsCount = completedBookings.length;
+          const realGross = completedBookings.reduce((sum, b) => sum + (Number(b.totalAmount || b.price || b.amount) || 0), 0);
+          realNet = realGross - Math.round(realGross * 0.20);
+        } catch (e) {}
+
+        const jobs = Math.max(dbWorker.jobsCompleted != null ? Number(dbWorker.jobsCompleted) : 0, realJobsCount);
+        const walletBalance = (dbWorker.walletBalance != null && Number(dbWorker.walletBalance) > 0)
+          ? Number(dbWorker.walletBalance)
+          : realNet;
+        const lifetimeEarnings = (dbWorker.lifetimeEarnings != null && Number(dbWorker.lifetimeEarnings) > 0)
+          ? Number(dbWorker.lifetimeEarnings)
+          : realNet;
+
+        if ((dbWorker.walletBalance == null || Number(dbWorker.walletBalance) === 0) && realNet > 0) {
+          WorkerApplication.updateOne(
+            { _id: dbWorker._id },
+            { $set: { walletBalance: realNet, lifetimeEarnings: realNet, jobsCompleted: jobs } }
+          ).exec().catch(() => {});
+        }
+
         const tier = dbWorker.tier || (jobs >= 500 ? 'Diamond Pro Partner (Level 5)' : jobs >= 200 ? 'Platinum Partner (Level 4)' : jobs >= 50 ? 'Gold Partner (Level 3)' : jobs >= 10 ? 'Silver Partner (Level 2)' : 'New Partner (Level 1)');
 
         pro = {
@@ -1940,8 +1974,8 @@ export async function getProfessionalProfile(req, res) {
           employmentType: dbWorker.employmentType || 'Direct Freelance',
           rating: dbWorker.rating != null ? Number(dbWorker.rating) : 0,
           jobsCompleted: jobs,
-          walletBalance: dbWorker.walletBalance != null ? Number(dbWorker.walletBalance) : 0,
-          lifetimeEarnings: dbWorker.lifetimeEarnings != null ? Number(dbWorker.lifetimeEarnings) : 0,
+          walletBalance: walletBalance,
+          lifetimeEarnings: lifetimeEarnings,
           isOnline: dbWorker.isOnline !== false,
           documents: dbWorker.documents || {},
           bankDetails: dbWorker.bankDetails || {}
@@ -2724,8 +2758,12 @@ export async function getTodayDashboard(req, res) {
 
     const platformMessages = [];
 
-    const walletBalance = pro.walletBalance != null ? Number(pro.walletBalance) : 0;
-    const lifetimeEarnings = pro.lifetimeEarnings != null ? Number(pro.lifetimeEarnings) : 0;
+    const walletBalance = (pro.walletBalance != null && Number(pro.walletBalance) > 0)
+      ? Number(pro.walletBalance)
+      : (completedJobsToday.length > 0 ? todayEarnings : 0);
+    const lifetimeEarnings = (pro.lifetimeEarnings != null && Number(pro.lifetimeEarnings) > 0)
+      ? Number(pro.lifetimeEarnings)
+      : (completedJobsToday.length > 0 ? todayEarnings : 0);
 
     return res.json({
       success: true,
@@ -2750,11 +2788,11 @@ export async function getTodayDashboard(req, res) {
         platformCommissionRate: 20
       },
       upcomingPayout: {
-        batchId: 'BATCH-W43',
-        scheduledDate: 'Friday, 24 Oct 2026',
+        batchId: 'BATCH-W44',
+        scheduledDate: 'Friday, 30 Oct 2026',
         cutoffTime: 'Thursday, 11:59 PM',
         minimumThreshold: 500,
-        bankName: pro.bankDetails?.bankName || 'HDFC Bank',
+        bankName: pro.bankDetails?.bankName || 'State Bank of India',
         accountNumber: pro.bankDetails?.accountNumber || '••••••••4821',
         status: 'Scheduled'
       },
@@ -3865,12 +3903,28 @@ export async function updateJobStatus(req, res) {
 
     // If completed, update wallet balance & metrics
     if (status === 'Completed') {
+      const earned = Math.round((Number(booking?.totalAmount || booking?.price || booking?.amount) || 548) * 0.8);
       let proStore = professionalsStore.find(p => p.id === proId);
       if (proStore) {
-        const earned = Math.round((booking?.totalAmount || 548) * 0.8);
         proStore.walletBalance = (proStore.walletBalance || 0) + earned;
         proStore.lifetimeEarnings = (proStore.lifetimeEarnings || 0) + earned;
         proStore.jobsCompleted = (proStore.jobsCompleted || 0) + 1;
+      }
+      try {
+        await WorkerApplication.updateOne(
+          { $or: [{ id: proId }, { applicationNumber: proId }, { id: (proId || '').toUpperCase() }] },
+          { 
+            $inc: { 
+              walletBalance: earned, 
+              lifetimeEarnings: earned, 
+              earnings: earned,
+              jobsCompleted: 1 
+            },
+            $set: { dispatchState: 'Available', activeBookingId: '' }
+          }
+        );
+      } catch (e) {
+        console.warn('WorkerApplication update error on completeJobAction:', e.message);
       }
     }
 
@@ -3985,10 +4039,10 @@ export async function getEarnings(req, res) {
     const calculatedCommission = Math.round(calculatedGross * 0.20);
     const calculatedNet = calculatedGross - calculatedCommission;
 
-    const walletBalance = pro.walletBalance != null 
+    const walletBalance = (pro.walletBalance != null && Number(pro.walletBalance) > 0)
       ? Number(pro.walletBalance) 
       : (isNew ? 0 : calculatedNet);
-    const lifetimeEarnings = pro.lifetimeEarnings != null 
+    const lifetimeEarnings = (pro.lifetimeEarnings != null && Number(pro.lifetimeEarnings) > 0)
       ? Number(pro.lifetimeEarnings) 
       : (isNew ? 0 : calculatedNet);
 
@@ -4104,8 +4158,9 @@ export async function getPayouts(req, res) {
     const proEmail = (req.headers['x-professional-email'] || req.professional?.email || '').trim().toLowerCase();
     const proName = (req.headers['x-professional-name'] || req.professional?.applicantName || req.professional?.name || '').trim();
 
-    let pro = req.professional || {};
+    let pro = professionalsStore.find(p => p.id === proId) || req.professional || {};
     initProData(proId);
+    let dbWorker = null;
 
     try {
       const orConds = [];
@@ -4116,7 +4171,6 @@ export async function getPayouts(req, res) {
       if (proName && !proName.toLowerCase().includes('vikram')) {
         orConds.push({ applicantName: new RegExp(`^${proName}$`, 'i') }, { name: new RegExp(`^${proName}$`, 'i') });
       }
-      let dbWorker = null;
       if (orConds.length > 0) {
         dbWorker = await WorkerApplication.findOne({ $or: orConds }).lean();
       }
@@ -4160,16 +4214,37 @@ export async function getPayouts(req, res) {
     const jobsCompleted = completedBookings.length;
     const isNew = jobsCompleted === 0;
 
+    const isBusinessAssociated = pro.employmentType === 'Agency Employed';
+    const settlementModel = pro.settlementModel || (isBusinessAssociated ? 'settle_to_business' : 'direct_to_worker');
+
     const calculatedGross = completedBookings.reduce((sum, b) => sum + (Number(b.totalAmount || b.price || b.amount) || 0), 0);
-    const calculatedCommission = Math.round(calculatedGross * 0.20);
+    const calculatedCommission = Math.round(calculatedGross * (isBusinessAssociated ? 0.14 : 0.20));
     const calculatedNet = calculatedGross - calculatedCommission;
 
-    const walletBalance = pro.walletBalance != null 
+    let walletBalance = (pro.walletBalance != null && Number(pro.walletBalance) > 0)
       ? Number(pro.walletBalance) 
       : (isNew ? 0 : calculatedNet);
 
-    const isBusinessAssociated = pro.employmentType === 'Agency Employed';
-    const settlementModel = pro.settlementModel || (isBusinessAssociated ? 'settle_to_business' : 'direct_to_worker');
+    if (completedBookings.length > 0 && walletBalance === 0) {
+      walletBalance = calculatedNet;
+    }
+
+    if (dbWorker && (dbWorker.walletBalance == null || dbWorker.walletBalance === 0) && calculatedNet > 0) {
+      try {
+        await WorkerApplication.updateOne(
+          { _id: dbWorker._id },
+          {
+            $set: {
+              walletBalance: calculatedNet,
+              lifetimeEarnings: Math.max(dbWorker.lifetimeEarnings || 0, calculatedNet),
+              jobsCompleted: Math.max(dbWorker.jobsCompleted || 0, completedBookings.length)
+            }
+          }
+        );
+      } catch (err) {
+        console.warn('Sync wallet balance error:', err.message);
+      }
+    }
 
     let recipientDetails;
     if (settlementModel === 'settle_to_business') {
@@ -4203,77 +4278,114 @@ export async function getPayouts(req, res) {
     const changeRequests = bankChangeRequestsStore.get(proId) || [];
     const disputes = financialDisputesStore.get(proId) || [];
 
-    const payoutStatements = [
-      {
-        id: 'STMT-2026-W42',
-        period: '15 Oct - 21 Oct 2026',
-        cycleDates: { start: '2026-10-15', end: '2026-10-21' },
-        grossFare: 18800,
-        platformCommission: isBusinessAssociated ? 2632 : 3760,
-        commissionRate: isBusinessAssociated ? '14% (Agency Rate)' : '20% (Standard Rate)',
-        netSettlementAmount: isBusinessAssociated ? 16168 : 15040,
-        currency: 'INR',
-        actualRecipient: recipientDetails.label,
-        recipientType: recipientDetails.type,
-        status: 'Ready for Release',
-        batchId: 'BATCH-W42',
-        estimatedDisbursement: '23 Oct 2026',
-        utr: 'UTR-PENDING-RELEASE',
-        isVerifiedPlatformTransfer: true,
-        isEmployerReportedPayment: false,
-        adjustments: [],
-        failureDetails: null
-      },
-      {
-        id: 'STMT-2026-W41',
-        period: '08 Oct - 14 Oct 2026',
-        cycleDates: { start: '2026-10-08', end: '2026-10-14' },
-        grossFare: 22750,
-        platformCommission: isBusinessAssociated ? 3185 : 4550,
-        commissionRate: isBusinessAssociated ? '14% (Agency Rate)' : '20% (Standard Rate)',
-        netSettlementAmount: isBusinessAssociated ? 19565 : 18200,
-        currency: 'INR',
-        actualRecipient: recipientDetails.label,
-        recipientType: recipientDetails.type,
-        status: 'Settled',
-        batchId: 'BATCH-W41',
-        disbursementDate: '15 Oct 2026',
-        paidAt: '15 Oct 2026',
-        utr: 'UTR-98421092',
-        isVerifiedPlatformTransfer: true,
-        isEmployerReportedPayment: false,
-        adjustments: [
-          {
-            type: 'bonus_incentive',
-            description: 'Weekly Diwali Peak Readiness Performance Incentive',
-            amount: 500,
-            refId: 'INC-DWL-41'
-          }
-        ],
-        failureDetails: null
-      },
-      {
-        id: 'STMT-2026-W40',
-        period: '01 Oct - 07 Oct 2026',
-        cycleDates: { start: '2026-10-01', end: '2026-10-07' },
-        grossFare: 18500,
-        platformCommission: isBusinessAssociated ? 2590 : 3700,
-        commissionRate: isBusinessAssociated ? '14% (Agency Rate)' : '20% (Standard Rate)',
-        netSettlementAmount: isBusinessAssociated ? 15910 : 14800,
-        currency: 'INR',
-        actualRecipient: recipientDetails.label,
-        recipientType: recipientDetails.type,
-        status: 'Settled',
-        batchId: 'BATCH-W40',
-        disbursementDate: '08 Oct 2026',
-        paidAt: '08 Oct 2026',
-        utr: 'UTR-97621008',
-        isVerifiedPlatformTransfer: true,
-        isEmployerReportedPayment: false,
-        adjustments: [],
-        failureDetails: null
-      }
-    ];
+    let payoutStatements = [];
+    if (completedBookings.length > 0) {
+      payoutStatements = completedBookings.map((b, idx) => {
+        const gross = Number(b.totalAmount || b.price || b.amount) || 0;
+        const commission = Math.round(gross * (isBusinessAssociated ? 0.14 : 0.20));
+        const net = gross - commission;
+        const bookingDate = b.completedAt ? new Date(b.completedAt) : (b.date ? new Date(b.date) : (b.createdAt ? new Date(b.createdAt) : new Date()));
+        const dateFormatted = !isNaN(bookingDate.getTime())
+          ? bookingDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+          : '29 Oct 2026';
+        const batchNum = 44 - idx;
+        const stmtId = `STMT-${b.bookingReference || b.id || ('2026-W' + batchNum)}`;
+
+        return {
+          id: stmtId,
+          period: `${dateFormatted} (Cycle W${batchNum})`,
+          cycleDates: { start: dateFormatted, end: dateFormatted },
+          serviceName: b.serviceTitle || b.serviceName || 'Home Service',
+          grossFare: gross,
+          platformCommission: commission,
+          commissionRate: isBusinessAssociated ? '14% (Agency Rate)' : '20% (Standard Rate)',
+          netSettlementAmount: net,
+          currency: 'INR',
+          actualRecipient: recipientDetails.label,
+          recipientType: recipientDetails.type,
+          status: 'Ready for Release',
+          batchId: `BATCH-W${batchNum}`,
+          estimatedDisbursement: dateFormatted,
+          utr: 'UTR-PENDING-RELEASE',
+          isVerifiedPlatformTransfer: true,
+          isEmployerReportedPayment: false,
+          adjustments: [],
+          failureDetails: null
+        };
+      });
+    } else if (effectiveProId === 'PRO-8841' || effectiveProId === 'PRO-8843') {
+      payoutStatements = [
+        {
+          id: 'STMT-2026-W42',
+          period: '15 Oct - 21 Oct 2026',
+          cycleDates: { start: '2026-10-15', end: '2026-10-21' },
+          grossFare: 18800,
+          platformCommission: isBusinessAssociated ? 2632 : 3760,
+          commissionRate: isBusinessAssociated ? '14% (Agency Rate)' : '20% (Standard Rate)',
+          netSettlementAmount: isBusinessAssociated ? 16168 : 15040,
+          currency: 'INR',
+          actualRecipient: recipientDetails.label,
+          recipientType: recipientDetails.type,
+          status: 'Ready for Release',
+          batchId: 'BATCH-W42',
+          estimatedDisbursement: '23 Oct 2026',
+          utr: 'UTR-PENDING-RELEASE',
+          isVerifiedPlatformTransfer: true,
+          isEmployerReportedPayment: false,
+          adjustments: [],
+          failureDetails: null
+        },
+        {
+          id: 'STMT-2026-W41',
+          period: '08 Oct - 14 Oct 2026',
+          cycleDates: { start: '2026-10-08', end: '2026-10-14' },
+          grossFare: 22750,
+          platformCommission: isBusinessAssociated ? 3185 : 4550,
+          commissionRate: isBusinessAssociated ? '14% (Agency Rate)' : '20% (Standard Rate)',
+          netSettlementAmount: isBusinessAssociated ? 19565 : 18200,
+          currency: 'INR',
+          actualRecipient: recipientDetails.label,
+          recipientType: recipientDetails.type,
+          status: 'Settled',
+          batchId: 'BATCH-W41',
+          disbursementDate: '15 Oct 2026',
+          paidAt: '15 Oct 2026',
+          utr: 'UTR-98421092',
+          isVerifiedPlatformTransfer: true,
+          isEmployerReportedPayment: false,
+          adjustments: [
+            {
+              type: 'bonus_incentive',
+              description: 'Weekly Diwali Peak Readiness Performance Incentive',
+              amount: 500,
+              refId: 'INC-DWL-41'
+            }
+          ],
+          failureDetails: null
+        },
+        {
+          id: 'STMT-2026-W40',
+          period: '01 Oct - 07 Oct 2026',
+          cycleDates: { start: '2026-10-01', end: '2026-10-07' },
+          grossFare: 18500,
+          platformCommission: isBusinessAssociated ? 2590 : 3700,
+          commissionRate: isBusinessAssociated ? '14% (Agency Rate)' : '20% (Standard Rate)',
+          netSettlementAmount: isBusinessAssociated ? 15910 : 14800,
+          currency: 'INR',
+          actualRecipient: recipientDetails.label,
+          recipientType: recipientDetails.type,
+          status: 'Settled',
+          batchId: 'BATCH-W40',
+          disbursementDate: '08 Oct 2026',
+          paidAt: '08 Oct 2026',
+          utr: 'UTR-97621008',
+          isVerifiedPlatformTransfer: true,
+          isEmployerReportedPayment: false,
+          adjustments: [],
+          failureDetails: null
+        }
+      ];
+    }
 
     return res.json({
       success: true,
@@ -4297,8 +4409,8 @@ export async function getPayouts(req, res) {
       },
       bankChangeRequests: changeRequests,
       financialDisputes: disputes,
-      payoutBatches: isNew ? [] : payoutStatements,
-      payoutStatements: isNew ? [] : payoutStatements
+      payoutBatches: payoutStatements,
+      payoutStatements: payoutStatements
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -4496,6 +4608,21 @@ export async function requestWithdrawal(req, res) {
     const { amount } = req.body;
     let pro = professionalsStore.find(p => p.id === proId) || req.professional;
 
+    let dbWorker = null;
+    try {
+      dbWorker = await WorkerApplication.findOne({
+        $or: [
+          { id: proId },
+          { applicationNumber: proId },
+          { id: (proId || '').toUpperCase() },
+          { email: (proId || '').toLowerCase() }
+        ]
+      });
+      if (dbWorker) {
+        pro = { ...pro, ...dbWorker.toObject(), applicantName: dbWorker.applicantName || dbWorker.name };
+      }
+    } catch (e) {}
+
     if (pro.status !== 'Approved') {
       return res.status(403).json({
         success: false,
@@ -4511,21 +4638,34 @@ export async function requestWithdrawal(req, res) {
       });
     }
 
-    if (withdrawAmount > pro.walletBalance) {
+    const currentBalance = (dbWorker?.walletBalance != null && Number(dbWorker.walletBalance) > 0)
+      ? Number(dbWorker.walletBalance)
+      : (pro.walletBalance != null ? Number(pro.walletBalance) : 0);
+
+    if (withdrawAmount > currentBalance) {
       return res.status(400).json({
         success: false,
         error: 'Withdrawal amount exceeds your available wallet balance.'
       });
     }
 
-    pro.walletBalance -= withdrawAmount;
+    const updatedBalance = Math.max(0, currentBalance - withdrawAmount);
+    pro.walletBalance = updatedBalance;
+
+    if (dbWorker) {
+      await WorkerApplication.updateOne(
+        { _id: dbWorker._id },
+        { $set: { walletBalance: updatedBalance } }
+      ).catch(() => {});
+    }
+
     const utr = `UTR-${Math.floor(10000000 + Math.random() * 90000000)}`;
     const payoutId = `PAY-${Math.floor(1000 + Math.random() * 9000)}`;
 
     return res.json({
       success: true,
       message: `Withdrawal of ₹${withdrawAmount} initiated to your registered account ${pro.bankDetails?.accountNumber || '••••4821'}. Funds settle in 2-4 hours.`,
-      newBalance: pro.walletBalance,
+      newBalance: updatedBalance,
       utr,
       payoutId,
       sandboxNotice: 'Sandbox Simulation: No actual banking transfer executed. Balance debited in sandbox state.'
@@ -5650,15 +5790,62 @@ export async function escalateSafetyIncident(req, res) {
 export async function getNotifications(req, res) {
   try {
     const proId = req.professional.id;
+    if (req.query.reset === 'true' || (notificationsStore[proId] && notificationsStore[proId].length <= 2)) {
+      delete notificationsStore[proId];
+    }
     initProData(proId);
 
-    const { category, read, page = 1, limit = 20 } = req.query;
+    // Sanitize any existing in-memory notifications for consistent naming
+    if (notificationsStore[proId]) {
+      notificationsStore[proId] = notificationsStore[proId].map(n => {
+        let msg = n.message || '';
+        let title = n.title || '';
+        let cat = n.category;
+        let deepLink = n.deepLink;
+
+        if (cat === 'reassignment') {
+          cat = 'safety_advisory';
+          title = 'Safety Priority: High Humidity Weather Advisory';
+          msg = 'Krishnagiri Hub Operations Cell issued a weather alert: Ensure high-voltage electrical isolation on outdoor compressor units before servicing.';
+          deepLink = '/professional/today';
+        }
+
+        msg = msg.replace(/#?UC-(\d+)/g, '#FIC-$1')
+                 .replace(/Bandra West/g, 'Krishnagiri Town')
+                 .replace(/Bandra Hub/g, 'Krishnagiri Hub')
+                 .replace(/Maharashtra Police/g, 'Tamil Nadu Police');
+        
+        if (deepLink === '/professional/earnings') {
+          deepLink = '/professional/payouts';
+        }
+
+        return {
+          ...n,
+          category: cat,
+          title,
+          message: msg,
+          deepLink
+        };
+      });
+    }
+
+    const { category, read, search, page = 1, limit = 20 } = req.query;
     let list = notificationsStore[proId] || [];
 
-    if (category) list = list.filter(n => n.category === category);
+    if (category && category !== 'all') {
+      list = list.filter(n => n.category === category);
+    }
     if (read !== undefined) {
       const isRead = read === 'true' || read === true;
       list = list.filter(n => n.read === isRead);
+    }
+    if (search && search.trim()) {
+      const term = search.trim().toLowerCase();
+      list = list.filter(n => 
+        (n.title && n.title.toLowerCase().includes(term)) ||
+        (n.message && n.message.toLowerCase().includes(term)) ||
+        (n.category && n.category.toLowerCase().includes(term))
+      );
     }
 
     const pageNum = parseInt(page) || 1;
@@ -5676,20 +5863,21 @@ export async function getNotifications(req, res) {
       page: pageNum,
       totalPages: Math.ceil(list.length / limitNum) || 1,
       categories: [
-        { id: 'new_assignment', label: 'New Assignment / Job Offer' },
+        { id: 'all', label: 'All Alerts' },
+        { id: 'new_assignment', label: 'Assignments' },
         { id: 'offer_expiry', label: 'Offer Expiry' },
         { id: 'booking_changes', label: 'Booking Changes' },
-        { id: 'customer_cancellation', label: 'Customer Cancellation' },
-        { id: 'reassignment', label: 'Reassignment' },
-        { id: 'training', label: 'Training & Certification' },
+        { id: 'customer_cancellation', label: 'Cancellations' },
+        { id: 'safety_advisory', label: 'Safety Advisories' },
+        { id: 'training', label: 'Training SOP' },
         { id: 'document_review', label: 'Document Review' },
         { id: 'expiry_reminders', label: 'Expiry Reminders' },
-        { id: 'earnings_updates', label: 'Earnings Updates' },
-        { id: 'payout_status', label: 'Payout Status' },
-        { id: 'support_responses', label: 'Support Responses' },
+        { id: 'earnings_updates', label: 'Earnings' },
+        { id: 'payout_status', label: 'Payouts' },
+        { id: 'support_responses', label: 'Support Desk' },
         { id: 'policy_updates', label: 'Policy Updates' }
       ],
-      localOutboxNotice: 'Local Outbox Policy: External SMS, Push, and Email gateways are unconfigured in this test environment. Alerts are delivered through verified in-app dispatch and simulated local outbox.'
+      localOutboxNotice: 'Local Outbox Policy: External SMS & push gateways are operating in verified simulation mode. Alerts deliver through verified in-app dispatch and simulated local outbox.'
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -5714,6 +5902,28 @@ export async function markNotificationRead(req, res) {
       success: true,
       message: id ? `Notification ${id} marked as read` : 'All notifications marked as read',
       unreadCount: list.filter(n => !n.read).length
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+export async function deleteNotification(req, res) {
+  try {
+    const proId = req.professional.id;
+    const { id } = req.params;
+    initProData(proId);
+
+    if (id === 'all-read') {
+      notificationsStore[proId] = (notificationsStore[proId] || []).filter(n => !n.read);
+    } else {
+      notificationsStore[proId] = (notificationsStore[proId] || []).filter(n => n.id !== id);
+    }
+
+    return res.json({
+      success: true,
+      message: id === 'all-read' ? 'Cleared all read alerts' : 'Notification deleted',
+      unreadCount: (notificationsStore[proId] || []).filter(n => !n.read).length
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });

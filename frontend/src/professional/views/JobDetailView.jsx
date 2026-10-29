@@ -3,8 +3,10 @@ import { professionalClient } from '../professionalClient';
 import { RapidoChatDrawer } from '../../components/RapidoChatDrawer';
 import { useWebRtcVoiceCall } from '../../utils/useWebRtcVoiceCall';
 import { WebRtcCallModal } from '../../components/WebRtcCallModal';
+import { usePlatformSettings } from '../../utils/usePlatformSettings';
 
 export function JobDetailView({ jobId, onNavigate, showToast }) {
+  const { platformTakeRate, isSurgeActive, surgeAmount } = usePlatformSettings();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,10 +39,8 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [otpError, setOtpError] = useState('');
 
-  // Reassignment Modal
-  const [showReassignModal, setShowReassignModal] = useState(false);
-  const [reassignReason, setReassignReason] = useState('');
-  const [isSubmittingReassign, setIsSubmittingReassign] = useState(false);
+  // Incident & Delay Reporting Modal
+  const [showIncidentModal, setShowIncidentModal] = useState(false);
 
   // Professional Private Note input
   const [newNoteInput, setNewNoteInput] = useState('');
@@ -391,11 +391,11 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
     }
   };
 
-  // 4. Incident / Cancellation Report Handler
+  // 4. Incident & Delay Report Handler
   const handleSubmitIncident = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     if (!consequencesAcknowledged) {
-      showToast('Please review and acknowledge the platform consequence policy.');
+      showToast('Please acknowledge the platform operational policy.');
       return;
     }
     if (!incidentReason.trim() || incidentReason.trim().length < 5) {
@@ -411,35 +411,15 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
         delayMinutes: selectedIncidentCategory === 'running_late' ? delayMinutes : 0,
         consequencesAcknowledged
       });
-      showToast(res.message || 'Incident reported to Dispatch Cell.');
+      showToast(res.message || 'Incident / Delay report submitted successfully.');
       setIncidentReason('');
       setConsequencesAcknowledged(false);
-      loadJob();
+      setShowIncidentModal(false);
+      await loadJob();
     } catch (err) {
       showToast(err.message || 'Incident filing failed');
     } finally {
       setIsSubmittingIncident(false);
-    }
-  };
-
-  // Legacy Reassignment Submission
-  const handleSubmitReassignment = async () => {
-    if (!reassignReason || reassignReason.trim().length < 5) {
-      showToast('Please enter a valid reason (min 5 characters).');
-      return;
-    }
-
-    setIsSubmittingReassign(true);
-    try {
-      const res = await professionalClient.requestReassignment(jobId, reassignReason);
-      showToast(res.message || 'Reassignment request submitted.');
-      setShowReassignModal(false);
-      setReassignReason('');
-      await loadJob();
-    } catch (err) {
-      showToast(err.message || 'Reassignment request failed.');
-    } finally {
-      setIsSubmittingReassign(false);
     }
   };
 
@@ -536,19 +516,6 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {job.reassignmentRequest?.status === 'Pending' && (
-            <span style={{
-              background: '#fef3c7',
-              color: '#92400e',
-              padding: '4px 12px',
-              borderRadius: 20,
-              fontSize: 12,
-              fontWeight: 700
-            }}>
-              ⚠️ Reassignment Pending Review
-            </span>
-          )}
-
           <span style={{
             background: job.status === 'Completed' ? '#ecfdf5' :
               job.status === 'In Progress' ? '#dbeafe' :
@@ -572,15 +539,45 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       <div style={{
         background: '#ffffff',
         borderRadius: 14,
-        padding: '18px 24px',
+        padding: '20px 24px',
         border: '1px solid #e2e8f0',
         marginBottom: 20,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+        boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
       }}>
-        <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', marginBottom: 12 }}>
+        <div style={{
+          fontSize: 12,
+          fontWeight: 800,
+          color: '#64748b',
+          textTransform: 'uppercase',
+          letterSpacing: 0.6,
+          marginBottom: 16
+        }}>
           Service Execution Lifecycle (Verified Transition Engine)
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'relative'
+        }}>
+          {/* Background connecting track */}
+          <div style={{
+            position: 'absolute',
+            top: 16,
+            left: '5%',
+            right: '5%',
+            height: 3,
+            background: '#E2E8F0',
+            zIndex: 1
+          }}>
+            <div style={{
+              height: '100%',
+              background: '#059669',
+              width: `${(Math.max(0, currentStepIndex) / Math.max(1, lifecycleSteps.length - 1)) * 100}%`,
+              transition: 'width 0.3s ease'
+            }} />
+          </div>
+
           {lifecycleSteps.map((step, idx) => {
             const isCompleted = idx < currentStepIndex;
             const isCurrent = idx === currentStepIndex;
@@ -590,22 +587,24 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                   width: 32,
                   height: 32,
                   borderRadius: '50%',
-                  background: isCompleted ? '#059669' : isCurrent ? '#7c3aed' : '#f1f5f9',
+                  background: isCompleted ? '#059669' : isCurrent ? '#7c3aed' : '#ffffff',
                   color: isCompleted || isCurrent ? '#ffffff' : '#94a3b8',
+                  border: isCompleted || isCurrent ? 'none' : '2px solid #CBD5E1',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: 700,
+                  fontWeight: 800,
                   fontSize: 13,
-                  boxShadow: isCurrent ? '0 0 0 4px rgba(124, 58, 237, 0.2)' : 'none'
+                  boxShadow: isCurrent ? '0 0 0 4px rgba(124, 58, 237, 0.2)' : isCompleted ? '0 2px 6px rgba(5, 150, 105, 0.2)' : 'none',
+                  transition: 'all 0.2s ease'
                 }}>
                   {isCompleted ? '✓' : idx + 1}
                 </div>
                 <span style={{
-                  fontSize: 11,
-                  fontWeight: isCurrent ? 700 : 500,
+                  fontSize: 11.5,
+                  fontWeight: isCurrent ? 800 : isCompleted ? 700 : 500,
                   color: isCurrent ? '#7c3aed' : isCompleted ? '#059669' : '#64748b',
-                  marginTop: 6,
+                  marginTop: 8,
                   textAlign: 'center'
                 }}>
                   {step}
@@ -622,219 +621,444 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
         borderRadius: 16,
         padding: '24px 28px',
         border: '1px solid #e2e8f0',
-        boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-        marginBottom: 20
+        boxShadow: '0 4px 16px -2px rgba(15, 23, 42, 0.05)',
+        marginBottom: 22
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}>
-          <div>
-            <div style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
-              Booking Reference: <strong style={{ color: '#0f172a' }}>{job.bookingReference}</strong>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: 20
+        }}>
+          {/* Left Column: Booking Reference, Title & Chips */}
+          <div style={{ flex: '1 1 500px', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+              <span style={{ fontSize: 12.5, color: '#64748b', fontWeight: 600 }}>
+                Booking Reference:
+              </span>
+              <span style={{
+                background: '#F1F5F9',
+                color: '#0F172A',
+                border: '1px solid #CBD5E1',
+                padding: '2px 8px',
+                borderRadius: 6,
+                fontFamily: 'monospace',
+                fontWeight: 800,
+                fontSize: 13
+              }}>
+                {job.bookingReference}
+              </span>
+              <span style={{
+                background: job.status === 'Completed' ? '#ECFDF5' :
+                  job.status === 'In Progress' ? '#EFF6FF' :
+                  job.status === 'Arrived' ? '#FAF5FF' :
+                  job.status === 'En Route' ? '#FFFBEB' : '#F1F5F9',
+                color: job.status === 'Completed' ? '#059669' :
+                  job.status === 'In Progress' ? '#1E40AF' :
+                  job.status === 'Arrived' ? '#6B21A8' :
+                  job.status === 'En Route' ? '#92400E' : '#475569',
+                border: `1px solid ${job.status === 'Completed' ? '#A7F3D0' :
+                  job.status === 'In Progress' ? '#BFDBFE' :
+                  job.status === 'Arrived' ? '#DDD6FE' :
+                  job.status === 'En Route' ? '#FDE68A' : '#E2E8F0'}`,
+                padding: '2px 10px',
+                borderRadius: 12,
+                fontSize: 11.5,
+                fontWeight: 800,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5
+              }}>
+                <span style={{
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: job.status === 'Completed' ? '#059669' :
+                    job.status === 'In Progress' ? '#2563EB' :
+                    job.status === 'Arrived' ? '#7C3AED' :
+                    job.status === 'En Route' ? '#D97706' : '#64748B'
+                }} />
+                <span>{job.status}</span>
+              </span>
             </div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: '6px 0 6px 0' }}>
+
+            <h1 style={{
+              fontSize: 24,
+              fontWeight: 800,
+              color: '#0f172a',
+              margin: '0 0 12px 0',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.25
+            }}>
               {job.serviceName}
             </h1>
-            <div style={{ fontSize: 14, color: '#334155' }}>
-              Scheduled Slot: <strong>{job.slot}</strong> ({job.timeZone || 'Asia/Kolkata (IST)'})
-            </div>
-            <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>
-              Estimated Duration: <strong>{job.estimatedDuration}</strong> • Operating Zone: <strong>{job.area}</strong>
+
+            {/* Metadata Info Chips */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <div style={{
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                padding: '5px 12px',
+                borderRadius: 8,
+                fontSize: 13,
+                color: '#334155',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span>📅</span>
+                <span>Scheduled Slot: <strong style={{ color: '#0F172A' }}>{job.slot}</strong> <span style={{ color: '#64748B', fontSize: 11.5 }}>({job.timeZone || 'Asia/Kolkata (IST)'})</span></span>
+              </div>
+
+              <div style={{
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                padding: '5px 12px',
+                borderRadius: 8,
+                fontSize: 13,
+                color: '#334155',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span>⏱️</span>
+                <span>Estimated Duration: <strong style={{ color: '#0F172A' }}>{job.estimatedDuration}</strong></span>
+              </div>
+
+              <div style={{
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                padding: '5px 12px',
+                borderRadius: 8,
+                fontSize: 13,
+                color: '#334155',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6
+              }}>
+                <span>📍</span>
+                <span>Operating Zone: <strong style={{ color: '#0F172A' }}>{job.area}</strong></span>
+              </div>
             </div>
           </div>
 
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 28, fontWeight: 800, color: '#059669' }}>
-              ₹{job.payout}
-            </div>
-            <div style={{ fontSize: 12, color: '#64748b' }}>
-              Net Professional Payout (80%)
+          {/* Right Column: Payout Cardlet */}
+          <div style={{
+            background: 'linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%)',
+            border: '1px solid #E2E8F0',
+            borderRadius: 14,
+            padding: '16px 22px',
+            textAlign: 'right',
+            minWidth: 220,
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            justifyContent: 'center'
+          }}>
+            <div style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: '#64748b',
+              textTransform: 'uppercase',
+              letterSpacing: 0.6
+            }}>
+              Net Professional Payout
             </div>
             <div style={{
-              display: 'inline-block',
+              fontSize: 32,
+              fontWeight: 900,
+              color: '#059669',
+              margin: '3px 0 1px 0',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.1
+            }}>
+              ₹{job.payout}
+            </div>
+            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>
+              80% Net Take • Instant Credit
+            </div>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
               background: '#ecfdf5',
               color: '#059669',
-              padding: '2px 8px',
+              border: '1px solid #A7F3D0',
+              padding: '4px 10px',
               borderRadius: 6,
-              fontSize: 11,
+              fontSize: 11.5,
               fontWeight: 700,
-              marginTop: 4
+              marginTop: 8
             }}>
-              Payment: {job.paymentMethod} ({job.paymentStatus})
+              <span>💵</span>
+              <span>Payment: {job.paymentMethod} ({job.paymentStatus})</span>
             </div>
           </div>
         </div>
 
-        {/* Action Button Bar */}
-        <div style={{ marginTop: 22, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
-          {job.status === 'Assigned' && (
-            <button
-              onClick={() => handleUpdateStatus('En Route')}
-              style={{
-                background: '#d97706',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                boxShadow: '0 4px 6px -1px rgba(217, 119, 6, 0.2)'
-              }}
-            >
-              🚗 Start Travel (Mark En Route) →
-            </button>
-          )}
+        {/* Action Button Bar - Symmetrically Aligned & Responsive */}
+        <div style={{
+          marginTop: 22,
+          paddingTop: 18,
+          borderTop: '1px solid #F1F5F9',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 14,
+          flexWrap: 'wrap'
+        }}>
+          {/* Left Group: Core Lifecycle Action + Direct Customer Communication */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {/* Primary Workflow Transition */}
+            {job.status === 'Assigned' && (
+              <button
+                onClick={() => handleUpdateStatus('En Route')}
+                style={{
+                  background: 'linear-gradient(135deg, #D97706 0%, #B45309 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 22px',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 12px rgba(217, 119, 6, 0.25)',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <span>🚗</span>
+                <span>Start Travel (Mark En Route) →</span>
+              </button>
+            )}
 
-          {job.status === 'En Route' && (
-            <button
-              onClick={() => handleUpdateStatus('Arrived')}
-              style={{
-                background: '#7c3aed',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8
-              }}
-            >
-              📍 Confirm Arrival at Doorstep →
-            </button>
-          )}
+            {job.status === 'En Route' && (
+              <button
+                onClick={() => handleUpdateStatus('Arrived')}
+                style={{
+                  background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 22px',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <span>📍</span>
+                <span>Confirm Arrival at Doorstep →</span>
+              </button>
+            )}
 
-          {job.status === 'Arrived' && (
-            <button
-              onClick={() => setShowOtpModal(true)}
-              style={{
-                background: '#2563eb',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 24px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8
-              }}
-            >
-              🔑 Enter Customer Start OTP & Begin Service →
-            </button>
-          )}
+            {job.status === 'Arrived' && (
+              <button
+                onClick={() => setShowOtpModal(true)}
+                style={{
+                  background: 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 22px',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <span>🔑</span>
+                <span>Enter Customer Start OTP & Begin Service →</span>
+              </button>
+            )}
 
-          {job.status === 'In Progress' && (
-            <button
-              onClick={() => handleUpdateStatus('Completed')}
-              style={{
-                background: '#059669',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 28px',
-                borderRadius: 10,
-                fontSize: 15,
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                boxShadow: '0 4px 6px -1px rgba(5, 150, 105, 0.2)'
-              }}
-            >
-              ✓ Complete Service & Credit Wallet (₹{job.payout})
-            </button>
-          )}
+            {job.status === 'In Progress' && (
+              <button
+                onClick={() => handleUpdateStatus('Completed')}
+                style={{
+                  background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 26px',
+                  borderRadius: 10,
+                  fontSize: 14.5,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 14px rgba(5, 150, 105, 0.3)',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                <span>✓</span>
+                <span>Complete Service & Credit Wallet (₹{job.payout})</span>
+              </button>
+            )}
 
-          {['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'].includes(job.status) && (
-            <button
-              type="button"
-              onClick={() => setIsChatDrawerOpen(true)}
-              style={{
-                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 20px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                boxShadow: '0 4px 10px rgba(79, 70, 229, 0.25)'
-              }}
-            >
-              💬 Chat with Customer
-            </button>
-          )}
+            {/* Direct Communication Buttons */}
+            {['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'].includes(job.status) && (
+              <button
+                type="button"
+                onClick={() => setIsChatDrawerOpen(true)}
+                style={{
+                  background: '#FFFFFF',
+                  color: '#4F46E5',
+                  border: '1.5px solid #C7D2FE',
+                  padding: '11px 18px',
+                  borderRadius: 10,
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#EEF2FF';
+                  e.currentTarget.style.borderColor = '#818CF8';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#FFFFFF';
+                  e.currentTarget.style.borderColor = '#C7D2FE';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <span>💬</span>
+                <span>Chat with Customer</span>
+              </button>
+            )}
 
-          {['Assigned', 'En Route', 'Arrived', 'In Progress'].includes(job.status) && (
-            <button
-              type="button"
-              onClick={handleInitiateCallToCustomer}
-              title="Free Privacy-Protected WebRTC Internet Voice Call"
-              style={{
-                background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-                color: '#ffffff',
-                border: 'none',
-                padding: '12px 20px',
-                borderRadius: 10,
-                fontSize: 14,
-                fontWeight: 700,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                boxShadow: '0 4px 10px rgba(16, 185, 129, 0.25)'
-              }}
-            >
-              📞 Voice Call Customer (Free)
-            </button>
-          )}
+            {['Assigned', 'En Route', 'Arrived', 'In Progress'].includes(job.status) && (
+              <button
+                type="button"
+                onClick={handleInitiateCallToCustomer}
+                title="Free Privacy-Protected WebRTC Internet Voice Call"
+                style={{
+                  background: '#FFFFFF',
+                  color: '#059669',
+                  border: '1.5px solid #A7F3D0',
+                  padding: '11px 18px',
+                  borderRadius: 10,
+                  fontSize: 13.5,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#ECFDF5';
+                  e.currentTarget.style.borderColor = '#34D399';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#FFFFFF';
+                  e.currentTarget.style.borderColor = '#A7F3D0';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <span>📞</span>
+                <span>Voice Call Customer (Free)</span>
+              </button>
+            )}
+          </div>
 
-          {['Assigned', 'En Route', 'Arrived'].includes(job.status) && (
+          {/* Right Group: Safety & Incident Tools */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {['Assigned', 'En Route', 'Arrived'].includes(job.status) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowIncidentModal(true);
+                  setActiveTab('incidents');
+                }}
+                style={{
+                  background: '#FFFFFF',
+                  color: '#475569',
+                  border: '1.5px solid #CBD5E1',
+                  padding: '11px 16px',
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#F8FAFC';
+                  e.currentTarget.style.borderColor = '#94A3B8';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = '#FFFFFF';
+                  e.currentTarget.style.borderColor = '#CBD5E1';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                <span>⚠️</span>
+                <span>Report Incident & Delay</span>
+              </button>
+            )}
+
             <button
-              onClick={() => setActiveTab('incidents')}
+              onClick={() => onNavigate('/professional/support')}
               style={{
-                background: '#ffffff',
-                color: '#475569',
-                border: '1px solid #cbd5e1',
-                padding: '12px 18px',
+                background: 'linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)',
+                color: '#991B1B',
+                border: '1.5px solid #FCA5A5',
+                padding: '11px 18px',
                 borderRadius: 10,
                 fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer'
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 2px 6px rgba(239, 68, 68, 0.15)',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #FECACA 0%, #FCA5A5 100%)';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%)';
+                e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
-              ⚠️ Report Incident / Delay / Reassign
+              <span>🚨</span>
+              <span>SOS / Safety Dispatch</span>
             </button>
-          )}
-
-          <button
-            onClick={() => onNavigate('/professional/support')}
-            style={{
-              background: '#fee2e2',
-              color: '#991b1b',
-              border: '1px solid #fecaca',
-              padding: '12px 18px',
-              borderRadius: 10,
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-              marginLeft: 'auto',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6
-            }}
-          >
-            🚨 SOS / Safety Dispatch
-          </button>
+          </div>
         </div>
       </div>
 
@@ -851,7 +1075,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           { id: 'checklists', label: '📋 SOP Checklists & Evidence', count: structuredChecklists ? ((structuredChecklists.photos || []).length) : null },
           { id: 'extra_work', label: '⚡ Extra Work & Parts (Customer Approval)', count: extraWorkItems.length || null },
           { id: 'communication', label: '💬 Customer Chat & Navigation', count: chatMessages.length || null },
-          { id: 'incidents', label: '⚠️ Delays & Policy Actions', count: (job.incidentReports || []).length || null },
+          { id: 'incidents', label: '⚠️ Incident & Delay Reporting', count: (job.incidentReports || []).length || null },
           { id: 'financials', label: '💰 Financial Ledger' }
         ].map(tab => (
           <button
@@ -1605,7 +1829,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           {/* Policy-Controlled Report Form */}
           <div style={{ background: '#ffffff', borderRadius: 16, padding: '24px 26px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '0 0 6px 0' }}>
-              Policy-Controlled Delay, Incident & Reassignment Hub
+              Policy-Controlled Incident & Delay Reporting Hub
             </h3>
             <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0' }}>
               Select the applicable platform incident category. Consequences and resolution workflows are governed strictly by Platform Policy SOP v4.2.
@@ -1614,7 +1838,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
             <form onSubmit={handleSubmitIncident} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>
-                  INCIDENT / POLICY ACTION CATEGORY:
+                  INCIDENT / DELAY CATEGORY:
                 </label>
                 <select
                   value={selectedIncidentCategory}
@@ -1628,8 +1852,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                   <option value="address_issue">5. Address Issue / Out of Service Hub Boundary</option>
                   <option value="outside_scope">6. Service Outside Booked Scope (Capacity Mismatch)</option>
                   <option value="equipment_failure">7. Technician Equipment / Vehicle Failure</option>
-                  <option value="reassignment_request">8. Dispatch Reassignment Request</option>
-                  <option value="emergency_unavailability">9. Emergency Medical / Compassionate Unavailability</option>
+                  <option value="emergency_unavailability">8. Emergency Medical / Compassionate Unavailability</option>
                 </select>
               </div>
 
@@ -1785,11 +2008,20 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#dc2626' }}>
-                <span>Platform Commission ({job.commissionRate || 20}%):</span>
+                <span>Platform Commission ({platformTakeRate ?? (job.commissionRate || 20)}%):</span>
                 <span>
-                  - ₹{(job.platformCommission || Math.round((job.totalAmount || 548) * 0.2)).toLocaleString('en-IN')}
+                  - ₹{(Math.round((job.totalAmount || 548) * ((platformTakeRate ?? (job.commissionRate || 20)) / 100))).toLocaleString('en-IN')}
                 </span>
               </div>
+
+              {isSurgeActive && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#b45309', fontWeight: 700 }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    ⚡ Weather Surge Bonus (Passed 100% to You):
+                  </span>
+                  <span>+ ₹{surgeAmount}</span>
+                </div>
+              )}
 
               <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669' }}>
                 <span>Customer Tip (100% Retained by Technician):</span>
@@ -1810,7 +2042,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               }}>
                 <span>Net Professional Payout:</span>
                 <span>
-                  ₹{((job.payout || 438) + 50).toLocaleString('en-IN')}
+                  ₹{(Math.round((job.totalAmount || 548) * (1 - ((platformTakeRate ?? (job.commissionRate || 20)) / 100))) + 50 + (isSurgeActive ? surgeAmount : 0)).toLocaleString('en-IN')}
                 </span>
               </div>
             </div>
@@ -2077,15 +2309,16 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
         </div>
       )}
 
-      {/* Legacy Reassignment Request Modal */}
-      {showReassignModal && (
+      {/* Report Incident & Delay Modal */}
+      {showIncidentModal && (
         <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(4px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -2095,70 +2328,194 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           <div style={{
             background: '#ffffff',
             borderRadius: 16,
-            padding: 24,
+            padding: '24px 26px',
             width: '100%',
-            maxWidth: 440,
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
+            maxWidth: 500,
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.25)',
+            maxHeight: '90vh',
+            overflowY: 'auto'
           }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: '0 0 8px 0' }}>
-              Submit Reassignment Request
-            </h3>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0' }}>
-              Provide a clear reason why this booking ({job.bookingReference}) needs reassignment by the Dispatch Operations Cell.
-            </p>
-
-            <textarea
-              rows={4}
-              value={reassignReason}
-              onChange={(e) => setReassignReason(e.target.value)}
-              placeholder="e.g. Specialized 3-phase commercial multimeter needed / transit breakdown..."
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid #cbd5e1',
-                fontSize: 13,
-                boxSizing: 'border-box',
-                marginBottom: 16
-              }}
-            />
-
-            <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 20 }}>⚠️</span>
+                <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                  Report Incident / Transit Delay
+                </h3>
+              </div>
               <button
-                onClick={() => setShowReassignModal(false)}
-                disabled={isSubmittingReassign}
-                style={{
-                  flex: 1,
-                  background: '#f1f5f9',
-                  color: '#475569',
-                  border: 'none',
-                  padding: '12px 0',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: 'pointer'
+                type="button"
+                onClick={() => {
+                  setShowIncidentModal(false);
+                  setIncidentReason('');
+                  setConsequencesAcknowledged(false);
                 }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmitReassignment}
-                disabled={isSubmittingReassign || !reassignReason.trim()}
                 style={{
-                  flex: 1.5,
-                  background: '#7c3aed',
-                  color: '#ffffff',
+                  background: '#F1F5F9',
                   border: 'none',
-                  padding: '12px 0',
-                  borderRadius: 10,
+                  borderRadius: '50%',
+                  width: 30,
+                  height: 30,
                   fontSize: 14,
                   fontWeight: 700,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  color: '#64748B'
                 }}
               >
-                {isSubmittingReassign ? 'Submitting...' : 'Submit to Dispatch'}
+                ✕
               </button>
             </div>
+
+            <p style={{ fontSize: 12.5, color: '#64748b', margin: '0 0 16px 0', lineHeight: 1.4 }}>
+              Log an operational delay or on-site safety issue for booking <strong>{job.bookingReference}</strong> ({job.serviceName}).
+            </p>
+
+            <form onSubmit={handleSubmitIncident} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', textTransform: 'uppercase' }}>
+                  Incident / Delay Category:
+                </label>
+                <select
+                  value={selectedIncidentCategory}
+                  onChange={(e) => setSelectedIncidentCategory(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: 13,
+                    marginTop: 6,
+                    fontWeight: 600,
+                    color: '#0F172A',
+                    boxSizing: 'border-box'
+                  }}
+                >
+                  <option value="running_late">1. 🚗 Running Late (Transit Traffic / Prior Job Overrun)</option>
+                  <option value="customer_unavailable">2. 🚪 Customer Unavailable / Doorstep Locked (15-Min Protocol)</option>
+                  <option value="unsafe_situation">3. ⚡ Unsafe Situation / Electrical or Physical Hazard</option>
+                  <option value="unable_to_attend">4. 📅 Unable to Attend Scheduled Slot</option>
+                  <option value="address_issue">5. 📍 Address Issue / Out of Hub Territory</option>
+                  <option value="outside_scope">6. 📦 Service Outside Booked Scope (Capacity Mismatch)</option>
+                  <option value="equipment_failure">7. 🔧 Technician Equipment / Vehicle Breakdown</option>
+                </select>
+              </div>
+
+              {selectedIncidentCategory === 'running_late' && (
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', textTransform: 'uppercase' }}>
+                    Estimated Delay (Minutes)
+                  </label>
+                  <select
+                    value={delayMinutes}
+                    onChange={(e) => setDelayMinutes(parseInt(e.target.value))}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: 8,
+                      border: '1.5px solid #cbd5e1',
+                      fontSize: 13,
+                      marginTop: 6,
+                      fontWeight: 600,
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <option value={15}>+15 Minutes (Moderate Traffic)</option>
+                    <option value={30}>+30 Minutes (Heavy Traffic / Job Overrun)</option>
+                    <option value={45}>+45 Minutes (Significant Standstill Delay)</option>
+                  </select>
+                </div>
+              )}
+
+              {/* Dynamic Platform Policy Info */}
+              <div style={{ background: '#f8fafc', padding: '12px 14px', borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}>
+                  Platform Protocol: {currentPolicy.title || 'Platform Dispatch Policy'}
+                </div>
+                <div style={{ fontSize: 12, color: '#334155', marginTop: 4, lineHeight: 1.4 }}>
+                  {currentPolicy.policyText || 'Evaluated under platform dispatch operational rules.'}
+                </div>
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#059669', marginTop: 4 }}>
+                  {currentPolicy.consequenceText}
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', textTransform: 'uppercase' }}>
+                  Detailed Reason / Circumstance (Min 5 chars):
+                </label>
+                <textarea
+                  rows={3}
+                  value={incidentReason}
+                  onChange={(e) => setIncidentReason(e.target.value)}
+                  placeholder="e.g. Heavy standstill traffic at bypass highway; ETA delayed by 20 mins..."
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1.5px solid #cbd5e1',
+                    fontSize: 13,
+                    marginTop: 6,
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                <input
+                  type="checkbox"
+                  id="ack-policy-modal"
+                  checked={consequencesAcknowledged}
+                  onChange={(e) => setConsequencesAcknowledged(e.target.checked)}
+                  style={{ marginTop: 2, width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <label htmlFor="ack-policy-modal" style={{ fontSize: 12, color: '#334155', cursor: 'pointer', lineHeight: 1.35 }}>
+                  I confirm this delay / incident report is accurate and acknowledge standard platform operational guidelines.
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowIncidentModal(false);
+                    setIncidentReason('');
+                    setConsequencesAcknowledged(false);
+                  }}
+                  disabled={isSubmittingIncident}
+                  style={{
+                    flex: 1,
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: 'none',
+                    padding: '12px 0',
+                    borderRadius: 10,
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingIncident || !consequencesAcknowledged || !incidentReason.trim() || incidentReason.trim().length < 5}
+                  style={{
+                    flex: 1.8,
+                    background: (!consequencesAcknowledged || !incidentReason.trim() || incidentReason.trim().length < 5) ? '#94a3b8' : '#dc2626',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '12px 0',
+                    borderRadius: 10,
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: (!consequencesAcknowledged || !incidentReason.trim() || incidentReason.trim().length < 5) ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 6px rgba(220, 38, 38, 0.25)',
+                    transition: 'all 0.15s ease'
+                  }}
+                >
+                  {isSubmittingIncident ? 'Submitting Report...' : 'File Incident Report →'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

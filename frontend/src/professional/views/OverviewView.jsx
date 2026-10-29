@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { professionalClient, getInitials, getPartnerTier } from '../professionalClient';
+import { usePlatformSettings } from '../../utils/usePlatformSettings';
 import {
   ShieldAlert,
   PhoneCall,
@@ -203,25 +204,42 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
     return true;
   });
 
+  const { platformTakeRate, isSurgeActive, surgeAmount } = usePlatformSettings();
+
   const nextJob = dashboardData?.nextAppointment || appointments.find(j => j.status !== 'Completed') || appointments[0];
-  const earnings = dashboardData?.earningsSummary || {
+  const earnings = dashboardData?.earningsSummary ? {
+    ...dashboardData.earningsSummary,
+    platformCommissionRate: platformTakeRate ?? (dashboardData.earningsSummary.platformCommissionRate || 20)
+  } : {
     todayEarnings: 0,
     weeklyEarnings: 0,
     walletBalance: profile?.walletBalance != null ? profile.walletBalance : 0,
-    platformCommissionRate: 20
+    platformCommissionRate: platformTakeRate ?? 20
   };
-  const currentTier = getPartnerTier(profile);
+  const rawTier = getPartnerTier(profile);
+  const currentTier = (rawTier && rawTier !== 'New Applicant') ? rawTier : 'Verified Partner (Level 1)';
   const tierIcon = currentTier.includes('Diamond') ? '💎' : currentTier.includes('Platinum') ? '🏆' : currentTier.includes('Gold') ? '🥇' : currentTier.includes('Silver') ? '🥈' : '⭐';
   const isExperienced = (profile?.jobsCompleted || 0) >= 10;
   const targetJobs = isExperienced ? 45 : 10;
   const currentCompleted = isExperienced ? Math.min(targetJobs, (profile?.jobsCompleted % targetJobs) || 42) : (profile?.jobsCompleted || 0);
   const percentProgress = Math.min(100, Math.round((currentCompleted / targetJobs) * 100));
+
+  const cleanLocality = (profile?.locality || 'Krishnagiri Town')
+    .replace(/,\s*krishnagiri/i, '')
+    .trim();
+  const formattedLocality = cleanLocality.toLowerCase().includes('tamil nadu')
+    ? cleanLocality
+    : `${cleanLocality}, Tamil Nadu`;
+
+  const rawRating = Number(profile?.rating) || 5.0;
+  const clampedRating = rawRating > 5.0 ? (rawRating >= 15 ? 5.0 : Math.min(5.0, rawRating / 3)) : Math.max(1.0, rawRating);
+
   const payout = dashboardData?.upcomingPayout || {
-    batchId: 'BATCH-W43',
-    scheduledDate: 'Friday, 24 Oct 2026',
+    batchId: 'BATCH-W44',
+    scheduledDate: 'Friday, 30 Oct 2026',
     cutoffTime: 'Thursday, 11:59 PM',
     minimumThreshold: 500,
-    bankName: profile?.bankDetails?.bankName || 'HDFC Bank',
+    bankName: profile?.bankDetails?.bankName || 'State Bank of India',
     accountNumber: profile?.bankDetails?.accountNumber || '••••••••4821'
   };
 
@@ -241,44 +259,55 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
       <div style={{
         background: '#FFFFFF',
         border: '1px solid #E2E8F0',
-        borderRadius: 12,
-        padding: '10px 18px',
+        borderRadius: 14,
+        padding: '12px 20px',
         fontSize: 13,
         color: '#475569',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 12,
+        gap: 16,
         marginBottom: 20,
         boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
             <span style={{
-              width: 9,
-              height: 9,
+              width: 8,
+              height: 8,
               borderRadius: '50%',
               background: '#10B981',
               display: 'inline-block',
               boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)'
             }} />
-            <span style={{ fontWeight: 700, color: '#0F172A' }}>
-              Service Territory: {dashboardData?.availability?.operationalCity || profile?.operationalCity || 'Krishnagiri Town'} (Direct Doorstep Travel)
+            <span style={{ fontWeight: 700, color: '#0F172A', fontSize: 13.5 }}>
+              Service Territory: {dashboardData?.availability?.operationalCity || profile?.operationalCity || 'Krishnagiri Town'}
+            </span>
+            <span style={{
+              background: '#ECFDF5',
+              color: '#059669',
+              padding: '2px 8px',
+              borderRadius: 6,
+              fontSize: 11,
+              fontWeight: 700
+            }}>
+              Direct Doorstep
             </span>
           </div>
+
           <span style={{ color: '#CBD5E1' }}>•</span>
           <span style={{ color: '#64748B', fontSize: 12.5 }}>
-            Tamil Nadu · PostgreSQL & Real-time WebSockets Active
+            Tamil Nadu · Real-time Dispatches Active
           </span>
           <span style={{ color: '#CBD5E1' }}>•</span>
           <span style={{
             background: '#F1F5F9',
             color: '#334155',
-            padding: '2px 8px',
+            padding: '3px 9px',
             borderRadius: 6,
             fontSize: 11.5,
-            fontWeight: 600
+            fontWeight: 600,
+            border: '1px solid #E2E8F0'
           }}>
             Shift: {dashboardData?.availability?.workingHours?.start || '08:00'} - {dashboardData?.availability?.workingHours?.end || '20:00'}
           </span>
@@ -297,8 +326,10 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            padding: '6px 14px',
+            padding: '7px 15px',
             borderRadius: 8,
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
             transition: 'all 0.15s ease'
           }}
           onMouseEnter={(e) => { if (!refreshing) e.currentTarget.style.background = '#FAF5FF'; }}
@@ -307,7 +338,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
           <span style={{ display: 'inline-block', transform: refreshing ? 'rotate(180deg)' : 'none', transition: 'transform 0.5s ease' }}>
             🔄
           </span>
-          <span>{refreshing ? 'Syncing DB...' : 'Sync Dashboard'}</span>
+          <span>{refreshing ? 'Syncing...' : 'Sync Dashboard'}</span>
         </button>
       </div>
 
@@ -318,67 +349,67 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
         background: isOnline
           ? 'linear-gradient(135deg, #3B0764 0%, #6B21A8 50%, #7C3AED 100%)'
           : 'linear-gradient(135deg, #1E293B 0%, #334155 100%)',
-        borderRadius: 18,
-        padding: '24px 28px',
+        borderRadius: 20,
+        padding: '24px 30px',
         color: '#FFFFFF',
         display: 'flex',
-        flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: 22,
+        gap: 24,
         boxShadow: isOnline
-          ? '0 12px 28px -6px rgba(109, 40, 217, 0.35)'
-          : '0 8px 20px -4px rgba(30, 41, 59, 0.25)',
-        marginBottom: 20,
+          ? '0 12px 30px -6px rgba(109, 40, 217, 0.4)'
+          : '0 8px 22px -4px rgba(30, 41, 59, 0.3)',
+        marginBottom: 22,
         position: 'relative',
         overflow: 'hidden'
       }}>
         {/* Decorative background glow */}
         <div style={{
           position: 'absolute',
-          top: -40,
-          right: -40,
-          width: 220,
-          height: 220,
+          top: -50,
+          right: -50,
+          width: 250,
+          height: 250,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 70%)',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 70%)',
           pointerEvents: 'none'
         }} />
 
-        {/* Left Side: Avatar & Bio */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, zIndex: 1 }}>
+        {/* Left Side: Avatar & Bio Details */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 22, zIndex: 1, minWidth: 0, flex: '1 1 auto' }}>
           {/* Avatar Ring */}
-          <div style={{ position: 'relative' }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{
-              width: 64,
-              height: 64,
+              width: 68,
+              height: 68,
               borderRadius: '50%',
-              background: 'rgba(255,255,255,0.2)',
+              background: 'rgba(255,255,255,0.22)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 24,
               fontWeight: 800,
-              border: '2.5px solid rgba(255,255,255,0.6)',
-              boxShadow: '0 4px 14px rgba(0,0,0,0.2)'
+              border: '2.5px solid rgba(255,255,255,0.7)',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.25)',
+              letterSpacing: 0.5
             }}>
               {getInitials(profile?.applicantName || profile?.name, profile?.avatar)}
             </div>
-            {/* Duty dot */}
+            {/* Duty live indicator dot */}
             <span style={{
               position: 'absolute',
               bottom: 2,
               right: 2,
-              width: 14,
-              height: 14,
+              width: 15,
+              height: 15,
               borderRadius: '50%',
               background: isOnline ? '#34D399' : '#94A3B8',
-              border: '2px solid #FFFFFF',
-              boxShadow: isOnline ? '0 0 0 2px rgba(52, 211, 153, 0.4)' : 'none'
+              border: '2.5px solid #FFFFFF',
+              boxShadow: isOnline ? '0 0 0 2px rgba(52, 211, 153, 0.5)' : 'none'
             }} />
           </div>
 
-          <div>
+          <div style={{ minWidth: 0 }}>
             {/* Name & Tier Badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0, letterSpacing: '-0.02em', textTransform: 'capitalize' }}>
@@ -386,35 +417,27 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               </h1>
               <span style={{
                 background: 'rgba(255, 255, 255, 0.22)',
-                backdropFilter: 'blur(4px)',
+                backdropFilter: 'blur(6px)',
                 padding: '4px 12px',
                 borderRadius: 20,
                 fontSize: 12,
                 fontWeight: 700,
                 letterSpacing: '0.02em',
-                border: '1px solid rgba(255,255,255,0.3)',
+                border: '1px solid rgba(255,255,255,0.35)',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 5
               }}>
                 <span>{tierIcon}</span>
-                {currentTier}
+                <span>{currentTier}</span>
               </span>
-            </div>
 
-            {/* Trade & Operational Territory */}
-            <div style={{ fontSize: 14.5, opacity: 0.95, marginTop: 4, fontWeight: 500 }}>
-              {profile?.tradeName || profile?.trade || "Women's Salon"} • {profile?.locality || 'Krishnagiri Town, Tamil Nadu'}
-            </div>
-
-            {/* Operational Chips Row */}
-            <div style={{ fontSize: 13, marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span style={{
                 background: isOnline ? 'rgba(52, 211, 153, 0.25)' : 'rgba(148, 163, 184, 0.25)',
-                border: isOnline ? '1px solid rgba(52, 211, 153, 0.4)' : '1px solid rgba(148, 163, 184, 0.4)',
+                border: isOnline ? '1px solid rgba(52, 211, 153, 0.45)' : '1px solid rgba(148, 163, 184, 0.45)',
                 padding: '3px 10px',
                 borderRadius: 14,
-                fontSize: 12,
+                fontSize: 11.5,
                 fontWeight: 700,
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -428,46 +451,62 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 }} />
                 {isOnline ? 'Online • Ready for Dispatches' : 'Offline • Duty Paused'}
               </span>
+            </div>
 
+            {/* Trade & Operational Territory */}
+            <div style={{ fontSize: 14, opacity: 0.95, marginTop: 5, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>{profile?.tradeName || profile?.trade || 'AC & Appliance Repair Specialist'}</span>
+              <span style={{ opacity: 0.6 }}>•</span>
+              <span>{formattedLocality}</span>
+            </div>
+
+            {/* Operational Chips Row */}
+            <div style={{ fontSize: 12, marginTop: 9, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span style={{
                 background: 'rgba(255,255,255,0.15)',
                 padding: '3px 10px',
-                borderRadius: 14,
-                fontSize: 12,
-                fontWeight: 600
+                borderRadius: 12,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
               }}>
-                {profile?.jobsCompleted > 0 && profile?.rating 
-                  ? `⭐ ${Number(profile.rating).toFixed(1)} (${profile.jobsCompleted} Reviews)` 
-                  : '⭐ New Partner (0 Reviews)'}
+                <span>⭐</span>
+                <span>{clampedRating.toFixed(1)}</span>
+                <span style={{ opacity: 0.8 }}>({profile?.jobsCompleted || 0} {(profile?.jobsCompleted || 0) === 1 ? 'Review' : 'Reviews'})</span>
               </span>
 
               <span style={{
                 background: 'rgba(255,255,255,0.15)',
                 padding: '3px 10px',
-                borderRadius: 14,
-                fontSize: 12,
-                fontWeight: 600
+                borderRadius: 12,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
               }}>
-                {profile?.onTimeArrivalRate 
-                  ? `🎯 ${profile.onTimeArrivalRate}% On-Time SLA` 
-                  : (profile?.jobsCompleted > 0 ? '🎯 100% On-Time SLA' : '🎯 New Partner • 100% Target')}
+                <span>🎯</span>
+                <span>100% On-Time SLA</span>
               </span>
 
               <span style={{
-                background: profile?.employmentType === 'Agency Employed' ? 'rgba(217, 119, 6, 0.5)' : 'rgba(99, 102, 241, 0.4)',
+                background: 'rgba(255,255,255,0.15)',
                 padding: '3px 10px',
-                borderRadius: 14,
-                fontSize: 12,
-                fontWeight: 600
+                borderRadius: 12,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4
               }}>
-                {profile?.employmentType || 'Direct Freelance'}
+                <span>💼</span>
+                <span>{profile?.employmentType || 'Direct Freelance'}</span>
               </span>
             </div>
           </div>
         </div>
 
         {/* Right Side: Shift Duty Toggle & Emergency SOS Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, zIndex: 1, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, zIndex: 1, flexShrink: 0 }}>
           {isApproved && (
             <button
               onClick={onToggleOnline}
@@ -475,21 +514,22 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 background: isOnline ? '#FFFFFF' : '#10B981',
                 color: isOnline ? '#6B21A8' : '#FFFFFF',
                 border: 'none',
-                padding: '12px 24px',
+                padding: '12px 22px',
                 borderRadius: 12,
-                fontSize: 14,
+                fontSize: 13.5,
                 fontWeight: 800,
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                transition: 'all 0.15s ease'
+                boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+                transition: 'all 0.15s ease',
+                whiteSpace: 'nowrap'
               }}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
               onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
             >
-              <span style={{ fontSize: 16 }}>{isOnline ? '⏸' : '▶'}</span>
+              <span style={{ fontSize: 15 }}>{isOnline ? '⏸' : '▶'}</span>
               <span>{isOnline ? 'Pause Duty' : 'Go Online'}</span>
             </button>
           )}
@@ -497,19 +537,20 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
           <button
             onClick={() => setShowSosModal(true)}
             style={{
-              background: '#EF4444',
+              background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
               color: '#FFFFFF',
-              border: '1.5px solid rgba(255,255,255,0.3)',
+              border: '1.5px solid rgba(255,255,255,0.35)',
               padding: '12px 20px',
               borderRadius: 12,
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: 800,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: 7,
-              boxShadow: '0 4px 12px rgba(239, 68, 68, 0.35)',
-              transition: 'all 0.15s ease'
+              boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)',
+              transition: 'all 0.15s ease',
+              whiteSpace: 'nowrap'
             }}
             title="Emergency Safety & Incident Support"
             onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
@@ -523,11 +564,11 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
 
 
       {/* ----------------------------------------------------------------- */}
-      {/* 4. FINANCIAL & OPERATIONAL KPI METRICS (Above the Fold)            */}
+      {/* 3. FINANCIAL & OPERATIONAL KPI METRICS (Above the Fold)            */}
       {/* ----------------------------------------------------------------- */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
         gap: 16,
         marginBottom: 24
       }}>
@@ -541,24 +582,32 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             border: '1px solid #E2E8F0',
             boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
             cursor: 'pointer',
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s ease',
+            minHeight: 140,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
           }}
           onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)'}
           onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              TODAY'S EARNINGS
-            </span>
-            <span style={{ fontSize: 18, background: '#ECFDF5', color: '#059669', padding: '5px 8px', borderRadius: 8 }}>
-              💰
-            </span>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                TODAY'S EARNINGS
+              </span>
+              <span style={{ fontSize: 18, background: '#ECFDF5', color: '#059669', padding: '5px 8px', borderRadius: 8 }}>
+                💰
+              </span>
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
+              ₹{(earnings.todayEarnings != null ? earnings.todayEarnings : 0).toLocaleString('en-IN')}
+            </div>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
-            ₹{(earnings.todayEarnings != null ? earnings.todayEarnings : 0).toLocaleString('en-IN')}
-          </div>
-          <div style={{ fontSize: 12, color: '#059669', marginTop: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span>{dashboardData?.completedJobsTodayCount || 0} jobs completed</span>
+          <div style={{ fontSize: 12, color: '#059669', marginTop: 8, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>
+              {dashboardData?.completedJobsTodayCount || 0} {(dashboardData?.completedJobsTodayCount || 0) === 1 ? 'job completed' : 'jobs completed'}
+            </span>
             <span>•</span>
             <span>80% net take</span>
           </div>
@@ -574,24 +623,30 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             border: '1px solid #E2E8F0',
             boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
             cursor: 'pointer',
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s ease',
+            minHeight: 140,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
           }}
           onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)'}
           onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              WALLET BALANCE
-            </span>
-            <span style={{ fontSize: 18, background: '#EFF6FF', color: '#2563EB', padding: '5px 8px', borderRadius: 8 }}>
-              🏦
-            </span>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                WALLET BALANCE
+              </span>
+              <span style={{ fontSize: 18, background: '#EFF6FF', color: '#2563EB', padding: '5px 8px', borderRadius: 8 }}>
+                🏦
+              </span>
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
+              ₹{(earnings.walletBalance != null ? earnings.walletBalance : (profile?.walletBalance != null ? profile.walletBalance : 0)).toLocaleString('en-IN')}
+            </div>
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
-            ₹{(earnings.walletBalance != null ? earnings.walletBalance : (profile?.walletBalance != null ? profile.walletBalance : 0)).toLocaleString('en-IN')}
-          </div>
-          <div style={{ fontSize: 12, color: '#2563EB', marginTop: 6, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span>Instant Withdrawal Available →</span>
+          <div style={{ fontSize: 12, color: '#2563EB', marginTop: 8, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>Available for Instant Withdrawal →</span>
           </div>
         </div>
 
@@ -605,24 +660,30 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             border: '1px solid #E2E8F0',
             boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
             cursor: 'pointer',
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s ease',
+            minHeight: 140,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between'
           }}
           onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)'}
           onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)'}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              NEXT DISBURSEMENT
-            </span>
-            <span style={{ fontSize: 18, background: '#FAF5FF', color: '#7C3AED', padding: '5px 8px', borderRadius: 8 }}>
-              📅
-            </span>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                NEXT SETTLEMENT
+              </span>
+              <span style={{ fontSize: 18, background: '#FAF5FF', color: '#7C3AED', padding: '5px 8px', borderRadius: 8 }}>
+                📅
+              </span>
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', marginTop: 12 }}>
+              {payout.scheduledDate}
+            </div>
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
-            {payout.scheduledDate}
-          </div>
-          <div style={{ fontSize: 12, color: '#64748B', marginTop: 6 }}>
-            {payout.bankName} ({payout.accountNumber}) • Cutoff {payout.cutoffTime}
+          <div style={{ fontSize: 12, color: '#64748B', marginTop: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {payout.bankName} ({payout.accountNumber}) • Weekly Batch
           </div>
         </div>
 
@@ -632,29 +693,35 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
           borderRadius: 14,
           padding: '20px 22px',
           border: dashboardData?.jobsAwaitingActionCount > 0 ? '1.5px solid #FDE68A' : '1px solid #E2E8F0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          minHeight: 140,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'space-between'
         }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-              ACTION REQUIRED
-            </span>
-            <span style={{
-              fontSize: 18,
-              background: dashboardData?.jobsAwaitingActionCount > 0 ? '#FEF3C7' : '#F1F5F9',
-              color: dashboardData?.jobsAwaitingActionCount > 0 ? '#D97706' : '#64748B',
-              padding: '5px 8px',
-              borderRadius: 8
-            }}>
-              {dashboardData?.jobsAwaitingActionCount > 0 ? '⚡' : '✓'}
-            </span>
-          </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
-            {dashboardData?.jobsAwaitingActionCount || 0} Jobs
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                ACTION REQUIRED
+              </span>
+              <span style={{
+                fontSize: 18,
+                background: dashboardData?.jobsAwaitingActionCount > 0 ? '#FEF3C7' : '#F1F5F9',
+                color: dashboardData?.jobsAwaitingActionCount > 0 ? '#D97706' : '#64748B',
+                padding: '5px 8px',
+                borderRadius: 8
+              }}>
+                {dashboardData?.jobsAwaitingActionCount > 0 ? '⚡' : '✓'}
+              </span>
+            </div>
+            <div style={{ fontSize: 28, fontWeight: 800, color: '#0F172A', marginTop: 8 }}>
+              {dashboardData?.jobsAwaitingActionCount || 0} Jobs
+            </div>
           </div>
           <div style={{
             fontSize: 12,
             color: dashboardData?.jobsAwaitingActionCount > 0 ? '#B45309' : '#059669',
-            marginTop: 6,
+            marginTop: 8,
             fontWeight: 600
           }}>
             {dashboardData?.jobsAwaitingActionCount > 0
@@ -663,6 +730,56 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
           </div>
         </div>
       </div>
+
+      {/* 4b. REAL-TIME WEATHER SURGE BANNER (Synchronized from Platform Settings) */}
+      {isSurgeActive && (
+        <div style={{
+          background: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)',
+          border: '1.5px solid #FDE68A',
+          borderRadius: 14,
+          padding: '14px 20px',
+          color: '#92400E',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: 12,
+          marginBottom: 20,
+          boxShadow: '0 2px 8px rgba(245, 158, 11, 0.12)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{
+              width: 38,
+              height: 38,
+              borderRadius: 10,
+              backgroundColor: '#FDE68A',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <Zap size={20} fill="#B45309" color="#B45309" />
+            </div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: '#B45309' }}>
+                Monsoon Weather Surge Active (+₹{surgeAmount} Bonus per Completed Job)
+              </div>
+              <div style={{ fontSize: 12, color: '#92400E', marginTop: 2 }}>
+                High customer demand triggered in Krishnagiri. 100% of the ₹{surgeAmount} weather surcharge is credited directly to your payout.
+              </div>
+            </div>
+          </div>
+          <span style={{
+            backgroundColor: '#B45309',
+            color: '#FFFFFF',
+            fontSize: 11.5,
+            fontWeight: 800,
+            padding: '5px 12px',
+            borderRadius: 20
+          }}>
+            ⚡ Active Now
+          </span>
+        </div>
+      )}
 
       {/* ----------------------------------------------------------------- */}
       {/* 5. OFFER-AND-ACCEPT ALLOCATION BANNER (If active)                 */}
@@ -1214,7 +1331,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             </div>
 
             <button
-              onClick={() => onNavigate('/professional/performance')}
+              onClick={() => onNavigate('/professional/account')}
               style={{
                 width: '100%',
                 background: '#FFFFFF',
@@ -1231,7 +1348,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               onMouseEnter={(e) => e.currentTarget.style.background = '#F8FAFC'}
               onMouseLeave={(e) => e.currentTarget.style.background = '#FFFFFF'}
             >
-              View Full Scorecard & Benefits →
+              View Partner Account Hub →
             </button>
           </div>
 
@@ -1288,7 +1405,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               </button>
 
               <button
-                onClick={() => onNavigate('/professional/performance')}
+                onClick={() => onNavigate('/professional/availability')}
                 style={{
                   background: '#F8FAFC',
                   border: '1px solid #E2E8F0',
@@ -1301,9 +1418,9 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
               >
-                <div style={{ fontSize: 20 }}>⭐</div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A', marginTop: 6 }}>Scorecard</div>
-                <div style={{ fontSize: 11.5, color: '#64748B' }}>Tier & SLA metrics</div>
+                <div style={{ fontSize: 20 }}>⏰</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A', marginTop: 6 }}>Shift Duty</div>
+                <div style={{ fontSize: 11.5, color: '#64748B' }}>Weekly slot scheduling</div>
               </button>
 
               <button

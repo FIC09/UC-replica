@@ -174,6 +174,9 @@ import {
 import {
   SalonMenPrimeServicePage
 } from './components/SalonMenPrimeServicePage';
+import {
+  WorkerReviewPage
+} from './components/WorkerReviewPage';
 
 import {
   CATEGORIES,
@@ -236,12 +239,16 @@ function App() {
   const [isPartnerRoute, setIsPartnerRoute] = useState(() => {
     return window.location.pathname.startsWith('/partner');
   });
+  const [isReviewRoute, setIsReviewRoute] = useState(() => {
+    return window.location.pathname.startsWith('/review');
+  });
 
   useEffect(() => {
     function handleLocationSync() {
       setIsAdminRoute(window.location.pathname.startsWith('/admin'));
       setIsProfessionalRoute(window.location.pathname.startsWith('/professional'));
       setIsPartnerRoute(window.location.pathname.startsWith('/partner'));
+      setIsReviewRoute(window.location.pathname.startsWith('/review'));
     }
     window.addEventListener('popstate', handleLocationSync);
     return () => window.removeEventListener('popstate', handleLocationSync);
@@ -1505,6 +1512,22 @@ function App() {
         onExitToMarketplace={() => {
           window.history.pushState({}, '', '/');
           setIsPartnerRoute(false);
+          setCurrentView('home');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
+    );
+  }
+
+  // Dedicated Full-Page Customer Review Routing (/review/:bookingId)
+  if (isReviewRoute) {
+    const rawBookingId = window.location.pathname.replace('/review/', '').split('/')[0] || '';
+    return (
+      <WorkerReviewPage
+        bookingId={rawBookingId}
+        onNavigateHome={() => {
+          window.history.pushState({}, '', '/');
+          setIsReviewRoute(false);
           setCurrentView('home');
           window.scrollTo({ top: 0, behavior: 'smooth' });
         }}

@@ -23,12 +23,15 @@ import {
   VolumeX,
   FileText,
   ThumbsUp,
-  AlertCircle
+  AlertCircle,
+  Share2,
+  ExternalLink
 } from 'lucide-react';
 import { LiveMapTracker } from './LiveMapTracker';
 import { RapidoChatDrawer } from './RapidoChatDrawer';
 import { useWebRtcVoiceCall } from '../utils/useWebRtcVoiceCall';
 import { WebRtcCallModal } from './WebRtcCallModal';
+import { WorkerReviewModal } from './WorkerReviewModal';
 
 export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) {
   // Stages:
@@ -86,8 +89,12 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
   const chatBottomRef = useRef(null);
 
   // Review state for Stage 6
-  const [userRating, setUserRating] = useState(5);
-  const [ratingSubmitted, setRatingSubmitted] = useState(false);
+  const [userRating, setUserRating] = useState(booking?.rating || 5);
+  const [ratingSubmitted, setRatingSubmitted] = useState(Boolean(booking?.rating));
+  const [inlineReviewText, setInlineReviewText] = useState(booking?.review || '');
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const hasAutoOpenedReviewRef = useRef(false);
 
   // Backend authoritative tracking session
   const [trackingData, setTrackingData] = useState(null);
@@ -95,6 +102,20 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
 
   // Live local booking state (synchronized via WebSockets)
   const [liveBooking, setLiveBooking] = useState(booking || {});
+
+  // Automatically pop up Worker Review Modal as soon as service is completed (if not reviewed yet)
+  useEffect(() => {
+    const isCompleted = stage === 6 || liveBooking?.status === 'Completed' || trackingData?.status === 'completed';
+    const isAlreadyReviewed = Boolean(liveBooking?.rating || ratingSubmitted);
+
+    if (isCompleted && !isAlreadyReviewed && !hasAutoOpenedReviewRef.current) {
+      hasAutoOpenedReviewRef.current = true;
+      const timer = setTimeout(() => {
+        setIsReviewModalOpen(true);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [stage, liveBooking?.status, liveBooking?.rating, trackingData?.status, ratingSubmitted]);
 
   // Synchronize with authoritative TrackingSession, REST polling & SSE live stream
   useEffect(() => {
@@ -270,18 +291,28 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
     }
   }
 
-  async function handleCompleteService(ratingVal = 5) {
+  async function handleCompleteService(ratingVal = userRating, notesText = inlineReviewText) {
     try {
-      const res = await fetch(`/api/tracking/complete-service/${booking.id}`, {
+      const res = await fetch(`/api/bookings/${booking.id}/review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating: ratingVal, notes: 'Service completed thoroughly and sanitized.' })
+        body: JSON.stringify({
+          rating: ratingVal,
+          review: notesText || 'Service completed thoroughly and sanitized.',
+          customerName: booking.userName || 'Customer'
+        })
       });
       const data = await res.json();
       if (data.success) {
         setStage(6);
         setRatingSubmitted(true);
+        setUserRating(ratingVal);
+        setInlineReviewText(notesText);
+        setLiveBooking(prev => ({ ...prev, rating: ratingVal, review: notesText }));
         onUpdateBookingStatus?.(booking.id, 'Completed');
+      } else {
+        setStage(6);
+        setRatingSubmitted(true);
       }
     } catch (err) {
       setStage(6);
@@ -421,7 +452,13 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
   const proName = liveBooking?.assignedProfessional?.name || liveBooking?.assignedPartner || trackingData?.workerName || '';
   const hasAssignedPro = Boolean(proName);
   const proTrade = liveBooking?.assignedProfessional?.trade || trackingData?.workerTrade || liveBooking?.serviceName || 'Home Service Specialist';
-  const proRating = liveBooking?.assignedProfessional?.rating ?? trackingData?.workerRating ?? 4.9;
+  const proRating = liveBooking?.assignedProfessional?.rating ?? trackingData?.workerRating ?? 5.0;
+  const proAvatar = (liveBooking?.assignedProfessional?.avatar || liveBooking?.assignedPartnerAvatar || trackingData?.workerAvatar || '').trim();
+  const proInitials = proName
+    ? (proName.trim().split(/\s+/).length === 1
+        ? proName.trim().slice(0, 2).toUpperCase()
+        : (proName.trim().split(/\s+/)[0][0] + proName.trim().split(/\s+/)[proName.trim().split(/\s+/).length - 1][0]).toUpperCase())
+    : 'NE';
   const assignmentStatus = liveBooking?.assignmentStatus || (hasAssignedPro ? 'ASSIGNED' : 'UNASSIGNED');
   const activePin = liveBooking?.safetyPin || trackingData?.safetyPin || safetyPin;
 
@@ -433,8 +470,22 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
   const totalWaypoints = trackingData?.routePolyline?.length || 15;
   const currentWaypoint = trackingData?.currentWaypointIndex || 0;
   const routeProgressPercent = trackingData?.routePolyline?.length
-    ? Math.min(100, Math.max(8, Math.round((currentWaypoint / (totalWaypoints - 1)) * 100)))
-    : Math.min(100, Math.max(8, Math.round(((18 * 60 - etaSeconds) / (18 * 60)) * 100)));
+  const targetBookingId = booking?.id || booking?.bookingReference || 'UC-741660';
+  const reviewUrl = typeof window !== 'undefined'
+    ? `${window.location.origin}/review/${targetBookingId}`
+    : `http://localhost:5173/review/${targetBookingId}`;
+
+  const handleCopyReviewLink = (e) => {
+    e?.stopPropagation?.();
+    try {
+      navigator.clipboard?.writeText(reviewUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    } catch {
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
 
   return (
     <div
@@ -669,18 +720,40 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                 flexShrink: 0
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ position: 'relative' }}>
-                    <img
-                      src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80"
-                      alt={proName}
-                      style={{
-                        width: 46,
-                        height: 46,
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        border: '2px solid #6E42E5'
-                      }}
-                    />
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    {proAvatar && proAvatar.startsWith('http') && !proAvatar.includes('unsplash.com/photo-1506794778202') ? (
+                      <img
+                        src={proAvatar}
+                        alt={proName}
+                        style={{
+                          width: 46,
+                          height: 46,
+                          borderRadius: '50%',
+                          objectFit: 'cover',
+                          border: '2px solid #6E42E5'
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 46,
+                          height: 46,
+                          borderRadius: '50%',
+                          background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                          color: '#FFFFFF',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 16,
+                          fontWeight: 800,
+                          border: '2px solid #6E42E5',
+                          boxShadow: '0 2px 8px rgba(110, 66, 229, 0.25)',
+                          letterSpacing: 0.5
+                        }}
+                      >
+                        {proInitials}
+                      </div>
+                    )}
                     <span style={{
                       position: 'absolute',
                       bottom: 0,
@@ -782,6 +855,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                 </div>
               </div>
             )}
+
 
             {/* 4. TABS (Live Tracker | Items & Invoice) */}
             <div style={{
@@ -1028,13 +1102,14 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                         Area thoroughly sanitized. Thank you for choosing Urban Company.
                       </p>
 
-                      {/* Rating Stars */}
+                      {/* Rating Stars & Written Feedback */}
                       {!ratingSubmitted ? (
-                        <div style={{ background: '#FFFFFF', padding: 12, borderRadius: 10, border: '1px solid #E2E8F0' }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B', marginBottom: 8 }}>
-                            How was your experience with {proName}?
+                        <div style={{ background: '#FFFFFF', padding: 14, borderRadius: 12, border: '1px solid #E2E8F0', textAlign: 'left' }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: '#1E293B', marginBottom: 6, textAlign: 'center' }}>
+                            Rate your experience with {proName}:
                           </div>
-                          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 10 }}>
+
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
                             {[1, 2, 3, 4, 5].map((star) => (
                               <button
                                 key={star}
@@ -1043,33 +1118,125 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                                 style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
                               >
                                 <Star
-                                  size={24}
-                                  fill={star <= userRating ? '#F59E0B' : '#E2E8F0'}
-                                  color={star <= userRating ? '#F59E0B' : '#94A3B8'}
+                                  size={28}
+                                  fill={star <= userRating ? '#F59E0B' : '#F1F5F9'}
+                                  color={star <= userRating ? '#F59E0B' : '#CBD5E1'}
                                 />
                               </button>
                             ))}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => handleCompleteService(userRating)}
-                            style={{
-                              background: '#6E42E5',
-                              color: '#FFFFFF',
-                              border: 'none',
-                              borderRadius: 6,
-                              padding: '6px 16px',
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Submit {userRating}-Star Review
-                          </button>
+
+                          <div style={{ marginBottom: 10 }}>
+                            <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#475569', marginBottom: 4 }}>
+                              Write a few lines about {proName}:
+                            </label>
+                            <textarea
+                              rows={3}
+                              value={inlineReviewText}
+                              onChange={(e) => setInlineReviewText(e.target.value)}
+                              placeholder={`Share what you liked about ${proName}'s work, punctuality, and behavior...`}
+                              style={{
+                                width: '100%',
+                                boxSizing: 'border-box',
+                                border: '1px solid #CBD5E1',
+                                borderRadius: 8,
+                                padding: '8px 10px',
+                                fontSize: 12.5,
+                                color: '#0F172A',
+                                resize: 'none',
+                                outline: 'none',
+                                fontFamily: 'inherit'
+                              }}
+                            />
+                          </div>
+
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                              type="button"
+                              onClick={() => handleCompleteService(userRating, inlineReviewText)}
+                              style={{
+                                flex: 2,
+                                background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+                                color: '#FFFFFF',
+                                border: 'none',
+                                borderRadius: 8,
+                                padding: '9px 14px',
+                                fontSize: 12.5,
+                                fontWeight: 800,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              Submit {userRating}-Star Review
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setIsReviewModalOpen(true)}
+                              style={{
+                                flex: 1,
+                                background: '#F8FAFC',
+                                color: '#0F172A',
+                                border: '1px solid #CBD5E1',
+                                borderRadius: 8,
+                                padding: '9px 10px',
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 4
+                              }}
+                              title="Open full review dialog"
+                            >
+                              <ExternalLink size={12} />
+                              <span>More</span>
+                            </button>
+                          </div>
                         </div>
                       ) : (
-                        <div style={{ background: '#ECFDF5', padding: 10, borderRadius: 8, fontSize: 12, color: '#065F46', fontWeight: 700 }}>
-                          ✓ Thank you for rating {userRating} stars! {proName} appreciates your support.
+                        <div style={{ background: '#ECFDF5', padding: 14, borderRadius: 12, border: '1px solid #A7F3D0', textAlign: 'left' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              {[1, 2, 3, 4, 5].map(s => (
+                                <Star
+                                  key={s}
+                                  size={16}
+                                  fill={s <= userRating ? '#F59E0B' : '#E2E8F0'}
+                                  color={s <= userRating ? '#F59E0B' : '#CBD5E1'}
+                                />
+                              ))}
+                              <span style={{ fontSize: 12.5, fontWeight: 800, color: '#065F46', marginLeft: 4 }}>
+                                {userRating}.0 Stars
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => setIsReviewModalOpen(true)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                color: '#059669',
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                textDecoration: 'underline'
+                              }}
+                            >
+                              Edit Review
+                            </button>
+                          </div>
+
+                          {inlineReviewText ? (
+                            <p style={{ margin: '0 0 6px', fontSize: 12.5, color: '#047857', fontStyle: 'italic', lineHeight: 1.4 }}>
+                              "{inlineReviewText}"
+                            </p>
+                          ) : (
+                            <p style={{ margin: '0 0 6px', fontSize: 12, color: '#047857' }}>
+                              ✓ Thank you for rating {proName}!
+                            </p>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1361,7 +1528,12 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
               flexDirection: 'column'
             }}>
               <LiveMapTracker
-                session={trackingData}
+                session={{
+                  ...trackingData,
+                  status: (stage === 6 || liveBooking?.status === 'Completed') ? 'completed' : (trackingData?.status || 'arrived'),
+                  workerName: proName || trackingData?.workerName || 'Neal',
+                  workerTrade: proTrade || trackingData?.workerTrade || 'AC & Appliance Repair'
+                }}
                 bookingId={booking?.id}
                 height="100%"
                 showControls={false}
@@ -1410,6 +1582,35 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
             id: booking?.userId || booking?.userPhone || 'cust-user',
             name: booking?.userName || 'Customer',
             phone: booking?.userPhone
+          }}
+        />
+
+        {/* =========================================================================
+            9. DEDICATED WORKER REVIEW MODAL (Star Ratings & Few Lines of Feedback)
+           ========================================================================= */}
+        <WorkerReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={() => setIsReviewModalOpen(false)}
+          booking={{
+            ...liveBooking,
+            id: booking?.id || booking?.bookingReference,
+            worker: {
+              id: liveBooking?.assignedProfessional?.id || 'WRK-79932',
+              name: proName || 'Neal',
+              trade: proTrade || 'AC & Appliance Repair',
+              avatar: liveBooking?.assignedProfessional?.avatar || ''
+            }
+          }}
+          onReviewSubmitted={(reviewData) => {
+            setUserRating(reviewData.rating);
+            setRatingSubmitted(true);
+            setInlineReviewText(reviewData.review);
+            setLiveBooking(prev => ({
+              ...prev,
+              rating: reviewData.rating,
+              review: reviewData.review
+            }));
+            onUpdateBookingStatus?.(booking.id, 'Completed');
           }}
         />
       </div>

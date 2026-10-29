@@ -29,7 +29,7 @@ export function WebRtcCallModal({
   onEndCall,
   peerName = 'Partner',
   peerRole = 'Technician',
-  peerAvatar = 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80'
+  peerAvatar = ''
 }) {
   // 1. INCOMING CALL PROMPT (Ringing)
   if (callState === 'incoming' && incomingCall) {
@@ -61,18 +61,37 @@ export function WebRtcCallModal({
         }}>
           {/* Animated Pulsing Ring */}
           <div style={{ position: 'relative', width: 96, height: 96, marginBottom: 20 }}>
-            <img
-              src={peerAvatar}
-              alt={incomingCall.callerName || peerName}
-              style={{
+            {peerAvatar && peerAvatar.startsWith('http') && !peerAvatar.includes('unsplash.com/photo-1506794778202') ? (
+              <img
+                src={peerAvatar}
+                alt={incomingCall.callerName || peerName}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '3px solid #10B981',
+                  boxShadow: '0 0 20px rgba(16, 185, 129, 0.5)'
+                }}
+              />
+            ) : (
+              <div style={{
                 width: '100%',
                 height: '100%',
                 borderRadius: '50%',
-                objectFit: 'cover',
+                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 32,
+                fontWeight: 800,
                 border: '3px solid #10B981',
                 boxShadow: '0 0 20px rgba(16, 185, 129, 0.5)'
-              }}
-            />
+              }}>
+                {(incomingCall.callerName || peerName || 'PR').slice(0, 2).toUpperCase()}
+              </div>
+            )}
             <div style={{
               position: 'absolute',
               inset: -8,
@@ -211,17 +230,35 @@ export function WebRtcCallModal({
 
           {/* Participant Avatar */}
           <div style={{ position: 'relative', width: 90, height: 90, marginBottom: 16 }}>
-            <img
-              src={peerAvatar}
-              alt={peerName}
-              style={{
+            {peerAvatar && peerAvatar.startsWith('http') && !peerAvatar.includes('unsplash.com/photo-1506794778202') ? (
+              <img
+                src={peerAvatar}
+                alt={peerName}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: isConnected ? '3px solid #10B981' : '3px solid #6366F1'
+                }}
+              />
+            ) : (
+              <div style={{
                 width: '100%',
                 height: '100%',
                 borderRadius: '50%',
-                objectFit: 'cover',
+                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                color: '#FFFFFF',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 30,
+                fontWeight: 800,
                 border: isConnected ? '3px solid #10B981' : '3px solid #6366F1'
-              }}
-            />
+              }}>
+                {(peerName || 'PR').slice(0, 2).toUpperCase()}
+              </div>
+            )}
             {isConnected && (
               <span style={{
                 position: 'absolute',

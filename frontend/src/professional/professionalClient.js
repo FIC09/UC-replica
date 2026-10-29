@@ -525,6 +525,12 @@ class ProfessionalClient {
     });
   }
 
+  async deleteNotification(id = 'all-read') {
+    return this.request(`/notifications/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
   // Profile Change History
   async getProfileChangeHistory() {
     return this.request('/profile/change-history');

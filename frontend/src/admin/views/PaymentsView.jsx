@@ -25,8 +25,10 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
+import { usePlatformSettings } from '../../utils/usePlatformSettings';
 
 export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
+  const { platformTakeRate } = usePlatformSettings();
   // Navigation tabs: 'transactions' | 'payouts' | 'refunds' | 'reconciliation'
   const [activeTab, setActiveTab] = useState(defaultTab);
 
@@ -242,9 +244,9 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
 
     if (type === 'transactions') {
       filename = `customer_transactions_${new Date().toISOString().slice(0, 10)}.csv`;
-      csvContent += 'Transaction ID,Booking ID,Customer,Amount (Rupees),Amount (Paise),Currency,Payment Method,Gateway Ref,Status,Environment,Commission (Paise),Pro Share (Paise),Tax (Paise),Idempotency Key,Date\n';
+      csvContent += 'Transaction ID,Booking ID,Customer,Amount (INR),Currency,Payment Method,Gateway Ref,Status,Environment,Commission (INR),Pro Share (INR),Tax (INR),Idempotency Key,Date\n';
       filteredTxns.forEach(t => {
-        csvContent += `"${t.id}","${t.bookingId}","${t.customerName}",${t.amountRupees},${t.amountPaise},"${t.currency}","${t.paymentMethod}","${t.gatewayRef}","${t.status}","${t.environment}",${t.commissionPaise},${t.proSharePaise},${t.taxPaise},"${t.idempotencyKey}","${new Date(t.paidAt || Date.now()).toISOString()}"\n`;
+        csvContent += `"${t.id}","${t.bookingId}","${t.customerName}",${t.amountRupees},"${t.currency}","${t.paymentMethod}","${t.gatewayRef}","${t.status}","${t.environment}",${(t.commissionPaise / 100).toFixed(2)},${(t.proSharePaise / 100).toFixed(2)},${(t.taxPaise / 100).toFixed(2)},"${t.idempotencyKey}","${new Date(t.paidAt || Date.now()).toISOString()}"\n`;
       });
     } else if (type === 'payouts') {
       filename = `payout_statements_${new Date().toISOString().slice(0, 10)}.csv`;
@@ -336,17 +338,6 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
             <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: 0, lineHeight: 1.25 }}>
               Payments, Commissions &amp; Settlements
             </h2>
-            <span style={{
-              fontSize: 11,
-              fontWeight: 700,
-              padding: '2px 7px',
-              borderRadius: 6,
-              backgroundColor: '#EEF2FF',
-              color: '#4F46E5',
-              border: '1px solid #C7D2FE'
-            }}>
-              Minor Units (Paise) Compliant
-            </span>
           </div>
           <p style={{ fontSize: 12, color: '#64748B', margin: '2px 0 0 0', lineHeight: 1.2 }}>
             Manage customer checkout transactions, franchise &amp; technician payouts, dispute refunds, and gateway reconciliation.
@@ -524,7 +515,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
                 ₹{totalSettledINR.toLocaleString('en-IN')}
               </div>
               <div style={{ fontSize: 11.5, color: '#10B981', marginTop: 4, fontWeight: 600 }}>
-                {(totalSettledINR * 100).toLocaleString('en-IN')} minor units (paise)
+                {prodTxns.length} Settled Transactions
               </div>
             </div>
 
@@ -534,7 +525,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
                 ₹{(totalCommissionPaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </div>
               <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
-                Preserved historical take rate snapshot (avg 20%)
+                Active Governance Take Rate: {platformTakeRate || 20}%
               </div>
             </div>
 
@@ -677,7 +668,6 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
                   <th style={{ padding: '12px 18px' }}>Transaction & Order</th>
                   <th style={{ padding: '12px 18px' }}>Customer</th>
                   <th style={{ padding: '12px 18px' }}>Gross Amount</th>
-                  <th style={{ padding: '12px 18px' }}>Minor Units (Paise)</th>
                   <th style={{ padding: '12px 18px' }}>Commission & Pro Share</th>
                   <th style={{ padding: '12px 18px' }}>Method & Provider Ref</th>
                   <th style={{ padding: '12px 18px' }}>Environment & Status</th>
@@ -687,7 +677,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
               <tbody>
                 {filteredTxns.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '36px', textAlign: 'center', color: '#64748B' }}>
+                    <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#64748B' }}>
                       No transactions match the selected filters.
                     </td>
                   </tr>
@@ -724,21 +714,8 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
                       </td>
 
                       <td style={{ padding: '14px 18px' }}>
-                        <span style={{
-                          fontFamily: 'monospace',
-                          fontSize: 12,
-                          backgroundColor: '#F1F5F9',
-                          padding: '3px 6px',
-                          borderRadius: 4,
-                          color: '#334155'
-                        }}>
-                          {t.amountPaise?.toLocaleString('en-IN')}p
-                        </span>
-                      </td>
-
-                      <td style={{ padding: '14px 18px' }}>
                         <div style={{ fontSize: 12, color: '#6E42E5', fontWeight: 700 }}>
-                          UC Take: ₹{(t.commissionPaise / 100).toFixed(2)}
+                          FIC Take: ₹{(t.commissionPaise / 100).toFixed(2)}
                         </div>
                         <div style={{ fontSize: 11.5, color: '#059669', fontWeight: 600 }}>
                           Pro Net: ₹{(t.proSharePaise / 100).toFixed(2)}
@@ -1572,25 +1549,25 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
                     <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '10px 16px', color: '#64748B' }}>Gross Order Value</td>
                       <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 800, color: '#0F172A' }}>
-                        ₹{selectedTxn.amountRupees} ({selectedTxn.amountPaise} paise)
+                        ₹{selectedTxn.amountRupees?.toLocaleString('en-IN')}
                       </td>
                     </tr>
                     <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '10px 16px', color: '#64748B' }}>Platform Commission Snapshot (Locked at booking)</td>
                       <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: '#6E42E5' }}>
-                        ₹{(selectedTxn.commissionPaise / 100).toFixed(2)} ({selectedTxn.commissionPaise} paise)
+                        ₹{(selectedTxn.commissionPaise / 100).toFixed(2)}
                       </td>
                     </tr>
                     <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '10px 16px', color: '#64748B' }}>Professional / Partner Share</td>
                       <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: '#059669' }}>
-                        ₹{(selectedTxn.proSharePaise / 100).toFixed(2)} ({selectedTxn.proSharePaise} paise)
+                        ₹{(selectedTxn.proSharePaise / 100).toFixed(2)}
                       </td>
                     </tr>
                     <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '10px 16px', color: '#64748B' }}>18% GST Allocation (CGST 9% + SGST 9%)</td>
                       <td style={{ padding: '10px 16px', textAlign: 'right', color: '#475569' }}>
-                        ₹{(selectedTxn.taxPaise / 100).toFixed(2)} ({selectedTxn.taxPaise} paise)
+                        ₹{(selectedTxn.taxPaise / 100).toFixed(2)}
                       </td>
                     </tr>
                     <tr style={{ backgroundColor: '#F8FAFC' }}>

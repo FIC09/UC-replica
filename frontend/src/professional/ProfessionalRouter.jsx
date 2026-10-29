@@ -367,6 +367,9 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
         <PayoutsView
           profile={professionalUser}
           showToast={showToast}
+          onBalanceUpdate={(newBal) => {
+            setProfessionalUser(prev => prev ? ({ ...prev, walletBalance: newBal }) : prev);
+          }}
         />
       );
     }
@@ -396,10 +399,15 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
       );
     }
 
+    // Partner Scorecard & Performance (Removed - redirecting to Today Dashboard)
     if (currentPath === '/professional/performance') {
+      window.history.replaceState({}, '', '/professional');
       return (
-        <PerformanceView
+        <OverviewView
+          professional={professionalUser}
           profile={professionalUser}
+          onNavigate={handleNavigate}
+          onToggleOnline={handleToggleOnline}
           showToast={showToast}
         />
       );
@@ -453,6 +461,7 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
     if (currentPath === '/professional/notifications') {
       return (
         <NotificationsView
+          onNavigate={handleNavigate}
           showToast={showToast}
         />
       );
