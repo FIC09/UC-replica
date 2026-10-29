@@ -72,10 +72,10 @@ export function ProfessionalDashboardModal({
   });
 
   // Wallet state
-  const [walletBalance, setWalletBalance] = useState(15450);
-  const [todayEarnings, setTodayEarnings] = useState(3150);
+  const [walletBalance, setWalletBalance] = useState(0);
+  const [todayEarnings, setTodayEarnings] = useState(0);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [completedJobsCount, setCompletedJobsCount] = useState(4);
+  const [completedJobsCount, setCompletedJobsCount] = useState(0);
 
   if (!isOpen) return null;
 

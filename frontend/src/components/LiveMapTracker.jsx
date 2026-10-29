@@ -50,14 +50,19 @@ export function LiveMapTracker({
     : [defaultWorkerCoords, { lat: 12.5215, lng: 78.2140 }, defaultCustomerCoords];
 
   // Optimistic local waypoint index to eliminate network round-trip lag
-  const [localWaypointIndex, setLocalWaypointIndex] = useState(session?.currentWaypointIndex || 0);
+  const isArrivedState = session?.status === 'arrived' || session?.status === 'in_progress' || session?.status === 'completed';
+  const [localWaypointIndex, setLocalWaypointIndex] = useState(
+    isArrivedState ? Math.max(0, waypoints.length - 1) : (session?.currentWaypointIndex || 0)
+  );
 
   // Sync local index when session booking changes
   useEffect(() => {
-    if (session?.currentWaypointIndex !== undefined) {
+    if (session?.status === 'arrived' || session?.status === 'in_progress' || session?.status === 'completed') {
+      setLocalWaypointIndex(Math.max(0, waypoints.length - 1));
+    } else if (session?.currentWaypointIndex !== undefined) {
       setLocalWaypointIndex(session.currentWaypointIndex);
     }
-  }, [session?.id, session?.bookingId]);
+  }, [session?.id, session?.bookingId, session?.status, session?.currentWaypointIndex, waypoints.length]);
 
   const currentWaypoint = waypoints[localWaypointIndex] || waypoints[0] || defaultWorkerCoords;
   const nextWaypoint = waypoints[localWaypointIndex + 1] || currentWaypoint;
@@ -496,14 +501,14 @@ export function LiveMapTracker({
             fontSize: 18,
             boxShadow: '0 2px 10px rgba(16, 185, 129, 0.45)'
           }}>
-            {localWaypointIndex >= waypoints.length - 2 ? '📍' :
+            {isArrivedState || localWaypointIndex >= waypoints.length - 2 ? '📍' :
              localWaypointIndex > 20 ? '↩️' :
              localWaypointIndex > 10 ? '➡️' : '⬆️'}
           </div>
           <div>
             <div style={{ fontSize: 13.5, fontWeight: 800, color: '#F8FAFC', letterSpacing: '-0.01em' }}>
-              {localWaypointIndex >= waypoints.length - 1
-                ? 'Arrived at Customer Doorstep (Krishnagiri Town)'
+              {isArrivedState || localWaypointIndex >= waypoints.length - 1
+                ? (session?.status === 'in_progress' ? 'Service In Progress (Customer Doorstep)' : 'Arrived at Customer Doorstep (Krishnagiri Town)')
                 : localWaypointIndex > 20
                   ? 'In 180m, Turn Left onto Gandhi Nagar Main Road'
                   : localWaypointIndex > 10
@@ -511,9 +516,9 @@ export function LiveMapTracker({
                     : 'Direct Dispatch: Heading via Rayakottai Main Road towards Customer Address'}
             </div>
             <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>Direct Visit by {session?.workerName || 'V. Saravanan'}</span>
+              <span>Direct Visit by {session?.workerName || 'Assigned Specialist'}</span>
               <span>•</span>
-              <span style={{ color: '#FDE047', fontWeight: 700 }}>🔐 Start PIN: {session?.safetyPin || '4829'}</span>
+              <span style={{ color: '#FDE047', fontWeight: 700 }}>🔐 Start PIN: {session?.safetyPin || '----'}</span>
               {gpsStatus && (
                 <>
                   <span>•</span>

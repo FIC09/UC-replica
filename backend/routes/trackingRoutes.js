@@ -27,6 +27,7 @@ export function broadcastTrackingUpdate(bookingId, data) {
 }
 
 // Handler for fetching active tracking session for a booking
+// Handler for fetching active tracking session for a booking
 async function getTrackingSessionHandler(req, res) {
   try {
     const bookingId = req.params.bookingId || req.params.id;
@@ -34,12 +35,11 @@ async function getTrackingSessionHandler(req, res) {
       $or: [{ bookingId }, { bookingReference: bookingId }]
     });
 
-    if (!session) {
-      // Check if booking exists and synthesize a tracking session if needed
-      const booking = await Booking.findOne({
-        $or: [{ id: bookingId }, { bookingReference: bookingId }]
-      });
+    const booking = await Booking.findOne({
+      $or: [{ id: bookingId }, { bookingReference: bookingId }]
+    });
 
+    if (!session) {
       if (!booking) {
         return res.status(404).json({ success: false, message: 'Tracking session and booking not found' });
       }
@@ -52,19 +52,23 @@ async function getTrackingSessionHandler(req, res) {
       };
       const roadRoute = await fetchRoadRouteWaypoints(workerCoords, customerCoords);
 
+      const proAssigned = booking.assignedProfessional?.name || booking.assignedPartner || '';
+      const isAssigned = Boolean(proAssigned);
+
       session = await TrackingSession.create({
         id: `TRK-${booking.id}`,
         bookingId: booking.id,
         bookingReference: booking.bookingReference || booking.id,
-        workerId: booking.assignedProfessional?.id || 'PRO-KRI-101',
-        workerName: booking.assignedProfessional?.name || 'V. Saravanan',
-        workerPhone: booking.assignedProfessional?.phone || '+91 94432 10850',
-        workerTrade: booking.assignedProfessional?.trade || 'AC Technician',
-        workerRating: 4.95,
+        workerId: booking.assignedProfessional?.id || (isAssigned ? 'PRO-KRI-101' : ''),
+        workerName: proAssigned,
+        workerPhone: booking.assignedProfessional?.phone || '',
+        workerTrade: booking.assignedProfessional?.trade || booking.serviceName || 'Home Service Specialist',
+        workerRating: booking.assignedProfessional?.rating || 4.95,
         customerAddress: booking.address,
         customerCoords,
         currentCoords: roadRoute.origin || workerCoords,
-        status: booking.status === 'Completed' ? 'completed' :
+        status: !isAssigned ? 'unassigned' :
+                booking.status === 'Completed' ? 'completed' :
                 booking.status === 'In Progress' ? 'in_progress' :
                 booking.status === 'Arrived' ? 'arrived' :
                 booking.status === 'En Route' ? 'en_route' : 'assigned',
@@ -72,9 +76,63 @@ async function getTrackingSessionHandler(req, res) {
         currentWaypointIndex: 0,
         remainingDistanceKm: roadRoute.distanceKm || 2.4,
         remainingEtaMinutes: roadRoute.etaMinutes || 6,
-        safetyPin: '4829',
+        safetyPin: booking.safetyPin || '4829',
         lastPingAt: new Date()
       });
+    } else if (booking) {
+      // Self-healing synchronization: if booking was assigned or reassigned, sync session
+      const proAssigned = booking.assignedProfessional?.name || booking.assignedPartner || '';
+      const isAssigned = Boolean(proAssigned);
+      let changed = false;
+
+      if (isAssigned) {
+        if (session.workerName !== proAssigned) {
+          session.workerName = proAssigned;
+          session.workerId = booking.assignedProfessional?.id || session.workerId || 'PRO-KRI-101';
+          session.workerPhone = booking.assignedProfessional?.phone || session.workerPhone || '';
+          session.workerTrade = booking.assignedProfessional?.trade || booking.serviceName || session.workerTrade;
+          changed = true;
+        }
+        const expectedSessionStatus = 
+          booking.status === 'Completed' ? 'completed' :
+          booking.status === 'In Progress' ? 'in_progress' :
+          booking.status === 'Arrived' ? 'arrived' :
+          booking.status === 'En Route' ? 'en_route' :
+          booking.status === 'Cancelled' ? 'cancelled' : 'assigned';
+
+        if (session.status !== expectedSessionStatus) {
+          session.status = expectedSessionStatus;
+          if (expectedSessionStatus === 'arrived') {
+            session.remainingDistanceKm = 0;
+            session.remainingEtaMinutes = 0;
+            if (session.routePolyline && session.routePolyline.length > 0) {
+              session.currentWaypointIndex = session.routePolyline.length - 1;
+            }
+          } else if (expectedSessionStatus === 'in_progress' || expectedSessionStatus === 'completed') {
+            session.pinVerified = true;
+            session.remainingDistanceKm = 0;
+            session.remainingEtaMinutes = 0;
+          }
+          changed = true;
+        }
+      } else {
+        if (session.workerName) {
+          session.workerName = '';
+          session.workerId = '';
+          session.workerPhone = '';
+          session.status = 'unassigned';
+          changed = true;
+        }
+      }
+
+      if (booking.safetyPin && session.safetyPin !== booking.safetyPin) {
+        session.safetyPin = booking.safetyPin;
+        changed = true;
+      }
+
+      if (changed) {
+        await session.save();
+      }
     }
 
     res.json({ success: true, tracking: session, session });
@@ -164,11 +222,11 @@ router.post('/ping', async (req, res) => {
           bookingId: booking.id,
           bookingReference: booking.bookingReference || booking.id,
           workerId: booking.assignedProfessional?.id || workerId,
-          workerName: booking.assignedProfessional?.name || 'A. Kumar',
-          workerPhone: booking.assignedProfessional?.phone || '+91 94432 10850',
-          workerTrade: booking.assignedProfessional?.trade || 'AC Technician',
-          workerRating: 4.95,
-          workerAvatar: 'AK',
+          workerName: booking.assignedProfessional?.name || booking.assignedPartner || 'Service Specialist',
+          workerPhone: booking.assignedProfessional?.phone || '',
+          workerTrade: booking.assignedProfessional?.trade || booking.serviceName || 'Home Service Specialist',
+          workerRating: booking.assignedProfessional?.rating || 4.95,
+          workerAvatar: (booking.assignedProfessional?.name || 'PR').slice(0, 2).toUpperCase(),
           customerName: booking.userName || 'Customer',
           customerPhone: booking.userPhone || '+91 94432 88124',
           customerAddress: booking.address,

@@ -160,7 +160,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
     },
     {
       label: 'Instant Payout',
-      desc: 'Withdraw ₹15,450 to bank',
+      desc: profile?.walletBalance ? `Withdraw ₹${Number(profile.walletBalance).toLocaleString('en-IN')} to bank` : 'Instant bank transfer',
       icon: Landmark,
       color: '#059669',
       bg: '#ecfdf5',

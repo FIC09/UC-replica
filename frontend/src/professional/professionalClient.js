@@ -1,14 +1,16 @@
 export function getInitials(name, avatar) {
-  if (avatar && avatar.length <= 3 && !avatar.includes('/') && !avatar.includes('.')) {
+  if (name && typeof name === 'string' && name.trim()) {
+    const clean = name.trim();
+    const parts = clean.split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return clean.slice(0, 2).toUpperCase();
+  }
+  if (avatar && typeof avatar === 'string' && avatar.length <= 3 && !avatar.includes('/') && !avatar.includes('.')) {
     return avatar.toUpperCase();
   }
-  if (!name) return 'PR';
-  const clean = name.trim();
-  const parts = clean.split(/\s+/);
-  if (parts.length >= 2) {
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  }
-  return clean.slice(0, 2).toUpperCase();
+  return 'PR';
 }
 
 export function getPartnerTier(profile) {
@@ -28,7 +30,7 @@ const API_BASE = '/api/professional';
 class ProfessionalClient {
   constructor() {
     this.token = sessionStorage.getItem('uc_pro_token') || localStorage.getItem('uc_pro_token') || '';
-    this.proId = localStorage.getItem('uc_pro_id') || 'WRK-00146';
+    this.proId = localStorage.getItem('uc_pro_id') || 'WRK-79932';
   }
 
   setAuth(token, proUser) {
@@ -49,10 +51,15 @@ class ProfessionalClient {
       const data = localStorage.getItem('uc_pro_user');
       if (data) {
         const parsed = JSON.parse(data);
-        // Sanitize any stale mock attributes if user is Cryto or new applicant
-        if (parsed.applicantName && parsed.applicantName.toLowerCase().includes('cryto')) {
-          parsed.avatar = getInitials(parsed.applicantName);
+        const name = parsed.applicantName || parsed.name || '';
+        // Automatically cleanse any hardcoded mock defaults (e.g. 15450, mock VS avatar, Diamond Pro for 0 jobs)
+        if (name) {
+          parsed.avatar = getInitials(name);
+        }
+        const jobs = parsed.jobsCompleted != null ? Number(parsed.jobsCompleted) : 0;
+        if (jobs === 0 || !parsed.jobsCompleted) {
           if (parsed.walletBalance === 15450) parsed.walletBalance = 0;
+          if (parsed.lifetimeEarnings === 428000) parsed.lifetimeEarnings = 0;
           if (parsed.tier === 'Diamond Pro Partner (Level 5)' || parsed.tier === 'Diamond Pro Partner') {
             parsed.tier = 'New Partner (Level 1)';
           }
@@ -119,10 +126,17 @@ class ProfessionalClient {
   }
 
   async request(endpoint, options = {}) {
+    const user = this.getStoredUser();
+    const effectiveProId = (this.proId && this.proId !== 'PRO-8841') 
+      ? this.proId 
+      : (user?.id && user?.id !== 'PRO-8841' ? user.id : 'WRK-79932');
+
     const headers = {
       'Content-Type': 'application/json',
       ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-      'x-professional-id': this.proId || 'PRO-8841',
+      'x-professional-id': effectiveProId,
+      ...(user?.email ? { 'x-professional-email': user.email } : {}),
+      ...(user?.applicantName || user?.name ? { 'x-professional-name': user.applicantName || user.name } : {}),
       ...(options.headers || {})
     };
 

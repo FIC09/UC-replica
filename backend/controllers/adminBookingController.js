@@ -11,6 +11,7 @@ import {
   resolveCoordinates,
   fetchRoadRouteWaypoints
 } from '../services/assignmentEngine.js';
+import { broadcastTrackingUpdate } from '../routes/trackingRoutes.js';
 
 
 // Authoritative Database Persistence (Zero mock bookings)
@@ -401,18 +402,23 @@ export async function assignProfessional(req, res) {
       const roadRoute = await fetchRoadRouteWaypoints(workerCoords, customerCoords);
 
       let trackingSession = await TrackingSession.findOne({
-        $or: [{ bookingId: id }, { bookingReference: booking.bookingReference || id }]
+        $or: [
+          { bookingId: id },
+          { bookingReference: booking.bookingReference || id },
+          { bookingId: booking.bookingReference || id },
+          { bookingId: booking.id }
+        ]
       });
 
       if (!trackingSession) {
         trackingSession = new TrackingSession({
-          id: `TRK-${id}`,
-          bookingId: id,
+          id: `TRK-${booking.bookingReference || id}`,
+          bookingId: booking.bookingReference || id,
           bookingReference: booking.bookingReference || id,
           workerId: professionalId || assignedProData.id,
           workerName: professionalName,
-          workerPhone: assignedProData.phone,
-          workerTrade: assignedProData.trade,
+          workerPhone: professionalPhone || assignedProData.phone,
+          workerTrade: trade || assignedProData.trade,
           workerRating: 4.95,
           customerName: booking.userName || booking.customerName || 'Customer',
           customerPhone: booking.userPhone || '',
@@ -431,11 +437,22 @@ export async function assignProfessional(req, res) {
       } else {
         trackingSession.workerId = professionalId || assignedProData.id;
         trackingSession.workerName = professionalName;
-        trackingSession.workerTrade = assignedProData.trade;
+        trackingSession.workerPhone = professionalPhone || assignedProData.phone;
+        trackingSession.workerTrade = trade || assignedProData.trade;
         trackingSession.status = booking.status === 'En Route' ? 'en_route' : 'assigned';
         trackingSession.lastPingAt = new Date();
       }
       await trackingSession.save();
+
+      try {
+        broadcastTrackingUpdate(id, { type: 'update', tracking: trackingSession });
+        if (booking.bookingReference && booking.bookingReference !== id) {
+          broadcastTrackingUpdate(booking.bookingReference, { type: 'update', tracking: trackingSession });
+        }
+        if (booking.id && booking.id !== id) {
+          broadcastTrackingUpdate(booking.id, { type: 'update', tracking: trackingSession });
+        }
+      } catch (sseErr) {}
     } catch (trkErr) {
       console.warn('TrackingSession sync warning on assignment:', trkErr.message);
     }

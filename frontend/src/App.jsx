@@ -405,12 +405,40 @@ function App() {
 
       try {
         const bRes = await bookingsApi.getAll();
-        if (isMounted && bRes?.bookings?.length > 0) {
-          setBookings(bRes.bookings);
-          const active = bRes.bookings.find(b => b.status === 'Confirmed' || b.status === 'Assigned' || b.status === 'In Progress') || bRes.bookings[0];
-          if (active) setLatestLiveBooking(active);
+        if (isMounted) {
+          const serverBookings = bRes?.bookings || [];
+          const serverIds = new Set(serverBookings.map(b => (b.id || b.bookingReference || '').toLowerCase()));
+
+          // Recover and auto-sync any offline or locally pending bookings
+          let localBookings = [];
+          try {
+            const raw = localStorage.getItem('uc_bookings');
+            if (raw) localBookings = JSON.parse(raw);
+          } catch {}
+
+          const unsynced = Array.isArray(localBookings)
+            ? localBookings.filter(b => b && b.id && !serverIds.has((b.id || '').toLowerCase()) && !serverIds.has((b.bookingReference || '').toLowerCase()))
+            : [];
+
+          // Upload pending bookings to backend in background
+          for (const pending of unsynced) {
+            bookingsApi.create(pending)
+              .then(() => {
+                broadcastBookingSync('BOOKING_CREATED', { booking: pending, id: pending.id });
+              })
+              .catch(syncErr => console.warn('Sync pending booking notice:', syncErr.message));
+          }
+
+          const combined = [...unsynced, ...serverBookings];
+          if (combined.length > 0) {
+            setBookings(combined);
+            const active = combined.find(b => b.status === 'Confirmed' || b.status === 'Assigned' || b.status === 'In Progress') || combined[0];
+            if (active) setLatestLiveBooking(active);
+          }
         }
-      } catch {}
+      } catch (bErr) {
+        console.warn('Initial bookings fetch note:', bErr.message);
+      }
 
       try {
         if (user) {
@@ -1918,7 +1946,7 @@ function App() {
         onOpenAuth={() => handleOpenAuth('login')}
         user={user}
         onOpenBookings={() => setIsBookingsModalOpen(true)}
-        bookingsCount={bookings.filter(b => b.status !== 'Cancelled').length}
+        bookingsCount={(user ? customerBookings : bookings).filter(b => b.status !== 'Cancelled').length}
         activeBooking={latestLiveBooking}
         onOpenChat={() => setActiveChatBooking(latestLiveBooking)}
         onOpenAddresses={() => setIsAddressModalOpen(true)}

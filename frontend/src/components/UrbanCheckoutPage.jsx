@@ -692,8 +692,11 @@ export function UrbanCheckoutPage({
       paymentMethod: paymentDetails?.methodLabel || paymentMethod.toUpperCase(),
       paymentDetails: {
         transactionId: paymentDetails?.transactionId || `UC_TXN_${Date.now()}`,
-        paidAt: paymentDetails?.paidAt || new Date(),
-        gatewayRef: paymentDetails?.transactionId || `UC_TXN_${Date.now()}`
+        gatewayRef: paymentDetails?.transactionId || `UC_TXN_${Date.now()}`,
+        paidAt: paymentDetails?.paidAt && !isNaN(new Date(paymentDetails.paidAt).getTime())
+          ? new Date(paymentDetails.paidAt)
+          : new Date(),
+        paidAtFormatted: paymentDetails?.paidAtFormatted || new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
       },
       createdAtFormatted: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
       notes: avoidCalling ? 'Avoid calling before reaching location' : '',

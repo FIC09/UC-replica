@@ -143,20 +143,58 @@ export async function getOrCreateConversation(bookingId, workerOverride = null) 
 
   const workerId = assignedWorker.id;
   const customerId = booking.userId || booking.userPhone || booking.userEmail || `cust-${booking.id}`;
+  const convId = `conv-${booking.id}-${workerId}`;
 
-  // Check if an active conversation exists for this booking
-  const existingConversations = await ChatConversation.find({ bookingId: booking.id }).sort({ createdAt: -1 });
+  // Try to enrich worker details from database
+  let workerRecord = null;
+  try {
+    workerRecord = await WorkerApplication.findOne({
+      $or: [
+        { id: workerId },
+        { applicationNumber: workerId }
+      ]
+    });
+  } catch {}
 
-  // Check if active conversation belongs to the currently assigned worker
-  const activeSameWorkerConv = existingConversations.find(c => c.workerId === workerId && c.status !== 'closed');
-  if (activeSameWorkerConv) {
-    // Check if booking status warrants read_only closure
-    await evaluateBookingLifecycleClosure(activeSameWorkerConv, booking);
-    return activeSameWorkerConv;
+  const effectiveWorkerName = workerRecord?.applicantName || workerRecord?.name || assignedWorker.name || 'Service Specialist';
+  const effectiveWorkerAvatar = workerRecord?.avatar || assignedWorker.avatar || '';
+  const effectiveWorkerPhone = workerRecord?.phone || assignedWorker.phone || '';
+  const effectiveWorkerTrade = workerRecord?.tradeName || workerRecord?.trade || assignedWorker.trade || booking.serviceName || 'Technician';
+
+  // Check if an existing conversation exists for this booking
+  const existingConversations = await ChatConversation.find({
+    $or: [
+      { bookingId: booking.id },
+      { bookingId: booking.bookingReference || booking.id }
+    ]
+  }).sort({ createdAt: -1 });
+
+  // 1. Check if conversation belongs to the currently assigned worker (whether active or closed)
+  let existingWorkerConv = existingConversations.find(c => c.workerId === String(workerId) || c.id === convId);
+  if (!existingWorkerConv) {
+    existingWorkerConv = await ChatConversation.findOne({ id: convId });
   }
 
-  // If there's an active conversation for a PREVIOUS worker, close it now due to reassignment
-  const oldActiveConv = existingConversations.find(c => c.workerId !== workerId && c.status === 'active');
+  if (existingWorkerConv) {
+    const isBookingActive = ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(booking.status);
+    if (isBookingActive && existingWorkerConv.status === 'closed') {
+      existingWorkerConv.status = 'active';
+      existingWorkerConv.closureReason = undefined;
+      existingWorkerConv.closedAt = undefined;
+    }
+    // Keep worker details synchronized
+    existingWorkerConv.workerName = effectiveWorkerName;
+    existingWorkerConv.workerPhone = effectiveWorkerPhone;
+    existingWorkerConv.workerAvatar = effectiveWorkerAvatar;
+    existingWorkerConv.workerTrade = effectiveWorkerTrade;
+    await existingWorkerConv.save();
+
+    await evaluateBookingLifecycleClosure(existingWorkerConv, booking);
+    return existingWorkerConv;
+  }
+
+  // 2. If there's an active conversation for a PREVIOUS worker, close it now due to reassignment
+  const oldActiveConv = existingConversations.find(c => c.workerId !== String(workerId) && c.status === 'active');
   if (oldActiveConv) {
     oldActiveConv.status = 'closed';
     oldActiveConv.closureReason = 'worker_reassigned';
@@ -172,51 +210,60 @@ export async function getOrCreateConversation(bookingId, workerOverride = null) 
     });
   }
 
-  // Create a brand new private conversation for the new worker
-  const convId = `conv-${booking.id}-${workerId}`;
-  
-  // Try to enrich worker details
-  let workerRecord = null;
+  // 3. Create a brand new private conversation for the new worker
+  let newConv = null;
   try {
-    workerRecord = await WorkerApplication.findOne({ id: workerId });
-  } catch {}
+    newConv = await ChatConversation.create({
+      id: convId,
+      bookingId: booking.id,
+      assignmentId: `asgn-${booking.id}-${workerId}`,
+      customerId: String(customerId),
+      customerName: booking.userName || 'Customer',
+      customerPhone: booking.userPhone || '',
+      workerId: String(workerId),
+      workerName: effectiveWorkerName,
+      workerPhone: effectiveWorkerPhone,
+      workerAvatar: effectiveWorkerAvatar,
+      workerTrade: effectiveWorkerTrade,
+      serviceName: booking.serviceName || 'Home Service',
+      serviceAddress: booking.address || '',
+      status: 'active',
+      lastMessage: {
+        text: 'Chat activated. You can now communicate directly regarding this service.',
+        senderId: 'system',
+        senderRole: 'system',
+        messageType: 'system',
+        timestamp: new Date()
+      }
+    });
 
-  const newConv = await ChatConversation.create({
-    id: convId,
-    bookingId: booking.id,
-    assignmentId: `asgn-${booking.id}-${workerId}`,
-    customerId: String(customerId),
-    customerName: booking.userName || 'Customer',
-    customerPhone: booking.userPhone || '',
-    workerId: String(workerId),
-    workerName: assignedWorker.name || workerRecord?.applicantName || 'Service Specialist',
-    workerPhone: assignedWorker.phone || workerRecord?.phone || '',
-    workerAvatar: assignedWorker.avatar || workerRecord?.avatar || '',
-    workerTrade: assignedWorker.trade || workerRecord?.tradeName || booking.serviceName || 'Technician',
-    serviceName: booking.serviceName || 'Home Service',
-    serviceAddress: booking.address || '',
-    status: 'active',
-    lastMessage: {
-      text: 'Chat activated. You can now communicate directly regarding this service.',
+    // Create initial system message in the chat
+    await ChatMessage.create({
+      id: `msg-sys-${Date.now()}`,
+      conversationId: newConv.id,
+      bookingId: booking.id,
       senderId: 'system',
       senderRole: 'system',
+      senderName: 'Krishnagiri Dispatch',
       messageType: 'system',
-      timestamp: new Date()
+      messageText: `Chat opened for Booking #${booking.id}. Direct communication between ${newConv.customerName} and ${newConv.workerName} is now active.`,
+      status: 'delivered'
+    });
+  } catch (createErr) {
+    // If duplicate key error occurs, recover gracefully by returning the existing conversation
+    if (createErr.code === 11000 || createErr.message?.includes('E11000')) {
+      newConv = await ChatConversation.findOne({ id: convId });
+      if (newConv) {
+        newConv.status = 'active';
+        newConv.closureReason = undefined;
+        newConv.closedAt = undefined;
+        newConv.workerName = effectiveWorkerName;
+        await newConv.save();
+        return newConv;
+      }
     }
-  });
-
-  // Create initial system message in the chat
-  await ChatMessage.create({
-    id: `msg-sys-${Date.now()}`,
-    conversationId: newConv.id,
-    bookingId: booking.id,
-    senderId: 'system',
-    senderRole: 'system',
-    senderName: 'Krishnagiri Dispatch',
-    messageType: 'system',
-    messageText: `Chat opened for Booking #${booking.id}. Direct communication between ${newConv.customerName} and ${newConv.workerName} is now active.`,
-    status: 'delivered'
-  });
+    throw createErr;
+  }
 
   return newConv;
 }

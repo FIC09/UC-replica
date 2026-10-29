@@ -164,11 +164,47 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     enum: ['Pending', 'Confirmed', 'Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed', 'Cancelled', 'Failed'],
     default: 'Pending',
+    set: function(val) {
+      if (!val) return 'Pending';
+      const map = {
+        'pending': 'Pending',
+        'confirmed': 'Confirmed',
+        'placed': 'Confirmed',
+        'booked': 'Confirmed',
+        'assigned': 'Assigned',
+        'en route': 'En Route',
+        'enroute': 'En Route',
+        'arrived': 'Arrived',
+        'in progress': 'In Progress',
+        'inprogress': 'In Progress',
+        'completed': 'Completed',
+        'cancelled': 'Cancelled',
+        'canceled': 'Cancelled',
+        'failed': 'Failed'
+      };
+      return map[String(val).toLowerCase()] || val;
+    }
   },
   paymentStatus: {
     type: String,
     enum: ['Paid', 'Pending', 'Refunded', 'Partially Refunded', 'Failed'],
     default: 'Paid',
+    set: function(val) {
+      if (!val) return 'Paid';
+      const map = {
+        'paid': 'Paid',
+        'success': 'Paid',
+        'captured': 'Paid',
+        'completed': 'Paid',
+        'pending': 'Pending',
+        'cod': 'Pending',
+        'unpaid': 'Pending',
+        'refunded': 'Refunded',
+        'partially refunded': 'Partially Refunded',
+        'failed': 'Failed'
+      };
+      return map[String(val).toLowerCase()] || val;
+    }
   },
   paymentMethod: {
     type: String,
@@ -240,12 +276,20 @@ const bookingSchema = new mongoose.Schema({
   assignmentMode: {
     type: String,
     enum: ['MANUAL', 'AUTO'],
-    default: 'AUTO'
+    default: 'AUTO',
+    set: function(val) {
+      return String(val || 'AUTO').toUpperCase() === 'MANUAL' ? 'MANUAL' : 'AUTO';
+    }
   },
   assignmentStatus: {
     type: String,
     enum: ['UNASSIGNED', 'OFFERED', 'ASSIGNED', 'EXPIRED', 'REJECTED', 'AWAITING_OWNER_ATTENTION'],
-    default: 'UNASSIGNED'
+    default: 'UNASSIGNED',
+    set: function(val) {
+      const u = String(val || 'UNASSIGNED').toUpperCase();
+      const valid = ['UNASSIGNED', 'OFFERED', 'ASSIGNED', 'EXPIRED', 'REJECTED', 'AWAITING_OWNER_ATTENTION'];
+      return valid.includes(u) ? u : 'UNASSIGNED';
+    }
   },
   offeredTo: {
     proId: { type: String, default: '' },

@@ -192,7 +192,13 @@ export function BookingsView({ onShowToast, onNavigate }) {
       broadcastChannel = new BroadcastChannel('uc_sync_channel');
       broadcastChannel.onmessage = (event) => {
         const data = event.data || {};
-        if (data.type === 'BOOKING_CREATED' || data.type === 'BOOKING_UPDATED' || data.type === 'BOOKING_DELETED') {
+        if (data.type === 'BOOKING_CREATED') {
+          setPage(1);
+          fetchBookingsList(false);
+          fetchAssignmentStats();
+          const bookingId = data.booking?.id || data.bookingId || data.id || 'Order';
+          onShowToast && onShowToast(`🛎️ New booking received: ${bookingId}!`);
+        } else if (data.type === 'BOOKING_UPDATED' || data.type === 'BOOKING_DELETED') {
           fetchBookingsList(false); // Immediate silent refresh
           fetchAssignmentStats();
           const bookingId = data.booking?.id || data.bookingId || data.id || 'Order';

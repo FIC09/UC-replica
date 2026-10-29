@@ -110,6 +110,24 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
     }
   }, [showToast, professionalUser?.id]);
 
+  // On mount or auth, immediately sync authentic database profile from backend
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let cancelled = false;
+    professionalClient.getProfile()
+      .then(res => {
+        if (!cancelled && res?.success && res.profile) {
+          setProfessionalUser(res.profile);
+          localStorage.setItem('uc_pro_user', JSON.stringify(res.profile));
+          if (res.profile.id) {
+            localStorage.setItem('uc_pro_id', res.profile.id);
+          }
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isAuthenticated]);
+
   // Sync with browser back/forward buttons
   useEffect(() => {
     function handlePopState() {

@@ -155,18 +155,28 @@ export function AuthModal({
       sessionStorage.setItem('uc_partner_token', 'simulated-partner-jwt-token');
       localStorage.setItem('uc_partner_token', 'simulated-partner-jwt-token');
     } else if (role === 'professional') {
+      const workerName = userObj.name || userObj.applicantName || 'Professional';
+      const cleanName = workerName.trim();
+      const parts = cleanName.split(/\s+/);
+      const computedInitials = parts.length >= 2
+        ? (parts[0][0] + parts[1][0]).toUpperCase()
+        : cleanName.slice(0, 2).toUpperCase() || 'PR';
+
       const proData = {
-        id: 'PRO-8841',
-        applicantName: userObj.name || 'Vikram Salvi',
+        id: userObj.id || userObj.workerId || 'WRK-79932',
+        applicantName: workerName,
+        name: workerName,
         phone: userObj.phone || '+91 98205 11982',
-        email: userObj.email || 'vikram.salvi@urbanpro.com',
-        avatar: 'VS',
-        trade: userObj.trade || 'Master AC Specialist & Electrician',
-        tier: 'Diamond Pro Partner (Level 5)',
-        employmentType: 'Direct Freelance',
-        walletBalance: 15450,
+        email: userObj.email || `${cleanName.toLowerCase().replace(/\s+/g, '.')}@urbanpro.com`,
+        avatar: computedInitials,
+        trade: userObj.trade || userObj.tradeName || 'Master AC Specialist & Electrician',
+        tier: userObj.tier || 'New Partner (Level 1)',
+        employmentType: userObj.employmentType || 'Direct Freelance',
+        walletBalance: userObj.walletBalance != null ? Number(userObj.walletBalance) : 0,
+        lifetimeEarnings: userObj.lifetimeEarnings != null ? Number(userObj.lifetimeEarnings) : 0,
+        jobsCompleted: userObj.jobsCompleted != null ? Number(userObj.jobsCompleted) : 0,
         isOnline: true,
-        status: 'Active'
+        status: userObj.status || 'Active'
       };
       professionalClient.setAuth('simulated-pro-jwt-token', proData);
       sessionStorage.setItem('uc_pro_token', 'simulated-pro-jwt-token');

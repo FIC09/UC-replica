@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { Booking } from '../models/Booking.js';
 import { User } from '../models/User.js';
 import { autoAssignWorkerToBooking, triggerAutoAssignment } from '../services/assignmentEngine.js';
@@ -86,7 +87,18 @@ router.post('/', async (req, res) => {
       }
     }
     if (bookingData.totalAmount == null) {
-      bookingData.totalAmount = bookingData.amount != null ? bookingData.amount : (bookingData.items.reduce((s, i) => s + (i.price || 0) * (i.qty || 1), 0));
+      bookingData.totalAmount = bookingData.amount != null ? bookingData.amount : (bookingData.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0));
+    }
+    if (typeof bookingData.totalAmount === 'string') {
+      bookingData.totalAmount = Number(bookingData.totalAmount.replace(/[^\d.]/g, '')) || 0;
+    }
+
+    if (Array.isArray(bookingData.items)) {
+      bookingData.items = bookingData.items.map(i => ({
+        ...i,
+        price: typeof i.price === 'string' ? (Number(i.price.replace(/[^\d.]/g, '')) || 0) : (Number(i.price) || 0),
+        qty: Number(i.qty) || 1
+      }));
     }
 
     // City & Service Area Verification
@@ -116,14 +128,22 @@ router.post('/', async (req, res) => {
       }
     }
 
-    if (!bookingData.id) {
-      bookingData.id = 'UC-' + Math.floor(100000 + Math.random() * 900000);
+    // Ensure strictly unique Booking ID (prevent E11000 duplicate key failure)
+    let candidateId = bookingData.id || ('UC-' + Math.floor(100000 + Math.random() * 900000));
+    let existingBooking = await Booking.findOne({ id: candidateId }).lean();
+    while (existingBooking) {
+      candidateId = 'UC-' + Math.floor(100000 + Math.random() * 900000);
+      existingBooking = await Booking.findOne({ id: candidateId }).lean();
     }
-    if (!bookingData.bookingReference) {
-      bookingData.bookingReference = bookingData.id;
-    }
+    bookingData.id = candidateId;
+    bookingData.bookingReference = candidateId;
+
     if (!bookingData.safetyPin) {
       bookingData.safetyPin = String(Math.floor(1000 + Math.random() * 9000));
+    }
+
+    if (bookingData.notes && !bookingData.customerInstructions) {
+      bookingData.customerInstructions = bookingData.notes;
     }
 
     // Parse contact string if userName/userPhone missing
@@ -183,6 +203,26 @@ router.post('/', async (req, res) => {
       });
     }
 
+    if (bookingData.paymentDetails && typeof bookingData.paymentDetails === 'object') {
+      if (bookingData.paymentDetails.paidAt) {
+        const parsed = new Date(bookingData.paymentDetails.paidAt);
+        bookingData.paymentDetails.paidAt = isNaN(parsed.getTime()) ? new Date() : parsed;
+      }
+      if (bookingData.paymentDetails.refundedAt) {
+        const parsed = new Date(bookingData.paymentDetails.refundedAt);
+        bookingData.paymentDetails.refundedAt = isNaN(parsed.getTime()) ? undefined : parsed;
+      }
+    }
+
+    if (bookingData.scheduledDate) {
+      const parsedDate = new Date(bookingData.scheduledDate);
+      if (isNaN(parsedDate.getTime())) {
+        delete bookingData.scheduledDate;
+      } else {
+        bookingData.scheduledDate = parsedDate;
+      }
+    }
+
     if (!bookingData.pricingBreakdown || !bookingData.pricingBreakdown.total) {
       bookingData.pricingBreakdown = {
         subtotal: bookingData.totalAmount || 0,
@@ -213,7 +253,7 @@ router.post('/', async (req, res) => {
         const rawPhone = (bookingData.userPhone || '').trim();
         const digitsOnly = rawPhone.replace(/\D/g, '').slice(-10);
         const searchConditions = [];
-        if (bookingData.customerId) {
+        if (bookingData.customerId && mongoose.Types.ObjectId.isValid(bookingData.customerId)) {
           searchConditions.push({ _id: bookingData.customerId });
         }
         if (rawPhone) searchConditions.push({ phone: rawPhone });

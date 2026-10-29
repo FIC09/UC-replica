@@ -45,10 +45,6 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
   // Incoming Live Dispatch Offer state
   const [incomingOffer, setIncomingOffer] = useState(null);
 
-  // Advisories Hub collapsed/expanded state
-  const [advisoriesExpanded, setAdvisoriesExpanded] = useState(false);
-  const [dismissedAlerts, setDismissedAlerts] = useState({});
-
   const isOnline = profile?.isOnline !== false;
   const isApproved = !profile?.status || profile?.status === 'Approved' || profile?.status === 'Active';
 
@@ -151,6 +147,11 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
     try {
       await professionalClient.updateJobStatus(job.id, targetStatus);
       showToast(`Status updated to "${targetStatus}"`);
+      try {
+        const bc = new BroadcastChannel('uc_sync_channel');
+        bc.postMessage({ type: 'STATUS_UPDATED', bookingId: job.id, status: targetStatus });
+        bc.close();
+      } catch (e) {}
       await loadDashboard();
     } catch (err) {
       showToast(err.message || 'Status transition failed');
@@ -169,6 +170,11 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
     try {
       await professionalClient.updateJobStatus(selectedJobForOtp.id, 'In Progress', otpInput.trim());
       showToast('OTP verified! Job is now In Progress.');
+      try {
+        const bc = new BroadcastChannel('uc_sync_channel');
+        bc.postMessage({ type: 'STATUS_UPDATED', bookingId: selectedJobForOtp.id, status: 'In Progress' });
+        bc.close();
+      } catch (e) {}
       setSelectedJobForOtp(null);
       setOtpInput('');
       await loadDashboard();
@@ -218,10 +224,6 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
     bankName: profile?.bankDetails?.bankName || 'HDFC Bank',
     accountNumber: profile?.bankDetails?.accountNumber || '••••••••4821'
   };
-
-  // Active Advisories Filter (dismissed items hidden)
-  const platformMessages = (dashboardData?.platformMessages || []).filter(m => !dismissedAlerts[m.id]);
-  const totalAdvisoriesCount = platformMessages.length;
 
   return (
     <div style={{
@@ -519,122 +521,6 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
         </div>
       </div>
 
-      {/* ----------------------------------------------------------------- */}
-      {/* 3. COMPACT ADVISORIES & ALERTS HUB (Replaces 3 towering banners)   */}
-      {/* ----------------------------------------------------------------- */}
-      {totalAdvisoriesCount > 0 && (
-        <div style={{
-          background: '#FFFFFF',
-          border: '1px solid #E2E8F0',
-          borderRadius: 14,
-          padding: advisoriesExpanded ? '16px 20px' : '10px 18px',
-          marginBottom: 20,
-          boxShadow: '0 2px 6px rgba(0,0,0,0.02)',
-          transition: 'all 0.2s ease'
-        }}>
-          {/* Header Row: Highest Priority Alert + Toggle Button */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 14,
-            flexWrap: 'wrap'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 260 }}>
-              <span style={{ fontSize: 20, flexShrink: 0 }}>📢</span>
-              <div style={{ fontSize: 13.5, color: '#1E293B' }}>
-                <strong style={{ color: '#7C3AED' }}>{platformMessages[0]?.title}: </strong>
-                <span>{platformMessages[0]?.body}</span>
-              </div>
-            </div>
-
-            {/* Right Controls: Expand / Collapse */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-              <button
-                onClick={() => setAdvisoriesExpanded(!advisoriesExpanded)}
-                style={{
-                  background: '#F1F5F9',
-                  border: '1px solid #E2E8F0',
-                  color: '#475569',
-                  padding: '5px 12px',
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4
-                }}
-              >
-                <span>{advisoriesExpanded ? 'Hide' : `${totalAdvisoriesCount} Advisories`}</span>
-                <span>{advisoriesExpanded ? '▲' : '▼'}</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Expanded Drawer: All Active Advisories in an uncluttered grid */}
-          {advisoriesExpanded && (
-            <div style={{
-              marginTop: 16,
-              paddingTop: 16,
-              borderTop: '1px solid #F1F5F9',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-              gap: 12
-            }}>
-              {/* Platform Messages */}
-              {platformMessages.map(msg => (
-                <div
-                  key={msg.id}
-                  style={{
-                    background: msg.priority === 'High' ? '#FFF1F2' : '#F5F3FF',
-                    border: `1px solid ${msg.priority === 'High' ? '#FECDD3' : '#DDD6FE'}`,
-                    borderRadius: 10,
-                    padding: '12px 14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: 8,
-                    position: 'relative'
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 16 }}>{msg.priority === 'High' ? '⚠️' : '📢'}</span>
-                      <strong style={{
-                        fontSize: 13,
-                        color: msg.priority === 'High' ? '#9F1239' : '#6B21A8'
-                      }}>
-                        {msg.title}
-                      </strong>
-                    </div>
-                    <button
-                      onClick={() => setDismissedAlerts(prev => ({ ...prev, [msg.id]: true }))}
-                      aria-label="Dismiss alert"
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        color: '#94A3B8',
-                        cursor: 'pointer',
-                        padding: 2,
-                        fontSize: 14
-                      }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <div style={{ fontSize: 12.5, color: '#334155', lineHeight: 1.4 }}>
-                    {msg.body}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>
-                    {msg.date}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ----------------------------------------------------------------- */}
       {/* 4. FINANCIAL & OPERATIONAL KPI METRICS (Above the Fold)            */}

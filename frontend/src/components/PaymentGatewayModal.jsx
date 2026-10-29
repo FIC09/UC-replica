@@ -659,8 +659,8 @@ export function PaymentGatewayModal({
         methodLabel: methodLabels[activeTab] || 'Online Payment',
         transactionId: txnId || `FIC_PAY_${Date.now()}`,
         bankUtr: bankUtr || `NPCI-UTR-${Math.floor(100000000000 + Math.random() * 900000000000)}`,
-        amount: amount,
-        paidAt: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+        paidAt: new Date().toISOString(),
+        paidAtFormatted: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
         status: activeTab === 'cod' ? 'PENDING' : 'PAID'
       });
     }

@@ -8,6 +8,8 @@ import { assignWorkerTransactionally } from '../services/postgresService.js';
 import { emitEvent } from '../services/websocketService.js';
 import { getActiveOffer } from '../config/redis.js';
 import { acceptAssignmentOffer, rejectAssignmentOffer } from '../services/assignmentEngine.js';
+import { TrackingSession } from '../models/TrackingSession.js';
+import { broadcastTrackingUpdate } from '../routes/trackingRoutes.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'urban_company_jwt_secret_key_2026';
 
@@ -1878,24 +1880,40 @@ export async function resubmitOnboardingCorrections(req, res) {
 // -------------------------------------------------------------
 export async function getProfessionalProfile(req, res) {
   try {
-    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-00146';
+    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-79932';
+    const proEmail = (req.headers['x-professional-email'] || req.professional?.email || '').trim().toLowerCase();
+    const proName = (req.headers['x-professional-name'] || req.professional?.applicantName || req.professional?.name || '').trim();
     let pro = null;
 
     // Check MongoDB WorkerApplication first for authentic database profile
     try {
-      const dbWorker = await WorkerApplication.findOne({
-        $or: [
-          { id: proId },
-          { applicationNumber: proId },
-          { id: (proId || '').toUpperCase() },
-          { email: (proId || '').toLowerCase() }
-        ]
-      }).lean();
+      const orConds = [];
+      if (proId && proId !== 'PRO-8841') {
+        orConds.push({ id: proId }, { applicationNumber: proId }, { id: (proId || '').toUpperCase() });
+      }
+      if (proEmail) orConds.push({ email: proEmail });
+      if (proName && !proName.toLowerCase().includes('vikram')) {
+        orConds.push({ applicantName: new RegExp(`^${proName}$`, 'i') }, { name: new RegExp(`^${proName}$`, 'i') });
+      }
+      let dbWorker = null;
+      if (orConds.length > 0) {
+        dbWorker = await WorkerApplication.findOne({ $or: orConds }).lean();
+      }
+      if (!dbWorker && proId) {
+        dbWorker = await WorkerApplication.findOne({
+          $or: [
+            { id: proId },
+            { applicationNumber: proId },
+            { id: (proId || '').toUpperCase() },
+            { email: (proId || '').toLowerCase() }
+          ]
+        }).lean();
+      }
 
       if (dbWorker) {
         const cleanName = (dbWorker.applicantName || dbWorker.name || 'Professional').trim();
         const parts = cleanName.split(/\s+/);
-        const initials = parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : cleanName.slice(0, 2).toUpperCase() || 'P';
+        const initials = parts.length >= 2 ? (parts[0][0] + parts[1][0]).toUpperCase() : cleanName.slice(0, 2).toUpperCase() || 'PR';
         const jobs = dbWorker.jobsCompleted != null ? Number(dbWorker.jobsCompleted) : 0;
         const tier = dbWorker.tier || (jobs >= 500 ? 'Diamond Pro Partner (Level 5)' : jobs >= 200 ? 'Platinum Partner (Level 4)' : jobs >= 50 ? 'Gold Partner (Level 3)' : jobs >= 10 ? 'Silver Partner (Level 2)' : 'New Partner (Level 1)');
 
@@ -1903,10 +1921,11 @@ export async function getProfessionalProfile(req, res) {
           id: dbWorker.id || dbWorker.applicationNumber,
           workerId: dbWorker.id || dbWorker.applicationNumber,
           applicantName: cleanName,
+          name: cleanName,
           legalName: cleanName,
           phone: dbWorker.phone,
           email: dbWorker.email || `${cleanName.toLowerCase().replace(/\s+/g, '.')}@urbanpro.com`,
-          avatar: (dbWorker.avatar && dbWorker.avatar.length <= 3 && !dbWorker.avatar.includes('/')) ? dbWorker.avatar.toUpperCase() : initials,
+          avatar: (dbWorker.avatar && (dbWorker.avatar.startsWith('http') || dbWorker.avatar.includes('/'))) ? dbWorker.avatar : initials,
           trade: dbWorker.tradeName || dbWorker.trade || 'Home Services',
           tradeName: dbWorker.tradeName || dbWorker.trade || 'Home Services',
           categories: dbWorker.categories && dbWorker.categories.length > 0 ? dbWorker.categories : [dbWorker.tradeName || dbWorker.trade || 'Home Services'],
@@ -1932,8 +1951,8 @@ export async function getProfessionalProfile(req, res) {
       console.warn('WorkerApplication lookup error:', err.message);
     }
 
+    if (!pro && req.professional) pro = req.professional;
     if (!pro) pro = professionalsStore.find(p => p.id === proId);
-    if (!pro) pro = req.professional;
     initProData(pro.id);
 
     const fieldClassification = {
@@ -2432,10 +2451,29 @@ function formatJobForProfessional(job, proId) {
 }
 
 // Helper: Aggregates all DB and synthetic jobs for a professional
-async function getAllJobsForPro(proId) {
+async function getAllJobsForPro(proId, dbWorker = null) {
   let dbBookings = [];
   try {
-    dbBookings = await Booking.find({ 'assignedProfessional.id': proId }).sort({ createdAt: -1 }).lean();
+    const conditions = [
+      { 'assignedProfessional.id': proId },
+      { 'assignedWorker.id': proId },
+      { assignedWorkerId: proId }
+    ];
+    if (dbWorker) {
+      if (dbWorker.id) {
+        conditions.push({ 'assignedWorker.id': dbWorker.id }, { 'assignedProfessional.id': dbWorker.id });
+      }
+      if (dbWorker.applicantName) {
+        conditions.push(
+          { 'assignedWorker.name': new RegExp(`^${dbWorker.applicantName}$`, 'i') },
+          { 'assignedProfessional.name': new RegExp(`^${dbWorker.applicantName}$`, 'i') }
+        );
+      }
+      if (dbWorker.email) {
+        conditions.push({ 'assignedWorker.email': dbWorker.email });
+      }
+    }
+    dbBookings = await Booking.find({ $or: conditions }).sort({ createdAt: -1 }).lean();
   } catch {}
 
   const baselineJobs = [
@@ -2587,20 +2625,23 @@ async function getAllJobsForPro(proId) {
     );
   }
 
-  // Filter baseline jobs matching proId and apply any synthetic demo status updates
-  const proBaselines = baselineJobs
-    .filter(j => j.assignedProfessional?.id === proId)
-    .map(j => {
-      if (syntheticJobStatusStore.has(j.id)) {
-        return { ...j, status: syntheticJobStatusStore.get(j.id) };
-      }
-      return j;
-    });
+  // Filter baseline jobs matching proId ONLY for demo PRO-8841 when no real dbWorker is present
+  const proBaselines = (!dbWorker && proId === 'PRO-8841')
+    ? baselineJobs
+        .filter(j => j.assignedProfessional?.id === proId)
+        .map(j => {
+          if (syntheticJobStatusStore.has(j.id)) {
+            return { ...j, status: syntheticJobStatusStore.get(j.id) };
+          }
+          return j;
+        })
+    : [];
 
   const combined = [...dbBookings, ...proBaselines];
   const uniqueMap = new Map();
   combined.forEach(j => {
-    if (!uniqueMap.has(j.id)) uniqueMap.set(j.id, j);
+    const key = j.bookingReference || j.id || j._id?.toString();
+    if (key && !uniqueMap.has(key)) uniqueMap.set(key, j);
   });
   return Array.from(uniqueMap.values());
 }
@@ -2610,12 +2651,28 @@ async function getAllJobsForPro(proId) {
 // -------------------------------------------------------------
 export async function getTodayDashboard(req, res) {
   try {
-    const proId = req.professional?.id || req.headers['x-professional-id'];
+    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-79932';
+    const proEmail = (req.headers['x-professional-email'] || req.professional?.email || '').trim().toLowerCase();
+    const proName = (req.headers['x-professional-name'] || req.professional?.applicantName || req.professional?.name || '').trim();
+
     let dbWorker = null;
     try {
-      dbWorker = await WorkerApplication.findOne({
-        $or: [{ id: proId }, { applicationNumber: proId }]
-      }).lean();
+      const orConds = [];
+      if (proId && proId !== 'PRO-8841') {
+        orConds.push({ id: proId }, { applicationNumber: proId }, { id: (proId || '').toUpperCase() });
+      }
+      if (proEmail) orConds.push({ email: proEmail });
+      if (proName && !proName.toLowerCase().includes('vikram')) {
+        orConds.push({ applicantName: new RegExp(`^${proName}$`, 'i') }, { name: new RegExp(`^${proName}$`, 'i') });
+      }
+      if (orConds.length > 0) {
+        dbWorker = await WorkerApplication.findOne({ $or: orConds }).lean();
+      }
+      if (!dbWorker && proId) {
+        dbWorker = await WorkerApplication.findOne({
+          $or: [{ id: proId }, { applicationNumber: proId }, { email: (proId || '').toLowerCase() }]
+        }).lean();
+      }
     } catch {}
 
     const pro = dbWorker 
@@ -2629,8 +2686,9 @@ export async function getTodayDashboard(req, res) {
       });
     }
 
-    const allJobs = await getAllJobsForPro(proId);
-    const todayFormatted = allJobs.map(j => formatJobForProfessional(j, proId));
+    const effectiveId = dbWorker?.id || dbWorker?.applicationNumber || proId;
+    const allJobs = await getAllJobsForPro(effectiveId, dbWorker);
+    const todayFormatted = allJobs.map(j => formatJobForProfessional(j, effectiveId));
 
     // Next appointment: earliest non-completed job
     const upcomingJobs = todayFormatted.filter(j => ['Assigned', 'Confirmed', 'En Route', 'Arrived'].includes(j.status));
@@ -2664,24 +2722,7 @@ export async function getTodayDashboard(req, res) {
       }
     ];
 
-    const hubLocality = pro.locality || pro.city || 'Krishnagiri Town';
-    const tradeTitle = pro.tradeName || pro.trade || 'Home service';
-    const platformMessages = [
-      {
-        id: 'msg-1',
-        title: 'High-Demand Operational Advisory',
-        body: `${tradeTitle} servicing demand is elevated across ${hubLocality}. Maintain high punctuality to earn top partner ratings.`,
-        priority: 'Normal',
-        date: 'Today, 09:00 AM'
-      },
-      {
-        id: 'msg-2',
-        title: 'Safety SOP Refresher Reminder',
-        body: 'Always verify customer OTP before beginning service and follow standard quality protocols.',
-        priority: 'High',
-        date: 'Today, 08:00 AM'
-      }
-    ];
+    const platformMessages = [];
 
     const walletBalance = pro.walletBalance != null ? Number(pro.walletBalance) : 0;
     const lifetimeEarnings = pro.lifetimeEarnings != null ? Number(pro.lifetimeEarnings) : 0;
@@ -3767,6 +3808,47 @@ export async function updateJobStatus(req, res) {
       console.warn('[PostgreSQL Booking Status Warning]:', pgErr.message);
     }
 
+    // Synchronize to MongoDB TrackingSession for authoritative customer tracking & live SSE
+    try {
+      const sessionStatus =
+        status === 'Completed' ? 'completed' :
+        status === 'In Progress' ? 'in_progress' :
+        status === 'Arrived' ? 'arrived' :
+        status === 'En Route' ? 'en_route' :
+        status === 'Cancelled' ? 'cancelled' : 'assigned';
+
+      const trackingSession = await TrackingSession.findOne({
+        $or: [{ bookingId: id }, { bookingReference: id }]
+      });
+
+      if (trackingSession) {
+        trackingSession.status = sessionStatus;
+        if (sessionStatus === 'arrived') {
+          trackingSession.remainingDistanceKm = 0;
+          trackingSession.remainingEtaMinutes = 0;
+          if (trackingSession.routePolyline && trackingSession.routePolyline.length > 0) {
+            trackingSession.currentWaypointIndex = trackingSession.routePolyline.length - 1;
+          }
+        } else if (sessionStatus === 'in_progress' || sessionStatus === 'completed') {
+          trackingSession.pinVerified = true;
+          trackingSession.remainingDistanceKm = 0;
+          trackingSession.remainingEtaMinutes = 0;
+        }
+        if (proName && (!trackingSession.workerName || trackingSession.workerName === 'Service Professional')) {
+          trackingSession.workerName = proName;
+        }
+        trackingSession.lastPingAt = new Date();
+        await trackingSession.save();
+
+        broadcastTrackingUpdate(id, { type: 'update', tracking: trackingSession });
+        if (booking?.bookingReference && booking.bookingReference !== id) {
+          broadcastTrackingUpdate(booking.bookingReference, { type: 'update', tracking: trackingSession });
+        }
+      }
+    } catch (trkErr) {
+      console.warn('[TrackingSession Sync Warning]:', trkErr.message);
+    }
+
     // Emit real-time WebSocket event
     const eventName = status === 'Arrived' ? 'WORKER_ARRIVED' :
                       status === 'In Progress' ? 'SERVICE_STARTED' :
@@ -3830,27 +3912,39 @@ export async function verifyJobOtp(req, res) {
 // -------------------------------------------------------------
 export async function getEarnings(req, res) {
   try {
-    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-00146';
-    let pro = professionalsStore.find(p => p.id === proId) || req.professional || {};
+    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-79932';
+    const proEmail = (req.headers['x-professional-email'] || req.professional?.email || '').trim().toLowerCase();
+    const proName = (req.headers['x-professional-name'] || req.professional?.applicantName || req.professional?.name || '').trim();
+
+    let pro = req.professional || {};
 
     try {
-      const dbWorker = await WorkerApplication.findOne({
-        $or: [
-          { id: proId },
-          { applicationNumber: proId },
-          { id: (proId || '').toUpperCase() },
-          { email: (proId || '').toLowerCase() }
-        ]
-      }).lean();
+      const orConds = [];
+      if (proId && proId !== 'PRO-8841') {
+        orConds.push({ id: proId }, { applicationNumber: proId }, { id: (proId || '').toUpperCase() });
+      }
+      if (proEmail) orConds.push({ email: proEmail });
+      if (proName && !proName.toLowerCase().includes('vikram')) {
+        orConds.push({ applicantName: new RegExp(`^${proName}$`, 'i') }, { name: new RegExp(`^${proName}$`, 'i') });
+      }
+      let dbWorker = null;
+      if (orConds.length > 0) {
+        dbWorker = await WorkerApplication.findOne({ $or: orConds }).lean();
+      }
+      if (!dbWorker && proId) {
+        dbWorker = await WorkerApplication.findOne({
+          $or: [
+            { id: proId },
+            { applicationNumber: proId },
+            { id: (proId || '').toUpperCase() },
+            { email: (proId || '').toLowerCase() }
+          ]
+        }).lean();
+      }
       if (dbWorker) {
         pro = { ...pro, ...dbWorker, applicantName: dbWorker.applicantName || dbWorker.name };
       }
     } catch (e) {}
-
-    const jobsCompleted = pro.jobsCompleted != null ? Number(pro.jobsCompleted) : 0;
-    const isNew = jobsCompleted === 0;
-    const walletBalance = pro.walletBalance != null ? Number(pro.walletBalance) : (isNew ? 0 : 15450);
-    const lifetimeEarnings = pro.lifetimeEarnings != null ? Number(pro.lifetimeEarnings) : (isNew ? 0 : 428000);
 
     const cleanName = pro.applicantName || pro.name || 'Professional';
     const recipientSnapshot = {
@@ -3862,70 +3956,57 @@ export async function getEarnings(req, res) {
       settlementMode: 'Direct IMPS / Bank NEFT'
     };
 
-    const itemizedLedger = [
-      {
-        id: 'TXN-901',
-        bookingReference: 'UC-829410',
-        serviceDate: '23 Oct 2026, 02:45 PM',
-        service: 'Powerjet AC Servicing (Split) + Deep Coil Cleaning',
-        grossFare: 548,
-        grossFarePaisa: 54800,
-        platformCommission: 110,
-        platformCommissionPaisa: 11000,
-        professionalEntitlement: 438,
-        professionalEntitlementPaisa: 43800,
-        approvedTips: 50,
-        approvedTipsPaisa: 5000,
-        incentives: 0,
-        incentivesPaisa: 0,
-        adjustments: 0,
-        adjustmentsPaisa: 0,
-        refundDeductions: 0,
-        refundDeductionsPaisa: 0,
-        netEarnings: 488,
-        netEarningsPaisa: 48800,
-        settlementEligibility: 'Eligible for weekly settlement cycle (Batch PO-302)',
-        settlementStatus: 'Available for Settlement',
-        recipientSnapshot,
-        pricingSnapshot: { baseRate: 499, addons: 49, commissionPercentage: 20 }
-      },
-      {
-        id: 'TXN-902',
-        bookingReference: 'UC-829399',
-        serviceDate: '22 Oct 2026, 04:15 PM',
-        service: 'AC Foam Jet Deep Cleaning + Anti-Rust Protection',
-        grossFare: 899,
-        grossFarePaisa: 89900,
-        platformCommission: 180,
-        platformCommissionPaisa: 18000,
-        professionalEntitlement: 719,
-        professionalEntitlementPaisa: 71900,
-        approvedTips: 100,
-        approvedTipsPaisa: 10000,
-        incentives: 0,
-        incentivesPaisa: 0,
-        adjustments: 0,
-        adjustmentsPaisa: 0,
-        refundDeductions: 0,
-        refundDeductionsPaisa: 0,
-        netEarnings: 819,
-        netEarningsPaisa: 81900,
-        settlementEligibility: 'Disbursed in Batch PO-301 (UTR-77192841)',
-        settlementStatus: 'Paid',
-        recipientSnapshot,
-        pricingSnapshot: { baseRate: 899, addons: 0, commissionPercentage: 20 }
-      },
-      {
-        id: 'TXN-903',
-        bookingReference: 'UC-829388',
-        serviceDate: '22 Oct 2026, 10:00 AM',
-        service: 'Master AC Foam Jet Servicing (Window)',
-        grossFare: 648,
-        grossFarePaisa: 64800,
-        platformCommission: 130,
-        platformCommissionPaisa: 13000,
-        professionalEntitlement: 518,
-        professionalEntitlementPaisa: 51800,
+    // Real-time completed bookings from MongoDB
+    const effectiveProId = pro.id || pro.applicationNumber || proId;
+    const bookingConditions = [
+      { 'assignedProfessional.id': effectiveProId },
+      { 'assignedWorker.id': effectiveProId },
+      { assignedWorkerId: effectiveProId }
+    ];
+    if (cleanName && !cleanName.toLowerCase().includes('vikram')) {
+      bookingConditions.push(
+        { 'assignedWorker.name': new RegExp(`^${cleanName}$`, 'i') },
+        { 'assignedProfessional.name': new RegExp(`^${cleanName}$`, 'i') }
+      );
+    }
+    if (pro.email) {
+      bookingConditions.push({ 'assignedWorker.email': pro.email });
+    }
+
+    const completedBookings = await Booking.find({
+      $or: bookingConditions,
+      status: 'Completed'
+    }).sort({ completedAt: -1, createdAt: -1 }).lean();
+
+    const jobsCompleted = completedBookings.length;
+    const isNew = jobsCompleted === 0;
+
+    const calculatedGross = completedBookings.reduce((sum, b) => sum + (Number(b.totalAmount || b.price || b.amount) || 0), 0);
+    const calculatedCommission = Math.round(calculatedGross * 0.20);
+    const calculatedNet = calculatedGross - calculatedCommission;
+
+    const walletBalance = pro.walletBalance != null 
+      ? Number(pro.walletBalance) 
+      : (isNew ? 0 : calculatedNet);
+    const lifetimeEarnings = pro.lifetimeEarnings != null 
+      ? Number(pro.lifetimeEarnings) 
+      : (isNew ? 0 : calculatedNet);
+
+    const realLedger = completedBookings.map((b, idx) => {
+      const gross = Number(b.totalAmount || b.price || b.amount) || 0;
+      const comm = Math.round(gross * 0.20);
+      const net = gross - comm;
+      return {
+        id: `TXN-${b.bookingReference || (idx + 1)}`,
+        bookingReference: b.bookingReference || `UC-${b.id || b._id}`,
+        serviceDate: b.completedAt ? new Date(b.completedAt).toLocaleString('en-IN') : (b.date || 'Recently'),
+        service: b.serviceTitle || b.serviceName || 'Home Service',
+        grossFare: gross,
+        grossFarePaisa: gross * 100,
+        platformCommission: comm,
+        platformCommissionPaisa: comm * 100,
+        professionalEntitlement: net,
+        professionalEntitlementPaisa: net * 100,
         approvedTips: 0,
         approvedTipsPaisa: 0,
         incentives: 0,
@@ -3934,70 +4015,33 @@ export async function getEarnings(req, res) {
         adjustmentsPaisa: 0,
         refundDeductions: 0,
         refundDeductionsPaisa: 0,
-        netEarnings: 518,
-        netEarningsPaisa: 51800,
-        settlementEligibility: 'Disbursed in Batch PO-301 (UTR-77192842)',
-        settlementStatus: 'Paid',
+        netEarnings: net,
+        netEarningsPaisa: net * 100,
+        settlementEligibility: 'Available for settlement cycle',
+        settlementStatus: 'Available for Settlement',
         recipientSnapshot,
-        pricingSnapshot: { baseRate: 599, addons: 49, commissionPercentage: 20 }
-      },
-      {
-        id: 'TXN-904',
-        bookingReference: 'UC-829372',
-        serviceDate: '20 Oct 2026, 03:30 PM',
-        service: 'Inverter AC PCB Circuit Board Diagnostics',
-        grossFare: 1250,
-        grossFarePaisa: 125000,
-        platformCommission: 250,
-        platformCommissionPaisa: 25000,
-        professionalEntitlement: 1000,
-        professionalEntitlementPaisa: 100000,
-        approvedTips: 150,
-        approvedTipsPaisa: 15000,
-        incentives: 0,
-        incentivesPaisa: 0,
-        adjustments: 0,
-        adjustmentsPaisa: 0,
-        refundDeductions: 0,
-        refundDeductionsPaisa: 0,
-        netEarnings: 1150,
-        netEarningsPaisa: 115000,
-        settlementEligibility: 'Disbursed in Batch PO-299',
-        settlementStatus: 'Paid',
-        recipientSnapshot,
-        pricingSnapshot: { baseRate: 1250, addons: 0, commissionPercentage: 20 }
-      },
-      {
-        id: 'TXN-905',
-        bookingReference: 'UC-829365',
-        serviceDate: '19 Oct 2026, 11:00 AM',
-        service: 'AC Gas Leak Check & R32 Top-Up',
-        grossFare: 948,
-        grossFarePaisa: 94800,
-        platformCommission: 190,
-        platformCommissionPaisa: 19000,
-        professionalEntitlement: 758,
-        professionalEntitlementPaisa: 75800,
-        approvedTips: 50,
-        approvedTipsPaisa: 5000,
-        incentives: 0,
-        incentivesPaisa: 0,
-        adjustments: 0,
-        adjustmentsPaisa: 0,
-        refundDeductions: 0,
-        refundDeductionsPaisa: 0,
-        netEarnings: 808,
-        netEarningsPaisa: 80800,
-        settlementEligibility: 'Disbursed in Batch PO-299',
-        settlementStatus: 'Paid',
-        recipientSnapshot,
-        pricingSnapshot: { baseRate: 899, addons: 49, commissionPercentage: 20 }
-      }
-    ];
+        pricingSnapshot: { baseRate: gross, addons: 0, commissionPercentage: 20 }
+      };
+    });
+
+    const realRecentTransactions = completedBookings.slice(0, 5).map((b, idx) => {
+      const gross = Number(b.totalAmount || b.price || b.amount) || 0;
+      const take = Math.round(gross * 0.20);
+      return {
+        id: `TXN-${b.bookingReference || (idx + 1)}`,
+        bookingRef: b.bookingReference || `UC-${b.id}`,
+        service: b.serviceTitle || b.serviceName || 'Home Service',
+        gross,
+        platformTake: take,
+        net: gross - take,
+        date: b.completedAt ? new Date(b.completedAt).toLocaleDateString('en-IN') : 'Recent',
+        status: 'Credited'
+      };
+    });
 
     const financialStages = {
-      earnedPaisa: isNew ? 0 : 4892000,
-      earned: isNew ? 0 : 48920,
+      earnedPaisa: calculatedGross * 100,
+      earned: calculatedGross,
       pendingConfirmationPaisa: 0,
       pendingConfirmation: 0,
       availableForSettlementPaisa: walletBalance * 100,
@@ -4014,51 +4058,34 @@ export async function getEarnings(req, res) {
       walletBalance: walletBalance,
       lifetime: lifetimeEarnings,
       lifetimeEarnings: lifetimeEarnings,
-      thisWeek: isNew ? 0 : 9450,
-      thisWeekEarnings: isNew ? 0 : 9450,
-      today: isNew ? 0 : 1960,
-      todayEarnings: isNew ? 0 : 1960,
-      thisMonth: isNew ? 0 : 48920,
-      tipsReceived: isNew ? 0 : 450,
-      incentivesEarned: isNew ? 0 : 800,
+      thisWeek: isNew ? 0 : calculatedNet,
+      thisWeekEarnings: isNew ? 0 : calculatedNet,
+      today: isNew ? 0 : calculatedNet,
+      todayEarnings: isNew ? 0 : calculatedNet,
+      thisMonth: isNew ? 0 : calculatedNet,
+      tipsReceived: 0,
+      incentivesEarned: 0,
       platformTakeRate: pro.employmentType === 'Agency Employed' ? '14% (Agency Partner Rate)' : '20% (Standard Solo Rate)',
       currencyUnit: 'INR (₹)',
       minorCurrencyUnit: 'Paisa (100 Paisa = ₹1.00)',
       financialNotice: 'Completed job indicates earned professional entitlement but is distinct from funds already released into your bank account. Settlements disburse on configured weekly cycles.',
       financialStages,
-      breakdown: isNew ? {
-        grossFare: 0,
-        grossFarePaisa: 0,
-        platformCommission: 0,
-        platformCommissionPaisa: 0,
+      breakdown: {
+        grossFare: calculatedGross,
+        grossFarePaisa: calculatedGross * 100,
+        platformCommission: calculatedCommission,
+        platformCommissionPaisa: calculatedCommission * 100,
         tips: 0,
         tipsPaisa: 0,
         surgeBonus: 0,
         surgeBonusPaisa: 0,
         tierBonus: 0,
         tierBonusPaisa: 0,
-        netEarnings: 0,
-        netEarningsPaisa: 0
-      } : {
-        grossFare: 61150,
-        grossFarePaisa: 6115000,
-        platformCommission: 12230,
-        platformCommissionPaisa: 1223000,
-        tips: 2800,
-        tipsPaisa: 280000,
-        surgeBonus: 1400,
-        surgeBonusPaisa: 140000,
-        tierBonus: 5000,
-        tierBonusPaisa: 500000,
-        netEarnings: 58120,
-        netEarningsPaisa: 5812000
+        netEarnings: calculatedNet,
+        netEarningsPaisa: calculatedNet * 100
       },
-      recentTransactions: isNew ? [] : [
-        { id: 'TXN-901', bookingRef: 'UC-829410', service: 'Powerjet AC Servicing', gross: 499, platformTake: 100, net: 399, date: 'Today, 02:45 PM', status: 'Credited' },
-        { id: 'TXN-902', bookingRef: 'UC-829399', service: 'AC Gas Charging & Valve Fit', gross: 899, platformTake: 180, net: 719, date: 'Yesterday, 04:15 PM', status: 'Credited' },
-        { id: 'TXN-903', bookingRef: 'UC-829350', service: 'Electrical Fuse Replacement', gross: 299, platformTake: 60, net: 239, date: '20 Oct 2026', status: 'Credited' }
-      ],
-      itemizedLedger: isNew ? [] : itemizedLedger,
+      recentTransactions: realRecentTransactions,
+      itemizedLedger: realLedger,
       recipientSnapshot
     };
 
@@ -4073,27 +4100,73 @@ export async function getEarnings(req, res) {
 
 export async function getPayouts(req, res) {
   try {
-    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-00146';
-    let pro = professionalsStore.find(p => p.id === proId) || req.professional || {};
+    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-79932';
+    const proEmail = (req.headers['x-professional-email'] || req.professional?.email || '').trim().toLowerCase();
+    const proName = (req.headers['x-professional-name'] || req.professional?.applicantName || req.professional?.name || '').trim();
+
+    let pro = req.professional || {};
     initProData(proId);
 
     try {
-      const dbWorker = await WorkerApplication.findOne({
-        $or: [
-          { id: proId },
-          { applicationNumber: proId },
-          { id: (proId || '').toUpperCase() },
-          { email: (proId || '').toLowerCase() }
-        ]
-      }).lean();
+      const orConds = [];
+      if (proId && proId !== 'PRO-8841') {
+        orConds.push({ id: proId }, { applicationNumber: proId }, { id: (proId || '').toUpperCase() });
+      }
+      if (proEmail) orConds.push({ email: proEmail });
+      if (proName && !proName.toLowerCase().includes('vikram')) {
+        orConds.push({ applicantName: new RegExp(`^${proName}$`, 'i') }, { name: new RegExp(`^${proName}$`, 'i') });
+      }
+      let dbWorker = null;
+      if (orConds.length > 0) {
+        dbWorker = await WorkerApplication.findOne({ $or: orConds }).lean();
+      }
+      if (!dbWorker && proId) {
+        dbWorker = await WorkerApplication.findOne({
+          $or: [
+            { id: proId },
+            { applicationNumber: proId },
+            { id: (proId || '').toUpperCase() },
+            { email: (proId || '').toLowerCase() }
+          ]
+        }).lean();
+      }
       if (dbWorker) {
         pro = { ...pro, ...dbWorker, applicantName: dbWorker.applicantName || dbWorker.name };
       }
     } catch (e) {}
 
-    const jobsCompleted = pro.jobsCompleted != null ? Number(pro.jobsCompleted) : 0;
+    const cleanName = pro.applicantName || pro.name || 'Professional';
+    const effectiveProId = pro.id || pro.applicationNumber || proId;
+    const bookingConditions = [
+      { 'assignedProfessional.id': effectiveProId },
+      { 'assignedWorker.id': effectiveProId },
+      { assignedWorkerId: effectiveProId }
+    ];
+    if (cleanName && !cleanName.toLowerCase().includes('vikram')) {
+      bookingConditions.push(
+        { 'assignedWorker.name': new RegExp(`^${cleanName}$`, 'i') },
+        { 'assignedProfessional.name': new RegExp(`^${cleanName}$`, 'i') }
+      );
+    }
+    if (pro.email) {
+      bookingConditions.push({ 'assignedWorker.email': pro.email });
+    }
+
+    const completedBookings = await Booking.find({
+      $or: bookingConditions,
+      status: 'Completed'
+    }).sort({ completedAt: -1, createdAt: -1 }).lean();
+
+    const jobsCompleted = completedBookings.length;
     const isNew = jobsCompleted === 0;
-    const walletBalance = pro.walletBalance != null ? Number(pro.walletBalance) : (isNew ? 0 : 15450);
+
+    const calculatedGross = completedBookings.reduce((sum, b) => sum + (Number(b.totalAmount || b.price || b.amount) || 0), 0);
+    const calculatedCommission = Math.round(calculatedGross * 0.20);
+    const calculatedNet = calculatedGross - calculatedCommission;
+
+    const walletBalance = pro.walletBalance != null 
+      ? Number(pro.walletBalance) 
+      : (isNew ? 0 : calculatedNet);
 
     const isBusinessAssociated = pro.employmentType === 'Agency Employed';
     const settlementModel = pro.settlementModel || (isBusinessAssociated ? 'settle_to_business' : 'direct_to_worker');

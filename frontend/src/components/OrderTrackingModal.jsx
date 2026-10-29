@@ -96,30 +96,76 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
   // Live local booking state (synchronized via WebSockets)
   const [liveBooking, setLiveBooking] = useState(booking || {});
 
-  // Synchronize with authoritative TrackingSession & SSE live stream
+  // Synchronize with authoritative TrackingSession, REST polling & SSE live stream
   useEffect(() => {
-    if (!booking?.id) return;
+    const targetId = booking?.id || booking?.bookingReference;
+    if (!targetId) return;
 
     let isMounted = true;
-    fetch(`/api/tracking/${booking.id}`)
-      .then(res => res.json())
-      .then(data => {
-        if (isMounted && data.success && data.tracking) {
-          setTrackingData(data.tracking);
-          if (data.tracking.remainingEtaMinutes != null) {
-            setEtaSeconds(Math.max(60, data.tracking.remainingEtaMinutes * 60));
-          }
-          if (data.tracking.status === 'completed') setStage(6);
-          else if (data.tracking.status === 'in_progress') setStage(5);
-          else if (data.tracking.status === 'arrived') setStage(4);
-          else if (data.tracking.status === 'en_route') setStage(3);
-          else if (data.tracking.status === 'assigned') setStage(2);
-        }
-      })
-      .catch(err => console.warn('Tracking fetch note:', err.message));
 
-    // Connect SSE stream
-    const eventSource = new EventSource(`/api/tracking/stream/${booking.id}`);
+    const fetchLatestState = async () => {
+      try {
+        const [trkRes, bkgRes] = await Promise.allSettled([
+          fetch(`/api/tracking/${targetId}`).then(r => r.json()),
+          fetch(`/api/bookings/${targetId}`).then(r => r.json())
+        ]);
+
+        if (!isMounted) return;
+
+        if (trkRes.status === 'fulfilled' && trkRes.value?.success && trkRes.value?.tracking) {
+          const trk = trkRes.value.tracking;
+          setTrackingData(trk);
+          if (trk.remainingEtaMinutes != null) {
+            setEtaSeconds(Math.max(60, trk.remainingEtaMinutes * 60));
+          }
+          if (trk.status === 'completed') setStage(6);
+          else if (trk.status === 'in_progress') setStage(5);
+          else if (trk.status === 'arrived') setStage(4);
+          else if (trk.status === 'en_route') setStage(3);
+          else if (trk.status === 'assigned') setStage(2);
+          else if (trk.status === 'unassigned') setStage(1);
+        }
+
+        if (bkgRes.status === 'fulfilled' && bkgRes.value?.success && bkgRes.value?.booking) {
+          const bkg = bkgRes.value.booking;
+          setLiveBooking(bkg);
+          if (bkg.status === 'Completed') setStage(6);
+          else if (bkg.status === 'In Progress') setStage(5);
+          else if (bkg.status === 'Arrived') setStage(4);
+          else if (bkg.status === 'En Route') setStage(3);
+          else if (bkg.assignedPartner || bkg.assignedProfessional?.name) {
+            setStage(prev => Math.max(prev, 2));
+          } else if (bkg.assignmentStatus === 'AWAITING_OWNER_ATTENTION' || bkg.assignmentStatus === 'UNASSIGNED') {
+            setStage(prev => (prev === 2 ? 1 : prev));
+          }
+        }
+      } catch (err) {
+        console.warn('Real-time sync note:', err.message);
+      }
+    };
+
+    // Immediate initial fetch
+    fetchLatestState();
+
+    // 1. Cross-Tab Real-time BroadcastChannel sync (Instant 0ms update when partner or admin updates)
+    let broadcastChannel = null;
+    try {
+      broadcastChannel = new BroadcastChannel('uc_sync_channel');
+      broadcastChannel.onmessage = (event) => {
+        const data = event.data || {};
+        if (data.type === 'BOOKING_UPDATED' || data.type === 'STATUS_UPDATED' || data.type === 'ASSIGNMENT_ACCEPTED' || data.type === 'BOOKING_CREATED') {
+          fetchLatestState();
+        }
+      };
+    } catch (bcErr) {}
+
+    // 2. High-Frequency Fast Polling (every 2.5s) while modal is active
+    const pollInterval = setInterval(() => {
+      fetchLatestState();
+    }, 2500);
+
+    // 3. Connect SSE live stream for real-time telemetry
+    const eventSource = new EventSource(`/api/tracking/stream/${targetId}`);
     eventSource.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);
@@ -135,13 +181,14 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
           else if (trk.status === 'arrived') setStage(4);
           else if (trk.status === 'en_route') setStage(3);
           else if (trk.status === 'assigned') setStage(2);
+          else if (trk.status === 'unassigned') setStage(1);
         }
       } catch (e) {}
     };
 
-    // Connect WebSocket room for assignment updates
+    // 4. Connect WebSocket room for assignment updates
     const socket = io();
-    socket.emit('join:room', `booking:${booking.id}`);
+    socket.emit('join:room', `booking:${targetId}`);
 
     const handleBookingLiveEvent = (event) => {
       if (!event) return;
@@ -149,20 +196,22 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
       const payload = event.payload || {};
 
       if (type === 'ASSIGNMENT_ACCEPTED') {
+        fetchLatestState();
         setLiveBooking(prev => ({
           ...prev,
           status: 'Assigned',
           assignmentStatus: 'ASSIGNED',
-          assignedPartner: payload.proName,
+          assignedPartner: payload.proName || payload.worker?.name,
           assignedProfessional: {
-            id: payload.proId,
-            name: payload.proName,
-            phone: payload.proPhone,
-            trade: payload.proTrade || prev?.serviceName
+            id: payload.proId || payload.worker?.id,
+            name: payload.proName || payload.worker?.name,
+            phone: payload.proPhone || payload.worker?.phone,
+            trade: payload.proTrade || payload.worker?.trade || prev?.serviceName
           }
         }));
         setStage(2);
       } else if (type === 'ASSIGNMENT_OFFERED') {
+        fetchLatestState();
         setLiveBooking(prev => ({
           ...prev,
           assignmentStatus: 'OFFERED',
@@ -172,6 +221,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
           }
         }));
       } else if (type === 'ASSIGNMENT_FAILED') {
+        fetchLatestState();
         setLiveBooking(prev => ({
           ...prev,
           assignmentStatus: 'AWAITING_OWNER_ATTENTION'
@@ -186,6 +236,10 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
 
     return () => {
       isMounted = false;
+      clearInterval(pollInterval);
+      if (broadcastChannel) {
+        try { broadcastChannel.close(); } catch (e) {}
+      }
       eventSource.close();
       socket.off('realtime:event', handleBookingLiveEvent);
       socket.off('ASSIGNMENT_OFFERED', handleBookingLiveEvent);
@@ -193,7 +247,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
       socket.off('ASSIGNMENT_FAILED', handleBookingLiveEvent);
       socket.disconnect();
     };
-  }, [booking?.id]);
+  }, [booking?.id, booking?.bookingReference]);
 
   // Handlers for real backend transitions
   async function handleVerifyPin() {
@@ -364,12 +418,12 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
   };
 
   // Authoritative live professional & tracking telemetry
-  const hasAssignedPro = Boolean(trackingData?.workerName || liveBooking?.assignedProfessional?.name || liveBooking?.assignedPartner);
-  const proName = trackingData?.workerName || liveBooking?.assignedProfessional?.name || liveBooking?.assignedPartner || '';
-  const proTrade = trackingData?.workerTrade || liveBooking?.assignedProfessional?.trade || liveBooking?.serviceName || 'Home Service Specialist';
-  const proRating = trackingData?.workerRating ?? liveBooking?.assignedProfessional?.rating ?? 4.9;
+  const proName = liveBooking?.assignedProfessional?.name || liveBooking?.assignedPartner || trackingData?.workerName || '';
+  const hasAssignedPro = Boolean(proName);
+  const proTrade = liveBooking?.assignedProfessional?.trade || trackingData?.workerTrade || liveBooking?.serviceName || 'Home Service Specialist';
+  const proRating = liveBooking?.assignedProfessional?.rating ?? trackingData?.workerRating ?? 4.9;
   const assignmentStatus = liveBooking?.assignmentStatus || (hasAssignedPro ? 'ASSIGNED' : 'UNASSIGNED');
-  const activePin = trackingData?.safetyPin || safetyPin;
+  const activePin = liveBooking?.safetyPin || trackingData?.safetyPin || safetyPin;
 
   // Calculated distance based on live telemetry or fallback
   const distanceKm = trackingData?.remainingDistanceKm != null
@@ -1104,7 +1158,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                             </span>
                           </div>
                           <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 1 }}>
-                            {proName} accepted this booking
+                            {hasAssignedPro ? `${proName} accepted this booking` : 'Assigning qualified specialist nearby...'}
                           </div>
                         </div>
                       </div>
