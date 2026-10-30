@@ -64,7 +64,7 @@ export function CalendarView({ showToast, onNavigate }) {
             color: '#0f172a'
           }}>
             <CalendarIcon size={16} color="#7c3aed" />
-            <span>Today, 23 Oct 2026</span>
+            <span>Today, {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
           </div>
         </div>
       </div>
@@ -98,7 +98,14 @@ export function CalendarView({ showToast, onNavigate }) {
                 </tr>
               </thead>
               <tbody>
-                {schedules.map(({ technician, slots }) => (
+                {schedules.length === 0 ? (
+                  <tr>
+                    <td colSpan={timelineSlots.length + 1} style={{ padding: '40px 18px', textAlign: 'center', color: '#94a3b8' }}>
+                      No technicians scheduled or assigned to fleet today.
+                    </td>
+                  </tr>
+                ) : (
+                  schedules.map(({ technician, slots }) => (
                   <tr key={technician.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     {/* Technician Name & Trade */}
                     <td style={{ padding: '14px 18px', background: '#fcfcfd', borderRight: '1px solid #f1f5f9' }}>
@@ -186,7 +193,7 @@ export function CalendarView({ showToast, onNavigate }) {
                       );
                     })}
                   </tr>
-                ))}
+                )))}
               </tbody>
             </table>
           </div>

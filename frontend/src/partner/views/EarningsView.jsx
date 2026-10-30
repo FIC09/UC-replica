@@ -39,18 +39,18 @@ export function EarningsView({ showToast }) {
   }
 
   const summary = earningsData?.financialSummary || {
-    totalGrossTurnover: 327300,
-    totalGrossTurnoverPaise: 32730000,
-    totalPlatformCommission: 58914,
-    totalPlatformCommissionPaise: 5891400,
+    totalGrossTurnover: 0,
+    totalGrossTurnoverPaise: 0,
+    totalPlatformCommission: 0,
+    totalPlatformCommissionPaise: 0,
     commissionPercentage: `${effectiveAgencyTake}%`,
-    totalNetAgencyPayouts: 257781,
-    totalNetAgencyPayoutsPaise: 25778100,
+    totalNetAgencyPayouts: 0,
+    totalNetAgencyPayoutsPaise: 0,
     pendingSettlement: 0,
-    processingSettlement: 67080.96,
-    paidSettlement: 191350.52,
-    failedSettlement: 72459.20,
-    completedJobsCount: 204
+    processingSettlement: 0,
+    paidSettlement: 0,
+    failedSettlement: 0,
+    completedJobsCount: 0
   };
 
   const isModeB = earningsData?.settlementModel === 'direct_to_professional';
@@ -196,31 +196,6 @@ export function EarningsView({ showToast }) {
             ₹{(summary.paidSettlement || 0).toLocaleString('en-IN')}
           </div>
           <span style={{ fontSize: 11.5, color: '#059669' }}>Transferred with UTR reference</span>
-        </div>
-      </div>
-
-      {/* Tax & Discount Breakdown Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div style={{ background: '#ffffff', borderRadius: 12, padding: 18, border: '1px solid #e2e8f0' }}>
-          <strong style={{ fontSize: 14, color: '#0f172a', display: 'block', marginBottom: 8 }}>
-            GST & Statutory Tax Treatment (18% GST)
-          </strong>
-          <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-            <div>• <strong>Central GST (CGST - 9%):</strong> Applied on platform commission fees under SAC 998721</div>
-            <div>• <strong>State GST (SGST - 9%):</strong> Applicable intra-state tax for Maharashtra B2B agency operations</div>
-            <div>• <strong>TDS / TCS under GST:</strong> Section 52 1% TCS compliance deducted and filed under agency GSTIN</div>
-          </div>
-        </div>
-
-        <div style={{ background: '#ffffff', borderRadius: 12, padding: 18, border: '1px solid #e2e8f0' }}>
-          <strong style={{ fontSize: 14, color: '#0f172a', display: 'block', marginBottom: 8 }}>
-            Discounts & Promotional Funding Sources
-          </strong>
-          <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-            <div>• <strong>Platform Funded (e.g. UCFIRST50):</strong> 100% absorbed by platform marketing. Partner entitlement is fully protected.</div>
-            <div>• <strong>Partner Funded Promotions:</strong> Discretionary agency discount coupons reduce partner gross payout.</div>
-            <div>• <strong>Traceable Adjustments:</strong> Weather delay waivers and penalty credits credited via settlement adjustments.</div>
-          </div>
         </div>
       </div>
 

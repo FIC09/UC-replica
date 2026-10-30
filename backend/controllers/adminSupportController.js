@@ -1,5 +1,7 @@
+import mongoose from 'mongoose';
 import { Booking } from '../models/Booking.js';
 import { WorkerApplication } from '../models/WorkerApplication.js';
+import { inMemoryBookings } from '../routes/bookingRoutes.js';
 
 // =========================================================================
 // AUTHORITATIVE SUPPORT, QUALITY & REVIEWS CONTROLLER (100% REAL DATABASE)
@@ -54,23 +56,41 @@ export async function updateTicketStatus(req, res) {
 export async function getReviews(req, res) {
   try {
     let bookingsWithReviews = [];
-    try {
-      bookingsWithReviews = await Booking.find({ rating: { $exists: true, $ne: null } })
-        .sort({ updatedAt: -1 })
-        .lean();
-    } catch {}
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        bookingsWithReviews = await Booking.find({ rating: { $exists: true, $ne: null } })
+          .sort({ reviewedAt: -1, updatedAt: -1 })
+          .lean();
+      } catch (dbErr) {}
+    }
+
+    // Merge in-memory customer reviews
+    if (inMemoryBookings) {
+      for (const [key, b] of inMemoryBookings.entries()) {
+        const bRef = b.id || b.bookingReference;
+        if (b.rating && !bookingsWithReviews.some(x => (x.id || x.bookingReference) === bRef)) {
+          bookingsWithReviews.unshift(b);
+        }
+      }
+    }
 
     const realReviews = bookingsWithReviews.map(b => ({
       id: `rev-${b.id || b.bookingReference}`,
       bookingId: b.id || b.bookingReference,
       customerName: b.userName || 'Customer',
       professionalName: b.assignedPartner || b.assignedProfessional?.name || 'Assigned Technician',
+      serviceName: b.serviceName || 'Home Service',
       serviceTitle: b.serviceName || 'Home Service',
       city: b.city || 'Krishnagiri',
-      rating: b.rating || 5,
+      rating: Number(b.rating) || 5,
       comment: b.review || b.comment || 'Service completed successfully.',
-      isPublished: true,
-      createdAt: b.updatedAt || b.createdAt || new Date(),
+      isPublished: b.reviewIsPublished !== false,
+      flagged: b.reviewFlagged || false,
+      flaggedReason: b.reviewFlaggedReason || '',
+      date: (b.reviewedAt || b.updatedAt || b.createdAt)
+        ? new Date(b.reviewedAt || b.updatedAt || b.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+        : 'Recently',
+      createdAt: b.reviewedAt || b.updatedAt || b.createdAt || new Date(),
       moderationHistory: []
     }));
 
@@ -88,12 +108,42 @@ export async function getReviews(req, res) {
 export async function moderateReview(req, res) {
   try {
     const { id } = req.params;
-    const { isPublished } = req.body;
+    const { isPublished, reason } = req.body;
+    const published = Boolean(isPublished);
+
+    const rawBookingId = String(id).replace(/^rev-/, '');
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        const booking = await Booking.findOne({
+          $or: [{ id: rawBookingId }, { bookingReference: rawBookingId }]
+        });
+
+        if (booking) {
+          booking.reviewIsPublished = published;
+          if (reason) {
+            booking.reviewFlaggedReason = reason;
+          }
+          booking.markModified('reviewIsPublished');
+          await booking.save();
+        }
+      } catch (dbErr) {}
+    }
+
+    const memB = inMemoryBookings?.get(rawBookingId);
+    if (memB) {
+      memB.reviewIsPublished = published;
+      if (reason) memB.reviewFlaggedReason = reason;
+      inMemoryBookings.set(rawBookingId, memB);
+    }
 
     return res.json({
       success: true,
-      message: `Review #${id} visibility set to ${isPublished ? 'Public' : 'Hidden'}`,
-      review: { id, isPublished }
+      message: `Review #${id} visibility set to ${published ? 'Public' : 'Hidden'}`,
+      review: {
+        id,
+        isPublished: published,
+        moderatedAt: new Date()
+      }
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });

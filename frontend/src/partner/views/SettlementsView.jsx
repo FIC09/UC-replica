@@ -118,12 +118,12 @@ export function SettlementsView({ showToast, staff }) {
   }
 
   const currentAcc = settlementData?.currentAccount || {
-    bankName: 'ICICI Bank Ltd',
-    accountHolderName: 'Apex Home Solutions LLP',
-    accountNumber: '••••••••9012',
-    ifscCode: 'ICIC0000002',
+    bankName: 'Not Configured',
+    accountHolderName: '',
+    accountNumber: '••••••••',
+    ifscCode: '',
     accountType: 'Current Corporate Account',
-    status: 'Verified'
+    status: 'Pending Setup'
   };
 
   const settlements = settlementData?.settlements || [];
@@ -188,27 +188,6 @@ export function SettlementsView({ showToast, staff }) {
             <Lock size={14} color="#94a3b8" /> Bank changes restricted to Business Owner
           </span>
         )}
-      </div>
-
-      {/* Security & Financial Privacy Callout */}
-      <div style={{
-        background: '#f8fafc',
-        borderRadius: 12,
-        padding: '14px 18px',
-        border: '1px solid #e2e8f0',
-        fontSize: 13,
-        color: '#475569',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 12
-      }}>
-        <ShieldCheck size={20} color="#7c3aed" style={{ flexShrink: 0, marginTop: 2 }} />
-        <div>
-          <strong style={{ color: '#0f172a' }}>Financial Privacy & Tokenization Gateway:</strong> {settlementData?.sandboxDisclaimer || 'Bank account numbers are masked and tokenized under RBI/NPCI compliance.'}
-          <div style={{ marginTop: 2, color: '#64748b' }}>
-            {settlementData?.payoutRedirectionPolicy || 'Pending payouts will not be redirected to newly submitted accounts until NPCI Penny-drop verification passes compliance.'}
-          </div>
-        </div>
       </div>
 
       {/* Corporate Bank Account Card */}

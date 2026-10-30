@@ -461,11 +461,11 @@ export const adminClient = {
     body: JSON.stringify({ status })
   }),
 
-  getReviews: () => fetchWithFallback('/support/reviews', {}, { success: true, reviews: [] }),
+  getReviews: () => fetchWithFallback('/reviews', {}, { success: true, reviews: [] }),
 
-  moderateReview: (id, isPublished) => fetchWithFallback(`/support/reviews/${id}/moderate`, {
+  moderateReview: (id, isPublished, reason = '') => fetchWithFallback(`/reviews/${id}/moderate`, {
     method: 'PUT',
-    body: JSON.stringify({ isPublished })
+    body: JSON.stringify({ isPublished, reason })
   }),
 
   getRevisits: () => fetchWithFallback('/support/revisits', {}, { success: true, revisits: [] }),

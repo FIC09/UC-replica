@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  ShieldCheck, 
+  ShieldCheck,
+  Star, 
   LayoutDashboard, 
   ShoppingBag, 
   Users, 
@@ -101,7 +102,8 @@ export function AdminLayout({
     {
       title: 'QUALITY & SUPPORT',
       items: [
-        { path: '/admin/support', label: 'Support Tickets', icon: HelpCircle, badge: '3' }
+        { path: '/admin/support', label: 'Support Tickets', icon: HelpCircle, badge: '3' },
+        { path: '/admin/reviews', label: 'Customer Reviews', icon: Star }
       ]
     },
     {

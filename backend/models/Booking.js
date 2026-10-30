@@ -485,6 +485,21 @@ const bookingSchema = new mongoose.Schema({
     type: String,
     default: '',
   },
+  reviewedAt: {
+    type: Date,
+  },
+  reviewIsPublished: {
+    type: Boolean,
+    default: true,
+  },
+  reviewFlagged: {
+    type: Boolean,
+    default: false,
+  },
+  reviewFlaggedReason: {
+    type: String,
+    default: '',
+  },
   supportTicketIds: [String],
   invoiceNumber: {
     type: String,

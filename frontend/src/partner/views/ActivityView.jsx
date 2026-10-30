@@ -6,109 +6,12 @@ import {
 } from 'lucide-react';
 import { partnerClient } from '../partnerClient';
 
-const BASELINE_AUDIT_LOGS = [
-  {
-    id: 'LOG-001',
-    partnerId: 'PTR-90142',
-    actorName: 'Sandeep Patil',
-    actorRole: 'Business Owner',
-    action: 'LOGIN_SUCCESS',
-    category: 'STAFF',
-    entity: 'AUTH_SESSION',
-    details: 'Authenticated via partner dashboard portal from IP 103.21.144.12',
-    reason: 'Routine business operations access',
-    timestamp: new Date(Date.now() - 3600000).toISOString()
-  },
-  {
-    id: 'LOG-002',
-    partnerId: 'PTR-90142',
-    actorName: 'Rahul Dev',
-    actorRole: 'Dispatcher',
-    action: 'BOOKING_DISPATCH',
-    category: 'DISPATCH',
-    entity: 'BOOKING_ASSIGNMENT',
-    details: 'Assigned Booking ORD-9842 to technician Sunil Vishwakarma (PRO-8843)',
-    reason: 'Technician proximity within 30-min travel buffer',
-    timestamp: new Date(Date.now() - 3600000 * 2).toISOString()
-  },
-  {
-    id: 'LOG-003',
-    partnerId: 'PTR-90142',
-    actorName: 'Sandeep Patil',
-    actorRole: 'Business Owner',
-    action: 'BANK_CHANGE_REQUEST',
-    category: 'FINANCE',
-    entity: 'SETTLEMENT_ACCOUNT',
-    details: 'Submitted corporate bank account change request to HDFC Bank (••••••••4491)',
-    reason: 'Upgrading corporate limits for payroll processing',
-    timestamp: new Date(Date.now() - 86400000 * 2).toISOString()
-  },
-  {
-    id: 'LOG-004',
-    partnerId: 'PTR-90142',
-    actorName: 'Pooja Patil',
-    actorRole: 'Business Manager',
-    action: 'INVENTORY_ALLOCATED',
-    category: 'INVENTORY',
-    entity: 'CONSUMABLES_STOCK',
-    details: 'Allocated 1500g R-32 refrigerant cylinder to technician Vikram Salvi (PRO-8841)',
-    reason: 'Pre-shift equipment and consumables assignment',
-    timestamp: new Date(Date.now() - 86400000 * 3).toISOString()
-  },
-  {
-    id: 'LOG-005',
-    partnerId: 'PTR-90142',
-    actorName: 'Sandeep Patil',
-    actorRole: 'Business Owner',
-    action: 'STAFF_INVITED',
-    category: 'STAFF',
-    entity: 'STAFF_ROSTER',
-    details: 'Issued system invitation to Anand Kulkarni (Finance Staff role, permissions: viewing_finances)',
-    reason: 'Onboarding dedicated accountant for GST reconciliations',
-    timestamp: new Date(Date.now() - 86400000 * 4).toISOString()
-  },
-  {
-    id: 'LOG-006',
-    partnerId: 'PTR-90142',
-    actorName: 'Sandeep Patil',
-    actorRole: 'Business Owner',
-    action: 'DOCUMENT_UPLOADED',
-    category: 'COMPLIANCE',
-    entity: 'COMPLIANCE_VAULT',
-    details: 'Uploaded renewed Trade License Certificate & GST Registration verification',
-    reason: 'Annual statutory compliance renewal verification',
-    timestamp: new Date(Date.now() - 86400000 * 5).toISOString()
-  },
-  {
-    id: 'LOG-007',
-    partnerId: 'PTR-90142',
-    actorName: 'Rahul Dev',
-    actorRole: 'Dispatcher',
-    action: 'BOOKING_ASSIGNMENT',
-    category: 'DISPATCH',
-    entity: 'BOOKING_ASSIGNMENT',
-    details: 'Re-routed Emergency Booking ORD-9811 to technician Rajesh Mehra (PRO-8845)',
-    reason: 'Customer requested urgent priority plumbing dispatch',
-    timestamp: new Date(Date.now() - 86400000 * 6).toISOString()
-  },
-  {
-    id: 'LOG-008',
-    partnerId: 'PTR-90142',
-    actorName: 'Sandeep Patil',
-    actorRole: 'Business Owner',
-    action: 'SETTINGS_UPDATE',
-    category: 'COMPLIANCE',
-    entity: 'BUSINESS_SETTINGS',
-    details: 'Updated emergency support contact telephone to +91 98210 33499',
-    reason: 'Periodic operational contacts verification',
-    timestamp: new Date(Date.now() - 86400000 * 7).toISOString()
-  }
-];
+const BASELINE_AUDIT_LOGS = [];
 
 export function ActivityView({ showToast }) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [logs, setLogs] = useState(BASELINE_AUDIT_LOGS);
+  const [logs, setLogs] = useState([]);
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -131,12 +34,10 @@ export function ActivityView({ showToast }) {
         setLogs(enhanced);
         if (isManualRefresh) showToast?.('Audit ledger synchronized with live backend node.');
       } else {
-        // Use baseline logs
-        setLogs(BASELINE_AUDIT_LOGS);
+        setLogs([]);
       }
     } catch (err) {
-      console.warn('[ActivityView] Using baseline audit logs due to:', err.message);
-      setLogs(BASELINE_AUDIT_LOGS);
+      setLogs([]);
     } finally {
       setLoading(false);
       setRefreshing(false);

@@ -1,9 +1,11 @@
+import mongoose from 'mongoose';
 import { Booking } from '../models/Booking.js';
 import { User } from '../models/User.js';
 import { WorkerApplication } from '../models/WorkerApplication.js';
 import { PartnerApplication } from '../models/PartnerApplication.js';
 import { Service } from '../models/Service.js';
 import { AdminSetting } from '../models/AdminSetting.js';
+import { inMemoryBookings } from '../routes/bookingRoutes.js';
 // Helper to safely calculate percentage comparison without zero denominator division error
 function calculatePercentageChange(current, previous) {
   if (previous > 0) {
@@ -23,19 +25,29 @@ export async function getOverviewDashboardMetrics(req, res) {
     let partnerApps = [];
     let monsoonSurgeActive = false;
 
-    try {
-      dbBookings = await Booking.find().sort({ createdAt: -1 }).lean();
-      allUsersCount = await User.countDocuments();
-      workerApps = await WorkerApplication.find().lean();
-      partnerApps = await PartnerApplication.find().lean();
-      const setting = await AdminSetting.findOne().lean();
-      if (setting) monsoonSurgeActive = setting.monsoonSurge;
-    } catch (e) {
-      console.warn('Overview data fetch warning:', e.message);
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        dbBookings = await Booking.find().sort({ createdAt: -1 }).lean();
+        allUsersCount = await User.countDocuments();
+        workerApps = await WorkerApplication.find().lean();
+        partnerApps = await PartnerApplication.find().lean();
+        const setting = await AdminSetting.findOne().lean();
+        if (setting) monsoonSurgeActive = setting.monsoonSurge;
+      } catch (e) {
+        console.warn('Overview data fetch warning:', e.message);
+      }
     }
 
-    // Authoritative real MongoDB bookings
-    const allBookings = dbBookings;
+    // Authoritative real MongoDB bookings merged with real-time in-memory dispatches
+    const allBookings = [...dbBookings];
+    if (inMemoryBookings) {
+      for (const [key, b] of inMemoryBookings.entries()) {
+        const bRef = b.id || b.bookingReference;
+        if (!allBookings.some(x => (x.id || x.bookingReference) === bRef)) {
+          allBookings.unshift(b);
+        }
+      }
+    }
 
     // 2. Filter bookings based on Hub/City, Category, and Supply Partner
     function matchFilters(b) {
@@ -177,6 +189,25 @@ export async function getOverviewDashboardMetrics(req, res) {
     const averageRating = ratedBookings.length > 0
       ? (ratedBookings.reduce((sum, b) => sum + b.rating, 0) / ratedBookings.length).toFixed(2)
       : (allBookings.length > 0 ? '5.00' : '0.00');
+
+    // Recent Customer Reviews (Real-time live customer feedback)
+    const recentReviews = allBookings
+      .filter(b => b.rating && b.rating > 0)
+      .sort((a, b) => new Date(b.reviewedAt || b.updatedAt || b.createdAt) - new Date(a.reviewedAt || a.updatedAt || a.createdAt))
+      .slice(0, 6)
+      .map(b => ({
+        id: `rev-${b.id || b.bookingReference}`,
+        bookingId: b.id || b.bookingReference,
+        customerName: b.userName || 'Customer',
+        professionalName: b.assignedPartner || b.assignedProfessional?.name || 'Assigned Technician',
+        serviceName: b.serviceName || 'Home Service',
+        rating: Number(b.rating) || 5,
+        comment: b.review || 'Service completed successfully.',
+        date: (b.reviewedAt || b.updatedAt || b.createdAt)
+          ? new Date(b.reviewedAt || b.updatedAt || b.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+          : 'Recently',
+        city: b.city || 'Krishnagiri'
+      }));
 
     // 5. Booking Trends & Revenue Trends (7 chronological buckets)
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -339,7 +370,7 @@ export async function getOverviewDashboardMetrics(req, res) {
       availableProfessionals: '/admin/professionals',
       pendingApplications: '/admin/professionals?status=Under Review',
       openSupportTickets: '/admin/support',
-      averageCustomerRating: null
+      averageCustomerRating: '/admin/reviews'
     };
 
     return res.json({
@@ -365,7 +396,7 @@ export async function getOverviewDashboardMetrics(req, res) {
           availableProfessionals: { value: availableProfessionals, formatted: availableProfessionals.toLocaleString('en-IN'), clickTarget: clickTargets.availableProfessionals },
           pendingApplications: { value: totalPendingApplications, alert: totalPendingApplications > 0, clickTarget: clickTargets.pendingApplications },
           openSupportTickets: { value: openSupportTickets, alert: openSupportTickets > 5, clickTarget: clickTargets.openSupportTickets },
-          averageCustomerRating: { value: averageRating, formatted: `⭐ ${averageRating}`, clickTarget: clickTargets.averageCustomerRating }
+          averageCustomerRating: { value: averageRating, formatted: `⭐ ${averageRating}`, count: ratedBookings.length, clickTarget: clickTargets.averageCustomerRating }
         },
         trends: {
           bookingTrends,
@@ -375,7 +406,8 @@ export async function getOverviewDashboardMetrics(req, res) {
         },
         operationalAlerts,
         pendingQueues,
-        recentBookings: periodBookings.slice(0, 6)
+        recentBookings: periodBookings.slice(0, 6),
+        recentReviews
       }
     });
   } catch (err) {

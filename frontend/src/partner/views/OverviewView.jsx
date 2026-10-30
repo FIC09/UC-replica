@@ -43,26 +43,26 @@ export function OverviewView({ onNavigate, showToast, staff }) {
 
   const partner = data?.partner || partnerClient.getStoredPartner();
   const metrics = data?.metrics || {
-    todayBookings: 3,
-    upcomingBookings: 2,
-    ongoingBookings: 2,
-    unassignedBookings: 1,
-    completedBookings: 820,
-    cancelledBookings: 6,
-    activeProfessionals: 5,
-    professionalsAvailableToday: 3,
-    grossBookingValue: 284500,
-    platformDeductions: 51210,
-    netBusinessEarnings: 233290,
-    pendingSettlementAmount: 18400,
-    settledAmount: 214890,
-    openDisputes: 1,
-    averageRating: 4.88,
+    todayBookings: 0,
+    upcomingBookings: 0,
+    ongoingBookings: 0,
+    unassignedBookings: 0,
+    completedBookings: 0,
+    cancelledBookings: 0,
+    activeProfessionals: 0,
+    professionalsAvailableToday: 0,
+    grossBookingValue: 0,
+    platformDeductions: 0,
+    netBusinessEarnings: 0,
+    pendingSettlementAmount: 0,
+    settledAmount: 0,
+    openDisputes: 0,
+    averageRating: 0,
     growth: {
-      grossBookingValueGrowth: '+12% vs prior month',
-      bookingVolumeGrowth: '+8% vs prior month'
+      grossBookingValueGrowth: '0%',
+      bookingVolumeGrowth: '0%'
     },
-    teamUtilisation: '60%'
+    teamUtilisation: '0%'
   };
 
   const definitions = data?.definitions || {};
@@ -686,6 +686,11 @@ export function OverviewView({ onNavigate, showToast, staff }) {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(queues.expiringDocuments || []).length === 0 && (queues.trainingAlerts || []).length === 0 && (
+              <div style={{ padding: '24px 0', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                All compliance records and training certifications are up to date.
+              </div>
+            )}
             {(queues.expiringDocuments || []).map(doc => (
               <div
                 key={doc.id}
@@ -749,15 +754,14 @@ export function OverviewView({ onNavigate, showToast, staff }) {
                 Inventory & Settlement Exceptions
               </h3>
             </div>
-            <button
-              onClick={() => onNavigate('/partner/inventory')}
-              style={{ fontSize: 12.5, fontWeight: 600, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer' }}
-            >
-              Order Stock
-            </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {(queues.lowStockAlerts || []).length === 0 && (queues.settlementExceptions || []).length === 0 && (
+              <div style={{ padding: '24px 0', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                No inventory shortages or pending settlement exceptions.
+              </div>
+            )}
             {(queues.lowStockAlerts || []).map(stk => (
               <div
                 key={stk.sku}
@@ -841,32 +845,40 @@ export function OverviewView({ onNavigate, showToast, staff }) {
                 </tr>
               </thead>
               <tbody>
-                {recentBookings.map(b => (
-                  <tr key={b.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '10px', fontWeight: 600, color: '#0f172a' }}>#{b.id}</td>
-                    <td style={{ padding: '10px' }}>{b.userName}</td>
-                    <td style={{ padding: '10px', color: '#475569' }}>{b.serviceName}</td>
-                    <td style={{ padding: '10px' }}>
-                      {b.assignedProfessional ? (
-                        <span style={{ color: '#0f172a', fontWeight: 500 }}>{b.assignedProfessional.name}</span>
-                      ) : (
-                        <span style={{ color: '#d97706', fontWeight: 600 }}>Unassigned</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '10px' }}>
-                      <span style={{
-                        padding: '3px 8px',
-                        borderRadius: 6,
-                        fontSize: 11.5,
-                        fontWeight: 600,
-                        background: b.status === 'Completed' ? '#ecfdf5' : b.status === 'In Progress' ? '#dbeafe' : '#fef3c7',
-                        color: b.status === 'Completed' ? '#16a34a' : b.status === 'In Progress' ? '#1e40af' : '#b45309'
-                      }}>
-                        {b.status}
-                      </span>
+                {recentBookings.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '28px 10px', textAlign: 'center', color: '#94a3b8' }}>
+                      No booking records found for this partner account.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  recentBookings.map(b => (
+                    <tr key={b.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '10px', fontWeight: 600, color: '#0f172a' }}>#{b.id}</td>
+                      <td style={{ padding: '10px' }}>{b.userName}</td>
+                      <td style={{ padding: '10px', color: '#475569' }}>{b.serviceName}</td>
+                      <td style={{ padding: '10px' }}>
+                        {b.assignedProfessional ? (
+                          <span style={{ color: '#0f172a', fontWeight: 500 }}>{b.assignedProfessional.name}</span>
+                        ) : (
+                          <span style={{ color: '#d97706', fontWeight: 600 }}>Unassigned</span>
+                        )}
+                      </td>
+                      <td style={{ padding: '10px' }}>
+                        <span style={{
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          fontSize: 11.5,
+                          fontWeight: 600,
+                          background: b.status === 'Completed' ? '#ecfdf5' : b.status === 'In Progress' ? '#dbeafe' : '#fef3c7',
+                          color: b.status === 'Completed' ? '#16a34a' : b.status === 'In Progress' ? '#1e40af' : '#b45309'
+                        }}>
+                          {b.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -893,38 +905,44 @@ export function OverviewView({ onNavigate, showToast, staff }) {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {teamSnapshot.map(tech => (
-              <div
-                key={tech.id}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 12px',
-                  borderRadius: 8,
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0'
-                }}
-              >
-                <div>
-                  <strong style={{ fontSize: 13, color: '#0f172a' }}>{tech.name}</strong>
-                  <div style={{ fontSize: 11.5, color: '#64748b' }}>{tech.trade}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    padding: '2px 6px',
-                    borderRadius: 4,
-                    background: tech.attendanceToday?.includes('Available') ? '#ecfdf5' : '#eff6ff',
-                    color: tech.attendanceToday?.includes('Available') ? '#16a34a' : '#1d4ed8'
-                  }}>
-                    {tech.attendanceToday || 'Active'}
-                  </span>
-                  <div style={{ fontSize: 11.5, color: '#eab308', marginTop: 2 }}>⭐ {tech.rating}</div>
-                </div>
+            {teamSnapshot.length === 0 ? (
+              <div style={{ padding: '28px 0', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                No active technicians assigned to fleet.
               </div>
-            ))}
+            ) : (
+              teamSnapshot.map(tech => (
+                <div
+                  key={tech.id}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0'
+                  }}
+                >
+                  <div>
+                    <strong style={{ fontSize: 13, color: '#0f172a' }}>{tech.name}</strong>
+                    <div style={{ fontSize: 11.5, color: '#64748b' }}>{tech.trade}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 600,
+                      padding: '2px 6px',
+                      borderRadius: 4,
+                      background: tech.attendanceToday?.includes('Available') ? '#ecfdf5' : '#eff6ff',
+                      color: tech.attendanceToday?.includes('Available') ? '#16a34a' : '#1d4ed8'
+                    }}>
+                      {tech.attendanceToday || 'Active'}
+                    </span>
+                    <div style={{ fontSize: 11.5, color: '#eab308', marginTop: 2 }}>⭐ {tech.rating}</div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

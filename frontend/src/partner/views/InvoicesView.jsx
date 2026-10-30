@@ -191,7 +191,7 @@ export function InvoicesView({ showToast }) {
             <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13.5 }}>
               <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8, border: '1px solid #e2e8f0', lineHeight: 1.6 }}>
                 <div><strong>Issuer:</strong> Urban Company Technologies India Pvt Ltd (GSTIN: {selectedInvoice.gstinSupplier})</div>
-                <div><strong>Recipient:</strong> Apex Home Solutions LLP (GSTIN: {selectedInvoice.gstinPartner})</div>
+                <div><strong>Recipient:</strong> {selectedInvoice.partnerName || 'Business Partner'} (GSTIN: {selectedInvoice.gstinPartner || 'N/A'})</div>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

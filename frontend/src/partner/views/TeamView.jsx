@@ -392,7 +392,7 @@ export function TeamView({ showToast, staff }) {
                   marginBottom: 14
                 }}>
                   <div>
-                    <span style={{ color: '#64748b' }}>Rating:</span> <strong>⭐ {tech.rating || 5.0}</strong>
+                    <span style={{ color: '#64748b' }}>Rating:</span> <strong>{tech.rating ? `⭐ ${tech.rating}` : 'Unrated'}</strong>
                   </div>
                   <div>
                     <span style={{ color: '#64748b' }}>Jobs:</span> <strong>{tech.jobsCompleted || 0} completed</strong>

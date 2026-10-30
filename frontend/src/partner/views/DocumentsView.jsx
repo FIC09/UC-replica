@@ -43,7 +43,7 @@ export function DocumentsView({ showToast, staff }) {
       const res = await partnerClient.getDocuments();
       if (res && res.success) {
         setDocs(res.documents || []);
-        setBusinessName(res.businessName || 'Apex Home Solutions LLP');
+        setBusinessName(res.businessName || 'Business Partner');
       }
     } catch (err) {
       showToast?.('Error loading compliance documents: ' + err.message);

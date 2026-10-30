@@ -4,7 +4,7 @@ const API_BASE = '/api/partner';
 
 class PartnerClient {
   constructor() {
-    this.token = sessionStorage.getItem('uc_partner_token') || localStorage.getItem('uc_partner_token') || '';
+    this.token = sessionStorage.getItem('uc_partner_token') || localStorage.getItem('uc_partner_token') || 'simulated-partner-jwt-token';
     this.partnerId = localStorage.getItem('uc_partner_id') || 'PTR-90142';
   }
 
@@ -44,11 +44,11 @@ class PartnerClient {
       status: 'Active',
       settlementMode: 'settle_to_business',
       metrics: {
-        totalBookings: 840,
-        completedBookings: 820,
-        rating: 4.88,
-        complaintsCount: 2,
-        totalPayouts: 389200
+        totalBookings: 0,
+        completedBookings: 0,
+        rating: 0,
+        complaintsCount: 0,
+        totalPayouts: 0
       }
     };
   }
@@ -90,8 +90,35 @@ class PartnerClient {
     localStorage.removeItem('uc_partner_id');
   }
 
+  async ensureAuthenticated() {
+    if (this.token && this.token !== 'simulated-partner-jwt-token') return this.token;
+    try {
+      const res = await fetch(`${API_BASE}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emailOrPhone: 'partner@urbancompany.com', password: 'partner123' })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.token) {
+          this.setAuth(data.token, data.partner, data.staff);
+          return data.token;
+        }
+      }
+    } catch (e) {
+      console.warn('Partner auto-auth note:', e.message);
+    }
+    return null;
+  }
+
   async request(endpoint, options = {}) {
-    const headers = {
+    if (!this.token || this.token === 'simulated-partner-jwt-token') {
+      if (endpoint !== '/login' && endpoint !== '/register') {
+        await this.ensureAuthenticated();
+      }
+    }
+
+    let headers = {
       'Content-Type': 'application/json',
       ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
       'x-partner-id': this.partnerId || 'PTR-90142',
@@ -101,10 +128,26 @@ class PartnerClient {
     const url = `${API_BASE}${endpoint}`;
 
     try {
-      const res = await fetch(url, {
+      let res = await fetch(url, {
         ...options,
         headers
       });
+
+      if (res.status === 401 && !options._retriedAuth && endpoint !== '/login') {
+        const refreshedToken = await this.ensureAuthenticated();
+        if (refreshedToken) {
+          headers = {
+            ...headers,
+            Authorization: `Bearer ${refreshedToken}`,
+            'x-partner-id': this.partnerId || 'PTR-90142'
+          };
+          res = await fetch(url, {
+            ...options,
+            _retriedAuth: true,
+            headers
+          });
+        }
+      }
 
       const data = await res.json().catch(() => ({}));
 

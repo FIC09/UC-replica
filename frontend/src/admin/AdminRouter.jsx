@@ -15,6 +15,7 @@ import { PaymentsView } from './views/PaymentsView';
 import { PayoutsView } from './views/PayoutsView';
 import { RefundsView } from './views/RefundsView';
 import { SupportView } from './views/SupportView';
+import { ReviewsView } from './views/ReviewsView';
 import { PromotionsView } from './views/PromotionsView';
 import { SettingsView } from './views/SettingsView';
 
@@ -25,7 +26,6 @@ const REMOVED_ADMIN_PATHS = [
   '/admin/reports',
   '/admin/team',
   '/admin/audit-logs',
-  '/admin/reviews',
   '/admin/content',
   '/admin/notifications'
 ];
@@ -202,6 +202,8 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
         return <RefundsView onShowToast={showToast} />;
       case '/admin/support':
         return <SupportView onShowToast={showToast} />;
+      case '/admin/reviews':
+        return <ReviewsView onShowToast={showToast} />;
       case '/admin/promotions':
         return <PromotionsView onShowToast={showToast} />;
       case '/admin/settings':

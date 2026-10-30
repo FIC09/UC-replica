@@ -8,7 +8,6 @@ import {
   HardHat,
   X,
   Flag,
-  ShieldAlert,
   AlertTriangle,
   Info
 } from 'lucide-react';
@@ -95,30 +94,12 @@ export function ReviewsView({ showToast, staff }) {
 
   const canReply = staff?.permissions?.editing !== false;
   const flaggedCount = reviews.filter(r => r.flaggedForModeration).length;
+  const avgRating = reviews.length > 0 
+    ? (reviews.reduce((acc, r) => acc + (Number(r.rating) || 0), 0) / reviews.length).toFixed(2)
+    : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Policy Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, #f8fafc 0%, #fef3c7 100%)',
-        borderRadius: 14,
-        padding: '16px 22px',
-        border: '1px solid #fde68a',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 14
-      }}>
-        <ShieldAlert size={22} color="#b45309" style={{ flexShrink: 0, marginTop: 2 }} />
-        <div>
-          <h2 style={{ fontSize: 14.5, fontWeight: 700, color: '#92400e', margin: 0 }}>
-            Platform Trust & Consumer Review Governance Policy
-          </h2>
-          <p style={{ fontSize: 12.5, color: '#78350f', margin: '4px 0 0', lineHeight: 1.5 }}>
-            Partners may read customer reviews and publish official management replies. If a review contains abusive content, false claims, or pertains to another entity, you may flag it for Trust & Safety moderation. <strong>Strict Platform Restriction:</strong> Partners are strictly prohibited from deleting customer reviews, editing star ratings, or impersonating reviewers.
-          </p>
-        </div>
-      </div>
-
       {/* Header */}
       <div style={{
         background: '#ffffff',
@@ -142,7 +123,7 @@ export function ReviewsView({ showToast, staff }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fef3c7', padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#b45309' }}>
-            <Star size={16} fill="#b45309" color="#b45309" /> Agency Rating: 4.88 / 5.0
+            <Star size={16} fill="#b45309" color="#b45309" /> Agency Rating: {avgRating ? `${avgRating} / 5.0` : 'No ratings yet'}
           </div>
           {flaggedCount > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#fee2e2', padding: '7px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#991b1b' }}>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { partnerClient } from './partnerClient';
 import { PartnerLayout } from './PartnerLayout';
-import { PartnerLogin } from './PartnerLogin';
 import { PartnerRegister } from './PartnerRegister';
 import { PartnerOnboarding } from './PartnerOnboarding';
 
@@ -11,21 +10,14 @@ import { LiveTrackingView } from './views/LiveTrackingView';
 import { BookingsView } from './views/BookingsView';
 import { CalendarView } from './views/CalendarView';
 import { TeamView } from './views/TeamView';
-import { ServicesView } from './views/ServicesView';
-import { CoverageView } from './views/CoverageView';
 import { EarningsView } from './views/EarningsView';
 import { SettlementsView } from './views/SettlementsView';
 import { InvoicesView } from './views/InvoicesView';
 import { RefundsDisputesView } from './views/RefundsDisputesView';
 import { ReviewsView } from './views/ReviewsView';
-import { TrainingView } from './views/TrainingView';
-import { InventoryView } from './views/InventoryView';
-import { SupportView } from './views/SupportView';
 import { NotificationsView } from './views/NotificationsView';
 import { ReportsView } from './views/ReportsView';
 import { DocumentsView } from './views/DocumentsView';
-import { StaffView } from './views/StaffView';
-import { ActivityView } from './views/ActivityView';
 import { SettingsView } from './views/SettingsView';
 
 // State views
@@ -45,21 +37,7 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
     return partnerClient.getStoredStaff();
   });
 
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (sessionStorage.getItem('uc_partner_token') || localStorage.getItem('uc_partner_token')) {
-      return true;
-    }
-    try {
-      const u = JSON.parse(localStorage.getItem('uc_user'));
-      if (u && (u.role === 'partner' || (u.email && (u.email.includes('partner') || u.email.includes('apex'))))) {
-        const partner = partnerClient.getStoredPartner();
-        const staff = partnerClient.getStoredStaff();
-        partnerClient.setAuth('simulated-partner-jwt-token', partner, staff);
-        return true;
-      }
-    } catch {}
-    return false;
-  });
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
 
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -136,22 +114,13 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
     }
   }, [showToast]);
 
-  // Public unauthenticated routes
+  // Redirect /partner/login to portal overview
   if (currentPath === '/partner/login') {
-    if (isAuthenticated) {
-      return (
-        <OverviewView 
-          onNavigate={handleNavigate} 
-          showToast={showToast} 
-          staff={staffUser} 
-        />
-      );
-    }
     return (
-      <PartnerLogin
-        onLoginSuccess={handleLoginSuccess}
-        onNavigate={handleNavigate}
-        onExitToMarketplace={onExitToMarketplace}
+      <OverviewView 
+        onNavigate={handleNavigate} 
+        showToast={showToast} 
+        staff={staffUser} 
       />
     );
   }
@@ -160,17 +129,6 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
     return (
       <PartnerRegister
         onRegisterSuccess={handleRegisterSuccess}
-        onNavigate={handleNavigate}
-        onExitToMarketplace={onExitToMarketplace}
-      />
-    );
-  }
-
-  // If not authenticated, redirect to login
-  if (!isAuthenticated) {
-    return (
-      <PartnerLogin
-        onLoginSuccess={handleLoginSuccess}
         onNavigate={handleNavigate}
         onExitToMarketplace={onExitToMarketplace}
       />
@@ -251,7 +209,7 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
   let viewContent = null;
   const path = currentPath.split('?')[0];
 
-  if (isSuspended && path !== '/partner/support') {
+  if (isSuspended) {
     viewContent = <SuspendedState partner={partnerUser} onNavigate={handleNavigate} />;
   } else {
     switch (path) {
@@ -283,10 +241,13 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
         viewContent = renderOperationalModule('viewing', TeamView);
         break;
       case '/partner/services':
-        viewContent = renderOperationalModule('viewing', ServicesView);
-        break;
       case '/partner/coverage':
-        viewContent = renderOperationalModule('viewing', CoverageView);
+      case '/partner/training':
+      case '/partner/inventory':
+      case '/partner/support':
+      case '/partner/activity':
+      case '/partner/staff':
+        viewContent = <OverviewView onNavigate={handleNavigate} showToast={showToast} staff={staffUser} />;
         break;
       case '/partner/earnings':
         viewContent = renderOperationalModule('viewing_finances', EarningsView);
@@ -303,15 +264,6 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
       case '/partner/reviews':
         viewContent = renderWithPermission('viewing', ReviewsView);
         break;
-      case '/partner/training':
-        viewContent = renderWithPermission('viewing', TrainingView);
-        break;
-      case '/partner/inventory':
-        viewContent = renderWithPermission('viewing', InventoryView);
-        break;
-      case '/partner/support':
-        viewContent = renderWithPermission('viewing', SupportView);
-        break;
       case '/partner/notifications':
         viewContent = renderWithPermission('viewing', NotificationsView);
         break;
@@ -320,12 +272,6 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
         break;
       case '/partner/documents':
         viewContent = renderWithPermission('viewing', DocumentsView);
-        break;
-      case '/partner/staff':
-        viewContent = renderWithPermission('viewing', StaffView);
-        break;
-      case '/partner/activity':
-        viewContent = renderWithPermission('viewing', ActivityView);
         break;
       case '/partner/settings':
         viewContent = renderWithPermission('viewing', SettingsView);

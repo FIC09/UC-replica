@@ -13,7 +13,6 @@ import {
   Send,
   Paperclip,
   Check,
-  Scale,
   DollarSign
 } from 'lucide-react';
 import { partnerClient } from '../partnerClient';
@@ -146,27 +145,6 @@ export function RefundsDisputesView({ showToast }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Policy Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, #f8fafc 0%, #ede9fe 100%)',
-        borderRadius: 14,
-        padding: '18px 24px',
-        border: '1px solid #c4b5fd',
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 16
-      }}>
-        <Scale size={24} color="#7c3aed" style={{ flexShrink: 0, marginTop: 2 }} />
-        <div>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: '#4c1d95', margin: 0 }}>
-            Platform Refund & Ledger Governance Policy
-          </h2>
-          <p style={{ fontSize: 13, color: '#5b21b6', margin: '4px 0 0', lineHeight: 1.5 }}>
-            <strong>Traceable Adjustments Rule:</strong> Partners cannot unilaterally authorize customer refunds or rewrite settled ledger entries. Disputed deductions and SLA penalties are investigated by the Platform Operations Dispute Desk. Approved corrections are credited through traceable financial ledger adjustments in subsequent settlement cycles.
-          </p>
-        </div>
-      </div>
-
       {/* Header & Action */}
       <div style={{
         background: '#ffffff',

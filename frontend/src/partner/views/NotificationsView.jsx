@@ -13,8 +13,7 @@ import {
   GraduationCap,
   FileText,
   LifeBuoy,
-  RefreshCw,
-  MailCheck
+  RefreshCw
 } from 'lucide-react';
 import { partnerClient } from '../partnerClient';
 
@@ -201,22 +200,6 @@ export function NotificationsView({ showToast, onNavigate }) {
               Unread ({unreadCount})
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Local Outbox Delivery Notice Banner */}
-      <div style={{
-        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
-        borderRadius: 12,
-        padding: '14px 20px',
-        border: '1px solid #cbd5e1',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12
-      }}>
-        <MailCheck size={20} color="#64748b" style={{ flexShrink: 0 }} />
-        <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.5 }}>
-          <strong>Local Outbox Delivery Notice:</strong> {outboxNotice || 'External SMS, WhatsApp, and push delivery gateways are unconfigured in sandbox mode. Operational alerts are queued and delivered reliably into this in-app local outbox without claiming third-party external transmission.'}
         </div>
       </div>
 

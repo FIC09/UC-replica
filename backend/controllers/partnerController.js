@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import { PartnerApplication } from '../models/PartnerApplication.js';
 import { WorkerApplication } from '../models/WorkerApplication.js';
@@ -43,21 +44,18 @@ let partnerBusinesses = [
     commissionRate: '18%',
     status: 'Active',
     metrics: {
-      totalBookings: 840,
-      completedBookings: 820,
-      rating: 4.88,
-      complaintsCount: 2,
-      totalPayouts: 389200
+      totalBookings: 0,
+      completedBookings: 0,
+      rating: 0,
+      complaintsCount: 0,
+      totalPayouts: 0
     },
     operatingHours: {
       start: '08:00',
       end: '20:00',
       days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     },
-    holidays: [
-      { id: 'hol-1', date: '2026-11-01', occasion: 'Diwali Festival Holiday', type: 'Full Day' },
-      { id: 'hol-2', date: '2026-12-25', occasion: 'Christmas Day', type: 'Half Day' }
-    ],
+    holidays: [],
     capacityConfig: {
       maxConcurrentBookingsPerHour: 12,
       maxConcurrentJobs: 12,
@@ -103,20 +101,18 @@ let partnerBusinesses = [
     commissionRate: '20%',
     status: 'Active',
     metrics: {
-      totalBookings: 320,
-      completedBookings: 310,
-      rating: 4.91,
+      totalBookings: 0,
+      completedBookings: 0,
+      rating: 0,
       complaintsCount: 0,
-      totalPayouts: 184500
+      totalPayouts: 0
     },
     operatingHours: {
       start: '08:30',
       end: '19:30',
       days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     },
-    holidays: [
-      { id: 'hol-qfc-1', date: '2026-11-01', occasion: 'Diwali Festival Holiday', type: 'Full Day' }
-    ],
+    holidays: [],
     capacityConfig: {
       maxConcurrentBookingsPerHour: 4,
       dailyMaxBookings: 20,
@@ -276,7 +272,7 @@ let partnerBusinesses = [
       reviewFeedback: 'Account suspended due to expired safety compliance audit.',
       requiredCorrections: ['Submit renewed annual safety compliance certificate via Partner Support Desk']
     },
-    metrics: { totalBookings: 140, completedBookings: 138, rating: 4.82, complaintsCount: 1, totalPayouts: 92400 },
+    metrics: { totalBookings: 0, completedBookings: 0, rating: 0, complaintsCount: 0, totalPayouts: 0 },
     operatingHours: { start: '09:00', end: '19:00', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] },
     autoDispatch: false,
     emergencyPhone: '+91 98401 77600',
@@ -455,1357 +451,52 @@ let staffAccounts = [
 ];
 
 // 3. Team Members (Linked Professionals under Business Partners)
-let partnerProfessionals = [
-  // Apex Home Solutions LLP (PTR-90142)
-  {
-    id: 'PRO-8841',
-    partnerId: 'PTR-90142',
-    name: 'Vikram Salvi',
-    phone: '+91 98205 11982',
-    email: 'vikram.salvi@urbanpro.com',
-    trade: 'Master AC Specialist & Electrician',
-    status: 'Active',
-    isOnline: true,
-    rating: 4.94,
-    jobsCompleted: 1520,
-    attendanceToday: 'Present (On Job)',
-    currentLocation: 'Bandra West, Mumbai',
-    skills: ['Split AC Servicing', 'Compressor Diagnostics', 'Inverter PCB Repair'],
-    joinedDate: '2026-01-10',
-    vehicleNumber: 'MH-02-EQ-8812'
-  },
-  {
-    id: 'PRO-8842',
-    partnerId: 'PTR-90142',
-    name: 'Sunil Varma',
-    phone: '+91 98112 00991',
-    email: 'sunil.varma@urbanpro.com',
-    trade: 'HVAC Duct & Appliance Technician',
-    status: 'Active',
-    isOnline: true,
-    rating: 4.88,
-    jobsCompleted: 980,
-    attendanceToday: 'Present (Available)',
-    currentLocation: 'Khar West, Mumbai',
-    skills: ['Refrigerator Servicing', 'Washing Machine Repair', 'Microwave Magnetron'],
-    joinedDate: '2026-01-15',
-    vehicleNumber: 'MH-02-BZ-4109'
-  },
-  {
-    id: 'PRO-8843',
-    partnerId: 'PTR-90142',
-    name: 'Sunil Vishwakarma',
-    phone: '+91 98332 10984',
-    email: 'sunil.v@urbanpro.com',
-    trade: 'Deep Cleaning & Sanitization Pro',
-    status: 'Active',
-    isOnline: true,
-    rating: 4.91,
-    jobsCompleted: 640,
-    attendanceToday: 'Present (On Job)',
-    currentLocation: 'Pali Hill, Mumbai',
-    skills: ['Single-Disc Machine Scrubbing', 'Foam Upholstery Cleaning', 'Acid-Free Descaling'],
-    joinedDate: '2026-01-20',
-    vehicleNumber: 'MH-02-CP-7711'
-  },
-  {
-    id: 'PRO-8850',
-    partnerId: 'PTR-90142',
-    name: 'Kiran Shinde',
-    phone: '+91 98209 44332',
-    email: 'kiran.s@apexhome.in',
-    trade: 'HVAC Maintenance Technician',
-    status: 'Active',
-    isOnline: true,
-    rating: 4.85,
-    jobsCompleted: 320,
-    attendanceToday: 'Present (Available)',
-    currentLocation: 'Santacruz West, Mumbai',
-    skills: ['Copper Pipe Brazing', 'Gas Leak Detection', 'AC Jet Wash'],
-    joinedDate: '2026-02-01',
-    vehicleNumber: 'MH-02-DA-2041'
-  },
-  {
-    id: 'PRO-8851',
-    partnerId: 'PTR-90142',
-    name: 'Amit Jadhav',
-    phone: '+91 98201 55667',
-    email: 'amit.j@apexhome.in',
-    trade: 'Appliance Repair Lead',
-    status: 'On Leave',
-    isOnline: false,
-    rating: 4.79,
-    jobsCompleted: 210,
-    attendanceToday: 'Approved Leave',
-    currentLocation: 'Andheri West, Mumbai',
-    skills: ['Appliance Diagnostics', 'PCB Soldering'],
-    joinedDate: '2026-02-10',
-    vehicleNumber: 'MH-02-ER-9901'
-  },
-  // Krishnagiri QuickFix Care (PTR-90143)
-  {
-    id: 'PRO-8846',
-    partnerId: 'PTR-90143',
-    name: 'Karthik Raja',
-    phone: '+91 98420 77123',
-    email: 'karthik@quickfixcare.com',
-    trade: 'Deep Cleaning Specialist',
-    status: 'Active',
-    isOnline: true,
-    rating: 4.91,
-    jobsCompleted: 185,
-    attendanceToday: 'Present (Available)',
-    currentLocation: 'Old Pet, Krishnagiri',
-    skills: ['Commercial Vacuuming', 'Tile Scrubbing'],
-    joinedDate: '2026-02-05',
-    vehicleNumber: 'TN-24-AQ-1122'
-  },
-  {
-    id: 'PRO-8847',
-    partnerId: 'PTR-90143',
-    name: 'Saravanan S.',
-    phone: '+91 98425 66112',
-    email: 'saravanan@quickfixcare.com',
-    trade: 'Pest Control Technician',
-    status: 'Active',
-    isOnline: true,
-    rating: 4.86,
-    jobsCompleted: 140,
-    attendanceToday: 'Present (On Job)',
-    currentLocation: 'Rayakottai Road, Krishnagiri',
-    skills: ['Termite Chemical Injection', 'Cockroach Gel Treatment'],
-    joinedDate: '2026-02-08',
-    vehicleNumber: 'TN-24-BX-3344'
-  }
-];
+let partnerProfessionals = [];
 
 // 4. Partner Bookings Store
-let partnerBookings = [
-  {
-    id: 'ORD-9841',
-    partnerId: 'PTR-90142',
-    bookingReference: 'ORD-9841',
-    customerId: 'CUST-1002',
-    userName: 'Aarav Mehta',
-    userPhone: '+91 98200 12345',
-    userEmail: 'aarav.mehta@example.com',
-    serviceName: 'AC Deep Clean & Comprehensive Service',
-    serviceCategory: 'ac-appliances',
-    serviceZone: 'Bandra West',
-    city: 'Mumbai',
-    address: 'Flat 402, Sea Breeze Apartments, Bandra West, Mumbai 400050',
-    addressDetails: {
-      fullAddress: 'Flat 402, Sea Breeze Apartments, Perry Cross Road',
-      locality: 'Bandra West',
-      city: 'Mumbai',
-      pincode: '400050',
-      contactPhone: '+91 98200 12345'
-    },
-    slot: 'Today, 02:00 PM - 03:30 PM',
-    scheduledDate: new Date(),
-    scheduledStartTime: '14:00',
-    scheduledEndTime: '15:30',
-    status: 'In Progress',
-    paymentStatus: 'Paid',
-    paymentMethod: 'UPI',
-    totalAmount: 922,
-    agencyCommission: 165.96,
-    platformFee: 165.96,
-    netAgencyShare: 756.04,
-    assignedProfessional: {
-      id: 'PRO-8841',
-      name: 'Vikram Salvi',
-      phone: '+91 98205 11982',
-      trade: 'Master AC Specialist & Electrician',
-      assignedAt: new Date(Date.now() - 7200000)
-    },
-    businessNotes: [
-      { id: 'bn-1', note: 'Customer VIP flat; technician carried high-pressure foam wash canopy kit.', author: 'Rahul Dev (Dispatcher)', createdAt: new Date(Date.now() - 3600000) }
-    ],
-    checklist: [
-      { id: 'chk-1', text: 'Pre-service cooling temp check', completed: true },
-      { id: 'chk-2', text: 'High-pressure foam wash of cooling coils', completed: true },
-      { id: 'chk-3', text: 'Drain pipe descaling & disinfectant spray', completed: false }
-    ],
-    createdAt: new Date(Date.now() - 7600000)
-  },
-  {
-    id: 'ORD-9842',
-    partnerId: 'PTR-90142',
-    bookingReference: 'ORD-9842',
-    customerId: 'CUST-1004',
-    userName: 'Sneha Roy',
-    userPhone: '+91 98112 44556',
-    userEmail: 'sneha.roy@example.com',
-    serviceName: 'Classic Bathroom Deep Cleaning',
-    serviceCategory: 'cleaning-pest',
-    serviceZone: 'Pali Hill',
-    city: 'Mumbai',
-    address: 'B-12, Pali Hill View, Bandra West, Mumbai 400050',
-    addressDetails: {
-      fullAddress: 'B-12, Pali Hill View, Nargis Dutt Road',
-      locality: 'Pali Hill',
-      city: 'Mumbai',
-      pincode: '400050',
-      contactPhone: '+91 98112 44556'
-    },
-    slot: 'Today, 03:30 PM - 05:00 PM',
-    scheduledDate: new Date(),
-    scheduledStartTime: '15:30',
-    scheduledEndTime: '17:00',
-    status: 'Assigned',
-    paymentStatus: 'Paid',
-    paymentMethod: 'Credit Card',
-    totalAmount: 638,
-    agencyCommission: 114.84,
-    platformFee: 114.84,
-    netAgencyShare: 523.16,
-    assignedProfessional: {
-      id: 'PRO-8843',
-      name: 'Sunil Vishwakarma',
-      phone: '+91 98332 10984',
-      trade: 'Deep Cleaning Specialist',
-      assignedAt: new Date(Date.now() - 3600000)
-    },
-    businessNotes: [
-      { id: 'bn-2', note: 'Technician instructed to take safety shoe covers.', author: 'Pooja Patil', createdAt: new Date(Date.now() - 2400000) }
-    ],
-    checklist: [
-      { id: 'chk-1', text: 'Floor tile acid-free scrubbing', completed: false },
-      { id: 'chk-2', text: 'Chrome fixture descaling', completed: false }
-    ],
-    createdAt: new Date(Date.now() - 4000000)
-  },
-  {
-    id: 'ORD-9845',
-    partnerId: 'PTR-90142',
-    bookingReference: 'ORD-9845',
-    customerId: 'CUST-1009',
-    userName: 'Rajiv Malhotra',
-    userPhone: '+91 98201 99882',
-    userEmail: 'rajiv.m@example.com',
-    serviceName: 'Double Door Refrigerator Repair & Gas Refill',
-    serviceCategory: 'ac-appliances',
-    serviceZone: 'Khar West',
-    city: 'Mumbai',
-    address: 'A-701, Silver Sands, 14th Road, Khar West, Mumbai 400052',
-    addressDetails: {
-      fullAddress: 'A-701, Silver Sands, 14th Road',
-      locality: 'Khar West',
-      city: 'Mumbai',
-      pincode: '400052',
-      contactPhone: '+91 98201 99882'
-    },
-    slot: 'Today, 05:30 PM - 07:00 PM',
-    scheduledDate: new Date(),
-    scheduledStartTime: '17:30',
-    scheduledEndTime: '19:00',
-    status: 'Pending', // Pending technician assignment in dispatch queue!
-    paymentStatus: 'Paid',
-    paymentMethod: 'UPI',
-    totalAmount: 1450,
-    agencyCommission: 261.00,
-    platformFee: 261.00,
-    netAgencyShare: 1189.00,
-    assignedProfessional: null,
-    businessNotes: [],
-    checklist: [],
-    createdAt: new Date(Date.now() - 1800000)
-  },
-  {
-    id: 'ORD-9830',
-    partnerId: 'PTR-90142',
-    bookingReference: 'ORD-9830',
-    customerId: 'CUST-1011',
-    userName: 'Kavita Chawla',
-    userPhone: '+91 98205 33221',
-    userEmail: 'kavita.c@example.com',
-    serviceName: 'Split AC Power Jet Servicing (2 Units)',
-    serviceCategory: 'ac-appliances',
-    serviceZone: 'Santacruz West',
-    city: 'Mumbai',
-    address: 'B-3, Sagar Sangeet, Juhu Road, Santacruz West, Mumbai 400054',
-    addressDetails: {
-      fullAddress: 'B-3, Sagar Sangeet, Juhu Road',
-      locality: 'Santacruz West',
-      city: 'Mumbai',
-      pincode: '400054',
-      contactPhone: '+91 98205 33221'
-    },
-    slot: 'Yesterday, 11:00 AM - 01:00 PM',
-    scheduledDate: new Date(Date.now() - 86400000),
-    scheduledStartTime: '11:00',
-    scheduledEndTime: '13:00',
-    status: 'Completed',
-    paymentStatus: 'Paid',
-    paymentMethod: 'UPI',
-    totalAmount: 1849,
-    agencyCommission: 332.82,
-    platformFee: 332.82,
-    netAgencyShare: 1516.18,
-    assignedProfessional: {
-      id: 'PRO-8841',
-      name: 'Vikram Salvi',
-      phone: '+91 98205 11982',
-      trade: 'Master AC Specialist'
-    },
-    businessNotes: [],
-    checklist: [
-      { id: 'chk-1', text: 'Unit 1 Power Jet Wash Completed', completed: true },
-      { id: 'chk-2', text: 'Unit 2 Power Jet Wash Completed', completed: true }
-    ],
-    completedAt: new Date(Date.now() - 80000000),
-    createdAt: new Date(Date.now() - 100000000)
-  },
-  // Krishnagiri QuickFix Care (PTR-90143)
-  {
-    id: 'ORD-9870',
-    partnerId: 'PTR-90143',
-    bookingReference: 'ORD-9870',
-    customerId: 'CUST-2001',
-    userName: 'R. Venkatesh',
-    userPhone: '+91 98421 11223',
-    userEmail: 'venkatesh@example.com',
-    serviceName: 'Full Home Deep Cleaning (2 BHK)',
-    serviceCategory: 'cleaning-pest',
-    serviceZone: 'Rayakottai Road',
-    city: 'Krishnagiri',
-    address: 'No 45, Green Valley Nagar, Rayakottai Road, Krishnagiri 635001',
-    addressDetails: {
-      fullAddress: 'No 45, Green Valley Nagar, Rayakottai Road',
-      locality: 'Rayakottai Road',
-      city: 'Krishnagiri',
-      pincode: '635001',
-      contactPhone: '+91 98421 11223'
-    },
-    slot: 'Today, 10:00 AM - 02:00 PM',
-    scheduledDate: new Date(),
-    scheduledStartTime: '10:00',
-    scheduledEndTime: '14:00',
-    status: 'In Progress',
-    paymentStatus: 'Paid',
-    paymentMethod: 'UPI',
-    totalAmount: 2499,
-    agencyCommission: 499.80,
-    platformFee: 499.80,
-    netAgencyShare: 1999.20,
-    assignedProfessional: {
-      id: 'PRO-8846',
-      name: 'Karthik Raja',
-      phone: '+91 98420 77123',
-      trade: 'Deep Cleaning Specialist'
-    },
-    businessNotes: [],
-    checklist: [],
-    createdAt: new Date(Date.now() - 7200000)
-  }
-];
+let partnerBookings = [];
 
-// 5. Settlements and Payout Ledger
-let partnerSettlements = [
-  // PTR-90142 (Mode A: ThroughBusiness)
-  {
-    id: 'SETTL-2026-W42',
-    partnerId: 'PTR-90142',
-    settlementReference: 'SETTL-2026-W42',
-    cycle: '13 Oct 2026 - 19 Oct 2026',
-    payoutDate: new Date(Date.now() - 86400000 * 3),
-    grossTurnover: 124500,
-    grossTurnoverPaise: 12450000,
-    platformFee: 22410,
-    platformFeePaise: 2241000,
-    gstDeduction: 4033.80,
-    gstDeductionPaise: 403380,
-    adjustments: 0,
-    refundDeductions: 0,
-    netDisbursed: 98056.20,
-    netDisbursedPaise: 9805620,
-    status: 'Settled',
-    bankUtr: 'UTR-CMSICICI2026102008492',
-    utrNumber: 'UTR-CMSICICI2026102008492',
-    bankAccountMasked: 'ICICI Bank (••••••••9012)',
-    jobsCount: 78,
-    settlementModel: 'settle_to_business',
-    note: 'Platform settlement paid directly to agency current account. Internal technician payroll administered by agency.'
-  },
-  {
-    id: 'SETTL-2026-W41',
-    partnerId: 'PTR-90142',
-    settlementReference: 'SETTL-2026-W41',
-    cycle: '06 Oct 2026 - 12 Oct 2026',
-    payoutDate: new Date(Date.now() - 86400000 * 10),
-    grossTurnover: 118200,
-    grossTurnoverPaise: 11820000,
-    platformFee: 21276,
-    platformFeePaise: 2127600,
-    gstDeduction: 3829.68,
-    gstDeductionPaise: 382968,
-    adjustments: 200, // Weather credit adjustment from dispute DSP-8790
-    adjustmentsPaise: 20000,
-    refundDeductions: 0,
-    netDisbursed: 93294.32,
-    netDisbursedPaise: 9329432,
-    status: 'Settled',
-    bankUtr: 'UTR-CMSICICI2026101300918',
-    utrNumber: 'UTR-CMSICICI2026101300918',
-    bankAccountMasked: 'ICICI Bank (••••••••9012)',
-    jobsCount: 74,
-    settlementModel: 'settle_to_business',
-    note: 'Platform settlement paid directly to agency current account.'
-  },
-  {
-    id: 'SETTL-2026-W44-PEND',
-    partnerId: 'PTR-90142',
-    settlementReference: 'SETTL-2026-W44-PEND',
-    cycle: '27 Oct 2026 - 02 Nov 2026 (Upcoming)',
-    payoutDate: new Date(Date.now() + 86400000 * 7),
-    grossTurnover: 45000,
-    grossTurnoverPaise: 4500000,
-    platformFee: 8100,
-    platformFeePaise: 810000,
-    gstDeduction: 1458.00,
-    gstDeductionPaise: 145800,
-    adjustments: 0,
-    adjustmentsPaise: 0,
-    refundDeductions: 0,
-    netDisbursed: 35442.00,
-    netDisbursedPaise: 3544200,
-    status: 'Pending',
-    bankUtr: null,
-    utrNumber: 'PENDING_APPROVAL',
-    bankAccountMasked: 'ICICI Bank (••••••••9012)',
-    jobsCount: 28,
-    settlementModel: 'settle_to_business',
-    note: 'Settlement cycle awaiting closing date before processing.'
-  },
-  {
-    id: 'SETTL-2026-W43',
-    partnerId: 'PTR-90142',
-    settlementReference: 'SETTL-2026-W43',
-    cycle: '20 Oct 2026 - 26 Oct 2026 (Current Active Cycle)',
-    payoutDate: new Date(Date.now() + 86400000 * 3),
-    grossTurnover: 84600,
-    grossTurnoverPaise: 8460000,
-    platformFee: 15228,
-    platformFeePaise: 1522800,
-    gstDeduction: 2741.04,
-    gstDeductionPaise: 274104,
-    adjustments: 450, // Dispute credit adjustment queued
-    adjustmentsPaise: 45000,
-    refundDeductions: 0,
-    netDisbursed: 67080.96,
-    netDisbursedPaise: 6708096,
-    status: 'Processing',
-    utrNumber: 'PENDING_DISBURSEMENT',
-    bankAccountMasked: 'ICICI Bank (••••••••9012)',
-    jobsCount: 52,
-    settlementModel: 'settle_to_business',
-    note: 'Estimated payout for current cycle. Scheduled for upcoming batch release.'
-  },
-  {
-    id: 'SETTL-2026-W40-FAIL',
-    partnerId: 'PTR-90142',
-    settlementReference: 'SETTL-2026-W40-FAIL',
-    cycle: '29 Sep 2026 - 05 Oct 2026',
-    payoutDate: new Date(Date.now() - 86400000 * 18),
-    grossTurnover: 92000,
-    grossTurnoverPaise: 9200000,
-    platformFee: 16560,
-    platformFeePaise: 1656000,
-    gstDeduction: 2980.80,
-    gstDeductionPaise: 298080,
-    adjustments: 0,
-    refundDeductions: 0,
-    netDisbursed: 72459.20,
-    netDisbursedPaise: 7245920,
-    status: 'Failed',
-    failureReason: 'Bank IFSC clearing rejected: Destination branch merged into regional clearing house. Re-disbursed in W41 upon IFSC update.',
-    utrNumber: 'REJECTED_BY_CLEARING_HOUSE',
-    bankAccountMasked: 'ICICI Bank (••••••••9012)',
-    jobsCount: 60,
-    settlementModel: 'settle_to_business',
-    note: 'Bank transfer failed at settlement clearing gateway.'
-  },
-  // PTR-90143 (Mode B: DirectToProfessional)
-  {
-    id: 'SETTL-2026-W42-QFC',
-    partnerId: 'PTR-90143',
-    settlementReference: 'SETTL-2026-W42-QFC',
-    cycle: '13 Oct 2026 - 19 Oct 2026',
-    payoutDate: new Date(Date.now() - 86400000 * 3),
-    grossTurnover: 46200,
-    grossTurnoverPaise: 4620000,
-    platformFee: 9240,
-    platformFeePaise: 924000,
-    gstDeduction: 1663.20,
-    gstDeductionPaise: 166320,
-    technicianDirectDisbursements: 30030,
-    technicianDirectDisbursementsPaise: 3003000,
-    netDisbursed: 5266.80, // Partner 15% agency override commission
-    netDisbursedPaise: 526680,
-    status: 'Settled',
-    utrNumber: 'SBIN2026102044810',
-    bankAccountMasked: 'State Bank of India (••••••••6781)',
-    jobsCount: 28,
-    settlementModel: 'direct_to_professional',
-    note: 'Platform dispatches earnings directly to individual technicians. Partner receives configured business override commission.'
-  }
-];
+// 5. Partner Settlements Store
+let partnerSettlements = [];
 
-// 5b. Service Category Requests
-let serviceCategoryRequests = [
-  {
-    id: 'SCR-101',
-    partnerId: 'PTR-90142',
-    categoryName: 'Commercial HVAC & VRF Systems',
-    justification: 'Agency has onboarded 4 certified Daikin/Mitsubishi commercial VRF technicians.',
-    initialFleetSize: 4,
-    status: 'Pending Platform Review',
-    submittedAt: new Date(Date.now() - 86400000 * 3)
-  }
-];
+let serviceCategoryRequests = [];
+let coverageChangeRequests = [];
+let settlementCorrectionRequests = [];
+let bankChangeRequests = [];
 
-// 5c. Coverage Change Requests
-let coverageChangeRequests = [
-  {
-    id: 'CCR-201',
-    partnerId: 'PTR-90142',
-    requestedCity: 'Mumbai',
-    requestedZones: ['Powai', 'Vikhroli West'],
-    requestedPincodes: ['400076', '400079'],
-    justification: 'Opening satellite service depot at Hiranandani Business Park to reduce travel buffer.',
-    status: 'Pending Platform Review',
-    submittedAt: new Date(Date.now() - 86400000 * 4)
-  }
-];
+// 6. GST Tax Invoices Store
+let partnerInvoices = [];
 
-// 5d. Settlement Correction Requests
-let settlementCorrectionRequests = [
-  {
-    id: 'CORR-301',
-    partnerId: 'PTR-90142',
-    settlementId: 'SETTL-2026-W42',
-    disputedAmount: 450,
-    reason: 'Customer warranty deduction for ORD-9821 was credited back per dispute DSP-8812.',
-    status: 'Pending Finance Review',
-    submittedAt: new Date(Date.now() - 86400000)
-  }
-];
+// 7. Customer Refunds & Dispute Deductions Store
+let partnerDisputes = [];
 
-// 6. Bank Account Change Requests
-let bankChangeRequests = [
-  {
-    id: 'BCR-001',
-    partnerId: 'PTR-90142',
-    requestedBy: 'Sandeep Patil (Business Owner)',
-    currentBank: 'ICICI Bank (••••••••9012)',
-    proposedBank: {
-      bankName: 'HDFC Bank Ltd',
-      accountHolderName: 'Apex Home Solutions LLP',
-      accountNumber: '••••••••4491',
-      ifscCode: 'HDFC0000060',
-      accountType: 'Current Corporate Account'
-    },
-    reason: 'Upgrading corporate banking limits for payroll integration',
-    status: 'Under Verification',
-    submittedAt: new Date(Date.now() - 86400000 * 2),
-    complianceNote: 'Cancelled cheque verified. Awaiting Penny-drop verification match with MCA records.'
-  }
-];
+// 8. Quality & Customer Reviews Store
+let partnerReviews = [];
 
-// 7. Invoices (B2B Platform Commission GST Invoices & Service Statements)
-let partnerInvoices = [
-  {
-    id: 'INV-B2B-2026-09',
-    partnerId: 'PTR-90142',
-    invoiceNumber: 'UC/B2B/2026/09/8812',
-    billingMonth: 'September 2026',
-    issueDate: new Date('2026-10-01'),
-    customerBillingGross: 486500,
-    platformFee: 87570,
-    cgst: 7881.30,
-    sgst: 7881.30,
-    totalInvoiceAmount: 103332.60,
-    gstinSupplier: '27AAACU1234F1ZV',
-    gstinPartner: '27AABCA1234F1Z8',
-    status: 'Issued',
-    downloadUrl: '/api/partner/invoices/INV-B2B-2026-09/download'
-  },
-  {
-    id: 'INV-B2B-2026-08',
-    partnerId: 'PTR-90142',
-    invoiceNumber: 'UC/B2B/2026/08/7741',
-    billingMonth: 'August 2026',
-    issueDate: new Date('2026-09-01'),
-    customerBillingGross: 442000,
-    platformFee: 79560,
-    cgst: 7160.40,
-    sgst: 7160.40,
-    totalInvoiceAmount: 93880.80,
-    gstinSupplier: '27AAACU1234F1ZV',
-    gstinPartner: '27AABCA1234F1Z8',
-    status: 'Issued',
-    downloadUrl: '/api/partner/invoices/INV-B2B-2026-08/download'
-  }
-];
-
-// 8. Refunds & Customer Disputes
-let partnerDisputes = [
-  {
-    id: 'DSP-8812',
-    partnerId: 'PTR-90142',
-    bookingId: 'ORD-9821',
-    technicianName: 'Sunil Varma',
-    customerName: 'Priya Narang',
-    issueType: 'Service Warranty Claim',
-    reason: 'Water dripping after split AC servicing',
-    claimAmount: 450,
-    disputeStatus: 'Under Review',
-    owner: 'Platform Operations Dispute Desk (R. Sharma)',
-    evidence: ['customer_job_sheet_9821.pdf', 'drain_pipe_inspection_photo.jpg'],
-    timeline: [
-      { timestamp: new Date(Date.now() - 86400000 * 2), actor: 'Partner (Apex Home Solutions)', note: 'Dispute filed contesting penalty deduction' },
-      { timestamp: new Date(Date.now() - 86400000 * 1.5), actor: 'Platform Dispute Officer', note: 'Requested technician re-inspection report and photo evidence' },
-      { timestamp: new Date(Date.now() - 86400000 * 0.8), actor: 'Partner (Apex Home Solutions)', note: 'Re-inspection completed. Drain pipe connector flushed at zero cost.' }
-    ],
-    messages: [
-      { id: 'msg-1', sender: 'Platform Dispute Officer', senderRole: 'Platform Operations', message: 'Please provide proof that the water runoff blockage was not due to improper drain angle.', timestamp: new Date(Date.now() - 86400000 * 1.5) },
-      { id: 'msg-2', sender: 'Sandeep Patil', senderRole: 'Business Owner', message: 'Attached high-resolution photos of the drain connector. The issue was external dust in customer balcony outlet, not internal coil mounting angle.', timestamp: new Date(Date.now() - 86400000 * 0.8) }
-    ],
-    financialAdjustment: {
-      type: 'CREDIT',
-      amount: 450,
-      description: 'Traceable credit adjustment pending next settlement cycle',
-      settledIn: 'SETTL-2026-W43'
-    },
-    adminResolution: 'Penalty waiver verified and queued for credit adjustment in cycle W43.',
-    filedDate: new Date(Date.now() - 86400000 * 2)
-  },
-  {
-    id: 'DSP-8790',
-    partnerId: 'PTR-90142',
-    bookingId: 'ORD-9780',
-    technicianName: 'Vikram Salvi',
-    customerName: 'Sameer Sen',
-    issueType: 'Customer No-Show / Delay',
-    reason: 'Late arrival beyond 30 min SLA window',
-    claimAmount: 200,
-    disputeStatus: 'Resolved',
-    owner: 'Platform Dispute Desk (A. Nair)',
-    evidence: ['gps_traffic_delay_log.pdf', 'municipal_monsoon_advisory.pdf'],
-    timeline: [
-      { timestamp: new Date(Date.now() - 86400000 * 7), actor: 'Partner (Apex Home Solutions)', note: 'Contested SLA delay deduction due to torrential monsoon' },
-      { timestamp: new Date(Date.now() - 86400000 * 6), actor: 'Platform Dispute Officer', note: 'Cross-referenced BMC traffic alert. Force majeure confirmed.' },
-      { timestamp: new Date(Date.now() - 86400000 * 5), actor: 'Platform Dispute Officer', note: 'Dispute approved. ₹200 SLA charge credited back in SETTL-2026-W41.' }
-    ],
-    messages: [
-      { id: 'msg-3', sender: 'Platform Dispute Officer', senderRole: 'Platform Operations', message: 'Advisory verified. Penalty waived.', timestamp: new Date(Date.now() - 86400000 * 5) }
-    ],
-    financialAdjustment: {
-      type: 'CREDIT',
-      amount: 200,
-      description: 'Force majeure weather credit adjustment',
-      settledIn: 'SETTL-2026-W41'
-    },
-    adminResolution: 'Penalty waived due to verified municipal monsoon alert.',
-    filedDate: new Date(Date.now() - 86400000 * 7)
-  }
-];
-
-// 9. Customer Reviews on Agency Technicians
-let partnerReviews = [
-  {
-    id: 'REV-901',
-    partnerId: 'PTR-90142',
-    bookingId: 'ORD-9830',
-    customerName: 'Kavita Chawla',
-    technicianName: 'Vikram Salvi',
-    rating: 5,
-    comment: 'Exceptional work by Vikram! He thoroughly jet-cleaned both split AC units and showed me the clean water runoff. Very polite and professional.',
-    createdAt: new Date(Date.now() - 86400000),
-    partnerReply: 'Thank you Kavita ji! Apex Home Solutions is dedicated to 100% cooling excellence.',
-    repliedBy: 'Sandeep Patil',
-    repliedAt: new Date(Date.now() - 43200000),
-    flaggedForModeration: false
-  },
-  {
-    id: 'REV-902',
-    partnerId: 'PTR-90142',
-    bookingId: 'ORD-9825',
-    customerName: 'Aditya Rao',
-    technicianName: 'Sunil Vishwakarma',
-    rating: 4.8,
-    comment: 'Bathroom looks brand new. Sunil brought all industrial chemicals and heavy duty scrubbing tools.',
-    createdAt: new Date(Date.now() - 86400000 * 2),
-    partnerReply: null,
-    flaggedForModeration: false
-  },
-  {
-    id: 'REV-903',
-    partnerId: 'PTR-90142',
-    bookingId: 'ORD-9799',
-    customerName: 'Anonymous User',
-    technicianName: 'Vikram Salvi',
-    rating: 1,
-    comment: 'Abusive language and completely wrong company tagged in this review! This was for plumbing, not AC servicing!',
-    createdAt: new Date(Date.now() - 86400000 * 3),
-    partnerReply: null,
-    flaggedForModeration: false
-  }
-];
-
-// 10. Training & Certifications
-let partnerTrainingCourses = [
-  {
-    id: 'TRN-101',
-    partnerId: 'PTR-90142',
-    title: 'UC Platinum Quality Standards & Safety Protocols 2026',
-    category: 'Safety & SOP',
-    requiredFor: 'All Active Technicians',
-    mandatory: true,
-    enrolledCount: 5,
-    completedCount: 5,
-    completionRate: 100,
-    validUntil: '31 Dec 2026',
-    status: 'Compliant',
-    passingThreshold: '85%'
-  },
-  {
-    id: 'TRN-102',
-    partnerId: 'PTR-90142',
-    title: 'Inverter AC Multi-Meter & R32 Refrigerant Safe Handling',
-    category: 'Technical Certification',
-    requiredFor: 'AC & HVAC Specialists',
-    mandatory: true,
-    enrolledCount: 3,
-    completedCount: 3,
-    completionRate: 100,
-    validUntil: '31 Oct 2027',
-    status: 'Compliant',
-    passingThreshold: '80%'
-  },
-  {
-    id: 'TRN-103',
-    partnerId: 'PTR-90142',
-    title: 'Customer Communication & Dispute Prevention Excellence',
-    category: 'Soft Skills',
-    requiredFor: 'All Technicians',
-    mandatory: true,
-    enrolledCount: 5,
-    completedCount: 4,
-    completionRate: 80,
-    validUntil: '15 Nov 2026',
-    status: 'In Progress (1 Pending)',
-    passingThreshold: '75%'
-  }
-];
-
-let partnerAssignedProfessionalsTraining = [
-  {
-    professionalId: 'PRO-8841',
-    name: 'Vikram Salvi',
-    trade: 'Master AC Specialist',
-    coursesAssigned: 3,
-    coursesCompleted: 3,
-    certifications: [
-      { courseId: 'TRN-101', name: 'UC Platinum Quality & Safety', status: 'Certified', certifiedAt: '2026-01-15', expiresAt: '2026-12-31' },
-      { courseId: 'TRN-102', name: 'R32 Safe Handling Specialist', status: 'Certified', certifiedAt: '2026-02-10', expiresAt: '2027-10-31' },
-      { courseId: 'TRN-103', name: 'Customer Excellence Masterclass', status: 'Certified', certifiedAt: '2026-03-01', expiresAt: '2026-11-15' }
-    ],
-    overallStatus: 'Fully Certified'
-  },
-  {
-    professionalId: 'PRO-8842',
-    name: 'Sunil Varma',
-    trade: 'HVAC Duct & Appliance Technician',
-    coursesAssigned: 3,
-    coursesCompleted: 3,
-    certifications: [
-      { courseId: 'TRN-101', name: 'UC Platinum Quality & Safety', status: 'Certified', certifiedAt: '2026-01-18', expiresAt: '2026-12-31' },
-      { courseId: 'TRN-102', name: 'R32 Safe Handling Specialist', status: 'Certified', certifiedAt: '2026-02-12', expiresAt: '2027-10-31' },
-      { courseId: 'TRN-103', name: 'Customer Excellence Masterclass', status: 'Certified', certifiedAt: '2026-03-05', expiresAt: '2026-11-15' }
-    ],
-    overallStatus: 'Fully Certified'
-  },
-  {
-    professionalId: 'PRO-8843',
-    name: 'Sunil Vishwakarma',
-    trade: 'Deep Cleaning & Sanitization Pro',
-    coursesAssigned: 2,
-    coursesCompleted: 2,
-    certifications: [
-      { courseId: 'TRN-101', name: 'UC Platinum Quality & Safety', status: 'Certified', certifiedAt: '2026-01-22', expiresAt: '2026-12-31' },
-      { courseId: 'TRN-103', name: 'Customer Excellence Masterclass', status: 'Certified', certifiedAt: '2026-03-08', expiresAt: '2026-11-15' }
-    ],
-    overallStatus: 'Fully Certified'
-  },
-  {
-    professionalId: 'PRO-8850',
-    name: 'Kiran Shinde',
-    trade: 'HVAC Maintenance Technician',
-    coursesAssigned: 3,
-    coursesCompleted: 3,
-    certifications: [
-      { courseId: 'TRN-101', name: 'UC Platinum Quality & Safety', status: 'Certified', certifiedAt: '2026-02-05', expiresAt: '2026-12-31' },
-      { courseId: 'TRN-102', name: 'R32 Safe Handling Specialist', status: 'Certified', certifiedAt: '2026-02-18', expiresAt: '2027-10-31' },
-      { courseId: 'TRN-103', name: 'Customer Excellence Masterclass', status: 'Certified', certifiedAt: '2026-03-12', expiresAt: '2026-11-15' }
-    ],
-    overallStatus: 'Fully Certified'
-  },
-  {
-    professionalId: 'PRO-8851',
-    name: 'Amit Jadhav',
-    trade: 'Appliance Repair Lead',
-    coursesAssigned: 2,
-    coursesCompleted: 1,
-    certifications: [
-      { courseId: 'TRN-101', name: 'UC Platinum Quality & Safety', status: 'Expired', certifiedAt: '2025-09-01', expiresAt: '2026-10-20' },
-      { courseId: 'TRN-103', name: 'Customer Excellence Masterclass', status: 'Overdue', certifiedAt: null, expiresAt: null }
-    ],
-    overallStatus: 'Certification Overdue (Dispatch Locked)'
-  }
-];
-
-let partnerTrainingSessions = [
-  {
-    sessionId: 'SESS-101',
-    partnerId: 'PTR-90142',
-    courseId: 'TRN-102',
-    title: 'R32 Flammable Refrigerant Field Practical & Vacuum Gauge Testing',
-    trainer: 'Rajesh Nair (Platform Master Trainer)',
-    date: '2026-10-28',
-    time: '10:00 - 13:00 IST',
-    mode: 'In-Person Workshop',
-    venue: 'Bandra West Service Depot, Plot 18 Hill Road',
-    capacity: 15,
-    enrolledCount: 8,
-    status: 'Scheduled'
-  },
-  {
-    sessionId: 'SESS-102',
-    partnerId: 'PTR-90142',
-    courseId: 'TRN-103',
-    title: 'Customer Grievance Resolution & Trust Building Workshop',
-    trainer: 'Sunita Menon (Customer Success Lead)',
-    date: '2026-11-04',
-    time: '14:00 - 16:30 IST',
-    mode: 'Interactive Webinar',
-    venue: 'Live Video Classroom (Link auto-distributed)',
-    capacity: 30,
-    enrolledCount: 14,
-    status: 'Scheduled'
-  }
-];
-
+// 9. Training Modules & Academy Records
+let partnerTrainingCourses = [];
+let partnerAssignedProfessionalsTraining = [];
+let partnerTrainingSessions = [];
 let trainingSessionRequests = [];
+let businessDocumentExpiryRecords = [];
+let professionalDocumentExpiryRecords = [];
 
-let businessDocumentExpiryRecords = [
-  {
-    id: 'DOC-EXP-01',
-    partnerId: 'PTR-90142',
-    docType: 'Master Franchise Agreement SLA',
-    documentNumber: 'CTR-2026-APX',
-    issueDate: '2026-01-12',
-    expiryDate: '2027-01-11',
-    daysRemaining: 80,
-    status: 'Valid',
-    restrictionIfExpired: 'Immediate platform de-authorization & payout freeze upon expiration'
-  },
-  {
-    id: 'DOC-EXP-02',
-    partnerId: 'PTR-90142',
-    docType: 'Maharashtra Municipal Trade License',
-    documentNumber: 'TL-MH-2026-8819',
-    issueDate: '2025-11-08',
-    expiryDate: '2026-11-07',
-    daysRemaining: 15,
-    status: 'Expiring Soon',
-    restrictionIfExpired: 'Dispatch throttle restricted to 50% capacity if not renewed within SLA'
-  },
-  {
-    id: 'DOC-EXP-03',
-    partnerId: 'PTR-90142',
-    docType: 'Commercial General Liability Insurance Policy',
-    documentNumber: 'INS-2026-091',
-    issueDate: '2025-12-08',
-    expiryDate: '2026-12-07',
-    daysRemaining: 45,
-    status: 'Valid',
-    restrictionIfExpired: 'High-value commercial appliance and chiller bookings blocked'
-  },
-  {
-    id: 'DOC-EXP-04',
-    partnerId: 'PTR-90142',
-    docType: 'GST Registration Certificate (REG-06)',
-    documentNumber: '27AABCA1234F1Z8',
-    issueDate: '2026-01-10',
-    expiryDate: 'Perpetual / Ongoing',
-    daysRemaining: 9999,
-    status: 'Valid',
-    restrictionIfExpired: 'B2B GST invoicing and input tax credit suspended'
-  }
-];
+// 10. Operational Consumables & Fleet Inventory Store
+let partnerInventory = [];
+let partnerSupplyOrders = [];
+let partnerInventoryMovements = [];
 
-let professionalDocumentExpiryRecords = [
-  {
-    id: 'PRO-EXP-01',
-    partnerId: 'PTR-90142',
-    professionalId: 'PRO-8841',
-    professionalName: 'Vikram Salvi',
-    docType: 'Police Verification Certificate',
-    documentNumber: 'PVR-MH-8812',
-    expiryDate: '2027-04-15',
-    daysRemaining: 174,
-    status: 'Valid',
-    restrictionIfExpired: 'Technician customer dispatch suspended immediately'
-  },
-  {
-    id: 'PRO-EXP-02',
-    partnerId: 'PTR-90142',
-    professionalId: 'PRO-8842',
-    professionalName: 'Sunil Varma',
-    docType: 'Police Verification Certificate',
-    documentNumber: 'PVR-MH-8813',
-    expiryDate: '2026-11-04',
-    daysRemaining: 12,
-    status: 'Expiring Soon',
-    restrictionIfExpired: 'Technician customer booking assignments suspended if Police Verification expires'
-  },
-  {
-    id: 'PRO-EXP-03',
-    partnerId: 'PTR-90142',
-    professionalId: 'PRO-8850',
-    professionalName: 'Kiran Shinde',
-    docType: 'Commercial Driving License',
-    documentNumber: 'DL-02-2026-1102',
-    expiryDate: '2028-06-30',
-    daysRemaining: 615,
-    status: 'Valid',
-    restrictionIfExpired: 'Mobile van equipment service dispatch disabled'
-  },
-  {
-    id: 'PRO-EXP-04',
-    partnerId: 'PTR-90142',
-    professionalId: 'PRO-8851',
-    professionalName: 'Amit Jadhav',
-    docType: 'Police Verification Certificate',
-    documentNumber: 'PVR-MH-8810',
-    expiryDate: '2026-10-21',
-    daysRemaining: -2,
-    status: 'Expired',
-    restrictionIfExpired: 'Technician offline - dispatch locked until renewed certificate verified'
-  }
-];
+// 11. Priority Partner Support Desk Store
+let partnerSupportTickets = [];
 
-// 11. Inventory & Consumables Store
-let partnerInventory = [
-  // PTR-90142 (Apex Home Solutions LLP)
-  {
-    id: 'INV-ITEM-01',
-    partnerId: 'PTR-90142',
-    itemName: 'R-32 Ecological Refrigerant Canister (10kg)',
-    sku: 'REF-R32-10KG',
-    category: 'Consumables',
-    unitPrice: 3850,
-    inStock: 8,
-    allocatedQuantity: 2,
-    reorderThreshold: 3,
-    minimumThreshold: 3,
-    status: 'In Stock'
-  },
-  {
-    id: 'INV-ITEM-02',
-    partnerId: 'PTR-90142',
-    itemName: 'Eco-Pure Coil Cleaning Chemical (5L Jug)',
-    sku: 'CHEM-COIL-5L',
-    category: 'Consumables',
-    unitPrice: 890,
-    inStock: 14,
-    allocatedQuantity: 4,
-    reorderThreshold: 5,
-    minimumThreshold: 5,
-    status: 'In Stock'
-  },
-  {
-    id: 'INV-ITEM-03',
-    partnerId: 'PTR-90142',
-    itemName: 'Urban Company Branded Uniform & Safety Shoes',
-    sku: 'KIT-UNIFORM-PRO',
-    category: 'Uniform & Gear',
-    unitPrice: 1250,
-    inStock: 2,
-    allocatedQuantity: 1,
-    reorderThreshold: 4,
-    minimumThreshold: 4,
-    status: 'Low Stock'
-  },
-  {
-    id: 'INV-ITEM-04',
-    partnerId: 'PTR-90142',
-    itemName: 'Heavy Duty Power Jet Pump (Pressure 120 Bar)',
-    sku: 'TOOL-JETPUMP-120B',
-    category: 'Hardware Tools',
-    unitPrice: 6200,
-    inStock: 6,
-    allocatedQuantity: 4,
-    reorderThreshold: 2,
-    minimumThreshold: 2,
-    status: 'In Stock'
-  },
-  {
-    id: 'INV-ITEM-05',
-    partnerId: 'PTR-90142',
-    itemName: 'Copper Pipe Tube Coil Bundle (1/4" & 1/2" 15m)',
-    sku: 'CONSUM-COPPER-PIPE',
-    category: 'Consumables',
-    unitPrice: 2450,
-    inStock: 10,
-    allocatedQuantity: 3,
-    reorderThreshold: 4,
-    minimumThreshold: 4,
-    status: 'In Stock'
-  },
-  // PTR-90143 (Krishnagiri QuickFix Care - multi-tenant isolation!)
-  {
-    id: 'INV-ITEM-QFC-01',
-    partnerId: 'PTR-90143',
-    itemName: 'Industrial Floor Polisher Disc Pads (Pack of 5)',
-    sku: 'TOOL-PADS-5P',
-    category: 'Hardware Tools',
-    unitPrice: 1800,
-    inStock: 5,
-    allocatedQuantity: 1,
-    reorderThreshold: 2,
-    minimumThreshold: 2,
-    status: 'In Stock'
-  }
-];
+// 12. Real-Time Operational Notifications Store
+let partnerNotifications = [];
 
-let partnerSupplyOrders = [
-  {
-    id: 'ORD-SUP-101',
-    partnerId: 'PTR-90142',
-    orderNumber: 'SUP-2026-101',
-    items: [
-      { itemId: 'INV-ITEM-01', sku: 'REF-R32-10KG', itemName: 'R-32 Ecological Refrigerant Canister (10kg)', quantity: 5, unitPrice: 3850, total: 19250 }
-    ],
-    totalAmount: 19250,
-    status: 'In Transit',
-    orderedAt: new Date(Date.now() - 86400000 * 3),
-    estimatedDelivery: '25 Oct 2026',
-    shippingCarrier: 'Delhivery Surface Cargo',
-    trackingNumber: 'DEL-9912084920',
-    deliveryAddress: 'Plot 18, Hill Road, Bandra West, Mumbai 400050',
-    notes: 'Urgent restocking for weekend festival rush',
-    isDemoSandbox: true
-  },
-  {
-    id: 'ORD-SUP-102',
-    partnerId: 'PTR-90142',
-    orderNumber: 'SUP-2026-102',
-    items: [
-      { itemId: 'INV-ITEM-02', sku: 'CHEM-COIL-5L', itemName: 'Eco-Pure Coil Cleaning Chemical (5L Jug)', quantity: 10, unitPrice: 890, total: 8900 }
-    ],
-    totalAmount: 8900,
-    status: 'Goods Received',
-    orderedAt: new Date(Date.now() - 86400000 * 10),
-    deliveredAt: new Date(Date.now() - 86400000 * 7),
-    receivedAt: new Date(Date.now() - 86400000 * 7),
-    shippingCarrier: 'BlueDart Express',
-    trackingNumber: 'BLU-4401827419',
-    deliveryAddress: 'Plot 18, Hill Road, Bandra West, Mumbai 400050',
-    notes: 'Standard monthly chemicals batch',
-    isDemoSandbox: true
-  }
-];
+// 13. Enterprise Compliance Vault (Statutory KYC & Contracts)
+let partnerDocuments = [];
 
-let partnerInventoryMovements = [
-  {
-    id: 'MOV-001',
-    partnerId: 'PTR-90142',
-    timestamp: new Date(Date.now() - 86400000 * 7),
-    actor: 'Sandeep Patil (Business Owner)',
-    itemId: 'INV-ITEM-02',
-    itemSku: 'CHEM-COIL-5L',
-    itemName: 'Eco-Pure Coil Cleaning Chemical (5L Jug)',
-    type: 'PURCHASE',
-    quantityChange: 10,
-    resultingStock: 14,
-    resultingAllocated: 4,
-    reason: 'Goods received for PO SUP-2026-102'
-  },
-  {
-    id: 'MOV-002',
-    partnerId: 'PTR-90142',
-    timestamp: new Date(Date.now() - 86400000 * 5),
-    actor: 'Rahul Dev (Dispatcher)',
-    itemId: 'INV-ITEM-01',
-    itemSku: 'REF-R32-10KG',
-    itemName: 'R-32 Ecological Refrigerant Canister (10kg)',
-    type: 'ALLOCATION',
-    quantityChange: -2,
-    resultingStock: 8,
-    resultingAllocated: 2,
-    professionalId: 'PRO-8841',
-    professionalName: 'Vikram Salvi',
-    reason: 'Allocated to Vikram Salvi for upcoming AC servicing batch'
-  },
-  {
-    id: 'MOV-003',
-    partnerId: 'PTR-90142',
-    timestamp: new Date(Date.now() - 86400000 * 2),
-    actor: 'Rahul Dev (Dispatcher)',
-    itemId: 'INV-ITEM-04',
-    itemSku: 'TOOL-JETPUMP-120B',
-    itemName: 'Heavy Duty Power Jet Pump (Pressure 120 Bar)',
-    type: 'ALLOCATION',
-    quantityChange: -1,
-    resultingStock: 6,
-    resultingAllocated: 4,
-    professionalId: 'PRO-8843',
-    professionalName: 'Sunil Vishwakarma',
-    reason: 'Allocated to Sunil Vishwakarma for commercial deep scrubbing'
-  }
-];
-
-// 12. Support & Operational Tickets
-let partnerSupportTickets = [
-  {
-    id: 'TCK-PTR-401',
-    partnerId: 'PTR-90142',
-    category: 'Dispatch & Slot Allocation',
-    subject: 'Requesting emergency capacity override for Bandra West monsoon rush',
-    priority: 'High',
-    status: 'In Progress',
-    linkedEntity: { type: 'booking', id: 'ORD-9841' },
-    evidence: ['rainfall_advisory.pdf'],
-    messages: [
-      { sender: 'Pooja Patil (Manager)', text: 'We have 2 extra standby technicians ready to accept surplus AC leak jobs today. Please increase our dispatch throttle.', timestamp: new Date(Date.now() - 3600000 * 4) },
-      { sender: 'Platform Ops Lead', text: 'Capacity cap increased from 15 to 22 concurrent jobs for PTR-90142 through 20:00 tonight.', timestamp: new Date(Date.now() - 3600000 * 2) }
-    ],
-    internalStaffNotes: 'Internal triage: Partner verified with 2 extra technicians. Approved temporary +7 concurrent job surge.',
-    createdAt: new Date(Date.now() - 3600000 * 4)
-  },
-  {
-    id: 'TCK-PTR-388',
-    partnerId: 'PTR-90142',
-    category: 'Billing & GST',
-    subject: 'Confirmation of B2B GST tax credit in GSTR-2B',
-    priority: 'Medium',
-    status: 'Resolved',
-    linkedEntity: { type: 'settlement', id: 'SETTL-2026-W42' },
-    evidence: ['gstr2b_reconciliation.xlsx'],
-    messages: [
-      { sender: 'Anand Kulkarni (Finance)', text: 'Kindly share filing acknowledgment for September B2B commission invoice.', timestamp: new Date(Date.now() - 86400000 * 5) },
-      { sender: 'UC Finance Team', text: 'Invoice UC/B2B/2026/09/8812 filed in GSTR-1 with ARN AA2709260128491. Reflected in portal.', timestamp: new Date(Date.now() - 86400000 * 4) }
-    ],
-    internalStaffNotes: 'Internal finance: GSTR-1 ARN verified. Matching credit confirmed.',
-    createdAt: new Date(Date.now() - 86400000 * 5)
-  }
-];
-
-// 13. Notifications (All 8 mandatory operational categories)
-let partnerNotifications = [
-  {
-    id: 'NOTIF-01',
-    partnerId: 'PTR-90142',
-    category: 'New Booking',
-    title: 'New Booking ORD-9848 in Bandra West',
-    message: 'Customer scheduled Split AC Jet Service. Ready for technician assignment.',
-    read: false,
-    timestamp: new Date(Date.now() - 1800000),
-    deepLink: '/partner/bookings/ORD-9848',
-    deliveryChannel: 'Local Outbox'
-  },
-  {
-    id: 'NOTIF-02',
-    partnerId: 'PTR-90142',
-    category: 'Settlement Updates',
-    title: 'Settlement Batch SETTL-2026-W42 Disbursed',
-    message: 'Weekly net disbursement of ₹98,056.20 credited to ICICI Bank. Bank UTR: UTR-CMSICICI2026102008492.',
-    read: false,
-    timestamp: new Date(Date.now() - 86400000 * 3),
-    deepLink: '/partner/settlements',
-    deliveryChannel: 'Local Outbox'
-  },
-  {
-    id: 'NOTIF-03',
-    partnerId: 'PTR-90142',
-    category: 'Reassignment',
-    title: 'Booking ORD-9842 Reassigned',
-    message: 'Booking ORD-9842 successfully reassigned to Kiran Shinde (PRO-8850) per fleet rebalancing.',
-    read: true,
-    timestamp: new Date(Date.now() - 86400000 * 2),
-    deepLink: '/partner/bookings/ORD-9842',
-    deliveryChannel: 'Local Outbox'
-  },
-  {
-    id: 'NOTIF-04',
-    partnerId: 'PTR-90142',
-    category: 'Cancellation',
-    title: 'Customer Cancellation Notice: ORD-9839',
-    message: 'Customer cancelled appointment within 2h window. Platform policy cancellation compensation fee credited.',
-    read: false,
-    timestamp: new Date(Date.now() - 86400000),
-    deepLink: '/partner/bookings/ORD-9839',
-    deliveryChannel: 'Local Outbox'
-  },
-  {
-    id: 'NOTIF-05',
-    partnerId: 'PTR-90142',
-    category: 'Training Requirement',
-    title: 'Mandatory Safety Refresher Overdue',
-    message: 'Technician Amit Jadhav (PRO-8851) has overdue Safety Standards recertification. Booking assignment paused.',
-    read: false,
-    timestamp: new Date(Date.now() - 43200000),
-    deepLink: '/partner/training',
-    deliveryChannel: 'Local Outbox'
-  },
-  {
-    id: 'NOTIF-06',
-    partnerId: 'PTR-90142',
-    category: 'Document Review',
-    title: 'Compliance Review Approved: Master Franchise SLA',
-    message: 'Platform compliance desk approved your annual Master Franchise Agreement SLA documentation.',
-    read: true,
-    timestamp: new Date(Date.now() - 86400000 * 4),
-    deepLink: '/partner/documents',
-    deliveryChannel: 'Local Outbox'
-  },
-  {
-    id: 'NOTIF-07',
-    partnerId: 'PTR-90142',
-    category: 'Expiry Reminders',
-    title: 'Document Expiring Soon: Municipal Trade License',
-    message: 'Maharashtra Municipal Trade License expires in 15 days (07 Nov 2026). Upload renewal certificate.',
-    read: false,
-    timestamp: new Date(Date.now() - 21600000),
-    deepLink: '/partner/documents',
-    deliveryChannel: 'Local Outbox'
-  },
-  {
-    id: 'NOTIF-08',
-    partnerId: 'PTR-90142',
-    category: 'Support Replies',
-    title: 'Platform Operations Replied to Ticket #TCK-PTR-401',
-    message: 'Capacity surge override approved through 20:00 tonight for Bandra West.',
-    read: false,
-    timestamp: new Date(Date.now() - 7200000),
-    deepLink: '/partner/support',
-    deliveryChannel: 'Local Outbox'
-  }
-];
-
-// 14. Business Documents
-let partnerDocuments = [
-  {
-    id: 'DOC-01',
-    partnerId: 'PTR-90142',
-    title: 'Certificate of Incorporation / LLP Deed',
-    docType: 'Certificate of Incorporation',
-    fileName: 'LLP_Deed_ApexHome.pdf',
-    fileSize: '2.4 MB',
-    fileType: 'application/pdf',
-    expiryDate: 'Perpetual',
-    daysUntilExpiry: 9999,
-    status: 'Approved',
-    uploadedAt: '2026-01-10',
-    reviewFeedback: 'Incorporation verified via MCA registry.'
-  },
-  {
-    id: 'DOC-02',
-    partnerId: 'PTR-90142',
-    title: 'GST Registration Certificate (REG-06)',
-    docType: 'GST Registration Certificate',
-    fileName: 'GST_27AABCA1234F1Z8.pdf',
-    fileSize: '1.8 MB',
-    fileType: 'application/pdf',
-    expiryDate: 'Perpetual',
-    daysUntilExpiry: 9999,
-    status: 'Approved',
-    uploadedAt: '2026-01-10',
-    reviewFeedback: 'Active regular taxpayer confirmed.'
-  },
-  {
-    id: 'DOC-03',
-    partnerId: 'PTR-90142',
-    title: 'Company PAN Card',
-    docType: 'Company PAN Card',
-    fileName: 'PAN_AABCA1234F.pdf',
-    fileSize: '1.1 MB',
-    fileType: 'application/pdf',
-    expiryDate: 'Perpetual',
-    daysUntilExpiry: 9999,
-    status: 'Approved',
-    uploadedAt: '2026-01-10',
-    reviewFeedback: 'PAN matches NSDL entity name.'
-  },
-  {
-    id: 'DOC-04',
-    partnerId: 'PTR-90142',
-    title: 'Master Franchise Agreement SLA',
-    docType: 'Master Franchise Agreement',
-    fileName: 'SLA_CTR_2026_APX.pdf',
-    fileSize: '3.2 MB',
-    fileType: 'application/pdf',
-    expiryDate: '2027-01-11',
-    daysUntilExpiry: 80,
-    status: 'Approved',
-    uploadedAt: '2026-01-12',
-    reviewFeedback: 'Annual partner SLA fully counter-signed.'
-  },
-  {
-    id: 'DOC-05',
-    partnerId: 'PTR-90142',
-    title: 'Maharashtra Municipal Trade License',
-    docType: 'Trade License',
-    fileName: 'Trade_License_MH_8819.pdf',
-    fileSize: '2.1 MB',
-    fileType: 'application/pdf',
-    expiryDate: '2026-11-07',
-    daysUntilExpiry: 15,
-    status: 'Expiring Soon',
-    uploadedAt: '2025-11-08',
-    reviewFeedback: 'Upload renewal certificate before 07 Nov 2026 to prevent dispatch throttling.'
-  }
-];
-
-// 15. Activity Audit Trail
-let partnerActivityLogs = [
-  {
-    id: 'LOG-001',
-    partnerId: 'PTR-90142',
-    actorName: 'Sandeep Patil',
-    actorRole: 'Business Owner',
-    action: 'LOGIN_SUCCESS',
-    entity: 'AUTH_SESSION',
-    details: 'Authenticated via partner dashboard portal from IP 103.21.144.12',
-    reason: 'Routine business operations access',
-    timestamp: new Date(Date.now() - 3600000)
-  },
-  {
-    id: 'LOG-002',
-    partnerId: 'PTR-90142',
-    actorName: 'Rahul Dev',
-    actorRole: 'Dispatcher',
-    action: 'BOOKING_DISPATCH',
-    entity: 'BOOKING_ASSIGNMENT',
-    details: 'Assigned Booking ORD-9842 to technician Sunil Vishwakarma (PRO-8843)',
-    reason: 'Technician proximity within 30-min travel buffer',
-    timestamp: new Date(Date.now() - 3600000 * 2)
-  },
-  {
-    id: 'LOG-003',
-    partnerId: 'PTR-90142',
-    actorName: 'Sandeep Patil',
-    actorRole: 'Business Owner',
-    action: 'BANK_CHANGE_REQUEST',
-    entity: 'SETTLEMENT_ACCOUNT',
-    details: 'Submitted corporate bank account change request to HDFC Bank (••••••••4491)',
-    reason: 'Upgrading corporate limits for payroll processing',
-    timestamp: new Date(Date.now() - 86400000 * 2)
-  }
-];
+// 14. Immutable System Audit Ledger Store
+let partnerActivityLogs = [];
 
 // State and concurrency trackers
 export const revokedStaffIds = new Set();
@@ -2484,8 +1175,103 @@ export async function submitPartnerOnboardingCorrections(req, res) {
 }
 
 /**
- * 2. Dashboard Overview Summary
+ * 2. Dashboard Overview Summary & Real Database Synchronization
  */
+
+export async function getLivePartnerBookings(partnerId, businessName) {
+  if (mongoose.connection?.readyState === 1) {
+    try {
+      const query = {
+        $or: [
+          { 'assignedBusinessPartner.id': partnerId },
+          { partnerAgency: partnerId },
+          ...(businessName ? [{ partnerAgency: businessName }, { partnerAgencyName: businessName }] : [])
+        ]
+      };
+      const dbBookings = await Booking.find(query).maxTimeMS(2500).lean();
+      if (dbBookings && dbBookings.length > 0) {
+        const map = new Map();
+        for (const b of partnerBookings.filter(x => x.partnerId === partnerId)) {
+          if (b.id) map.set(String(b.id), b);
+        }
+        for (const b of dbBookings) {
+          const id = b.id || (b._id ? String(b._id) : null);
+          if (id && !map.has(id)) {
+            map.set(id, {
+              id,
+              partnerId,
+              bookingReference: b.bookingReference || id,
+              userName: b.customerName || b.userName || 'Customer',
+              userPhone: b.customerPhone || b.userPhone || '',
+              userEmail: b.customerEmail || b.userEmail || '',
+              serviceName: b.serviceName || 'Home Service',
+              serviceCategory: b.serviceCategory || b.category || '',
+              serviceZone: b.serviceZone || b.locality || '',
+              city: b.city || '',
+              address: b.customerAddress || b.address || '',
+              status: b.status || 'Pending',
+              scheduledDate: b.scheduledDate || b.date || b.createdAt,
+              slot: b.slot || b.timeSlot || '',
+              totalAmount: b.totalAmount || b.pricing?.finalTotal || 0,
+              platformFee: b.platformFee || 0,
+              assignedProfessional: b.assignedProfessional || null,
+              createdAt: b.createdAt
+            });
+          }
+        }
+        return Array.from(map.values());
+      }
+    } catch (err) {
+      // DB error
+    }
+  }
+  return partnerBookings.filter(b => b.partnerId === partnerId);
+}
+
+export async function getLivePartnerTeam(partnerId, businessName) {
+  if (mongoose.connection?.readyState === 1) {
+    try {
+      const query = {
+        $or: [
+          { partnerAgencyId: partnerId },
+          ...(businessName ? [{ partnerAgency: businessName }, { partnerAgencyName: businessName }] : [])
+        ]
+      };
+      const dbWorkers = await WorkerApplication.find(query).maxTimeMS(2500).lean();
+      if (dbWorkers && dbWorkers.length > 0) {
+        const map = new Map();
+        for (const p of partnerProfessionals.filter(x => x.partnerId === partnerId)) {
+          if (p.id) map.set(String(p.id), p);
+        }
+        for (const w of dbWorkers) {
+          const id = w.id || (w._id ? String(w._id) : null);
+          if (id && !map.has(id)) {
+            map.set(id, {
+              id,
+              partnerId,
+              name: w.name || w.fullName,
+              phone: w.phone,
+              email: w.email || '',
+              trade: w.trade || w.category || 'Technician',
+              status: w.status === 'Approved' ? 'Active' : (w.status || 'Active'),
+              isOnline: Boolean(w.isOnline),
+              rating: w.rating || 0,
+              jobsCompleted: w.jobsCompleted || 0,
+              attendanceToday: w.attendanceToday || 'Available',
+              currentLocation: w.currentLocation || '',
+              skills: w.skills || [],
+              joinedDate: w.createdAt ? new Date(w.createdAt).toISOString().split('T')[0] : ''
+            });
+          }
+        }
+        return Array.from(map.values());
+      }
+    } catch (err) {
+      // DB error
+    }
+  }
+  return partnerProfessionals.filter(p => p.partnerId === partnerId);
+}
 
 export async function getDashboardSummary(req, res) {
   try {
@@ -2493,8 +1279,8 @@ export async function getDashboardSummary(req, res) {
     const business = partnerBusinesses.find(p => p.id === partnerId);
     const { dateRange = 'all', city = 'ALL', category = 'ALL', proId = 'ALL' } = req.query;
 
-    let allBookings = partnerBookings.filter(b => b.partnerId === partnerId);
-    let team = partnerProfessionals.filter(p => p.partnerId === partnerId);
+    let allBookings = await getLivePartnerBookings(partnerId, business?.businessName);
+    let team = await getLivePartnerTeam(partnerId, business?.businessName);
     let settlements = partnerSettlements.filter(s => s.partnerId === partnerId);
     let notifs = partnerNotifications.filter(n => n.partnerId === partnerId && !n.read);
     let disputes = partnerDisputes.filter(d => d.partnerId === partnerId && d.disputeStatus !== 'Resolved');
@@ -2557,29 +1343,32 @@ export async function getDashboardSummary(req, res) {
     const ratingReviews = partnerReviews.filter(r => r.partnerId === partnerId);
     const avgRating = ratingReviews.length > 0
       ? (ratingReviews.reduce((sum, r) => sum + r.rating, 0) / ratingReviews.length).toFixed(2)
-      : (business?.metrics?.rating || 4.88);
+      : (business?.metrics?.rating || 0);
 
     // Safe zero-denominator growth calculations
     const prevGross = 0; // Baseline
     const grossGrowth = prevGross > 0
       ? `${Math.round(((grossBookingValue - prevGross) / prevGross) * 100)}%`
-      : 'N/A (New period baseline)';
+      : '0%';
 
     const prevBookingsCount = 0;
     const bookingGrowth = prevBookingsCount > 0
       ? `${Math.round(((filteredBookings.length - prevBookingsCount) / prevBookingsCount) * 100)}%`
-      : 'N/A (New period baseline)';
+      : '0%';
 
-    // Trends:
-    const bookingTrend = [
-      { day: 'Mon', bookings: 6, gross: 7200 },
-      { day: 'Tue', bookings: 8, gross: 9600 },
-      { day: 'Wed', bookings: 5, gross: 6100 },
-      { day: 'Thu', bookings: 9, gross: 11400 },
-      { day: 'Fri', bookings: 12, gross: 14800 },
-      { day: 'Sat', bookings: 14, gross: 18200 },
-      { day: 'Sun', bookings: 10, gross: 12900 }
-    ];
+    // Trends derived dynamically:
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const bookingTrend = days.map(day => {
+      const dayBookings = filteredBookings.filter(b => {
+        const d = new Date(b.scheduledDate);
+        return !isNaN(d) && d.toLocaleDateString('en-US', { weekday: 'short' }) === day;
+      });
+      return {
+        day,
+        bookings: dayBookings.length,
+        gross: dayBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0)
+      };
+    });
 
     const earningsTrend = {
       grossBookingValue,
@@ -2592,7 +1381,7 @@ export async function getDashboardSummary(req, res) {
       ? `${Math.round(((activeProfessionals - professionalsAvailableToday) / activeProfessionals) * 100)}%`
       : '0%';
 
-    // Queues and alerts linked to relevant modules:
+    // Queues and alerts linked to real stored records:
     const assignmentQueue = allBookings
       .filter(b => b.status === 'Pending' || !b.assignedProfessional)
       .map(b => ({
@@ -2616,15 +1405,26 @@ export async function getDashboardSummary(req, res) {
         link: `/partner/bookings?bookingId=${b.id}`
       }));
 
-    const expiringDocuments = [
-      { id: 'doc-ins', title: 'Commercial General Liability Policy', expiresDays: 14, expiryDate: '2026-11-06', status: 'Expiring Soon', link: '/partner/documents' },
-      { id: 'doc-saf', title: 'Annual Workplace Safety Compliance Audit', expiresDays: 28, expiryDate: '2026-11-20', status: 'Renewal Required', link: '/partner/documents' }
-    ];
+    const expiringDocuments = businessDocumentExpiryRecords
+      .filter(d => d.partnerId === partnerId)
+      .map(d => ({
+        id: d.id,
+        title: d.title,
+        expiresDays: d.expiresDays,
+        expiryDate: d.expiryDate,
+        status: d.status,
+        link: '/partner/documents'
+      }));
 
-    const trainingAlerts = [
-      { proId: 'PRO-8842', proName: 'Sunil Varma', module: 'Inverter AC Sensor Diagnostics SOP', status: 'Due in 3 days', link: '/partner/training' },
-      { proId: 'PRO-8850', proName: 'Kiran Shinde', module: 'Doorstep Customer Etiquette & Safety Refresh', status: 'Due in 5 days', link: '/partner/training' }
-    ];
+    const trainingAlerts = partnerAssignedProfessionalsTraining
+      .filter(t => t.partnerId === partnerId && t.status !== 'Completed')
+      .map(t => ({
+        proId: t.proId,
+        proName: t.proName,
+        module: t.courseTitle,
+        status: t.status,
+        link: '/partner/training'
+      }));
 
     const lowStockAlerts = partnerInventory
       .filter(i => i.partnerId === partnerId && i.stockLevel <= i.minThreshold)
@@ -2718,7 +1518,8 @@ export async function getPartnerBookings(req, res) {
     const { partnerId } = req.partner;
     const { status = 'ALL', search = '', proId = 'ALL', date = 'ALL' } = req.query;
 
-    let list = partnerBookings.filter(b => b.partnerId === partnerId);
+    const business = partnerBusinesses.find(p => p.id === partnerId);
+    let list = await getLivePartnerBookings(partnerId, business?.businessName);
 
     if (search) {
       const q = search.toLowerCase();
@@ -2759,7 +1560,9 @@ export async function getPartnerBookingDetail(req, res) {
     const { partnerId, role } = req.partner;
     const { id } = req.params;
 
-    const booking = partnerBookings.find(b => b.id === id && b.partnerId === partnerId);
+    const business = partnerBusinesses.find(p => p.id === partnerId);
+    const allBookings = await getLivePartnerBookings(partnerId, business?.businessName);
+    const booking = allBookings.find(b => b.id === id && b.partnerId === partnerId);
     if (!booking) {
       return res.status(404).json({
         success: false,
@@ -2781,7 +1584,8 @@ export async function getPartnerBookingDetail(req, res) {
     };
 
     // Available technicians from this partner's team eligible for assignment
-    const availablePros = partnerProfessionals.filter(p => p.partnerId === partnerId && p.status === 'Active');
+    const allPros = await getLivePartnerTeam(partnerId, business?.businessName);
+    const availablePros = allPros.filter(p => p.partnerId === partnerId && p.status === 'Active');
 
     return res.json({
       success: true,
@@ -3209,8 +2013,9 @@ export async function addBookingBusinessNote(req, res) {
 export async function getPartnerCalendar(req, res) {
   try {
     const { partnerId } = req.partner;
-    const team = partnerProfessionals.filter(p => p.partnerId === partnerId);
-    const bookings = partnerBookings.filter(b => b.partnerId === partnerId);
+    const business = partnerBusinesses.find(p => p.id === partnerId);
+    const team = await getLivePartnerTeam(partnerId, business?.businessName);
+    const bookings = await getLivePartnerBookings(partnerId, business?.businessName);
 
     // Build timeline grid for today
     const timelineSlots = ['08:00 - 10:00', '10:30 - 12:30', '13:00 - 15:00', '15:30 - 17:30', '18:00 - 20:00'];
@@ -3247,7 +2052,8 @@ export async function getPartnerCalendar(req, res) {
 export async function getPartnerTeam(req, res) {
   try {
     const { partnerId } = req.partner;
-    const team = partnerProfessionals.filter(p => p.partnerId === partnerId);
+    const business = partnerBusinesses.find(p => p.id === partnerId);
+    const team = await getLivePartnerTeam(partnerId, business?.businessName);
     return res.json({
       success: true,
       count: team.length,
@@ -3607,161 +2413,43 @@ export async function getPartnerServices(req, res) {
       { id: 'painting-waterproofing', name: 'Painting & Waterproofing', description: 'Interior/exterior wall painting, texture coating, and damp proofing' }
     ];
 
-    const catalog = [
-      {
-        id: 'srv-ac-1',
-        name: 'AC Deep Clean & Power Jet Servicing',
-        category: 'ac-appliances',
-        categoryName: 'AC & Appliance Care',
-        description: 'High-pressure foam spray and jet wash of cooling coils, blower wheel, and drain tray.',
-        basePrice: 899,
-        basePricePaise: 89900,
-        durationMinutes: 60,
-        commissionRate: '18%',
-        partnerPayout: 737.18,
-        partnerPayoutPaise: 73718,
-        participationStatus: 'Active',
-        platformApproved: true,
-        packages: [
-          { id: 'pkg-ac-1', name: '1 Split AC Jet Wash', price: 899, pricePaise: 89900, durationMinutes: 60, partnerPayout: 737.18 },
-          { id: 'pkg-ac-2', name: '2 Split ACs Jet Wash (Combo Save ₹200)', price: 1599, pricePaise: 159900, durationMinutes: 105, partnerPayout: 1311.18 },
-          { id: 'pkg-ac-3', name: '3 Split ACs Jet Wash (Mega Saver)', price: 2299, pricePaise: 229900, durationMinutes: 150, partnerPayout: 1885.18 }
-        ]
-      },
-      {
-        id: 'srv-ac-2',
-        name: 'Split AC Less Cooling / Gas Leakage Check',
-        category: 'ac-appliances',
-        categoryName: 'AC & Appliance Care',
-        description: 'Nitrogen pressure testing, soap bubble check, and electronic halogen refrigerant sniffing.',
-        basePrice: 599,
-        basePricePaise: 59900,
-        durationMinutes: 45,
-        commissionRate: '18%',
-        partnerPayout: 491.18,
-        partnerPayoutPaise: 49118,
-        participationStatus: 'Active',
-        platformApproved: true,
-        packages: [
-          { id: 'pkg-gas-1', name: 'Diagnostic Only', price: 599, pricePaise: 59900, durationMinutes: 45, partnerPayout: 491.18 },
-          { id: 'pkg-gas-2', name: 'Diagnostic + Full Gas Charging (R32/R410A)', price: 2499, pricePaise: 249900, durationMinutes: 90, partnerPayout: 2049.18 }
-        ]
-      },
-      {
-        id: 'srv-ac-3',
-        name: 'Comprehensive AC Uninstallation & Re-fit',
-        category: 'ac-appliances',
-        categoryName: 'AC & Appliance Care',
-        description: 'Pump-down gas lock, bracket demounting, core cutting, and outdoor unit re-mounting.',
-        basePrice: 1499,
-        basePricePaise: 149900,
-        durationMinutes: 90,
-        commissionRate: '18%',
-        partnerPayout: 1229.18,
-        partnerPayoutPaise: 122918,
-        participationStatus: 'Active',
-        platformApproved: true,
-        packages: [
-          { id: 'pkg-fit-1', name: 'Uninstallation Only', price: 699, pricePaise: 69900, durationMinutes: 45, partnerPayout: 573.18 },
-          { id: 'pkg-fit-2', name: 'Complete Dismount & Re-Installation', price: 1499, pricePaise: 149900, durationMinutes: 90, partnerPayout: 1229.18 }
-        ]
-      },
-      {
-        id: 'srv-app-1',
-        name: 'Single & Double Door Refrigerator Repair',
-        category: 'ac-appliances',
-        categoryName: 'AC & Appliance Care',
-        description: 'Compressor relay diagnostics, thermostat tuning, defrost sensor replacement.',
-        basePrice: 499,
-        basePricePaise: 49900,
-        durationMinutes: 60,
-        commissionRate: '18%',
-        partnerPayout: 409.18,
-        partnerPayoutPaise: 40918,
-        participationStatus: 'Active',
-        platformApproved: true,
-        packages: [
-          { id: 'pkg-fridge-1', name: 'General Diagnostic Inspection', price: 499, pricePaise: 49900, durationMinutes: 60, partnerPayout: 409.18 }
-        ]
-      },
-      {
-        id: 'srv-app-2',
-        name: 'Front Load Washing Machine Spin/Drain Diagnostic',
-        category: 'ac-appliances',
-        categoryName: 'AC & Appliance Care',
-        description: 'Drive belt replacement, drain pump unclogging, suspension strut balancing.',
-        basePrice: 549,
-        basePricePaise: 54900,
-        durationMinutes: 60,
-        commissionRate: '18%',
-        partnerPayout: 450.18,
-        partnerPayoutPaise: 45018,
-        participationStatus: 'Active',
-        platformApproved: true,
-        packages: [
-          { id: 'pkg-wash-1', name: 'Comprehensive Mechanical Diagnostic', price: 549, pricePaise: 54900, durationMinutes: 60, partnerPayout: 450.18 }
-        ]
-      },
-      {
-        id: 'srv-cln-1',
-        name: 'Classic Bathroom Intense Tile Descaling',
-        category: 'cleaning-pest',
-        categoryName: 'Home Cleaning & Pest Services',
-        description: 'Acid-free rotary machine scrub of hard water scale and chrome descaling.',
-        basePrice: 499,
-        basePricePaise: 49900,
-        durationMinutes: 50,
-        commissionRate: '18%',
-        partnerPayout: 409.18,
-        partnerPayoutPaise: 40918,
-        participationStatus: 'Active',
-        platformApproved: true,
-        packages: [
-          { id: 'pkg-cln-1', name: '1 Bathroom Descaling', price: 499, pricePaise: 49900, durationMinutes: 50, partnerPayout: 409.18 },
-          { id: 'pkg-cln-2', name: '2 Bathrooms Combo', price: 899, pricePaise: 89900, durationMinutes: 90, partnerPayout: 737.18 }
-        ]
-      },
-      {
-        id: 'srv-cln-2',
-        name: 'Full Home Deep Cleaning (Furnished)',
-        category: 'cleaning-pest',
-        categoryName: 'Home Cleaning & Pest Services',
-        description: 'Floor single-disc scrubbing, balcony wash, window track vacuuming, sofa steam extraction.',
-        basePrice: 2499,
-        basePricePaise: 249900,
-        durationMinutes: 240,
-        commissionRate: '18%',
-        partnerPayout: 2049.18,
-        partnerPayoutPaise: 204918,
-        participationStatus: 'Active',
-        platformApproved: true,
-        packages: [
-          { id: 'pkg-home-1', name: '1 BHK Deep Clean', price: 2499, pricePaise: 249900, durationMinutes: 180, partnerPayout: 2049.18 },
-          { id: 'pkg-home-2', name: '2 BHK Deep Clean', price: 3499, pricePaise: 349900, durationMinutes: 240, partnerPayout: 2869.18 },
-          { id: 'pkg-home-3', name: '3 BHK Deep Clean', price: 4699, pricePaise: 469900, durationMinutes: 300, partnerPayout: 3853.18 }
-        ]
-      }
-    ];
+    let services = [];
+    if (mongoose.connection?.readyState === 1) {
+      try {
+        const { Service } = await import('../models/Service.js');
+        const dbServices = await Service.find({}).maxTimeMS(2500).lean();
+        if (dbServices && dbServices.length > 0) {
+          services = dbServices.map(s => ({
+            id: s.id || String(s._id),
+            name: s.name,
+            category: s.category,
+            categoryName: s.categoryName || s.category,
+            description: s.description || '',
+            basePrice: s.basePrice || (s.pricePaise ? s.pricePaise / 100 : 0),
+            price: s.basePrice || (s.pricePaise ? s.pricePaise / 100 : 0),
+            pricingPaise: s.pricePaise || 0,
+            durationMinutes: s.durationMinutes || 60,
+            commissionRate: '18%',
+            platformApproved: true,
+            businessParticipationStatus: business?.participationStatus === 'Active' ? 'Approved & Active' : 'Paused by Partner',
+            packages: s.packages || []
+          }));
+        }
+      } catch (err) {}
+    }
 
     const partnerCategoryRequests = serviceCategoryRequests.filter(r => r.partnerId === partnerId);
-
-    const catalogWithAliases = catalog.map(s => ({
-      ...s,
-      price: s.basePrice,
-      pricingPaise: s.basePricePaise,
-      businessParticipationStatus: business?.participationStatus === 'Active' ? 'Approved & Active' : 'Paused by Partner'
-    }));
 
     return res.json({
       success: true,
       platformApprovedCategories,
-      serviceCategories: business?.serviceCategories || ['AC Repair & Servicing', 'Appliance Care'],
+      serviceCategories: business?.serviceCategories || [],
       businessParticipationStatus: business?.participationStatus === 'Active' ? 'Approved & Active' : 'Paused by Partner',
       participationStatus: business?.participationStatus || 'Active',
       pauseReason: business?.pauseReason || null,
       canEditGlobalCatalogue: false,
       globalCataloguePolicy: 'Global service catalog definition and baseline customer pricing are governed exclusively by Platform Master Administrators. Partners configure dispatch capacity and participation status.',
-      services: catalogWithAliases,
+      services,
       categoryRequests: partnerCategoryRequests
     });
   } catch (err) {
@@ -3892,22 +2580,16 @@ export async function getPartnerCoverage(req, res) {
 
     return res.json({
       success: true,
-      city: business?.city || 'Mumbai',
-      coverageZones: business?.coverageZones || ['Bandra West', 'Khar West', 'Santacruz West', 'Pali Hill', 'Andheri West'],
-      pincodes: business?.pincodes || ['400050', '400052', '400053', '400054', '400058'],
-      workingHours: '08:00 - 20:00',
-      operatingHours: business?.operatingHours || { start: '08:00', end: '20:00', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] },
-      holidays: business?.holidays || [
-        { id: 'hol-1', date: '2026-11-01', occasion: 'Diwali Festival Holiday', type: 'Full Day' },
-        { id: 'hol-2', date: '2026-12-25', occasion: 'Christmas Day', type: 'Half Day' }
-      ],
+      city: business?.city || 'Unassigned City',
+      coverageZones: business?.coverageZones || [],
+      pincodes: business?.pincodes || [],
+      workingHours: business?.operatingHours ? `${business.operatingHours.start} - ${business.operatingHours.end}` : '08:00 - 20:00',
+      operatingHours: business?.operatingHours || { start: '08:00', end: '20:00', days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] },
+      holidays: business?.holidays || [],
       capacityConfig: activeCapacityConfig,
       participationStatus: business?.participationStatus || 'Active',
-      maxTravelRadiusKm: 15,
-      hubs: [
-        { name: 'Bandra West Operational Hub', address: 'Plot 18, Hill Road, Bandra West, Mumbai', activeFleet: 8 },
-        { name: 'Santacruz Service Depot', address: 'Unit 4, S.V. Road, Santacruz West, Mumbai', activeFleet: 4 }
-      ],
+      maxTravelRadiusKm: business?.maxTravelRadiusKm || 15,
+      hubs: business?.hubs || [],
       coverageChangeRequests: partnerCoverageRequests
     });
   } catch (err) {
@@ -4146,7 +2828,8 @@ export async function getPartnerEarnings(req, res) {
     const { partnerId } = req.partner;
     const business = partnerBusinesses.find(p => p.id === partnerId);
     const settlements = partnerSettlements.filter(s => s.partnerId === partnerId);
-    const bookings = partnerBookings.filter(b => b.partnerId === partnerId && b.status === 'Completed');
+    const allBookings = await getLivePartnerBookings(partnerId, business?.businessName);
+    const bookings = allBookings.filter(b => b.partnerId === partnerId && b.status === 'Completed');
 
     // Integer minor currency units (paise)
     const grossPaise = settlements.reduce((sum, s) => sum + (s.grossTurnoverPaise || Math.round((s.grossTurnover || 0) * 100)), 0);
@@ -4600,14 +3283,17 @@ export async function downloadPartnerInvoice(req, res) {
 export async function getPartnerReports(req, res) {
   try {
     const { partnerId } = req.partner;
+    const business = partnerBusinesses.find(p => p.id === partnerId);
     const { dateFrom, dateTo, city, serviceCategory, professionalId } = req.query;
 
-    let bookings = partnerBookings.filter(b => b.partnerId === partnerId);
+    let bookings = await getLivePartnerBookings(partnerId, business?.businessName);
+    let team = await getLivePartnerTeam(partnerId, business?.businessName);
     let settlements = partnerSettlements.filter(s => s.partnerId === partnerId);
     let inventory = partnerInventory.filter(i => i.partnerId === partnerId);
     let movements = partnerInventoryMovements.filter(m => m.partnerId === partnerId);
     let training = partnerTrainingCourses.filter(t => t.partnerId === partnerId);
     let disputes = partnerDisputes.filter(d => d.partnerId === partnerId);
+    let reviews = partnerReviews.filter(r => r.partnerId === partnerId);
 
     // Filter by city
     if (city && city !== 'all') {
@@ -4626,111 +3312,95 @@ export async function getPartnerReports(req, res) {
     const cancelledBookings = bookings.filter(b => b.status === 'Cancelled');
     const inProgressBookings = bookings.filter(b => ['Assigned', 'En Route', 'Arrived', 'In Progress'].includes(b.status));
 
-    const totalRevenue = completedBookings.reduce((sum, b) => sum + (b.servicePrice || 1849), 0);
+    const totalRevenue = completedBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
     const platformCommission = Math.round(totalRevenue * 0.18);
     const totalGst = Math.round(platformCommission * 0.18);
     const netEarnings = totalRevenue - platformCommission - totalGst;
+
+    const compRate = bookings.length > 0 ? `${((completedBookings.length / bookings.length) * 100).toFixed(1)}%` : '0%';
+    const cancRate = bookings.length > 0 ? `${((cancelledBookings.length / bookings.length) * 100).toFixed(1)}%` : '0%';
+    const avgR = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(2) : 0;
 
     const report = {
       generatedAt: new Date(),
       timezone: 'Asia/Kolkata (IST)',
       currency: 'INR',
       appliedFilters: {
-        dateFrom: dateFrom || '2026-07-01',
-        dateTo: dateTo || '2026-10-23',
+        dateFrom: dateFrom || '',
+        dateTo: dateTo || '',
         city: city || 'All Operating Cities',
         serviceCategory: serviceCategory || 'All Categories',
         professionalId: professionalId || 'All Technicians'
       },
-      // 1. Bookings Summary
       bookings: {
         total: bookings.length,
         completed: completedBookings.length,
         cancelled: cancelledBookings.length,
         inProgress: inProgressBookings.length,
-        completionRate: '98.6%',
-        cancellationRate: '1.4%',
-        onTimeArrivalRate: '99.1%'
+        completionRate: compRate,
+        cancellationRate: cancRate,
+        onTimeArrivalRate: completedBookings.length > 0 ? '100%' : '0%'
       },
       bookingsSummary: {
         total: bookings.length,
         completed: completedBookings.length,
         cancelled: cancelledBookings.length,
         inProgress: inProgressBookings.length,
-        completionRate: '98.6%',
-        cancellationRate: '1.4%',
-        onTimeArrivalRate: '99.1%'
+        completionRate: compRate,
+        cancellationRate: cancRate,
+        onTimeArrivalRate: completedBookings.length > 0 ? '100%' : '0%'
       },
-      // 2. Service Demand Breakdown
-      serviceDemand: [
-        { category: 'AC Deep Clean & Power Jet Servicing', bookings: 412, grossRevenue: 761788, demandShare: '49.0%' },
-        { category: 'Split AC Less Cooling / Gas Leakage Check', bookings: 248, grossRevenue: 458552, demandShare: '29.5%' },
-        { category: 'Classic Bathroom Intense Tile Descaling', bookings: 180, grossRevenue: 286200, demandShare: '21.5%' }
-      ],
-      // 3. Team Performance
-      teamPerformance: partnerProfessionals.filter(p => p.partnerId === partnerId).map(p => ({
+      serviceDemand: [],
+      teamPerformance: team.map(p => ({
         id: p.id,
         name: p.name,
         trade: p.trade,
-        jobsCompleted: p.jobsCompleted,
-        rating: p.rating,
-        onTimeRate: '99.2%',
-        utilisationRate: '87.4%',
-        revenueGenerated: p.jobsCompleted * 780
+        jobsCompleted: p.jobsCompleted || 0,
+        rating: p.rating || 0,
+        onTimeRate: '0%',
+        utilisationRate: '0%',
+        revenueGenerated: 0
       })),
-      // 4. Earnings
       earnings: {
-        grossTurnover: totalRevenue || 486500,
+        grossTurnover: totalRevenue,
         platformCommission,
         gstDeductions: totalGst,
-        netBusinessEntitlement: netEarnings || 383167.40,
+        netBusinessEntitlement: netEarnings,
         minorUnit: 'paise'
       },
-      // 5. Settlements
       settlements: {
-        totalDisbursed: 211350.52,
-        processingDisbursements: 67080.96,
-        pendingCycles: 35442.00,
-        failedClearing: 72459.20,
+        totalDisbursed: settlements.reduce((sum, s) => sum + (Number(s.netDisbursed) || 0), 0),
+        processingDisbursements: 0,
+        pendingCycles: 0,
+        failedClearing: 0,
         totalCycles: settlements.length
       },
-      // 6. Deductions and Disputes
       deductionsAndDisputes: {
         totalDisputesFiled: disputes.length,
         openDisputesCount: disputes.filter(d => d.disputeStatus !== 'Resolved').length,
-        resolvedCreditsTotal: 650,
-        warrantyDeductionCredits: 450,
-        forceMajeureCredits: 200
+        resolvedCreditsTotal: 0,
+        warrantyDeductionCredits: 0,
+        forceMajeureCredits: 0
       },
-      // 7. Cancellations
       cancellations: {
-        totalCancelled: cancelledBookings.length || 3,
-        customerCancelledCount: 2,
-        partnerCancelledCount: 1,
-        policyCompensationCredited: 350,
-        primaryReason: 'Customer travel postponement / rescheduled via portal'
+        totalCancelled: cancelledBookings.length,
+        customerCancelledCount: cancelledBookings.length,
+        partnerCancelledCount: 0,
+        policyCompensationCredited: 0,
+        primaryReason: cancelledBookings.length > 0 ? 'Customer requested cancellation' : 'No cancellations'
       },
-      // 8. Ratings
       ratings: {
-        averageRating: 4.88,
-        totalReviews: 345,
-        ratingDistribution: {
-          5: 280,
-          4: 55,
-          3: 8,
-          2: 2,
-          1: 0
-        },
-        positiveSentimentPercentage: '97.1%'
+        averageRating: Number(avgR),
+        totalReviews: reviews.length,
+        ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+        positiveSentimentPercentage: '0%'
       },
-      // 9. Training Completion
       trainingCompletion: {
         mandatoryCoursesCount: training.filter(t => t.mandatory).length,
-        fullyCertifiedTechnicians: 4,
-        pendingRecertificationTechnicians: 1,
-        overallFleetComplianceRate: '93.3%'
+        fullyCertifiedTechnicians: 0,
+        pendingRecertificationTechnicians: 0,
+        overallFleetComplianceRate: '0%'
       },
-      // 10. Inventory Movements
       inventoryMovements: {
         totalCatalogItems: inventory.length,
         lowStockAlertsCount: inventory.filter(i => (i.inStock || 0) <= (i.reorderThreshold || 3)).length,
@@ -4738,13 +3408,7 @@ export async function getPartnerReports(req, res) {
         totalPurchasesReceived: movements.filter(m => m.type === 'PURCHASE').length,
         recentMovementHistory: movements.slice(0, 5)
       },
-      // Historical trend
-      turnoverTrend: [
-        { month: 'Jul 2026', revenue: 395000, jobs: 280 },
-        { month: 'Aug 2026', revenue: 442000, jobs: 312 },
-        { month: 'Sep 2026', revenue: 486500, jobs: 345 },
-        { month: 'Oct 2026 (MTD)', revenue: 327300, jobs: 204 }
-      ]
+      turnoverTrend: []
     };
 
     return res.json({ success: true, report });
@@ -4756,69 +3420,33 @@ export async function getPartnerReports(req, res) {
 export async function getPartnerPerformanceMetrics(req, res) {
   try {
     const { partnerId } = req.partner;
-    const pros = partnerProfessionals.filter(p => p.partnerId === partnerId);
-    const bookings = partnerBookings.filter(b => b.partnerId === partnerId);
+    const business = partnerBusinesses.find(p => p.id === partnerId);
+    const pros = await getLivePartnerTeam(partnerId, business?.businessName);
+    const bookings = await getLivePartnerBookings(partnerId, business?.businessName);
 
     const completedBookings = bookings.filter(b => b.status === 'Completed');
     const cancelledBookings = bookings.filter(b => b.status === 'Cancelled');
 
-    // On-Time Performance derived from real timestamps
-    // Filter bookings that have real arrival and scheduled start timestamps
     const timestampedJobs = completedBookings.filter(b => b.onTimeData?.actualArrivalTime && b.scheduledStartTime);
-    const onTimeCount = timestampedJobs.length > 0 
-      ? timestampedJobs.filter(b => b.onTimeData.onTime).length 
-      : 108;
-    const totalTimestamped = timestampedJobs.length > 0 ? timestampedJobs.length : 109;
-    const onTimeRate = (onTimeCount / totalTimestamped) * 100;
+    const onTimeCount = timestampedJobs.filter(b => b.onTimeData?.onTime).length;
+    const totalTimestamped = timestampedJobs.length;
+    const onTimeRate = totalTimestamped > 0 ? (onTimeCount / totalTimestamped) * 100 : 0;
 
-    // Professional comparisons
-    const professionalComparisons = [
-      {
-        id: 'PRO-101',
-        name: 'Sunil Varma (Lead)',
-        trade: 'AC Technician',
-        status: 'Active',
-        jobsCompleted: 48,
-        completedJobs: 48,
-        rating: 4.92,
-        onTimeRate: '99.4%',
-        revisitRate: '44.2%',
-        revenueGenerated: 48 * 780,
-        utilisationRate: '88.5%',
-        sampleSizeMet: true,
-        meetsMinimumSample: true
-      },
-      {
-        id: 'PRO-105',
-        name: 'Anil Deshmukh (Probationary)',
-        trade: 'Junior Appliance Specialist',
-        status: 'Active',
-        jobsCompleted: 6,
-        completedJobs: 6,
-        rating: 4.60,
-        onTimeRate: '96.5%',
-        revisitRate: '25.0%',
-        revenueGenerated: 6 * 780,
-        utilisationRate: '65.0%',
-        sampleSizeMet: false,
-        meetsMinimumSample: false
-      },
-      ...pros.map(p => ({
-        id: p.id,
-        name: p.name,
-        trade: p.trade,
-        status: p.status,
-        jobsCompleted: p.jobsCompleted,
-        completedJobs: p.jobsCompleted,
-        rating: p.rating,
-        onTimeRate: '99.2%',
-        revisitRate: '43.5%',
-        revenueGenerated: p.jobsCompleted * 780,
-        utilisationRate: '87.4%',
-        sampleSizeMet: p.jobsCompleted >= 10,
-        meetsMinimumSample: p.jobsCompleted >= 10
-      }))
-    ];
+    const professionalComparisons = pros.map(p => ({
+      id: p.id,
+      name: p.name,
+      trade: p.trade,
+      status: p.status,
+      jobsCompleted: p.jobsCompleted || 0,
+      completedJobs: p.jobsCompleted || 0,
+      rating: p.rating || 0,
+      onTimeRate: '0%',
+      revisitRate: '0%',
+      revenueGenerated: 0,
+      utilisationRate: '0%',
+      sampleSizeMet: (p.jobsCompleted || 0) >= 10,
+      meetsMinimumSample: (p.jobsCompleted || 0) >= 10
+    }));
 
     return res.json({
       success: true,
@@ -4831,24 +3459,16 @@ export async function getPartnerPerformanceMetrics(req, res) {
         fleetUtilisation: 'Ratio of billable job hours to scheduled available shift hours.'
       },
       performanceSummary: {
-        completionRate: '98.6%',
-        cancellationRate: '1.4%',
+        completionRate: bookings.length > 0 ? `${((completedBookings.length / bookings.length) * 100).toFixed(1)}%` : '0%',
+        cancellationRate: bookings.length > 0 ? `${((cancelledBookings.length / bookings.length) * 100).toFixed(1)}%` : '0%',
         onTimeRate: `${onTimeRate.toFixed(1)}%`,
-        averageRating: 4.88,
-        reviewCount: 345,
-        revisitRate: '42.8%',
-        professionalUtilisation: '86.4%'
+        averageRating: 0,
+        reviewCount: 0,
+        revisitRate: '0%',
+        professionalUtilisation: '0%'
       },
-      serviceBreakdown: [
-        { category: 'AC Deep Clean & Power Jet Servicing', jobs: 412, revenue: 370388, rating: 4.92 },
-        { category: 'Split AC Less Cooling / Gas Leakage Check', jobs: 248, revenue: 148552, rating: 4.86 },
-        { category: 'Classic Bathroom Intense Tile Descaling', jobs: 180, revenue: 89820, rating: 4.89 }
-      ],
-      cityZoneBreakdown: [
-        { zone: 'Bandra West', city: 'Mumbai', jobs: 380, revenue: 342000, onTimeRate: '99.4%' },
-        { zone: 'Khar West', city: 'Mumbai', jobs: 240, revenue: 216000, onTimeRate: '98.8%' },
-        { zone: 'Santacruz West', city: 'Mumbai', jobs: 190, revenue: 171000, onTimeRate: '99.1%' }
-      ],
+      serviceBreakdown: [],
+      cityZoneBreakdown: [],
       professionalComparisons
     });
   } catch (err) {
@@ -5820,8 +4440,7 @@ export async function getPartnerNotifications(req, res) {
       success: true,
       totalCount: notifs.length,
       unreadCount,
-      notifications: notifs,
-      outboxNotice: 'Local Outbox Delivery: External SMS, WhatsApp, and push messaging providers are unconfirmed in sandbox mode. Messages are queued reliably in this local in-app outbox.'
+      notifications: notifs
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -6244,11 +4863,6 @@ export async function getPartnerSettings(req, res) {
           brandColor: '#0ea5e9',
           allowedLogoUpload: false,
           policy: 'Urban Company Platform Co-Branded Standards'
-        },
-        integrations: {
-          paymentGateway: { name: 'Razorpay / ICICI Corporate', status: 'Connected', mode: 'Live Production' },
-          smsGateway: { name: 'Karix / Gupshup', status: 'Sandbox Simulated', mode: 'Demo Outbox' },
-          accountingSync: { name: 'Tally / Zoho Books Export', status: 'Available' }
         }
       }
     });

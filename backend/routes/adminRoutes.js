@@ -296,8 +296,10 @@ router.put('/support/:id/status', requireAdminAuth, requirePermission('support',
 // 13. REVIEWS & RATINGS MODERATION
 // ==========================================
 router.get('/reviews', requireAdminAuth, requirePermission('reviews', 'view'), getReviews);
+router.get('/support/reviews', requireAdminAuth, requirePermission('reviews', 'view'), getReviews);
 router.put('/reviews/:id/visibility', requireAdminAuth, requirePermission('reviews', 'edit'), moderateReview);
 router.put('/reviews/:id/moderate', requireAdminAuth, requirePermission('reviews', 'edit'), moderateReview);
+router.put('/support/reviews/:id/moderate', requireAdminAuth, requirePermission('reviews', 'edit'), moderateReview);
 
 // ==========================================
 // 13B. REVISITS & WARRANTY DISPUTES

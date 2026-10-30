@@ -24,44 +24,37 @@ export function SettingsView({ showToast, staff }) {
 
   // Immediate operational fields
   const [form, setForm] = useState({
-    displayName: 'Apex Home Solutions',
-    tagline: 'Premium AC & Multi-Brand Appliance Fleet',
-    phone: '+91 98210 33411',
-    emergencyPhone: '+91 98210 33499',
+    displayName: '',
+    tagline: '',
+    phone: '',
+    emergencyPhone: '',
     operatingHours: {
       start: '08:00',
       end: '20:00',
-      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     },
-    autoDispatch: true,
+    autoDispatch: false,
     notificationPreferences: {
-      smsAlerts: true,
-      emailAlerts: true,
-      dispatchPushes: true,
-      whatsappUpdates: true
+      smsAlerts: false,
+      emailAlerts: false,
+      dispatchPushes: false,
+      whatsappUpdates: false
     },
     branding: {
       brandColor: '#7c3aed',
-      coBrandedBadge: 'Urban Company Platinum Enterprise Fleet'
+      coBrandedBadge: ''
     }
   });
 
   // Locked platform approval required fields
   const [lockedFields, setLockedFields] = useState({
-    businessName: 'Apex Home Solutions LLP',
-    legalEntityName: 'Apex Home Solutions LLP',
-    gstNumber: '27AABCA1234F1Z8',
-    panNumber: 'AABCA1234F',
-    registeredCity: 'Mumbai',
-    approvedCoverage: ['Bandra West', 'Khar West', 'Santacruz West', 'Pali Hill', 'Andheri West'],
-    tier: 'Platinum Enterprise Fleet'
-  });
-
-  // Integration statuses
-  const [integrations, setIntegrations] = useState({
-    paymentGateway: { name: 'ICICI Corporate Netbanking / Razorpay', status: 'Active (Live Production)' },
-    messagingGateway: { name: 'Local Outbox Delivery Gateway', status: 'Active (Local Sandbox Mode)' },
-    erpAccounting: { name: 'Tally Prime / Zoho Books Export Engine', status: 'Ready' }
+    businessName: '',
+    legalEntityName: '',
+    gstNumber: '',
+    panNumber: '',
+    registeredCity: '',
+    approvedCoverage: [],
+    tier: ''
   });
 
   useEffect(() => {
@@ -439,47 +432,6 @@ export function SettingsView({ showToast, staff }) {
                 {z}
               </span>
             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Integration Status Section */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: 14,
-        border: '1px solid #e2e8f0',
-        padding: 24,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16
-      }}>
-        <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>
-          Platform Technical Integrations Status
-        </h2>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, background: '#f8fafc' }}>
-            <span style={{ fontSize: 11.5, color: '#64748b', display: 'block' }}>Corporate Payout Gateway</span>
-            <strong style={{ fontSize: 14, color: '#0f172a', display: 'block', marginTop: 2 }}>{integrations.paymentGateway.name}</strong>
-            <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 600, display: 'inline-block', marginTop: 4 }}>
-              ● {integrations.paymentGateway.status}
-            </span>
-          </div>
-
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, background: '#f8fafc' }}>
-            <span style={{ fontSize: 11.5, color: '#64748b', display: 'block' }}>Operational Messaging Outbox</span>
-            <strong style={{ fontSize: 14, color: '#0f172a', display: 'block', marginTop: 2 }}>{integrations.messagingGateway.name}</strong>
-            <span style={{ fontSize: 12, color: '#0284c7', fontWeight: 600, display: 'inline-block', marginTop: 4 }}>
-              ● {integrations.messagingGateway.status}
-            </span>
-          </div>
-
-          <div style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, background: '#f8fafc' }}>
-            <span style={{ fontSize: 11.5, color: '#64748b', display: 'block' }}>Accounting & Ledger Sync</span>
-            <strong style={{ fontSize: 14, color: '#0f172a', display: 'block', marginTop: 2 }}>{integrations.erpAccounting.name}</strong>
-            <span style={{ fontSize: 12, color: '#475569', fontWeight: 600, display: 'inline-block', marginTop: 4 }}>
-              ● {integrations.erpAccounting.status}
-            </span>
           </div>
         </div>
       </div>

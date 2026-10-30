@@ -29,9 +29,7 @@ export function PartnerLayout({
         { path: '/partner/live-tracking', label: 'Live Worker Tracking', icon: Navigation, badge: 'Live' },
         { path: '/partner/bookings', label: 'Bookings & Dispatch', icon: Briefcase, badge: 'Active' },
         { path: '/partner/calendar', label: 'Schedule Board', icon: Calendar },
-        { path: '/partner/team', label: 'Technician Fleet', icon: Users },
-        { path: '/partner/services', label: 'Service Catalogue', icon: CheckCircle2 },
-        { path: '/partner/coverage', label: 'Coverage Zones', icon: ShieldCheck }
+        { path: '/partner/team', label: 'Technician Fleet', icon: Users }
       ]
     },
     {
@@ -46,10 +44,7 @@ export function PartnerLayout({
     {
       group: 'Quality & Growth',
       items: [
-        { path: '/partner/reviews', label: 'Customer Reviews', icon: Star },
-        { path: '/partner/training', label: 'SOP Training', icon: Award },
-        { path: '/partner/inventory', label: 'Consumables Stock', icon: Package },
-        { path: '/partner/support', label: 'Priority Support', icon: LifeBuoy }
+        { path: '/partner/reviews', label: 'Customer Reviews', icon: Star }
       ]
     },
     {
@@ -58,8 +53,6 @@ export function PartnerLayout({
         { path: '/partner/notifications', label: 'Alerts', icon: Bell },
         { path: '/partner/reports', label: 'Performance Reports', icon: BarChart3 },
         { path: '/partner/documents', label: 'KYC Documents', icon: Shield },
-        { path: '/partner/staff', label: 'Staff Accounts', icon: UserCheck },
-        { path: '/partner/activity', label: 'Activity Audit Log', icon: History },
         { path: '/partner/settings', label: 'Business Settings', icon: Settings }
       ]
     }
@@ -88,49 +81,56 @@ export function PartnerLayout({
       }}>
         {/* Brand Header */}
         <div style={{
-          padding: sidebarCollapsed ? '18px 12px' : '20px 20px',
+          padding: sidebarCollapsed ? '16px 12px' : '18px 18px',
           borderBottom: '1px solid #f1f5f9',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          height: 64,
+          boxSizing: 'border-box'
         }}>
           {!sidebarCollapsed ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
-                width: 34,
-                height: 34,
-                borderRadius: 8,
+                width: 36,
+                height: 36,
+                borderRadius: 10,
                 background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 800,
-                fontSize: 16
+                fontSize: 15,
+                letterSpacing: 0.5,
+                boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)',
+                flexShrink: 0
               }}>
                 UC
               </div>
               <div>
-                <span style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', letterSpacing: 0.5, textTransform: 'uppercase', display: 'block' }}>
+                <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a', letterSpacing: 0.5, textTransform: 'uppercase', display: 'block', lineHeight: 1.2 }}>
                   Urban Partner
                 </span>
-                <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 600 }}>
+                <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 600, letterSpacing: 0.2 }}>
                   Franchise Portal
                 </span>
               </div>
             </div>
           ) : (
             <div style={{
-              width: 34,
-              height: 34,
-              borderRadius: 8,
-              background: '#7c3aed',
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 800,
-              margin: '0 auto'
+              fontSize: 15,
+              margin: '0 auto',
+              boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)'
             }}>
               UC
             </div>
@@ -148,37 +148,23 @@ export function PartnerLayout({
               alignItems: 'center',
               justifyContent: 'center',
               color: '#64748b',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
             }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#ede9fe'; e.currentTarget.style.color = '#7c3aed'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#64748b'; }}
           >
             <ChevronLeft size={16} />
           </button>
         </div>
 
-        {/* Business Badge */}
-        {!sidebarCollapsed && (
-          <div style={{
-            margin: '14px 16px 8px',
-            padding: '10px 12px',
-            background: '#faf5ff',
-            borderRadius: 8,
-            border: '1px solid #f3e8ff'
-          }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {partner?.businessName || 'Apex Home Solutions LLP'}
-            </div>
-            <div style={{ fontSize: 11.5, color: '#7c3aed', fontWeight: 600, marginTop: 2 }}>
-              ID: {partner?.id || 'PTR-90142'} • {partner?.city || 'Mumbai'}
-            </div>
-          </div>
-        )}
 
         {/* Navigation Items */}
-        <div style={{ flex: 1, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ flex: 1, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 14 }}>
           {navGroups.map(grp => (
             <div key={grp.group}>
               {!sidebarCollapsed && (
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.6, padding: '0 8px 6px' }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.8, padding: '0 8px 6px' }}>
                   {grp.group}
                 </div>
               )}
@@ -192,6 +178,7 @@ export function PartnerLayout({
                       onClick={() => onNavigate(item.path)}
                       title={sidebarCollapsed ? item.label : undefined}
                       style={{
+                        position: 'relative',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: sidebarCollapsed ? 'center' : 'space-between',
@@ -203,10 +190,32 @@ export function PartnerLayout({
                         fontWeight: isActive ? 700 : 500,
                         fontSize: 13,
                         cursor: 'pointer',
-                        transition: 'all 0.12s ease',
-                        boxShadow: isActive ? 'inset 3px 0 0 #7c3aed' : 'none'
+                        transition: 'all 0.12s ease'
+                      }}
+                      onMouseEnter={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = '#f8fafc';
+                          e.currentTarget.style.color = '#1e293b';
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'transparent';
+                          e.currentTarget.style.color = '#475569';
+                        }
                       }}
                     >
+                      {isActive && (
+                        <span style={{
+                          position: 'absolute',
+                          left: 0,
+                          top: 6,
+                          bottom: 6,
+                          width: 3.5,
+                          borderRadius: '0 4px 4px 0',
+                          background: '#7c3aed'
+                        }} />
+                      )}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <Icon size={18} color={isActive ? '#7c3aed' : '#64748b'} />
                         {!sidebarCollapsed && <span>{item.label}</span>}
@@ -214,11 +223,11 @@ export function PartnerLayout({
 
                       {!sidebarCollapsed && item.badge && (
                         <span style={{
-                          fontSize: 10.5,
+                          fontSize: 10,
                           fontWeight: 700,
                           background: '#7c3aed',
                           color: '#fff',
-                          padding: '1px 6px',
+                          padding: '2px 7px',
                           borderRadius: 10
                         }}>
                           {item.badge}
@@ -232,23 +241,23 @@ export function PartnerLayout({
           ))}
         </div>
 
-        {/* Bottom User Card */}
+        {/* Bottom User Card & Logout */}
         <div style={{
           padding: '12px 14px',
           borderTop: '1px solid #f1f5f9',
           background: '#ffffff'
         }}>
           {!sidebarCollapsed ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
                 <div style={{
-                  width: 34,
-                  height: 34,
+                  width: 36,
+                  height: 36,
                   borderRadius: 10,
                   background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
                   color: '#7c3aed',
                   fontWeight: 800,
-                  fontSize: 12.5,
+                  fontSize: 13,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -273,39 +282,71 @@ export function PartnerLayout({
                   </div>
                 </div>
               </div>
+
+              {/* Dedicated Clear Log Out Button */}
               <button
+                type="button"
                 onClick={onLogout}
-                title="Sign out of partner portal"
+                title="Log out of partner portal session"
                 style={{
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  color: '#64748b',
-                  cursor: 'pointer',
-                  padding: 6,
-                  borderRadius: 6,
+                  width: '100%',
+                  marginTop: 10,
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  border: '1px solid #fee2e2',
+                  background: '#fef2f2',
+                  color: '#dc2626',
+                  fontSize: 12.5,
+                  fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  flexShrink: 0,
-                  transition: 'all 0.12s ease'
+                  gap: 8,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#fee2e2';
+                  e.currentTarget.style.borderColor = '#fca5a5';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#fef2f2';
+                  e.currentTarget.style.borderColor = '#fee2e2';
                 }}
               >
                 <LogOut size={15} />
+                <span>Log Out</span>
               </button>
             </div>
           ) : (
             <button
+              type="button"
               onClick={onLogout}
+              title="Log Out"
               style={{
-                background: 'none',
-                border: 'none',
-                color: '#94a3b8',
-                cursor: 'pointer',
+                width: 38,
+                height: 38,
+                borderRadius: 8,
+                border: '1px solid #fee2e2',
+                background: '#fef2f2',
+                color: '#dc2626',
                 display: 'flex',
-                margin: '0 auto'
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = '#fee2e2';
+                e.currentTarget.style.borderColor = '#fca5a5';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = '#fef2f2';
+                e.currentTarget.style.borderColor = '#fee2e2';
               }}
             >
-              <LogOut size={18} />
+              <LogOut size={16} />
             </button>
           )}
         </div>
@@ -320,75 +361,89 @@ export function PartnerLayout({
           borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '0 24px',
+          padding: '0 28px',
           position: 'sticky',
           top: 0,
-          zIndex: 40
+          zIndex: 40,
+          boxSizing: 'border-box'
         }}>
-          {/* Breadcrumb / Path Title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500 }}>Partner Portal</span>
-            <span style={{ fontSize: 13, color: '#cbd5e1' }}>/</span>
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>
-              {(() => {
-                for (const group of navGroups) {
-                  const match = group.items.find(i => i.path === currentPath);
-                  if (match) return match.label;
-                }
-                if (currentPath === '/partner') return 'Overview';
-                return currentPath.replace('/partner/', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-              })()}
-            </span>
-          </div>
+          <div style={{
+            maxWidth: 1400,
+            margin: '0 auto',
+            width: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between'
+          }}>
+            {/* Breadcrumb / Path Title */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Building2 size={15} color="#7c3aed" /> Partner Portal
+              </span>
+              <span style={{ fontSize: 13, color: '#cbd5e1' }}>/</span>
+              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>
+                {(() => {
+                  for (const group of navGroups) {
+                    const match = group.items.find(i => i.path === currentPath);
+                    if (match) return match.label;
+                  }
+                  if (currentPath === '/partner') return 'Overview';
+                  return currentPath.replace('/partner/', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                })()}
+              </span>
+            </div>
 
-          {/* Top Actions: Role Switcher & Marketplace Exit */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            {staff?.role && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '7px 13px',
-                height: 36,
-                boxSizing: 'border-box',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: 8,
-                fontSize: 12.5,
-                fontWeight: 600,
-                color: '#334155'
-              }}>
-                <UserCheck size={14} color="#7c3aed" />
-                <span>Role: <strong style={{ color: '#0f172a' }}>{staff?.role}</strong></span>
-              </div>
-            )}
-
-            {/* Exit to Customer Marketplace */}
-            {onExitToMarketplace && (
-              <button
-                onClick={onExitToMarketplace}
-                style={{
+            {/* Top Actions: Role Switcher & Marketplace Exit */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {staff?.role && (
+                <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 6,
-                  padding: '7px 13px',
+                  padding: '0 12px',
                   height: 36,
                   boxSizing: 'border-box',
-                  background: '#ffffff',
+                  background: '#f8fafc',
                   border: '1px solid #e2e8f0',
                   borderRadius: 8,
                   fontSize: 12.5,
                   fontWeight: 600,
-                  color: '#475569',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                  transition: 'all 0.15s ease'
-                }}
-              >
-                Marketplace <ArrowUpRight size={14} />
-              </button>
-            )}
+                  color: '#334155'
+                }}>
+                  <UserCheck size={14} color="#7c3aed" />
+                  <span>Role: <strong style={{ color: '#0f172a' }}>{staff?.role}</strong></span>
+                </div>
+              )}
+
+              {/* Exit to Customer Marketplace */}
+              {onExitToMarketplace && (
+                <button
+                  type="button"
+                  onClick={onExitToMarketplace}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '0 14px',
+                    height: 36,
+                    boxSizing: 'border-box',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 8,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    color: '#334155',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+                    transition: 'all 0.15s ease'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.color = '#7c3aed'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#334155'; }}
+                >
+                  Marketplace <ArrowUpRight size={14} />
+                </button>
+              )}
+            </div>
           </div>
         </header>
 
