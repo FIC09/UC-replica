@@ -381,14 +381,22 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           fileName: postWorkPhotoFile?.name || `post_work_${Date.now()}.jpg`,
           fileSizeKb: postWorkPhotoFile ? Math.round(postWorkPhotoFile.size / 1024) : 1200
         };
-        await professionalClient.uploadJobPhotoEvidence(jobId, {
-          phase: 'after',
-          photoType: 'work_area',
-          fileBase64: postWorkPhotoPreview,
-          fileName: afterPhotoData.fileName,
-          fileSizeKb: afterPhotoData.fileSizeKb,
-          mimeType: postWorkPhotoFile?.type || 'image/jpeg'
-        }).catch(() => {});
+        try {
+          const uploadRes = await professionalClient.uploadJobPhotoEvidence(jobId, {
+            phase: 'after',
+            photoType: 'work_area',
+            fileBase64: postWorkPhotoPreview,
+            fileName: afterPhotoData.fileName,
+            fileSizeKb: afterPhotoData.fileSizeKb,
+            mimeType: postWorkPhotoFile?.type || 'image/jpeg'
+          });
+          if (uploadRes?.photo?.url) {
+            afterPhotoData.url = uploadRes.photo.url;
+            afterPhotoData.cloudinaryPublicId = uploadRes.photo.cloudinaryPublicId;
+          }
+        } catch (uploadErr) {
+          console.warn('Post-work Cloudinary upload sync error:', uploadErr);
+        }
       }
 
       await professionalClient.updateJobStatus(jobId, 'Completed', null, {
@@ -428,14 +436,22 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           fileName: preWorkPhotoFile?.name || `pre_work_${Date.now()}.jpg`,
           fileSizeKb: preWorkPhotoFile ? Math.round(preWorkPhotoFile.size / 1024) : 1200
         };
-        await professionalClient.uploadJobPhotoEvidence(jobId, {
-          phase: 'before',
-          photoType: 'work_area',
-          fileBase64: preWorkPhotoPreview,
-          fileName: beforePhotoData.fileName,
-          fileSizeKb: beforePhotoData.fileSizeKb,
-          mimeType: preWorkPhotoFile?.type || 'image/jpeg'
-        }).catch(() => {});
+        try {
+          const uploadRes = await professionalClient.uploadJobPhotoEvidence(jobId, {
+            phase: 'before',
+            photoType: 'work_area',
+            fileBase64: preWorkPhotoPreview,
+            fileName: beforePhotoData.fileName,
+            fileSizeKb: beforePhotoData.fileSizeKb,
+            mimeType: preWorkPhotoFile?.type || 'image/jpeg'
+          });
+          if (uploadRes?.photo?.url) {
+            beforePhotoData.url = uploadRes.photo.url;
+            beforePhotoData.cloudinaryPublicId = uploadRes.photo.cloudinaryPublicId;
+          }
+        } catch (uploadErr) {
+          console.warn('Pre-work Cloudinary upload sync error:', uploadErr);
+        }
       }
 
       await professionalClient.updateJobStatus(jobId, 'In Progress', otpInput.trim(), {

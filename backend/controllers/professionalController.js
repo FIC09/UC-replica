@@ -10,6 +10,7 @@ import { getActiveOffer } from '../config/redis.js';
 import { acceptAssignmentOffer, rejectAssignmentOffer } from '../services/assignmentEngine.js';
 import { TrackingSession } from '../models/TrackingSession.js';
 import { broadcastTrackingUpdate } from '../routes/trackingRoutes.js';
+import { uploadToCloudinary } from '../config/cloudinary.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'urban_company_jwt_secret_key_2026';
 
@@ -3143,18 +3144,49 @@ export async function uploadJobPhotoEvidence(req, res) {
     const allowedTypes = ['equipment', 'part', 'serial_plate', 'work_area'];
     const finalPhotoType = allowedTypes.includes(photoType) ? photoType : 'equipment';
 
+    // Upload to Cloudinary (dlpzb0td2)
+    let finalUrl = '';
+    let cloudPublicId = '';
+    let uploadedBytes = null;
+
+    if (fileBase64 && typeof fileBase64 === 'string') {
+      if (fileBase64.startsWith('http') && !fileBase64.startsWith('data:')) {
+        finalUrl = fileBase64;
+      } else {
+        try {
+          const folderPhase = phase === 'after' ? 'post_work' : 'pre_work';
+          const cloudResult = await uploadToCloudinary(fileBase64, {
+            folder: `urban_company/worker_evidence/${id}/${folderPhase}`,
+            phase: folderPhase,
+            public_id: `${folderPhase}_${Date.now()}`
+          });
+          finalUrl = cloudResult.secure_url;
+          cloudPublicId = cloudResult.public_id;
+          uploadedBytes = cloudResult.bytes;
+        } catch (uploadErr) {
+          console.error('Cloudinary upload error in uploadJobPhotoEvidence:', uploadErr);
+          finalUrl = fileBase64;
+        }
+      }
+    }
+
+    if (!finalUrl) {
+      finalUrl = finalPhotoType === 'serial_plate'
+        ? 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'
+        : 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80';
+    }
+
     const photoRecord = {
       id: `photo-${Date.now()}`,
       phase: phase === 'after' ? 'after' : 'before',
       photoType: finalPhotoType,
       fileName: fileName || `${phase || 'before'}_${finalPhotoType}_${Date.now()}.jpg`,
-      fileSizeKb: sizeKb,
+      fileSizeKb: uploadedBytes ? Math.round(uploadedBytes / 1024) : sizeKb,
       mimeType: mimeType || 'image/jpeg',
-      url: fileBase64 || (finalPhotoType === 'serial_plate'
-        ? 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'
-        : 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&w=600&q=80'),
+      url: finalUrl,
+      cloudinaryPublicId: cloudPublicId,
       uploadedAt: new Date(),
-      uploadedBy: pro.applicantName
+      uploadedBy: pro.applicantName || pro.name || 'Service Professional'
     };
 
     let list = bookingEvidenceStore.get(id) || [];
@@ -3172,6 +3204,7 @@ export async function uploadJobPhotoEvidence(req, res) {
           url: photoRecord.url,
           fileName: photoRecord.fileName,
           fileSizeKb: photoRecord.fileSizeKb,
+          cloudinaryPublicId: cloudPublicId,
           uploadedAt: photoRecord.uploadedAt,
           uploadedBy: pro.applicantName || pro.name || 'Service Professional'
         };
@@ -3180,6 +3213,7 @@ export async function uploadJobPhotoEvidence(req, res) {
           url: photoRecord.url,
           fileName: photoRecord.fileName,
           fileSizeKb: photoRecord.fileSizeKb,
+          cloudinaryPublicId: cloudPublicId,
           uploadedAt: photoRecord.uploadedAt,
           uploadedBy: pro.applicantName || pro.name || 'Service Professional'
         };
@@ -3189,7 +3223,7 @@ export async function uploadJobPhotoEvidence(req, res) {
         id: `tl-${Date.now()}`,
         status: booking.status,
         title: `Uploaded ${photoRecord.phase.toUpperCase()} Evidence Photo`,
-        description: `Verified ${finalPhotoType} inspection photo (${photoRecord.fileName}) attached to work vault.`,
+        description: `Verified ${finalPhotoType} inspection photo (${photoRecord.fileName}) saved to Cloudinary vault.`,
         actor: pro.applicantName || pro.name || 'Service Professional',
         actorRole: 'Service Professional',
         timestamp: new Date()
@@ -3199,7 +3233,7 @@ export async function uploadJobPhotoEvidence(req, res) {
 
     return res.json({
       success: true,
-      message: `Inspection evidence photo uploaded successfully under protected vault access. (Category: ${finalPhotoType})`,
+      message: `Inspection evidence photo uploaded successfully to Cloudinary vault. (Category: ${finalPhotoType})`,
       photo: photoRecord,
       beforeWorkPhoto: booking?.beforeWorkPhoto,
       afterWorkPhoto: booking?.afterWorkPhoto
@@ -3852,11 +3886,28 @@ export async function updateJobStatus(req, res) {
       }
       if (req.body?.beforeWorkPhoto) {
         const bwp = req.body.beforeWorkPhoto;
-        const photoUrl = typeof bwp === 'string' ? bwp : (bwp.url || bwp.fileBase64);
+        let photoUrl = typeof bwp === 'string' ? bwp : (bwp.url || bwp.fileBase64);
+        let cloudPublicId = bwp.cloudinaryPublicId || '';
+
+        if (photoUrl && typeof photoUrl === 'string' && (photoUrl.startsWith('data:image') || (!photoUrl.startsWith('http') && photoUrl.length > 200))) {
+          try {
+            const cRes = await uploadToCloudinary(photoUrl, {
+              folder: `urban_company/worker_evidence/${id}/pre_work`,
+              phase: 'pre_work',
+              public_id: `pre_work_${Date.now()}`
+            });
+            photoUrl = cRes.secure_url;
+            cloudPublicId = cRes.public_id;
+          } catch (cErr) {
+            console.error('Cloudinary pre-work upload error in updateJobStatus:', cErr);
+          }
+        }
+
         booking.beforeWorkPhoto = {
           url: photoUrl,
           fileName: bwp.fileName || `before_service_${Date.now()}.jpg`,
           fileSizeKb: bwp.fileSizeKb || 1200,
+          cloudinaryPublicId: cloudPublicId,
           uploadedAt: new Date(),
           uploadedBy: proName
         };
@@ -3867,17 +3918,35 @@ export async function updateJobStatus(req, res) {
           phase: 'before',
           photoType: 'work_area',
           url: photoUrl,
+          cloudinaryPublicId: cloudPublicId,
           fileName: booking.beforeWorkPhoto.fileName,
           uploadedAt: new Date()
         });
       }
       if (req.body?.afterWorkPhoto) {
         const awp = req.body.afterWorkPhoto;
-        const photoUrl = typeof awp === 'string' ? awp : (awp.url || awp.fileBase64);
+        let photoUrl = typeof awp === 'string' ? awp : (awp.url || awp.fileBase64);
+        let cloudPublicId = awp.cloudinaryPublicId || '';
+
+        if (photoUrl && typeof photoUrl === 'string' && (photoUrl.startsWith('data:image') || (!photoUrl.startsWith('http') && photoUrl.length > 200))) {
+          try {
+            const cRes = await uploadToCloudinary(photoUrl, {
+              folder: `urban_company/worker_evidence/${id}/post_work`,
+              phase: 'post_work',
+              public_id: `post_work_${Date.now()}`
+            });
+            photoUrl = cRes.secure_url;
+            cloudPublicId = cRes.public_id;
+          } catch (cErr) {
+            console.error('Cloudinary post-work upload error in updateJobStatus:', cErr);
+          }
+        }
+
         booking.afterWorkPhoto = {
           url: photoUrl,
           fileName: awp.fileName || `after_service_${Date.now()}.jpg`,
           fileSizeKb: awp.fileSizeKb || 1200,
+          cloudinaryPublicId: cloudPublicId,
           uploadedAt: new Date(),
           uploadedBy: proName
         };
@@ -3888,6 +3957,7 @@ export async function updateJobStatus(req, res) {
           phase: 'after',
           photoType: 'work_area',
           url: photoUrl,
+          cloudinaryPublicId: cloudPublicId,
           fileName: booking.afterWorkPhoto.fileName,
           uploadedAt: new Date()
         });

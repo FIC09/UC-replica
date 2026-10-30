@@ -359,6 +359,7 @@ const bookingSchema = new mongoose.Schema({
       phase: { type: String, enum: ['before', 'after'], default: 'before' },
       photoType: { type: String, enum: ['equipment', 'part', 'serial_plate', 'work_area'], default: 'equipment' },
       url: String,
+      cloudinaryPublicId: String,
       fileName: String,
       fileSizeKb: Number,
       mimeType: String,
@@ -371,6 +372,7 @@ const bookingSchema = new mongoose.Schema({
     url: String,
     fileName: String,
     fileSizeKb: Number,
+    cloudinaryPublicId: String,
     uploadedAt: { type: Date, default: Date.now },
     uploadedBy: String
   },
@@ -378,6 +380,7 @@ const bookingSchema = new mongoose.Schema({
     url: String,
     fileName: String,
     fileSizeKb: Number,
+    cloudinaryPublicId: String,
     uploadedAt: { type: Date, default: Date.now },
     uploadedBy: String
   },
