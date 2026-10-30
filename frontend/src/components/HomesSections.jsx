@@ -23,6 +23,7 @@ export function HomesSections({
   onOpenKitchenCleaningPage,
   onOpenFullHomeCleaningPage,
   onOpenCockroachControlPage,
+  onOpenPaintingPage,
   services = []
 }) {
   function handleCategory(catId) {
@@ -251,12 +252,23 @@ export function HomesSections({
               {/* Banner 2: Festive Home Painting */}
               <div 
                 className="homes-banner-card banner-painting"
-                onClick={() => handleCategory('painting-decor')}
+                onClick={() => onOpenPaintingPage ? onOpenPaintingPage() : handleCategory('painting-decor')}
+                style={{ cursor: 'pointer' }}
               >
                 <div className="homes-banner-content">
                   <h3 className="banner-title-light">Elevate your home this festive season</h3>
                   <p className="banner-sub-light">Home painting</p>
-                  <button type="button" className="banner-btn-dark-translucent">Book now</button>
+                  <button 
+                    type="button" 
+                    className="banner-btn-dark-translucent"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onOpenPaintingPage) onOpenPaintingPage();
+                      else handleCategory('painting-decor');
+                    }}
+                  >
+                    Book now
+                  </button>
                 </div>
                 <div className="homes-banner-img-wrap">
                   <img src="/images/home_festive.jpg" alt="Home painting" className="homes-banner-img" />

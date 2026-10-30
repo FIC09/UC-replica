@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { Booking, canTransitionLifecycle, VALID_LIFECYCLE_TRANSITIONS } from '../models/Booking.js';
 import { WorkerApplication } from '../models/WorkerApplication.js';
 import { TrackingSession } from '../models/TrackingSession.js';
@@ -178,7 +179,11 @@ export async function createBookingOnBehalf(req, res) {
       address,
       slot,
       customerInstructions,
-      assignedPartner
+      assignedPartner,
+      professionalId,
+      assignmentMode = 'AUTO',
+      paymentStatus = 'Pending',
+      paymentMethod = 'Cash After Service (COD)'
     } = req.body;
 
     if (!userName || !userPhone || !address || !slot) {
@@ -188,18 +193,30 @@ export async function createBookingOnBehalf(req, res) {
       });
     }
 
-    const newId = req.body.id || `ORD-${Math.floor(1000 + Math.random() * 9000)}`;
-    const calculatedSubtotal = totalAmount || 699;
+    const newId = req.body.id || `UC-${Math.floor(100000 + Math.random() * 900000)}`;
+    const calculatedSubtotal = Number(totalAmount) || 699;
+
+    let assignedProObj = null;
+    let initialStatus = 'Pending';
+    if (assignedPartner || professionalId) {
+      initialStatus = 'Assigned';
+      assignedProObj = {
+        id: professionalId || '',
+        name: assignedPartner || 'Assigned Technician',
+        phone: req.body.professionalPhone || ''
+      };
+    }
 
     const newBooking = {
       id: newId,
       bookingReference: newId,
       userName,
+      customerName: userName,
       userPhone,
       userEmail: userEmail || '',
-      serviceName: serviceName || 'Powerjet AC Servicing',
-      serviceCategory: serviceCategory || 'ac-appliances',
-      items: items && items.length > 0 ? items : [{ id: 'srv-1', title: serviceName || 'Home Service', qty: 1, price: calculatedSubtotal }],
+      serviceName: serviceName || 'AC Deep Clean & Jet Pump Service',
+      serviceCategory: serviceCategory || 'Appliance Repair',
+      items: items && items.length > 0 ? items : [{ id: 'srv-1', title: serviceName || 'AC Deep Clean & Jet Pump Service', qty: 1, price: calculatedSubtotal }],
       pricingBreakdown: {
         subtotal: calculatedSubtotal,
         discount: 0,
@@ -209,20 +226,22 @@ export async function createBookingOnBehalf(req, res) {
         total: calculatedSubtotal + 49 + Math.round(calculatedSubtotal * 0.18)
       },
       totalAmount: calculatedSubtotal + 49 + Math.round(calculatedSubtotal * 0.18),
-      city: city || 'Mumbai',
-      serviceZone: serviceZone || 'Bandra West',
+      city: city || 'Krishnagiri',
+      serviceZone: serviceZone || 'Gandhi Nagar',
       address,
       addressDetails: {
         fullAddress: address,
-        locality: serviceZone || 'Bandra West',
-        city: city || 'Mumbai',
+        locality: serviceZone || 'Gandhi Nagar',
+        city: city || 'Krishnagiri',
         contactPhone: userPhone
       },
       slot,
-      status: assignedPartner ? 'Assigned' : 'Confirmed',
-      paymentStatus: 'Pending',
-      paymentMethod: 'Cash After Service (COD)',
+      status: initialStatus,
+      paymentStatus: paymentStatus || 'Pending',
+      paymentMethod: paymentMethod || 'Cash After Service (COD)',
       assignedPartner: assignedPartner || '',
+      assignedProfessional: assignedProObj,
+      assignmentMode: assignmentMode || 'AUTO',
       customerInstructions: customerInstructions || '',
       internalNotes: [
         {
@@ -236,9 +255,9 @@ export async function createBookingOnBehalf(req, res) {
       timeline: [
         {
           id: `tl-${Date.now()}`,
-          status: 'Confirmed',
+          status: initialStatus,
           title: 'Booking Created by Admin',
-          description: `Created on behalf of customer by ${req.admin?.name || 'Administrator'}.`,
+          description: `Created on behalf of customer ${userName} by ${req.admin?.name || 'Administrator'}.`,
           actor: req.admin?.name || 'Staff',
           actorRole: req.admin?.role || 'Admin',
           timestamp: new Date()
@@ -248,17 +267,152 @@ export async function createBookingOnBehalf(req, res) {
       createdAt: new Date()
     };
 
+    const created = await Booking.create(newBooking);
+
     try {
-      await Booking.create(newBooking);
-    } catch {}
+      await syncBookingToPostgres(created);
+    } catch (pgErr) {}
+
+    // Emit real-time WebSocket events
+    try {
+      emitEvent('BOOKING_CREATED', {
+        entityId: newId,
+        room: 'admin:operations',
+        payload: created
+      });
+      emitEvent('BOOKING_CREATED', {
+        entityId: newId,
+        room: `user:${created.userId || created.userPhone}`,
+        payload: created
+      });
+    } catch (wsErr) {}
+
+    // Auto-assignment if in AUTO mode and not manually assigned
+    if (newBooking.assignmentMode === 'AUTO' && !assignedPartner && !professionalId) {
+      try {
+        await triggerAutoAssignment(created);
+      } catch (autoErr) {
+        console.warn('Auto-assignment attempt notice:', autoErr.message);
+      }
+    }
 
     return res.status(201).json({
       success: true,
       message: `Booking #${newId} created successfully on behalf of ${userName}.`,
-      booking: newBooking
+      booking: created
     });
   } catch (err) {
     console.error('createBookingOnBehalf error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// 3b. Update Booking Details (Admin Direct Edit)
+export async function updateBookingDetails(req, res) {
+  try {
+    const { id } = req.params;
+    const query = [{ id }, { bookingReference: id }];
+    if (mongoose.isValidObjectId(id)) {
+      query.push({ _id: id });
+    }
+
+    let booking = await Booking.findOne({ $or: query });
+    if (!booking) {
+      return res.status(404).json({ success: false, error: `Booking #${id} not found.` });
+    }
+
+    const {
+      userName,
+      userPhone,
+      userEmail,
+      serviceName,
+      serviceCategory,
+      totalAmount,
+      city,
+      serviceZone,
+      address,
+      slot,
+      status,
+      paymentStatus,
+      paymentMethod,
+      customerInstructions,
+      assignedPartner,
+      assignmentMode
+    } = req.body;
+
+    if (userName) {
+      booking.userName = userName;
+      booking.customerName = userName;
+    }
+    if (userPhone) booking.userPhone = userPhone;
+    if (userEmail !== undefined) booking.userEmail = userEmail;
+    if (serviceName) booking.serviceName = serviceName;
+    if (serviceCategory) booking.serviceCategory = serviceCategory;
+    if (totalAmount != null) {
+      const amt = Number(totalAmount) || 0;
+      booking.totalAmount = amt;
+      if (booking.pricingBreakdown) booking.pricingBreakdown.total = amt;
+    }
+    if (city) booking.city = city;
+    if (serviceZone) booking.serviceZone = serviceZone;
+    if (address) {
+      booking.address = address;
+      if (booking.addressDetails) {
+        booking.addressDetails.fullAddress = address;
+        if (city) booking.addressDetails.city = city;
+        if (serviceZone) booking.addressDetails.locality = serviceZone;
+      }
+    }
+    if (slot) booking.slot = slot;
+    if (status && status !== booking.status) {
+      booking.status = status;
+      booking.timeline.push({
+        id: `tl-${Date.now()}`,
+        status,
+        title: `Status set to ${status}`,
+        description: `Status changed by administrator ${req.admin?.name || 'Admin'}`,
+        actor: req.admin?.name || 'Administrator',
+        actorRole: req.admin?.role || 'Admin',
+        timestamp: new Date()
+      });
+    }
+    if (paymentStatus) booking.paymentStatus = paymentStatus;
+    if (paymentMethod) booking.paymentMethod = paymentMethod;
+    if (customerInstructions !== undefined) booking.customerInstructions = customerInstructions;
+    if (assignedPartner !== undefined) booking.assignedPartner = assignedPartner;
+    if (assignmentMode) booking.assignmentMode = assignmentMode;
+
+    booking.timeline.push({
+      id: `tl-${Date.now()}`,
+      status: booking.status,
+      title: 'Booking Details Updated',
+      description: `Administrative update applied by ${req.admin?.name || 'Admin'}`,
+      actor: req.admin?.name || 'Administrator',
+      actorRole: req.admin?.role || 'Admin',
+      timestamp: new Date()
+    });
+
+    await booking.save();
+
+    try {
+      await syncBookingToPostgres(booking);
+    } catch (pgErr) {}
+
+    try {
+      emitEvent('BOOKING_UPDATED', {
+        entityId: booking.id || id,
+        room: 'admin:operations',
+        payload: booking
+      });
+    } catch (wsErr) {}
+
+    return res.json({
+      success: true,
+      message: `Booking #${id} updated successfully.`,
+      booking
+    });
+  } catch (err) {
+    console.error('updateBookingDetails error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }
@@ -1038,15 +1192,38 @@ export async function getAssignmentManagementStats(req, res) {
 export async function deleteBooking(req, res) {
   try {
     const { id } = req.params;
-    const deleted = await Booking.findOneAndDelete({ $or: [{ id }, { bookingReference: id }] });
+    const query = [{ id }, { bookingReference: id }];
+    if (mongoose.isValidObjectId(id)) {
+      query.push({ _id: id });
+    }
+    const deleted = await Booking.findOneAndDelete({ $or: query });
     if (!deleted) {
       return res.status(404).json({ success: false, error: `Booking #${id} not found.` });
     }
+
+    // Delete associated live tracking sessions
+    try {
+      await TrackingSession.deleteMany({
+        $or: [{ bookingId: id }, { bookingReference: id }]
+      });
+    } catch (e) {}
+
+    // Emit real-time synchronization events
+    try {
+      emitEvent('BOOKING_DELETED', {
+        entityId: id,
+        room: 'admin:operations',
+        payload: { bookingId: id }
+      });
+    } catch (e) {}
+
     return res.json({
       success: true,
-      message: `Booking #${id} deleted permanently from database.`
+      message: `Booking #${id} deleted permanently from database.`,
+      deletedId: id
     });
   } catch (err) {
+    console.error('deleteBooking error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }

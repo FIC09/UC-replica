@@ -249,40 +249,6 @@ export function PartnerLayout({
         }}>
           {!sidebarCollapsed ? (
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
-                  color: '#7c3aed',
-                  fontWeight: 800,
-                  fontSize: 13,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  border: '1px solid #e9d5ff'
-                }}>
-                  {(staff?.name || 'Sandeep Patil').split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
-                </div>
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{
-                    fontSize: 13,
-                    fontWeight: 700,
-                    color: '#0f172a',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis'
-                  }} title={staff?.name || 'Sandeep Patil'}>
-                    {(staff?.name || 'Sandeep Patil').replace(/\s*\(Agency Owner\)/i, '')}
-                  </div>
-                  <div style={{ fontSize: 11.5, color: '#7c3aed', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {staff?.role || 'Business Owner'}
-                  </div>
-                </div>
-              </div>
-
               {/* Dedicated Clear Log Out Button */}
               <button
                 type="button"
@@ -290,7 +256,6 @@ export function PartnerLayout({
                 title="Log out of partner portal session"
                 style={{
                   width: '100%',
-                  marginTop: 10,
                   padding: '9px 12px',
                   borderRadius: 8,
                   border: '1px solid #fee2e2',

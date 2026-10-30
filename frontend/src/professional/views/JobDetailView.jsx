@@ -4,6 +4,7 @@ import { RapidoChatDrawer } from '../../components/RapidoChatDrawer';
 import { useWebRtcVoiceCall } from '../../utils/useWebRtcVoiceCall';
 import { WebRtcCallModal } from '../../components/WebRtcCallModal';
 import { usePlatformSettings } from '../../utils/usePlatformSettings';
+import { LiveCameraModal } from '../../components/LiveCameraModal';
 
 export function JobDetailView({ jobId, onNavigate, showToast }) {
   const { platformTakeRate, isSurgeActive, surgeAmount } = usePlatformSettings();
@@ -54,6 +55,51 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
   const [photoType, setPhotoType] = useState('equipment');
   const [photoError, setPhotoError] = useState('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  // Mandatory Work Verification Photo States (Pre-work & Post-work)
+  const [preWorkPhotoFile, setPreWorkPhotoFile] = useState(null);
+  const [preWorkPhotoPreview, setPreWorkPhotoPreview] = useState(null);
+  const [postWorkPhotoFile, setPostWorkPhotoFile] = useState(null);
+  const [postWorkPhotoPreview, setPostWorkPhotoPreview] = useState(null);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [isCompletingWithPhoto, setIsCompletingWithPhoto] = useState(false);
+  const [completionPhotoError, setCompletionPhotoError] = useState('');
+  const [previewZoomImage, setPreviewZoomImage] = useState(null);
+
+  // Direct Live Camera Capture State (Gallery Disabled)
+  const [liveCameraConfig, setLiveCameraConfig] = useState({
+    isOpen: false,
+    phase: 'after',
+    title: 'Capture Work Verification Photo',
+    subtitle: '🔴 Live photo capturing only (Gallery disabled)',
+    onSuccess: null
+  });
+
+  const openLiveCamera = ({ phase = 'after', title, subtitle, onSuccess = null }) => {
+    setLiveCameraConfig({
+      isOpen: true,
+      phase,
+      title: title || (phase === 'before' ? 'Capture Pre-Work Photo' : 'Capture Work Completion Photo'),
+      subtitle: subtitle || '🔴 Live camera capture only. Platform policy strictly requires live evidence.',
+      onSuccess
+    });
+  };
+
+  const handleLiveCameraCaptured = (dataUrl) => {
+    if (liveCameraConfig.phase === 'before') {
+      setPreWorkPhotoPreview(dataUrl);
+      setPreWorkPhotoFile({ name: `pre_work_${Date.now()}.jpg`, size: 1200 * 1024, type: 'image/jpeg' });
+      setOtpError('');
+    } else if (liveCameraConfig.phase === 'after') {
+      setPostWorkPhotoPreview(dataUrl);
+      setPostWorkPhotoFile({ name: `post_work_${Date.now()}.jpg`, size: 1200 * 1024, type: 'image/jpeg' });
+      setCompletionPhotoError('');
+    }
+
+    if (typeof liveCameraConfig.onSuccess === 'function') {
+      liveCameraConfig.onSuccess(dataUrl);
+    }
+  };
 
   // 2. Extra Work & Parts States
   const [extraWorkCatalog, setExtraWorkCatalog] = useState([]);
@@ -225,10 +271,83 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
     }
   }
 
+  // Photo Selection & Direct Upload Handlers
+  const handlePreWorkPhotoSelected = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPreWorkPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPreWorkPhotoPreview(reader.result);
+      setOtpError('');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handlePostWorkPhotoSelected = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPostWorkPhotoFile(file);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPostWorkPhotoPreview(reader.result);
+      setCompletionPhotoError('');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadPreWorkPhotoDirectly = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result;
+      try {
+        await professionalClient.uploadJobPhotoEvidence(jobId, {
+          phase: 'before',
+          photoType: 'work_area',
+          fileBase64: base64,
+          fileName: file.name,
+          fileSizeKb: Math.round(file.size / 1024),
+          mimeType: file.type
+        });
+        showToast('✓ Pre-work verification photo uploaded successfully!');
+        await loadJob();
+      } catch (err) {
+        showToast(err.message || 'Failed to upload pre-work photo');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUploadPostWorkPhotoDirectly = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64 = reader.result;
+      try {
+        await professionalClient.uploadJobPhotoEvidence(jobId, {
+          phase: 'after',
+          photoType: 'work_area',
+          fileBase64: base64,
+          fileName: file.name,
+          fileSizeKb: Math.round(file.size / 1024),
+          mimeType: file.type
+        });
+        showToast('✓ Post-work completion photo uploaded successfully!');
+        await loadJob();
+      } catch (err) {
+        showToast(err.message || 'Failed to upload post-work photo');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Lifecycle Transitions
-  const handleUpdateStatus = async (newStatus, otp) => {
+  const handleUpdateStatus = async (newStatus, otp, extraPayload = {}) => {
     try {
-      await professionalClient.updateJobStatus(jobId, newStatus, otp);
+      await professionalClient.updateJobStatus(jobId, newStatus, otp, extraPayload);
       showToast(`Job status updated to "${newStatus}"`);
       await loadJob();
     } catch (err) {
@@ -236,7 +355,64 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
     }
   };
 
+  const handleInitiateCompletion = () => {
+    const hasPostWorkPhoto = job?.afterWorkPhoto?.url || (structuredChecklists?.photos || []).some(p => p.phase === 'after');
+    if (!hasPostWorkPhoto && !postWorkPhotoPreview) {
+      setShowCompletionModal(true);
+      return;
+    }
+    handleConfirmCompletionWithPhoto();
+  };
+
+  const handleConfirmCompletionWithPhoto = async () => {
+    const hasPostWorkPhoto = job?.afterWorkPhoto?.url || (structuredChecklists?.photos || []).some(p => p.phase === 'after');
+    if (!hasPostWorkPhoto && !postWorkPhotoPreview) {
+      setCompletionPhotoError('📸 Work completion photo is mandatory. Please capture or attach a photo.');
+      return;
+    }
+
+    setIsCompletingWithPhoto(true);
+    setCompletionPhotoError('');
+    try {
+      let afterPhotoData = null;
+      if (postWorkPhotoPreview) {
+        afterPhotoData = {
+          url: postWorkPhotoPreview,
+          fileName: postWorkPhotoFile?.name || `post_work_${Date.now()}.jpg`,
+          fileSizeKb: postWorkPhotoFile ? Math.round(postWorkPhotoFile.size / 1024) : 1200
+        };
+        await professionalClient.uploadJobPhotoEvidence(jobId, {
+          phase: 'after',
+          photoType: 'work_area',
+          fileBase64: postWorkPhotoPreview,
+          fileName: afterPhotoData.fileName,
+          fileSizeKb: afterPhotoData.fileSizeKb,
+          mimeType: postWorkPhotoFile?.type || 'image/jpeg'
+        }).catch(() => {});
+      }
+
+      await professionalClient.updateJobStatus(jobId, 'Completed', null, {
+        afterWorkPhoto: afterPhotoData
+      });
+      showToast(`✓ Job Completed! ₹${job.payout} credited to your wallet with verified photo evidence.`);
+      setShowCompletionModal(false);
+      setPostWorkPhotoFile(null);
+      setPostWorkPhotoPreview(null);
+      await loadJob();
+    } catch (err) {
+      setCompletionPhotoError(err.message || 'Failed to complete job');
+    } finally {
+      setIsCompletingWithPhoto(false);
+    }
+  };
+
   const handleVerifyOtp = async () => {
+    const hasPreWorkPhoto = job?.beforeWorkPhoto?.url || preWorkPhotoPreview || (structuredChecklists?.photos || []).some(p => p.phase === 'before');
+    if (!hasPreWorkPhoto) {
+      setOtpError('📸 Pre-work photo is mandatory. Please upload or take a photo before starting service.');
+      return;
+    }
+
     if (!otpInput || otpInput.trim().length !== 4) {
       setOtpError('Please enter a 4-digit code provided by the customer.');
       return;
@@ -245,10 +421,31 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
     setIsVerifyingOtp(true);
     setOtpError('');
     try {
-      await professionalClient.updateJobStatus(jobId, 'In Progress', otpInput.trim());
-      showToast('Start OTP verified! Job is now In Progress.');
+      let beforePhotoData = null;
+      if (preWorkPhotoPreview) {
+        beforePhotoData = {
+          url: preWorkPhotoPreview,
+          fileName: preWorkPhotoFile?.name || `pre_work_${Date.now()}.jpg`,
+          fileSizeKb: preWorkPhotoFile ? Math.round(preWorkPhotoFile.size / 1024) : 1200
+        };
+        await professionalClient.uploadJobPhotoEvidence(jobId, {
+          phase: 'before',
+          photoType: 'work_area',
+          fileBase64: preWorkPhotoPreview,
+          fileName: beforePhotoData.fileName,
+          fileSizeKb: beforePhotoData.fileSizeKb,
+          mimeType: preWorkPhotoFile?.type || 'image/jpeg'
+        }).catch(() => {});
+      }
+
+      await professionalClient.updateJobStatus(jobId, 'In Progress', otpInput.trim(), {
+        beforeWorkPhoto: beforePhotoData
+      });
+      showToast('✓ Start OTP verified! Job is now In Progress.');
       setShowOtpModal(false);
       setOtpInput('');
+      setPreWorkPhotoFile(null);
+      setPreWorkPhotoPreview(null);
       await loadJob();
     } catch (err) {
       setOtpError(err.message || 'Invalid OTP code. Please check with customer.');
@@ -892,7 +1089,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
 
             {job.status === 'In Progress' && (
               <button
-                onClick={() => handleUpdateStatus('Completed')}
+                onClick={handleInitiateCompletion}
                 style={{
                   background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                   color: '#ffffff',
@@ -1061,6 +1258,252 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           </div>
         </div>
       </div>
+
+      {/* Mandatory Work Verification Photos Card (Pre-Work & Post-Work) */}
+      {(() => {
+        const beforePhoto = job?.beforeWorkPhoto || (structuredChecklists?.photos || []).find(p => p.phase === 'before');
+        const afterPhoto = job?.afterWorkPhoto || (structuredChecklists?.photos || []).find(p => p.phase === 'after');
+
+        return (
+          <div style={{
+            background: '#FFFFFF',
+            borderRadius: 14,
+            padding: '16px 20px',
+            border: '1.5px solid #E2E8F0',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+            marginBottom: 20
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, flexWrap: 'wrap', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>📸</span>
+                <span style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A' }}>
+                  Work Verification Evidence Photos
+                </span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '2px 8px', borderRadius: 12 }}>
+                  Mandatory SOP Process
+                </span>
+              </div>
+              <span style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>
+                Pre-work photo required to start • Post-work photo required to finish
+              </span>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 14 }}>
+              {/* Pre-Work Photo Card */}
+              <div style={{
+                border: '1px solid #E2E8F0',
+                borderRadius: 10,
+                padding: '12px 14px',
+                background: beforePhoto ? '#F8FAFC' : '#FFFBEB'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0F172A' }}>
+                    1. Before Starting Work (Pre-Work Photo)
+                  </span>
+                  {beforePhoto ? (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#047857', background: '#ECFDF5', padding: '2px 8px', borderRadius: 6, border: '1px solid #A7F3D0' }}>
+                      ✓ Uploaded & Verified
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#B45309', background: '#FEF3C7', padding: '2px 8px', borderRadius: 6, border: '1px solid #FDE68A' }}>
+                      * Required to Start
+                    </span>
+                  )}
+                </div>
+
+                {beforePhoto ? (
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <img
+                      src={beforePhoto.url}
+                      alt="Pre-work verification"
+                      onClick={() => setPreviewZoomImage(beforePhoto.url)}
+                      style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid #CBD5E1', cursor: 'pointer' }}
+                      title="Click to view full image"
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {beforePhoto.fileName || 'pre_work_photo.jpg'}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                        Uploaded {beforePhoto.uploadedAt ? new Date(beforePhoto.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'on record'}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openLiveCamera({
+                          phase: 'before',
+                          title: 'Retake Pre-Work Photo',
+                          onSuccess: async (dataUrl) => {
+                            await professionalClient.uploadJobPhotoEvidence(jobId, {
+                              phase: 'before',
+                              photoType: 'work_area',
+                              fileBase64: dataUrl,
+                              fileName: `pre_work_${Date.now()}.jpg`,
+                              fileSizeKb: 1200,
+                              mimeType: 'image/jpeg'
+                            });
+                            showToast('✓ Pre-work verification photo uploaded successfully!');
+                            await loadJob();
+                          }
+                        })}
+                        style={{ fontSize: 11, color: '#7C3AED', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', marginTop: 4, display: 'inline-block', background: 'none', border: 'none', padding: 0 }}
+                      >
+                        📷 Retake Live Photo
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ fontSize: 11.5, color: '#78350F', margin: '0 0 10px 0' }}>
+                      You must capture a live photo of the initial work area before starting the service.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => openLiveCamera({
+                        phase: 'before',
+                        title: 'Capture Pre-Work Verification Photo',
+                        onSuccess: async (dataUrl) => {
+                          await professionalClient.uploadJobPhotoEvidence(jobId, {
+                            phase: 'before',
+                            photoType: 'work_area',
+                            fileBase64: dataUrl,
+                            fileName: `pre_work_${Date.now()}.jpg`,
+                            fileSizeKb: 1200,
+                            mimeType: 'image/jpeg'
+                          });
+                          showToast('✓ Pre-work verification photo uploaded successfully!');
+                          await loadJob();
+                        }
+                      })}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: '1px solid #D97706',
+                        background: '#FFF',
+                        color: '#B45309',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span>📷</span>
+                      <span>Capture Live Pre-Work Photo</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Post-Work Photo Card */}
+              <div style={{
+                border: '1px solid #E2E8F0',
+                borderRadius: 10,
+                padding: '12px 14px',
+                background: afterPhoto ? '#F8FAFC' : '#ECFDF5'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0F172A' }}>
+                    2. After Completing Work (Post-Work Photo)
+                  </span>
+                  {afterPhoto ? (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#047857', background: '#ECFDF5', padding: '2px 8px', borderRadius: 6, border: '1px solid #A7F3D0' }}>
+                      ✓ Uploaded & Verified
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#047857', background: '#D1FAE5', padding: '2px 8px', borderRadius: 6, border: '1px solid #A7F3D0' }}>
+                      * Required to Finish
+                    </span>
+                  )}
+                </div>
+
+                {afterPhoto ? (
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <img
+                      src={afterPhoto.url}
+                      alt="Post-work verification"
+                      onClick={() => setPreviewZoomImage(afterPhoto.url)}
+                      style={{ width: 64, height: 64, borderRadius: 8, objectFit: 'cover', border: '1px solid #CBD5E1', cursor: 'pointer' }}
+                      title="Click to view full image"
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {afterPhoto.fileName || 'post_work_photo.jpg'}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                        Uploaded {afterPhoto.uploadedAt ? new Date(afterPhoto.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'on record'}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openLiveCamera({
+                          phase: 'after',
+                          title: 'Retake Post-Work Completion Photo',
+                          onSuccess: async (dataUrl) => {
+                            await professionalClient.uploadJobPhotoEvidence(jobId, {
+                              phase: 'after',
+                              photoType: 'work_area',
+                              fileBase64: dataUrl,
+                              fileName: `post_work_${Date.now()}.jpg`,
+                              fileSizeKb: 1200,
+                              mimeType: 'image/jpeg'
+                            });
+                            showToast('✓ Post-work completion photo uploaded successfully!');
+                            await loadJob();
+                          }
+                        })}
+                        style={{ fontSize: 11, color: '#059669', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', marginTop: 4, display: 'inline-block', background: 'none', border: 'none', padding: 0 }}
+                      >
+                        📷 Retake Live Photo
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ fontSize: 11.5, color: '#065F46', margin: '0 0 10px 0' }}>
+                      You must capture a live photo of the completed service/clean work area to finalize and credit wallet.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => openLiveCamera({
+                        phase: 'after',
+                        title: 'Capture Post-Work Completion Photo',
+                        onSuccess: async (dataUrl) => {
+                          await professionalClient.uploadJobPhotoEvidence(jobId, {
+                            phase: 'after',
+                            photoType: 'work_area',
+                            fileBase64: dataUrl,
+                            fileName: `post_work_${Date.now()}.jpg`,
+                            fileSizeKb: 1200,
+                            mimeType: 'image/jpeg'
+                          });
+                          showToast('✓ Post-work completion photo uploaded successfully!');
+                          await loadJob();
+                        }
+                      })}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: '1px solid #059669',
+                        background: '#FFF',
+                        color: '#047857',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span>📷</span>
+                      <span>Capture Live Post-Work Photo</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Enhanced Tab Navigation */}
       <div style={{
@@ -1299,26 +1742,53 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               </div>
 
               <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
-                <label style={{
-                  flex: 1,
-                  background: isUploadingPhoto ? '#94a3b8' : '#7c3aed',
-                  color: '#ffffff',
-                  textAlign: 'center',
-                  padding: '10px 14px',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: isUploadingPhoto ? 'not-allowed' : 'pointer'
-                }}>
-                  {isUploadingPhoto ? 'Validating & Uploading...' : '📁 Choose & Upload Photo Evidence (Max 5MB)'}
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    disabled={isUploadingPhoto}
-                    onChange={handlePhotoUpload}
-                    style={{ display: 'none' }}
-                  />
-                </label>
+                <button
+                  type="button"
+                  onClick={() => openLiveCamera({
+                    phase: photoPhase,
+                    title: `Capture Live ${photoPhase === 'before' ? 'Pre-Service' : 'Completion'} Evidence Photo`,
+                    onSuccess: async (dataUrl) => {
+                      setIsUploadingPhoto(true);
+                      try {
+                        const res = await professionalClient.uploadJobPhotoEvidence(jobId, {
+                          phase: photoPhase,
+                          photoType,
+                          fileBase64: dataUrl,
+                          fileName: `evidence_${photoPhase}_${Date.now()}.jpg`,
+                          fileSizeKb: 1200,
+                          mimeType: 'image/jpeg'
+                        });
+                        showToast(res.message || 'Live photo evidence attached.');
+                        loadChecklistsData();
+                        loadJob();
+                      } catch (err) {
+                        setPhotoError(err.message || 'Photo upload failed');
+                      } finally {
+                        setIsUploadingPhoto(false);
+                      }
+                    }
+                  })}
+                  disabled={isUploadingPhoto}
+                  style={{
+                    flex: 1,
+                    background: isUploadingPhoto ? '#94a3b8' : '#7c3aed',
+                    color: '#ffffff',
+                    border: 'none',
+                    textAlign: 'center',
+                    padding: '11px 16px',
+                    borderRadius: 8,
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: isUploadingPhoto ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8
+                  }}
+                >
+                  <span>📷</span>
+                  <span>{isUploadingPhoto ? 'Uploading Live Evidence...' : 'Open Live Camera & Capture Evidence Photo'}</span>
+                </button>
               </div>
 
               {/* Gallery of uploaded evidence */}
@@ -2225,9 +2695,81 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               borderRadius: 8,
               fontSize: 12,
               color: '#475569',
-              marginBottom: 16
+              marginBottom: 14
             }}>
               Enter the 4-digit Safety PIN provided by the customer at the doorstep.
+            </div>
+
+            {/* Mandatory Pre-Work Photo Upload Section */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 10,
+              padding: '12px 14px',
+              marginBottom: 16
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>
+                  📸 Pre-Work Photo (Mandatory)
+                </span>
+                {(job?.beforeWorkPhoto?.url || preWorkPhotoPreview) ? (
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '2px 6px', borderRadius: 4 }}>
+                    ✓ Photo Ready
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 10.5, fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '2px 6px', borderRadius: 4 }}>
+                    * Required
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: 11.5, color: '#64748b', margin: '0 0 10px 0' }}>
+                Capture / upload a photo of the equipment or work area before beginning.
+              </p>
+
+              {(job?.beforeWorkPhoto?.url || preWorkPhotoPreview) ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <img
+                    src={preWorkPhotoPreview || job?.beforeWorkPhoto?.url}
+                    alt="Pre-work"
+                    style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover', border: '1px solid #cbd5e1' }}
+                  />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {preWorkPhotoFile?.name || job?.beforeWorkPhoto?.fileName || 'pre_service_photo.jpg'}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => openLiveCamera({ phase: 'before' })}
+                      style={{ fontSize: 11, color: '#2563eb', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
+                    >
+                      📷 Retake live photo
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => openLiveCamera({ phase: 'before' })}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    padding: '11px 14px',
+                    borderRadius: 8,
+                    border: '1.5px dashed #2563eb',
+                    background: '#eff6ff',
+                    color: '#2563eb',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span>📷</span>
+                  <span>Open Live Camera &amp; Take Pre-Work Photo</span>
+                </button>
+              )}
             </div>
 
             {otpError && (
@@ -2305,6 +2847,221 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 {isVerifyingOtp ? 'Verifying...' : 'Verify & Start'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Work Completion Photo Modal */}
+      {showCompletionModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: 20
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: 16,
+            padding: 24,
+            width: '100%',
+            maxWidth: 440,
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+              <span style={{ fontSize: 24 }}>📸</span>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                Upload Work Completion Photo
+              </h3>
+            </div>
+            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0', lineHeight: 1.4 }}>
+              Before marking this service as completed and crediting <strong>₹{job?.payout}</strong> to your wallet, you must attach a photo of the finished work or cleaned area.
+            </p>
+
+            {completionPhotoError && (
+              <div style={{
+                background: '#fee2e2',
+                color: '#991b1b',
+                padding: '10px 12px',
+                borderRadius: 8,
+                fontSize: 12.5,
+                marginBottom: 14,
+                fontWeight: 600
+              }}>
+                ⚠️ {completionPhotoError}
+              </div>
+            )}
+
+            {/* Photo Selection Area */}
+            <div style={{
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: 10,
+              padding: 14,
+              marginBottom: 20
+            }}>
+              {(postWorkPhotoPreview || job?.afterWorkPhoto?.url) ? (
+                <div>
+                  <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: '1px solid #cbd5e1', marginBottom: 10 }}>
+                    <img
+                      src={postWorkPhotoPreview || job?.afterWorkPhoto?.url}
+                      alt="Work Completion Evidence"
+                      style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }}
+                    />
+                    <span style={{
+                      position: 'absolute',
+                      bottom: 8,
+                      right: 8,
+                      background: 'rgba(15,23,42,0.75)',
+                      color: '#ffffff',
+                      padding: '3px 8px',
+                      borderRadius: 4,
+                      fontSize: 11,
+                      fontWeight: 600
+                    }}>
+                      ✓ Photo Selected
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
+                      {postWorkPhotoFile?.name || job?.afterWorkPhoto?.fileName || 'completion_photo.jpg'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => openLiveCamera({ phase: 'after' })}
+                      style={{ fontSize: 11.5, color: '#059669', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
+                    >
+                      📷 Retake Live Photo
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => openLiveCamera({ phase: 'after' })}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    padding: '24px 16px',
+                    borderRadius: 8,
+                    border: '2px dashed #059669',
+                    background: '#ecfdf5',
+                    color: '#047857',
+                    cursor: 'pointer',
+                    textAlign: 'center'
+                  }}
+                >
+                  <span style={{ fontSize: 34 }}>📷</span>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 800 }}>Open Live Camera &amp; Take Photo</div>
+                    <div style={{ fontSize: 11.5, color: '#065f46', marginTop: 3 }}>🔴 Live camera capture only (Gallery disabled)</div>
+                  </div>
+                </button>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCompletionModal(false);
+                  setCompletionPhotoError('');
+                }}
+                disabled={isCompletingWithPhoto}
+                style={{
+                  flex: 1,
+                  background: '#f1f5f9',
+                  color: '#475569',
+                  border: 'none',
+                  padding: '12px 0',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCompletionWithPhoto}
+                disabled={isCompletingWithPhoto || (!postWorkPhotoPreview && !job?.afterWorkPhoto?.url)}
+                style={{
+                  flex: 1.8,
+                  background: (!postWorkPhotoPreview && !job?.afterWorkPhoto?.url) ? '#94a3b8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  padding: '12px 0',
+                  borderRadius: 10,
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: (!postWorkPhotoPreview && !job?.afterWorkPhoto?.url) ? 'not-allowed' : 'pointer',
+                  boxShadow: (!postWorkPhotoPreview && !job?.afterWorkPhoto?.url) ? 'none' : '0 4px 12px rgba(5,150,105,0.3)'
+                }}
+              >
+                {isCompletingWithPhoto ? 'Finalizing...' : `✓ Confirm & Credit ₹${job?.payout}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Zoom Image Modal */}
+      {previewZoomImage && (
+        <div
+          onClick={() => setPreviewZoomImage(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 10000,
+            padding: 20
+          }}
+        >
+          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+            <img
+              src={previewZoomImage}
+              alt="Full Preview"
+              style={{ maxWidth: '100%', maxHeight: '85vh', borderRadius: 8, display: 'block', objectFit: 'contain' }}
+            />
+            <button
+              onClick={() => setPreviewZoomImage(null)}
+              style={{
+                position: 'absolute',
+                top: -12,
+                right: -12,
+                background: '#ffffff',
+                border: 'none',
+                borderRadius: '50%',
+                width: 32,
+                height: 32,
+                fontSize: 16,
+                fontWeight: 800,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+              }}
+            >
+              ✕
+            </button>
           </div>
         </div>
       )}
@@ -2562,7 +3319,16 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
         onEndCall={webrtcVoice.endCall}
         peerName={job?.customerName || job?.userName || 'Customer'}
         peerRole="Customer"
-        peerAvatar="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80"
+        peerAvatar={job?.customerAvatar || job?.userAvatar || ''}
+      />
+
+      {/* Direct Live Camera Modal */}
+      <LiveCameraModal
+        isOpen={liveCameraConfig.isOpen}
+        title={liveCameraConfig.title}
+        subtitle={liveCameraConfig.subtitle}
+        onCapture={handleLiveCameraCaptured}
+        onClose={() => setLiveCameraConfig(prev => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

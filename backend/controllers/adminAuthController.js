@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { Admin, ADMIN_ROLES, PERMISSION_MATRIX } from '../models/Admin.js';
@@ -95,6 +96,7 @@ let mockAdmins = [
 
 // Helper to seed initial admins into DB if MongoDB is active
 export async function seedInitialAdmins() {
+  if (mongoose.connection?.readyState !== 1) return;
   try {
     for (const mock of mockAdmins) {
       const existing = await Admin.findOne({ email: mock.email });

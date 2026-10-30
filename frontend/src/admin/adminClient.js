@@ -181,6 +181,11 @@ export const adminClient = {
     body: JSON.stringify({ newStatus, notes })
   }),
 
+  updateBooking: (id, updateData) => fetchWithFallback(`/bookings/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(updateData)
+  }),
+
   assignProfessional: (id, professionalIdOrData, maybeName) => {
     const payload = typeof professionalIdOrData === 'object' && professionalIdOrData !== null
       ? professionalIdOrData

@@ -93,53 +93,7 @@ export function EarningsView({ showToast }) {
         </div>
       </div>
 
-      {/* Mandatory Settlement Mode Banner & Anti-Double-Counting Notice */}
-      <div style={{
-        background: '#f8fafc',
-        borderRadius: 12,
-        padding: '16px 20px',
-        border: '1px solid #e2e8f0',
-        borderLeft: `4px solid ${isModeB ? '#059669' : '#7c3aed'}`,
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 14
-      }}>
-        <ShieldCheck size={24} color={isModeB ? '#059669' : '#7c3aed'} style={{ flexShrink: 0, marginTop: 2 }} />
-        <div style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.6 }}>
-          <strong style={{ color: '#0f172a', display: 'block', marginBottom: 2 }}>
-            Configured Settlement Mode: {earningsData?.configuredMode || (isModeB ? 'Mode B: Direct to Professionals' : 'Mode A: Platform to Business Partner')}
-          </strong>
-          {earningsData?.settlementDisclaimer || (isModeB
-            ? 'Platform settles directly to individual professionals. The Business Partner receives only its configured 15% business override commission.'
-            : 'Platform settles directly to Agency Corporate Current Account. Internal technician payroll and wages are administered independently by the agency.')}
-          <div style={{ marginTop: 4, fontWeight: 600, color: '#0f172a' }}>
-            Anti-Double-Counting Rule: Only the configured mode is enabled. No payable amount is counted twice between technician and partner ledgers.
-          </div>
-        </div>
-      </div>
 
-      {/* Sandbox Notice & Integer Minor Unit Callout */}
-      <div style={{
-        background: '#eff6ff',
-        borderRadius: 10,
-        padding: '12px 18px',
-        border: '1px solid #bfdbfe',
-        fontSize: 13,
-        color: '#1e40af',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 10
-      }}>
-        <div>
-          <strong>Sandbox Simulated Environment:</strong> RBI/NPCI NEFT/RTGS gateway simulated for partner verification.
-          <em> "Earnings" represent contractual entitlement and do not equate to "money already transferred" until cleared in a Paid cycle.</em>
-        </div>
-        <span style={{ fontWeight: 700, fontSize: 12, color: '#1d4ed8' }}>
-          Minor Currency Unit: Paise (1 INR = 100 Paise)
-        </span>
-      </div>
 
       {/* Financial Metric Cards Grid */}
       <div style={{
@@ -154,7 +108,7 @@ export function EarningsView({ showToast }) {
             ₹{summary.totalGrossTurnover.toLocaleString('en-IN')}
           </div>
           <span style={{ fontSize: 11.5, color: '#64748b' }}>
-            {summary.totalGrossTurnoverPaise?.toLocaleString('en-IN') || 0} paise • {summary.completedJobsCount} jobs
+            {summary.completedJobsCount} completed jobs
           </span>
         </div>
 
@@ -165,7 +119,7 @@ export function EarningsView({ showToast }) {
             - ₹{summary.totalPlatformCommission.toLocaleString('en-IN')}
           </div>
           <span style={{ fontSize: 11.5, color: '#dc2626' }}>
-            {summary.totalPlatformCommissionPaise?.toLocaleString('en-IN') || 0} paise
+            Platform service deduction
           </span>
         </div>
 
@@ -176,7 +130,7 @@ export function EarningsView({ showToast }) {
             ₹{summary.totalNetAgencyPayouts.toLocaleString('en-IN')}
           </div>
           <span style={{ fontSize: 11.5, color: '#16a34a' }}>
-            {summary.totalNetAgencyPayoutsPaise?.toLocaleString('en-IN') || 0} paise
+            Net payable amount
           </span>
         </div>
 

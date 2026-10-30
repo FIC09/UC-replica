@@ -58,7 +58,8 @@ import {
   retryAutoAssign,
   switchAssignmentMode,
   getAssignmentManagementStats,
-  deleteBooking
+  deleteBooking,
+  updateBookingDetails
 } from '../controllers/adminBookingController.js';
 
 import {
@@ -196,6 +197,7 @@ router.post('/bookings/:id/notes', requireAdminAuth, requirePermission('bookings
 router.post('/bookings/:id/refund', requireAdminAuth, requirePermission('refunds', 'refund'), initiateBookingRefund);
 router.get('/bookings/:id/invoice', requireAdminAuth, requirePermission('bookings', 'view'), getBookingInvoice);
 router.delete('/bookings/:id', requireAdminAuth, requirePermission('bookings', 'edit'), deleteBooking);
+router.put('/bookings/:id', requireAdminAuth, requirePermission('bookings', 'edit'), updateBookingDetails);
 
 // ==========================================
 // 4. CUSTOMERS MANAGEMENT (Profile, LTV, History, Anonymisation)

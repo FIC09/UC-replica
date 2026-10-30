@@ -12,6 +12,15 @@ import {
   Wifi
 } from 'lucide-react';
 
+function getInitials(name, fallback = 'CU') {
+  if (!name || typeof name !== 'string') return fallback;
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
 export function WebRtcCallModal({
   callState,
   callStatusText,
@@ -61,7 +70,7 @@ export function WebRtcCallModal({
         }}>
           {/* Animated Pulsing Ring */}
           <div style={{ position: 'relative', width: 96, height: 96, marginBottom: 20 }}>
-            {peerAvatar && peerAvatar.startsWith('http') && !peerAvatar.includes('unsplash.com/photo-1506794778202') ? (
+            {peerAvatar && peerAvatar.startsWith('http') && !peerAvatar.includes('unsplash.com') ? (
               <img
                 src={peerAvatar}
                 alt={incomingCall.callerName || peerName}
@@ -89,7 +98,7 @@ export function WebRtcCallModal({
                 border: '3px solid #10B981',
                 boxShadow: '0 0 20px rgba(16, 185, 129, 0.5)'
               }}>
-                {(incomingCall.callerName || peerName || 'PR').slice(0, 2).toUpperCase()}
+                {getInitials(incomingCall.callerName || peerName, 'CU')}
               </div>
             )}
             <div style={{
@@ -230,7 +239,7 @@ export function WebRtcCallModal({
 
           {/* Participant Avatar */}
           <div style={{ position: 'relative', width: 90, height: 90, marginBottom: 16 }}>
-            {peerAvatar && peerAvatar.startsWith('http') && !peerAvatar.includes('unsplash.com/photo-1506794778202') ? (
+            {peerAvatar && peerAvatar.startsWith('http') && !peerAvatar.includes('unsplash.com') ? (
               <img
                 src={peerAvatar}
                 alt={peerName}
@@ -254,9 +263,10 @@ export function WebRtcCallModal({
                 justifyContent: 'center',
                 fontSize: 30,
                 fontWeight: 800,
-                border: isConnected ? '3px solid #10B981' : '3px solid #6366F1'
+                border: isConnected ? '3px solid #10B981' : '3px solid #6366F1',
+                boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)'
               }}>
-                {(peerName || 'PR').slice(0, 2).toUpperCase()}
+                {getInitials(peerName, 'CU')}
               </div>
             )}
             {isConnected && (

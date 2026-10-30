@@ -267,10 +267,10 @@ class ProfessionalClient {
     return this.request(`/jobs/${jobId}`);
   }
 
-  async updateJobStatus(jobId, status, otp) {
+  async updateJobStatus(jobId, status, otp, extraPayload = {}) {
     return this.request(`/jobs/${jobId}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ status, otp })
+      body: JSON.stringify({ status, otp, ...extraPayload })
     });
   }
 

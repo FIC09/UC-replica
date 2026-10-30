@@ -39,7 +39,10 @@ import {
   Radio,
   Star,
   Compass,
-  Trash2
+  Trash2,
+  Camera,
+  Edit,
+  Edit2
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
 
@@ -83,6 +86,35 @@ export function BookingsView({ onShowToast, onNavigate }) {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedPhotoZoom, setSelectedPhotoZoom] = useState(null);
+
+  // CRUD Modals & Form States
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isSubmittingCreate, setIsSubmittingCreate] = useState(false);
+  const initialCreateForm = {
+    userName: '',
+    userPhone: '+91 ',
+    userEmail: '',
+    serviceName: 'AC Deep Clean & Jet Pump Service',
+    serviceCategory: 'Appliance Repair',
+    totalAmount: 899,
+    city: 'Krishnagiri',
+    serviceZone: 'Gandhi Nagar',
+    address: '',
+    slot: '11:30 AM - 01:00 PM',
+    status: 'Pending',
+    paymentStatus: 'Pending',
+    paymentMethod: 'Cash After Service (COD)',
+    assignmentMode: 'AUTO',
+    assignedPartner: '',
+    professionalId: '',
+    customerInstructions: ''
+  };
+  const [createFormData, setCreateFormData] = useState(initialCreateForm);
+
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+  const [editFormData, setEditFormData] = useState(null);
 
   // Action Form States
   const [newNoteText, setNewNoteText] = useState('');
@@ -518,20 +550,164 @@ export function BookingsView({ onShowToast, onNavigate }) {
       });
   }
 
-  // Handle Delete Booking
-  function handleDeleteBooking(bookingId) {
-    if (!window.confirm(`Are you sure you want to permanently delete booking ${bookingId}? This action will permanently remove the booking.`)) return;
-    adminClient.deleteBooking(bookingId)
-      .then(() => {
-        onShowToast && onShowToast(`✓ Booking ${bookingId} permanently deleted`);
-        setSelectedBooking(null);
-        fetchBookingsList();
+  // Handle Create Booking (Admin On-Behalf)
+  const handleCreateSubmit = async (e) => {
+    e.preventDefault();
+    if (!createFormData.userName.trim()) {
+      onShowToast && onShowToast('Please provide a customer name.');
+      return;
+    }
+    if (!createFormData.userPhone.trim() || createFormData.userPhone.trim() === '+91') {
+      onShowToast && onShowToast('Please provide a valid phone number.');
+      return;
+    }
+    if (!createFormData.address.trim()) {
+      onShowToast && onShowToast('Please enter the service street address.');
+      return;
+    }
+
+    setIsSubmittingCreate(true);
+    try {
+      const res = await adminClient.createBooking(createFormData);
+      if (res && res.success !== false) {
+        const created = res.booking || {};
+        const refId = created.id || created.bookingReference || 'Order';
+        onShowToast && onShowToast(`✓ Booking #${refId} created and dispatched to Atlas successfully!`);
+        setShowCreateModal(false);
+        setCreateFormData(initialCreateForm);
+
+        // Optimistically prepend to table
+        if (created.id) {
+          setBookings(prev => [created, ...prev.filter(b => b.id !== created.id)]);
+          setPagination(prev => ({ ...prev, total: (prev.total || 0) + 1 }));
+        }
+
+        // Broadcast across tabs
+        try {
+          const syncChannel = new BroadcastChannel('uc_sync_channel');
+          syncChannel.postMessage({ type: 'BOOKING_CREATED', booking: created, timestamp: Date.now() });
+          syncChannel.close();
+        } catch (bcErr) {}
+        try {
+          localStorage.setItem('uc_last_booking_event', JSON.stringify({ type: 'BOOKING_CREATED', bookingId: refId, time: Date.now() }));
+        } catch (lsErr) {}
+
+        setPage(1);
+        fetchBookingsList(false);
         fetchAssignmentStats();
-      })
-      .catch(err => {
-        onShowToast && onShowToast(`Error deleting booking: ${err.message}`);
-      });
-  }
+      } else {
+        throw new Error(res?.error || res?.message || 'Creation failed');
+      }
+    } catch (err) {
+      onShowToast && onShowToast(`Error creating booking: ${err.message}`);
+    } finally {
+      setIsSubmittingCreate(false);
+    }
+  };
+
+  // Open Edit Modal with Prepopulated Data
+  const handleOpenEditModal = (booking) => {
+    const b = booking || selectedBooking;
+    if (!b) return;
+    setEditFormData({
+      id: b.id || b.bookingReference,
+      userName: b.userName || b.customerName || '',
+      userPhone: b.userPhone || '',
+      userEmail: b.userEmail || '',
+      serviceName: b.serviceName || '',
+      serviceCategory: b.serviceCategory || 'Appliance Repair',
+      totalAmount: b.totalAmount || b.amount || 899,
+      city: b.city || b.addressDetails?.city || 'Krishnagiri',
+      serviceZone: b.serviceZone || b.addressDetails?.locality || 'Gandhi Nagar',
+      address: b.address || b.addressDetails?.fullAddress || '',
+      slot: b.slot || '11:30 AM - 01:00 PM',
+      status: b.status || 'Pending',
+      paymentStatus: b.paymentStatus || 'Pending',
+      paymentMethod: b.paymentMethod || 'Cash After Service (COD)',
+      assignmentMode: b.assignmentMode || 'AUTO',
+      assignedPartner: b.assignedPartner || '',
+      customerInstructions: b.customerInstructions || ''
+    });
+    setShowEditModal(true);
+  };
+
+  // Submit Edit / Update
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editFormData || !editFormData.id) return;
+    setIsSubmittingEdit(true);
+    try {
+      const res = await adminClient.updateBooking(editFormData.id, editFormData);
+      if (res && res.success !== false) {
+        onShowToast && onShowToast(`✓ Booking #${editFormData.id} updated successfully!`);
+        setShowEditModal(false);
+
+        // Optimistically update table & drawer
+        setBookings(prev => prev.map(b => (b.id === editFormData.id || b.bookingReference === editFormData.id) ? { ...b, ...editFormData } : b));
+        if (selectedBooking && (selectedBooking.id === editFormData.id || selectedBooking.bookingReference === editFormData.id)) {
+          setSelectedBooking(prev => ({ ...prev, ...editFormData }));
+        }
+
+        // Broadcast across tabs
+        try {
+          const syncChannel = new BroadcastChannel('uc_sync_channel');
+          syncChannel.postMessage({ type: 'BOOKING_UPDATED', bookingId: editFormData.id, timestamp: Date.now() });
+          syncChannel.close();
+        } catch (bcErr) {}
+        try {
+          localStorage.setItem('uc_last_booking_event', JSON.stringify({ type: 'BOOKING_UPDATED', bookingId: editFormData.id, time: Date.now() }));
+        } catch (lsErr) {}
+
+        fetchBookingsList(false);
+        fetchAssignmentStats();
+      } else {
+        throw new Error(res?.error || res?.message || 'Update failed');
+      }
+    } catch (err) {
+      onShowToast && onShowToast(`Failed to update booking: ${err.message}`);
+    } finally {
+      setIsSubmittingEdit(false);
+    }
+  };
+
+  // Handle Delete Booking with Optimistic UI & Broadcast
+  const handleDeleteBooking = async (bookingId) => {
+    if (!bookingId) return;
+    const confirmed = window.confirm(`Are you sure you want to permanently delete booking #${bookingId}? This will remove it from MongoDB Atlas and cannot be undone.`);
+    if (!confirmed) return;
+
+    // Optimistic removal for immediate UI responsiveness
+    setBookings(prev => prev.filter(b => b.id !== bookingId && b.bookingReference !== bookingId));
+    setPagination(prev => ({ ...prev, total: Math.max(0, (prev.total || 1) - 1) }));
+    if (selectedBooking && (selectedBooking.id === bookingId || selectedBooking.bookingReference === bookingId)) {
+      setSelectedBooking(null);
+    }
+
+    try {
+      const res = await adminClient.deleteBooking(bookingId);
+      if (res && res.success !== false) {
+        onShowToast && onShowToast(`✓ Booking #${bookingId} permanently deleted from database`);
+
+        // Broadcast across all open browser tabs and worker/customer views
+        try {
+          const syncChannel = new BroadcastChannel('uc_sync_channel');
+          syncChannel.postMessage({ type: 'BOOKING_DELETED', bookingId, timestamp: Date.now() });
+          syncChannel.close();
+        } catch (bcErr) {}
+        try {
+          localStorage.setItem('uc_last_booking_event', JSON.stringify({ type: 'BOOKING_DELETED', bookingId, time: Date.now() }));
+        } catch (lsErr) {}
+
+        fetchBookingsList(false);
+        fetchAssignmentStats();
+      } else {
+        throw new Error(res?.error || res?.message || 'Failed to delete');
+      }
+    } catch (err) {
+      onShowToast && onShowToast(`Delete error: ${err.message}`);
+      fetchBookingsList(false);
+    }
+  };
 
   // Handle Internal Note
   function handleAddNoteSubmit(e) {
@@ -910,6 +1086,31 @@ export function BookingsView({ onShowToast, onNavigate }) {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => {
+              setCreateFormData(initialCreateForm);
+              setShowCreateModal(true);
+            }}
+            title="Create a new service booking"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '5px 12px',
+              borderRadius: 6,
+              border: 'none',
+              backgroundColor: '#6E42E5',
+              color: '#FFFFFF',
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 2px 4px rgba(110, 66, 229, 0.25)'
+            }}
+          >
+            <Plus size={14} />
+            New Booking
+          </button>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#059669', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '4px 10px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
             Live DB Active
@@ -1489,6 +1690,25 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       {/* Status */}
                       <td style={{ padding: '14px 16px' }}>
                         {renderStatusBadge(b.status)}
+                        {(() => {
+                          const hasBefore = b.beforeWorkPhoto?.url || (b.structuredChecklists?.photos || []).some(p => p.phase === 'before');
+                          const hasAfter = b.afterWorkPhoto?.url || (b.structuredChecklists?.photos || []).some(p => p.phase === 'after');
+                          if (!hasBefore && !hasAfter) return null;
+                          return (
+                            <div style={{ marginTop: 4, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                              {hasBefore && (
+                                <span style={{ fontSize: 10, background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }} title="Pre-work photo attached">
+                                  📷 Pre ✓
+                                </span>
+                              )}
+                              {hasAfter && (
+                                <span style={{ fontSize: 10, background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }} title="Post-work photo attached">
+                                  📷 Post ✓
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Payment */}
@@ -1564,6 +1784,30 @@ export function BookingsView({ onShowToast, onNavigate }) {
                           )}
 
                           <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditModal(b);
+                            }}
+                            title="Edit Booking Details"
+                            style={{
+                              backgroundColor: '#F1F5F9',
+                              border: '1px solid #CBD5E1',
+                              borderRadius: 6,
+                              padding: '6px 9px',
+                              fontSize: 12,
+                              color: '#334155',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4
+                            }}
+                          >
+                            <Edit size={12} />
+                            Edit
+                          </button>
+
+                          <button
                             onClick={(e) => {
                               e.stopPropagation();
                               setSelectedBooking(b);
@@ -1580,6 +1824,31 @@ export function BookingsView({ onShowToast, onNavigate }) {
                             }}
                           >
                             Details
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteBooking(b.id || b.bookingReference);
+                            }}
+                            title="Permanently Delete Booking"
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              backgroundColor: '#FEF2F2',
+                              color: '#DC2626',
+                              border: '1px solid #FECACA',
+                              borderRadius: 6,
+                              padding: '6px 9px',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <Trash2 size={12} />
+                            Delete
                           </button>
                           <ChevronRight size={16} color="#94A3B8" />
                         </div>
@@ -1842,6 +2111,27 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 </button>
 
                 <button
+                  onClick={() => handleOpenEditModal(selectedBooking)}
+                  style={{
+                    flex: '1 1 auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    padding: '8px 14px',
+                    borderRadius: 8,
+                    border: '1px solid #CBD5E1',
+                    backgroundColor: '#FFFFFF',
+                    color: '#334155',
+                    fontSize: 12,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  <Edit size={14} /> Edit Details
+                </button>
+
+                <button
                   onClick={() => setShowRescheduleModal(true)}
                   style={{
                     flex: '1 1 auto',
@@ -2068,6 +2358,169 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   </div>
                 )}
               </div>
+
+              {/* Work Verification Evidence Photos (Pre & Post Service) */}
+              {(() => {
+                const beforePhoto = selectedBooking.beforeWorkPhoto || (selectedBooking.structuredChecklists?.photos || []).find(p => p.phase === 'before');
+                const afterPhoto = selectedBooking.afterWorkPhoto || (selectedBooking.structuredChecklists?.photos || []).find(p => p.phase === 'after');
+
+                return (
+                  <div style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 10,
+                    padding: '16px 18px',
+                    border: '1px solid #E2E8F0'
+                  }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Camera size={15} color="#6E42E5" />
+                        <span>Technician Work Verification Photos</span>
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#6E42E5', background: '#EDE9FE', padding: '2px 8px', borderRadius: 4 }}>
+                        Mandatory SOP Compliance
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                      {/* Pre-Work Photo Card */}
+                      <div style={{
+                        border: '1px solid #E2E8F0',
+                        borderRadius: 8,
+                        padding: 12,
+                        background: beforePhoto ? '#F8FAFC' : '#FFFBEB'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>📸 Pre-Work Photo</span>
+                          {beforePhoto ? (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#16A34A', background: '#DCFCE7', padding: '2px 6px', borderRadius: 4 }}>
+                              ✓ Verified
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 10, fontWeight: 600, color: '#D97706', background: '#FEF3C7', padding: '2px 6px', borderRadius: 4 }}>
+                              ⏳ Pending
+                            </span>
+                          )}
+                        </div>
+
+                        {beforePhoto ? (
+                          <div>
+                            <div style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid #CBD5E1', marginBottom: 8 }}>
+                              <img
+                                src={beforePhoto.url}
+                                alt="Pre-work photo"
+                                onClick={() => setSelectedPhotoZoom(beforePhoto.url)}
+                                style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                                title="Click to view full image"
+                              />
+                              <span style={{
+                                position: 'absolute',
+                                bottom: 6,
+                                right: 6,
+                                background: 'rgba(15,23,42,0.7)',
+                                color: '#FFFFFF',
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                                fontSize: 10,
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }} onClick={() => setSelectedPhotoZoom(beforePhoto.url)}>
+                                🔍 Click to Zoom
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 11, color: '#475569', fontWeight: 600 }}>
+                              {beforePhoto.fileName || 'pre_work_photo.jpg'}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#64748B', marginTop: 2 }}>
+                              Uploaded: {beforePhoto.uploadedAt ? new Date(beforePhoto.uploadedAt).toLocaleString() : 'On record'}
+                            </div>
+                            {beforePhoto.uploadedBy && (
+                              <div style={{ fontSize: 10, color: '#6E42E5', marginTop: 2 }}>
+                                By: <strong>{beforePhoto.uploadedBy}</strong>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ padding: '20px 10px', textAlign: 'center', color: '#92400E' }}>
+                            <div style={{ fontSize: 24, marginBottom: 4 }}>📷</div>
+                            <div style={{ fontSize: 11.5, fontWeight: 600 }}>Awaiting Pre-Work Photo</div>
+                            <div style={{ fontSize: 10.5, color: '#B45309', marginTop: 2 }}>
+                              Technician must upload this photo before starting service.
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Post-Work Photo Card */}
+                      <div style={{
+                        border: '1px solid #E2E8F0',
+                        borderRadius: 8,
+                        padding: 12,
+                        background: afterPhoto ? '#F8FAFC' : '#ECFDF5'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>📸 Post-Work Photo</span>
+                          {afterPhoto ? (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: '#16A34A', background: '#DCFCE7', padding: '2px 6px', borderRadius: 4 }}>
+                              ✓ Verified
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: 10, fontWeight: 600, color: '#047857', background: '#D1FAE5', padding: '2px 6px', borderRadius: 4 }}>
+                              ⏳ Pending
+                            </span>
+                          )}
+                        </div>
+
+                        {afterPhoto ? (
+                          <div>
+                            <div style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid #CBD5E1', marginBottom: 8 }}>
+                              <img
+                                src={afterPhoto.url}
+                                alt="Post-work photo"
+                                onClick={() => setSelectedPhotoZoom(afterPhoto.url)}
+                                style={{ width: '100%', height: 130, objectFit: 'cover', display: 'block', cursor: 'pointer' }}
+                                title="Click to view full image"
+                              />
+                              <span style={{
+                                position: 'absolute',
+                                bottom: 6,
+                                right: 6,
+                                background: 'rgba(15,23,42,0.7)',
+                                color: '#FFFFFF',
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                                fontSize: 10,
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }} onClick={() => setSelectedPhotoZoom(afterPhoto.url)}>
+                                🔍 Click to Zoom
+                              </span>
+                            </div>
+                            <div style={{ fontSize: 11, color: '#475569', fontWeight: 600 }}>
+                              {afterPhoto.fileName || 'post_work_photo.jpg'}
+                            </div>
+                            <div style={{ fontSize: 10, color: '#64748B', marginTop: 2 }}>
+                              Uploaded: {afterPhoto.uploadedAt ? new Date(afterPhoto.uploadedAt).toLocaleString() : 'On record'}
+                            </div>
+                            {afterPhoto.uploadedBy && (
+                              <div style={{ fontSize: 10, color: '#6E42E5', marginTop: 2 }}>
+                                By: <strong>{afterPhoto.uploadedBy}</strong>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ padding: '20px 10px', textAlign: 'center', color: '#065F46' }}>
+                            <div style={{ fontSize: 24, marginBottom: 4 }}>📷</div>
+                            <div style={{ fontSize: 11.5, fontWeight: 600 }}>Awaiting Post-Work Photo</div>
+                            <div style={{ fontSize: 10.5, color: '#047857', marginTop: 2 }}>
+                              Technician must upload this photo to complete service.
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Service Items and Price Breakdown */}
               <div style={{
@@ -3308,6 +3761,712 @@ export function BookingsView({ onShowToast, onNavigate }) {
             <div style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid #E2E8F0', fontSize: 11, color: '#94A3B8', textAlign: 'center' }}>
               This is a computer-generated tax invoice. Authorized by Urban Platform Services Inc.
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Photo Zoom Modal */}
+      {selectedPhotoZoom && (
+        <div
+          onClick={() => setSelectedPhotoZoom(null)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 24,
+            backdropFilter: 'blur(4px)'
+          }}
+        >
+          <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+            <img
+              src={selectedPhotoZoom}
+              alt="Verification Photo Full View"
+              style={{
+                maxWidth: '100%',
+                maxHeight: '85vh',
+                borderRadius: 12,
+                display: 'block',
+                objectFit: 'contain',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+              }}
+            />
+            <button
+              onClick={() => setSelectedPhotoZoom(null)}
+              style={{
+                position: 'absolute',
+                top: -14,
+                right: -14,
+                backgroundColor: '#FFFFFF',
+                border: 'none',
+                borderRadius: '50%',
+                width: 34,
+                height: 34,
+                fontSize: 16,
+                fontWeight: 800,
+                color: '#0F172A',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+      {/* ======================================================== */}
+      {/* CREATE NEW BOOKING MODAL (Real Mongo Insert & Dispatch)  */}
+      {/* ======================================================== */}
+      {showCreateModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          zIndex: 1200,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16,
+          backdropFilter: 'blur(3px)'
+        }}>
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 14,
+            width: '100%',
+            maxWidth: 620,
+            maxHeight: '92vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+            overflow: 'hidden'
+          }}>
+            {/* Modal Header */}
+            <div style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid #E2E8F0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#F8FAFC'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Plus size={18} color="#6E42E5" />
+                  Create New Service Booking
+                </h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: 11.5, color: '#64748B' }}>
+                  Dispatch new home service directly to MongoDB Atlas &amp; assignment queue
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  borderRadius: 6,
+                  cursor: 'pointer',
+                  padding: 4,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={18} color="#64748B" />
+              </button>
+            </div>
+
+            {/* Modal Form Body */}
+            <form onSubmit={handleCreateSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
+              <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                
+                {/* Customer Details Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Customer Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Sundaramoorthy K"
+                      value={createFormData.userName}
+                      onChange={e => setCreateFormData(prev => ({ ...prev, userName: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 11px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12.5,
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Phone Number *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="+91 94432 88124"
+                      value={createFormData.userPhone}
+                      onChange={e => setCreateFormData(prev => ({ ...prev, userPhone: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 11px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12.5,
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Service & Category Selection */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Service Category
+                    </label>
+                    <select
+                      value={createFormData.serviceCategory}
+                      onChange={e => setCreateFormData(prev => ({ ...prev, serviceCategory: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 11px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12.5,
+                        outline: 'none',
+                        backgroundColor: '#FFFFFF',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="Appliance Repair">Appliance Repair</option>
+                      <option value="Bathroom & Kitchen cleaning">Bathroom & Kitchen cleaning</option>
+                      <option value="Smart Locks, Electrician & Carpentry">Smart Locks, Electrician & Carpentry</option>
+                      <option value="Cleaning & Pest Control">Cleaning & Pest Control</option>
+                      <option value="Men's Salon & Spa">Men's Salon & Spa</option>
+                      <option value="Women's Salon & Spa">Women's Salon & Spa</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Service Name
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. AC Deep Clean & Jet Pump Service"
+                      value={createFormData.serviceName}
+                      onChange={e => setCreateFormData(prev => ({ ...prev, serviceName: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 11px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12.5,
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Address & Locality Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      City
+                    </label>
+                    <input
+                      type="text"
+                      value={createFormData.city}
+                      onChange={e => setCreateFormData(prev => ({ ...prev, city: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 11px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12.5,
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Locality / Zone
+                    </label>
+                    <select
+                      value={createFormData.serviceZone}
+                      onChange={e => setCreateFormData(prev => ({ ...prev, serviceZone: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 11px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12.5,
+                        outline: 'none',
+                        backgroundColor: '#FFFFFF',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="Gandhi Nagar">Gandhi Nagar</option>
+                      <option value="Rayakottai Road">Rayakottai Road</option>
+                      <option value="Kattiganapalli">Kattiganapalli</option>
+                      <option value="Co-operative Colony">Co-operative Colony</option>
+                      <option value="Old Pet">Old Pet</option>
+                      <option value="Londonpet">Londonpet</option>
+                      <option value="Hosur Road">Hosur Road</option>
+                      <option value="Bangalore Road">Bangalore Road</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Complete Street Address */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    Street Address *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 14/B, 2nd Cross, Gandhi Nagar, Krishnagiri"
+                    value={createFormData.address}
+                    onChange={e => setCreateFormData(prev => ({ ...prev, address: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px 11px',
+                      borderRadius: 6,
+                      border: '1px solid #CBD5E1',
+                      fontSize: 12.5,
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {/* Slot, Amount, Payment Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Appointment Slot
+                    </label>
+                    <select
+                      value={createFormData.slot}
+                      onChange={e => setCreateFormData(prev => ({ ...prev, slot: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 11px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12,
+                        outline: 'none',
+                        backgroundColor: '#FFFFFF',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="Today, 09:30 AM - 11:00 AM">Today, 09:30 AM - 11:00 AM</option>
+                      <option value="11:30 AM - 01:00 PM">11:30 AM - 01:00 PM</option>
+                      <option value="Today, 02:00 PM - 03:30 PM">Today, 02:00 PM - 03:30 PM</option>
+                      <option value="Today, 04:00 PM - 05:00 PM">Today, 04:00 PM - 05:00 PM</option>
+                      <option value="Today, 05:00 PM - 06:00 PM">Today, 05:00 PM - 06:00 PM</option>
+                      <option value="Tomorrow, 10:00 AM - 11:30 AM">Tomorrow, 10:00 AM - 11:30 AM</option>
+                      <option value="Tomorrow, 02:00 PM - 03:30 PM">Tomorrow, 02:00 PM - 03:30 PM</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Price (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={createFormData.totalAmount}
+                      onChange={e => setCreateFormData(prev => ({ ...prev, totalAmount: Number(e.target.value) || 0 }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 11px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12.5,
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Payment Status
+                    </label>
+                    <select
+                      value={createFormData.paymentStatus}
+                      onChange={e => setCreateFormData(prev => ({ ...prev, paymentStatus: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 11px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12,
+                        outline: 'none',
+                        backgroundColor: '#FFFFFF',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Paid">Paid</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Assignment Settings */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Dispatch Mode
+                    </label>
+                    <select
+                      value={createFormData.assignmentMode}
+                      onChange={e => setCreateFormData(prev => ({ ...prev, assignmentMode: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '8px 11px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12,
+                        outline: 'none',
+                        backgroundColor: '#FFFFFF',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="AUTO">AUTO (Dispatch algorithm)</option>
+                      <option value="MANUAL">MANUAL (Admin assign)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Direct Assign Technician (Optional)
+                    </label>
+                    <select
+                      value={createFormData.professionalId}
+                      onChange={e => {
+                        const proId = e.target.value;
+                        const pro = professionals.find(p => (p.id || p._id) === proId);
+                        setCreateFormData(prev => ({
+                          ...prev,
+                          professionalId: proId,
+                          assignedPartner: pro ? (pro.applicantName || pro.name) : ''
+                        }));
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '8px 11px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        fontSize: 12,
+                        outline: 'none',
+                        backgroundColor: '#FFFFFF',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="">-- Let system assign --</option>
+                      {professionals.map(p => (
+                        <option key={p.id || p._id} value={p.id || p._id}>
+                          {p.applicantName || p.name} ({p.trade || 'Technician'})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '14px 20px',
+                borderTop: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: 10,
+                backgroundColor: '#F8FAFC'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 6,
+                    border: '1px solid #CBD5E1',
+                    backgroundColor: '#FFFFFF',
+                    color: '#475569',
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingCreate}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: 6,
+                    border: 'none',
+                    backgroundColor: '#6E42E5',
+                    color: '#FFFFFF',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: isSubmittingCreate ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 4px rgba(110, 66, 229, 0.3)'
+                  }}
+                >
+                  {isSubmittingCreate ? 'Creating in Atlas...' : 'Create & Dispatch Booking'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ======================================================== */}
+      {/* EDIT BOOKING MODAL (Update Details in MongoDB Atlas)     */}
+      {/* ======================================================== */}
+      {showEditModal && editFormData && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+          zIndex: 1200,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 16,
+          backdropFilter: 'blur(3px)'
+        }}>
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 14,
+            width: '100%',
+            maxWidth: 600,
+            maxHeight: '92vh',
+            display: 'flex',
+            flexDirection: 'column',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid #E2E8F0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: '#F8FAFC'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Edit size={16} color="#6E42E5" />
+                  Edit Booking #{editFormData.id}
+                </h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: 11.5, color: '#64748B' }}>
+                  Update customer information, appointment time, address, or payment status
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer', padding: 4 }}
+              >
+                <X size={18} color="#64748B" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
+              <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Customer Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.userName}
+                      onChange={e => setEditFormData(prev => ({ ...prev, userName: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 11px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5, boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Customer Phone
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.userPhone}
+                      onChange={e => setEditFormData(prev => ({ ...prev, userPhone: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 11px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Service Name
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.serviceName}
+                      onChange={e => setEditFormData(prev => ({ ...prev, serviceName: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 11px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5, boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Slot
+                    </label>
+                    <input
+                      type="text"
+                      value={editFormData.slot}
+                      onChange={e => setEditFormData(prev => ({ ...prev, slot: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 11px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5, boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                    Address
+                  </label>
+                  <input
+                    type="text"
+                    value={editFormData.address}
+                    onChange={e => setEditFormData(prev => ({ ...prev, address: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 11px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5, boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Total (₹)
+                    </label>
+                    <input
+                      type="number"
+                      value={editFormData.totalAmount}
+                      onChange={e => setEditFormData(prev => ({ ...prev, totalAmount: Number(e.target.value) || 0 }))}
+                      style={{ width: '100%', padding: '8px 11px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12.5, boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Status
+                    </label>
+                    <select
+                      value={editFormData.status}
+                      onChange={e => setEditFormData(prev => ({ ...prev, status: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 11px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12, backgroundColor: '#FFFFFF', boxSizing: 'border-box' }}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Assigned">Assigned</option>
+                      <option value="En Route">En Route</option>
+                      <option value="In Progress">In Progress</option>
+                      <option value="Completed">Completed</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: 11.5, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Payment
+                    </label>
+                    <select
+                      value={editFormData.paymentStatus}
+                      onChange={e => setEditFormData(prev => ({ ...prev, paymentStatus: e.target.value }))}
+                      style={{ width: '100%', padding: '8px 11px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 12, backgroundColor: '#FFFFFF', boxSizing: 'border-box' }}
+                    >
+                      <option value="Pending">Pending</option>
+                      <option value="Paid">Paid</option>
+                      <option value="Refunded">Refunded</option>
+                    </select>
+                  </div>
+                </div>
+
+              </div>
+
+              <div style={{
+                padding: '14px 20px',
+                borderTop: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                gap: 10,
+                backgroundColor: '#F8FAFC'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 6,
+                    border: '1px solid #CBD5E1',
+                    backgroundColor: '#FFFFFF',
+                    color: '#475569',
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmittingEdit}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: 6,
+                    border: 'none',
+                    backgroundColor: '#6E42E5',
+                    color: '#FFFFFF',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: isSubmittingEdit ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 4px rgba(110, 66, 229, 0.3)'
+                  }}
+                >
+                  {isSubmittingEdit ? 'Saving Changes...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

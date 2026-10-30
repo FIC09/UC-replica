@@ -427,14 +427,20 @@ router.post('/:id/auto-assign', async (req, res) => {
 // PUT update booking (slot, address, status, notes, assignedPartner, cancelReason)
 router.put('/:id', async (req, res) => {
   try {
+    const { id } = req.params;
+    const query = [{ id }, { bookingReference: id }];
+    if (mongoose.isValidObjectId(id)) {
+      query.push({ _id: id });
+    }
     const updated = await Booking.findOneAndUpdate(
-      { id: req.params.id },
+      { $or: query },
       req.body,
       { new: true }
     );
     if (!updated) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
+    emitEvent('BOOKING_UPDATED', { bookingId: id, status: updated.status });
     res.json({ success: true, booking: updated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -444,11 +450,23 @@ router.put('/:id', async (req, res) => {
 // DELETE booking
 router.delete('/:id', async (req, res) => {
   try {
-    const deleted = await Booking.findOneAndDelete({ id: req.params.id });
+    const { id } = req.params;
+    const query = [{ id }, { bookingReference: id }];
+    if (mongoose.isValidObjectId(id)) {
+      query.push({ _id: id });
+    }
+    const deleted = await Booking.findOneAndDelete({ $or: query });
     if (!deleted) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
-    res.json({ success: true, message: `Booking ${req.params.id} deleted successfully` });
+    try {
+      await TrackingSession.deleteMany({
+        $or: [{ bookingId: id }, { bookingReference: id }]
+      });
+    } catch (e) {}
+
+    emitEvent('BOOKING_DELETED', { bookingId: id });
+    res.json({ success: true, message: `Booking ${id} deleted successfully`, deletedId: id });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

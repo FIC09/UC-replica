@@ -911,14 +911,32 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14, marginBottom: 20 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>
-                  Aadhaar Card Number *
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>
+                    Aadhaar Card Number (16 Digits) *
+                  </label>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: (formData.aadhaarNumber || '').length === 16 ? '#10B981' : '#64748B' }}>
+                    {(formData.aadhaarNumber || '').length}/16
+                  </span>
+                </div>
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={16}
                   value={formData.aadhaarNumber}
-                  onChange={(e) => updateField('aadhaarNumber', e.target.value)}
-                  placeholder="e.g. 8921-4412-9901"
+                  onChange={(e) => updateField('aadhaarNumber', e.target.value.replace(/\D/g, '').slice(0, 16))}
+                  onKeyDown={(e) => {
+                    if (
+                      !/[0-9]/.test(e.key) &&
+                      !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End', 'Enter'].includes(e.key) &&
+                      !e.ctrlKey &&
+                      !e.metaKey
+                    ) {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder="Enter 16-digit Aadhaar / Virtual ID"
                   style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: '1px solid #cbd5e1', fontSize: 14, boxSizing: 'border-box' }}
                 />
               </div>

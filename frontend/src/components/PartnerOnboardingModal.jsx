@@ -79,6 +79,12 @@ export function PartnerOnboardingModal({
 
   function handleSubmitPartner(e) {
     e.preventDefault();
+    const cleanGst = gstNumber.trim().toUpperCase();
+    if (cleanGst && cleanGst.length !== 10 && cleanGst.length !== 15) {
+      setError('Please provide a valid 10-character Company PAN (e.g. AABCB1234K) or 15-character Business GSTIN (e.g. 27AABCA1234F1Z5).');
+      return;
+    }
+    setError('');
     const catObj = CATEGORIES.find(c => c.id === selectedCategory);
     const newPartnerApp = {
       id: `PTR-${Date.now().toString().slice(-5)}`,
@@ -629,24 +635,62 @@ export function PartnerOnboardingModal({
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                    Business GSTIN or Company PAN
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="27AABCA1234F1Z5"
-                    value={gstNumber}
-                    onChange={(e) => setGstNumber(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#1E293B',
-                      border: '1px solid #334155',
-                      borderRadius: 0,
-                      padding: '10px 14px',
-                      color: '#FFFFFF',
-                      fontSize: 13.5
-                    }}
-                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1' }}>
+                      Business GSTIN or Company PAN
+                    </label>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: (gstNumber.length === 10 || gstNumber.length === 15) ? '#10B981' : '#94A3B8'
+                    }}>
+                      {gstNumber.length === 10 ? '✓ 10-char PAN' : (gstNumber.length === 15 ? '✓ 15-char GSTIN' : `${gstNumber.length}/15`)}
+                    </span>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      maxLength={15}
+                      autoCapitalize="characters"
+                      placeholder="e.g. 27AABCA1234F1Z5 or AABCB1234K"
+                      value={gstNumber}
+                      onChange={(e) => {
+                        const clean = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 15).toUpperCase();
+                        setGstNumber(clean);
+                        if (error) setError('');
+                      }}
+                      onKeyDown={(e) => {
+                        if (
+                          !/[a-zA-Z0-9]/.test(e.key) &&
+                          !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End', 'Enter'].includes(e.key) &&
+                          !e.ctrlKey &&
+                          !e.metaKey
+                        ) {
+                          e.preventDefault();
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        background: '#1E293B',
+                        border: error && gstNumber && gstNumber.length !== 10 && gstNumber.length !== 15 ? '1px solid #EF4444' : ((gstNumber.length === 10 || gstNumber.length === 15) ? '1px solid #10B981' : '1px solid #334155'),
+                        borderRadius: 0,
+                        padding: '10px 38px 10px 14px',
+                        color: '#FFFFFF',
+                        fontSize: 13.5,
+                        textTransform: 'uppercase',
+                        letterSpacing: 1.2,
+                        outline: 'none'
+                      }}
+                    />
+                    {(gstNumber.length === 10 || gstNumber.length === 15) && (
+                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                        <CheckCircle2 size={16} color="#10B981" />
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
+                    Max 15 characters. Enter 10-char PAN (e.g. AABCB1234K) or 15-char GSTIN (e.g. 27AABCA1234F1Z5).
+                  </div>
                 </div>
               </div>
 

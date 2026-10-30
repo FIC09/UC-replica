@@ -495,7 +495,6 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
           { id: 'ALL', label: 'All Professionals' },
           { id: 'Pending Review', label: 'Newly Applied' },
           { id: 'Approved', label: 'Active Verified Pros' },
-          { id: 'Under Verification', label: 'Under Document KYC' },
           { id: 'Suspended', label: 'Suspended / Inactive' }
         ].map(tab => (
           <button

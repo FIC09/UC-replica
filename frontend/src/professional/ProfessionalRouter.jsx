@@ -128,6 +128,39 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
     return () => { cancelled = true; };
   }, [isAuthenticated]);
 
+  // Real-time synchronization of wallet balance across layout & views
+  useEffect(() => {
+    const handleWalletUpdated = (e) => {
+      if (e.detail?.walletBalance != null) {
+        setProfessionalUser(prev => ({
+          ...prev,
+          walletBalance: e.detail.walletBalance
+        }));
+      }
+    };
+    window.addEventListener('uc:wallet-updated', handleWalletUpdated);
+
+    let bc;
+    try {
+      bc = new BroadcastChannel('uc_sync_channel');
+      bc.onmessage = (msg) => {
+        if (['STATUS_UPDATED', 'BOOKING_COMPLETED', 'EARNINGS_UPDATED', 'PAYOUT_REQUESTED'].includes(msg?.data?.type)) {
+          professionalClient.getProfile().then(res => {
+            if (res?.success && res.profile) {
+              setProfessionalUser(res.profile);
+              localStorage.setItem('uc_pro_user', JSON.stringify(res.profile));
+            }
+          }).catch(() => {});
+        }
+      };
+    } catch (e) {}
+
+    return () => {
+      window.removeEventListener('uc:wallet-updated', handleWalletUpdated);
+      if (bc) bc.close();
+    };
+  }, []);
+
   // Sync with browser back/forward buttons
   useEffect(() => {
     function handlePopState() {

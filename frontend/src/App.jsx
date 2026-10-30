@@ -177,6 +177,9 @@ import {
 import {
   WorkerReviewPage
 } from './components/WorkerReviewPage';
+import {
+  PaintingServicePage
+} from './components/PaintingServicePage';
 
 import {
   CATEGORIES,
@@ -322,6 +325,11 @@ function App() {
     }
     if (catId === 'mens-salon') {
       setIsMenSalonPreferenceOpen(true);
+      return;
+    }
+    if (catId === 'painting-decor' || catId === 'home-painting' || catId === 'painting') {
+      setCurrentView('painting-service-page');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     setActiveNavTab('homes');
@@ -1933,6 +1941,22 @@ function App() {
           onOpenCheckout={handleProceedToCheckout}
           showToast={showToast}
         />
+      ) : currentView === 'painting-service-page' ? (
+        <PaintingServicePage
+          onBackHome={() => {
+            setCurrentView('home');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          selectedCity={selectedCity}
+          selectedLocality={selectedLocality}
+          onOpenLocationModal={() => setIsLocationModalOpen(true)}
+          cart={cart}
+          onAddToCart={handleAddToCart}
+          onUpdateQty={handleUpdateQty}
+          onOpenCart={handleOpenCartView}
+          onOpenCheckout={handleProceedToCheckout}
+          showToast={showToast}
+        />
       ) : currentView === 'checkout' ? (
         <UrbanCheckoutPage
           onBackHome={() => {
@@ -2206,6 +2230,10 @@ function App() {
               setCurrentView('cockroach-control-page');
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }}
+            onOpenPaintingPage={() => {
+              setCurrentView('painting-service-page');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
           />
         )}
 
@@ -2262,6 +2290,8 @@ function App() {
           setIsPartnerRoute(true);
         }}
         onOpenWorkerOnboarding={() => setIsWorkerOnboardingOpen(true)}
+        onOpenProfessionalPortal={handleOpenProfessionalPortal}
+        onOpenAdminPortal={handleOpenAdminPortal}
       />
         </>
       )}

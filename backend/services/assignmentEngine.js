@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { WorkerApplication } from '../models/WorkerApplication.js';
 import { Booking } from '../models/Booking.js';
 import { TrackingSession } from '../models/TrackingSession.js';
@@ -1122,6 +1123,7 @@ export async function triggerAutoAssignment(bookingIdOrDoc, { excludeProIds = []
  * Runs against authoritative MongoDB records with offerStatus === 'offered' and offerExpiry < now.
  */
 export async function checkAndProcessExpiredOffers() {
+  if (mongoose.connection?.readyState !== 1) return;
   try {
     const expiredBookings = await Booking.find({
       offerStatus: 'offered',

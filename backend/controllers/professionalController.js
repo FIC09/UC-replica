@@ -2442,6 +2442,8 @@ function formatJobForProfessional(job, proId) {
       { id: '5', text: 'Post-service performance check & mess-free cleanup', completed: false, required: true }
     ],
     structuredChecklists,
+    beforeWorkPhoto: job.beforeWorkPhoto || (job.structuredChecklists?.photos || []).find(p => p.phase === 'before') || null,
+    afterWorkPhoto: job.afterWorkPhoto || (job.structuredChecklists?.photos || []).find(p => p.phase === 'after') || null,
     extraWorkRequests,
     incidentReports,
     messagesCount: messagesList.length,
@@ -3159,17 +3161,36 @@ export async function uploadJobPhotoEvidence(req, res) {
     list.push(photoRecord);
     bookingEvidenceStore.set(id, list);
 
-    let booking = await Booking.findOne({ id });
+    let booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
     if (booking) {
       booking.structuredChecklists = booking.structuredChecklists || {};
       booking.structuredChecklists.photos = booking.structuredChecklists.photos || [];
       booking.structuredChecklists.photos.push(photoRecord);
+
+      if (photoRecord.phase === 'before') {
+        booking.beforeWorkPhoto = {
+          url: photoRecord.url,
+          fileName: photoRecord.fileName,
+          fileSizeKb: photoRecord.fileSizeKb,
+          uploadedAt: photoRecord.uploadedAt,
+          uploadedBy: pro.applicantName || pro.name || 'Service Professional'
+        };
+      } else if (photoRecord.phase === 'after') {
+        booking.afterWorkPhoto = {
+          url: photoRecord.url,
+          fileName: photoRecord.fileName,
+          fileSizeKb: photoRecord.fileSizeKb,
+          uploadedAt: photoRecord.uploadedAt,
+          uploadedBy: pro.applicantName || pro.name || 'Service Professional'
+        };
+      }
+
       booking.timeline.push({
         id: `tl-${Date.now()}`,
         status: booking.status,
         title: `Uploaded ${photoRecord.phase.toUpperCase()} Evidence Photo`,
         description: `Verified ${finalPhotoType} inspection photo (${photoRecord.fileName}) attached to work vault.`,
-        actor: pro.applicantName,
+        actor: pro.applicantName || pro.name || 'Service Professional',
         actorRole: 'Service Professional',
         timestamp: new Date()
       });
@@ -3179,7 +3200,9 @@ export async function uploadJobPhotoEvidence(req, res) {
     return res.json({
       success: true,
       message: `Inspection evidence photo uploaded successfully under protected vault access. (Category: ${finalPhotoType})`,
-      photo: photoRecord
+      photo: photoRecord,
+      beforeWorkPhoto: booking?.beforeWorkPhoto,
+      afterWorkPhoto: booking?.afterWorkPhoto
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -3748,7 +3771,7 @@ export async function updateJobStatus(req, res) {
       });
     }
 
-    let booking = await Booking.findOne({ id });
+    let booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
     if (booking && booking.assignedProfessional?.id && booking.assignedProfessional.id !== proId) {
       return res.status(403).json({
         success: false,
@@ -3821,6 +3844,54 @@ export async function updateJobStatus(req, res) {
 
     if (booking) {
       booking.status = status;
+      if (status === 'Completed' && !booking.completedAt) {
+        booking.completedAt = new Date();
+      }
+      if (status === 'In Progress' && !booking.startedAt) {
+        booking.startedAt = new Date();
+      }
+      if (req.body?.beforeWorkPhoto) {
+        const bwp = req.body.beforeWorkPhoto;
+        const photoUrl = typeof bwp === 'string' ? bwp : (bwp.url || bwp.fileBase64);
+        booking.beforeWorkPhoto = {
+          url: photoUrl,
+          fileName: bwp.fileName || `before_service_${Date.now()}.jpg`,
+          fileSizeKb: bwp.fileSizeKb || 1200,
+          uploadedAt: new Date(),
+          uploadedBy: proName
+        };
+        booking.structuredChecklists = booking.structuredChecklists || {};
+        booking.structuredChecklists.photos = booking.structuredChecklists.photos || [];
+        booking.structuredChecklists.photos.push({
+          id: `photo-before-${Date.now()}`,
+          phase: 'before',
+          photoType: 'work_area',
+          url: photoUrl,
+          fileName: booking.beforeWorkPhoto.fileName,
+          uploadedAt: new Date()
+        });
+      }
+      if (req.body?.afterWorkPhoto) {
+        const awp = req.body.afterWorkPhoto;
+        const photoUrl = typeof awp === 'string' ? awp : (awp.url || awp.fileBase64);
+        booking.afterWorkPhoto = {
+          url: photoUrl,
+          fileName: awp.fileName || `after_service_${Date.now()}.jpg`,
+          fileSizeKb: awp.fileSizeKb || 1200,
+          uploadedAt: new Date(),
+          uploadedBy: proName
+        };
+        booking.structuredChecklists = booking.structuredChecklists || {};
+        booking.structuredChecklists.photos = booking.structuredChecklists.photos || [];
+        booking.structuredChecklists.photos.push({
+          id: `photo-after-${Date.now()}`,
+          phase: 'after',
+          photoType: 'work_area',
+          url: photoUrl,
+          fileName: booking.afterWorkPhoto.fileName,
+          uploadedAt: new Date()
+        });
+      }
       booking.timeline.push({
         id: `tl-${Date.now()}`,
         status,
@@ -4010,7 +4081,7 @@ export async function getEarnings(req, res) {
       settlementMode: 'Direct IMPS / Bank NEFT'
     };
 
-    // Real-time completed bookings from MongoDB
+    // Real-time completed bookings and in-progress/assigned bookings from MongoDB
     const effectiveProId = pro.id || pro.applicationNumber || proId;
     const bookingConditions = [
       { 'assignedProfessional.id': effectiveProId },
@@ -4027,28 +4098,89 @@ export async function getEarnings(req, res) {
       bookingConditions.push({ 'assignedWorker.email': pro.email });
     }
 
-    const completedBookings = await Booking.find({
-      $or: bookingConditions,
-      status: 'Completed'
-    }).sort({ completedAt: -1, createdAt: -1 }).lean();
+    const [completedBookings, pendingBookings] = await Promise.all([
+      Booking.find({
+        $or: bookingConditions,
+        status: 'Completed'
+      }).sort({ completedAt: -1, createdAt: -1 }).lean(),
+      Booking.find({
+        $or: bookingConditions,
+        status: { $in: ['Assigned', 'En Route', 'Arrived', 'In Progress'] }
+      }).lean()
+    ]);
 
     const jobsCompleted = completedBookings.length;
     const isNew = jobsCompleted === 0;
 
-    const calculatedGross = completedBookings.reduce((sum, b) => sum + (Number(b.totalAmount || b.price || b.amount) || 0), 0);
-    const calculatedCommission = Math.round(calculatedGross * 0.20);
-    const calculatedNet = calculatedGross - calculatedCommission;
+    const isAgency = pro.employmentType === 'Agency Employed';
+    const takeRate = isAgency ? 0.14 : 0.20;
+    const calcNet = (gross) => gross - Math.round(gross * takeRate);
 
-    const walletBalance = (pro.walletBalance != null && Number(pro.walletBalance) > 0)
+    // Dynamic Calendar Date Classifications for 100% Real-Time MongoDB Accuracy
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    const isCurrentMonth = (b) => {
+      const d = b.completedAt ? new Date(b.completedAt) : (b.createdAt ? new Date(b.createdAt) : (b.date ? new Date(b.date) : null));
+      if (!d || isNaN(d.getTime())) return true;
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    };
+
+    const isToday = (b) => {
+      const d = b.completedAt ? new Date(b.completedAt) : (b.createdAt ? new Date(b.createdAt) : (b.date ? new Date(b.date) : null));
+      if (!d || isNaN(d.getTime())) return false;
+      return d.toDateString() === now.toDateString();
+    };
+
+    const isThisWeek = (b) => {
+      const d = b.completedAt ? new Date(b.completedAt) : (b.createdAt ? new Date(b.createdAt) : (b.date ? new Date(b.date) : null));
+      if (!d || isNaN(d.getTime())) return false;
+      const diffMs = now.getTime() - d.getTime();
+      return diffMs >= 0 && diffMs <= 7 * 24 * 3600 * 1000;
+    };
+
+    // 1. This Month Real-Time Earnings
+    const thisMonthCompleted = completedBookings.filter(isCurrentMonth);
+    const thisMonthGross = thisMonthCompleted.reduce((sum, b) => sum + (Number(b.totalAmount || b.price || b.amount) || 0), 0);
+    const thisMonthCommission = Math.round(thisMonthGross * takeRate);
+    const thisMonthNet = thisMonthGross - thisMonthCommission;
+
+    // 2. Today Real-Time Earnings
+    const todayCompleted = completedBookings.filter(isToday);
+    const todayGross = todayCompleted.reduce((sum, b) => sum + (Number(b.totalAmount || b.price || b.amount) || 0), 0);
+    const todayCommission = Math.round(todayGross * takeRate);
+    const todayNet = todayGross - todayCommission;
+
+    // 3. This Week Real-Time Earnings
+    const thisWeekCompleted = completedBookings.filter(isThisWeek);
+    const thisWeekGross = thisWeekCompleted.reduce((sum, b) => sum + (Number(b.totalAmount || b.price || b.amount) || 0), 0);
+    const thisWeekCommission = Math.round(thisWeekGross * takeRate);
+    const thisWeekNet = thisWeekGross - thisWeekCommission;
+
+    // 4. Lifetime Real-Time Aggregations
+    const lifetimeGross = completedBookings.reduce((sum, b) => sum + (Number(b.totalAmount || b.price || b.amount) || 0), 0);
+    const lifetimeCommission = Math.round(lifetimeGross * takeRate);
+    const lifetimeNet = lifetimeGross - lifetimeCommission;
+
+    // 5. Pending Confirmation / Audit (Ongoing Dispatched Jobs)
+    const pendingGross = pendingBookings.reduce((sum, b) => sum + (Number(b.totalAmount || b.price || b.amount) || 0), 0);
+    const pendingNet = pendingGross - Math.round(pendingGross * takeRate);
+
+    // 6. Paid Settlements with Verified UTRs
+    const settledPayouts = Number(pro.settledPayouts || 0);
+
+    const walletBalance = (pro.walletBalance != null && Number(pro.walletBalance) >= 0)
       ? Number(pro.walletBalance) 
-      : (isNew ? 0 : calculatedNet);
+      : (isNew ? 0 : Math.max(0, lifetimeNet - settledPayouts));
+
     const lifetimeEarnings = (pro.lifetimeEarnings != null && Number(pro.lifetimeEarnings) > 0)
       ? Number(pro.lifetimeEarnings) 
-      : (isNew ? 0 : calculatedNet);
+      : (isNew ? 0 : lifetimeNet);
 
     const realLedger = completedBookings.map((b, idx) => {
       const gross = Number(b.totalAmount || b.price || b.amount) || 0;
-      const comm = Math.round(gross * 0.20);
+      const comm = Math.round(gross * takeRate);
       const net = gross - comm;
       return {
         id: `TXN-${b.bookingReference || (idx + 1)}`,
@@ -4074,13 +4206,13 @@ export async function getEarnings(req, res) {
         settlementEligibility: 'Available for settlement cycle',
         settlementStatus: 'Available for Settlement',
         recipientSnapshot,
-        pricingSnapshot: { baseRate: gross, addons: 0, commissionPercentage: 20 }
+        pricingSnapshot: { baseRate: gross, addons: 0, commissionPercentage: Math.round(takeRate * 100) }
       };
     });
 
     const realRecentTransactions = completedBookings.slice(0, 5).map((b, idx) => {
       const gross = Number(b.totalAmount || b.price || b.amount) || 0;
-      const take = Math.round(gross * 0.20);
+      const take = Math.round(gross * takeRate);
       return {
         id: `TXN-${b.bookingReference || (idx + 1)}`,
         bookingRef: b.bookingReference || `UC-${b.id}`,
@@ -4094,16 +4226,19 @@ export async function getEarnings(req, res) {
     });
 
     const financialStages = {
-      earnedPaisa: calculatedGross * 100,
-      earned: calculatedGross,
-      pendingConfirmationPaisa: 0,
-      pendingConfirmation: 0,
+      earnedPaisa: thisMonthGross * 100,
+      earned: thisMonthGross,
+      earnedNet: thisMonthNet,
+      earnedNetPaisa: thisMonthNet * 100,
+      pendingConfirmationPaisa: pendingGross * 100,
+      pendingConfirmation: pendingGross,
+      pendingConfirmationNet: pendingNet,
       availableForSettlementPaisa: walletBalance * 100,
       availableForSettlement: walletBalance,
       processingPaisa: 0,
       processing: 0,
-      paidPaisa: lifetimeEarnings * 100,
-      paid: lifetimeEarnings,
+      paidPaisa: settledPayouts * 100,
+      paid: settledPayouts,
       disputedPaisa: 0,
       disputed: 0
     };
@@ -4112,31 +4247,34 @@ export async function getEarnings(req, res) {
       walletBalance: walletBalance,
       lifetime: lifetimeEarnings,
       lifetimeEarnings: lifetimeEarnings,
-      thisWeek: isNew ? 0 : calculatedNet,
-      thisWeekEarnings: isNew ? 0 : calculatedNet,
-      today: isNew ? 0 : calculatedNet,
-      todayEarnings: isNew ? 0 : calculatedNet,
-      thisMonth: isNew ? 0 : calculatedNet,
+      thisWeek: thisWeekNet,
+      thisWeekEarnings: thisWeekNet,
+      thisWeekGross,
+      today: todayNet,
+      todayEarnings: todayNet,
+      todayGross,
+      thisMonth: thisMonthNet,
+      thisMonthGross,
       tipsReceived: 0,
       incentivesEarned: 0,
-      platformTakeRate: pro.employmentType === 'Agency Employed' ? '14% (Agency Partner Rate)' : '20% (Standard Solo Rate)',
+      platformTakeRate: isAgency ? '14% (Agency Partner Rate)' : '20% (Standard Solo Rate)',
       currencyUnit: 'INR (₹)',
       minorCurrencyUnit: 'Paisa (100 Paisa = ₹1.00)',
       financialNotice: 'Completed job indicates earned professional entitlement but is distinct from funds already released into your bank account. Settlements disburse on configured weekly cycles.',
       financialStages,
       breakdown: {
-        grossFare: calculatedGross,
-        grossFarePaisa: calculatedGross * 100,
-        platformCommission: calculatedCommission,
-        platformCommissionPaisa: calculatedCommission * 100,
+        grossFare: thisMonthGross,
+        grossFarePaisa: thisMonthGross * 100,
+        platformCommission: thisMonthCommission,
+        platformCommissionPaisa: thisMonthCommission * 100,
         tips: 0,
         tipsPaisa: 0,
         surgeBonus: 0,
         surgeBonusPaisa: 0,
         tierBonus: 0,
         tierBonusPaisa: 0,
-        netEarnings: calculatedNet,
-        netEarningsPaisa: calculatedNet * 100
+        netEarnings: thisMonthNet,
+        netEarningsPaisa: thisMonthNet * 100
       },
       recentTransactions: realRecentTransactions,
       itemizedLedger: realLedger,
@@ -4655,9 +4793,13 @@ export async function requestWithdrawal(req, res) {
     if (dbWorker) {
       await WorkerApplication.updateOne(
         { _id: dbWorker._id },
-        { $set: { walletBalance: updatedBalance } }
+        { 
+          $set: { walletBalance: updatedBalance },
+          $inc: { settledPayouts: withdrawAmount }
+        }
       ).catch(() => {});
     }
+    pro.settledPayouts = (pro.settledPayouts || 0) + withdrawAmount;
 
     const utr = `UTR-${Math.floor(10000000 + Math.random() * 90000000)}`;
     const payoutId = `PAY-${Math.floor(1000 + Math.random() * 9000)}`;

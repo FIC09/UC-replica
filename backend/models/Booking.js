@@ -366,6 +366,21 @@ const bookingSchema = new mongoose.Schema({
     }],
     completionNotes: { type: String, default: '' }
   },
+  // Work Verification Evidence Photos (Pre-work & Post-work)
+  beforeWorkPhoto: {
+    url: String,
+    fileName: String,
+    fileSizeKb: Number,
+    uploadedAt: { type: Date, default: Date.now },
+    uploadedBy: String
+  },
+  afterWorkPhoto: {
+    url: String,
+    fileName: String,
+    fileSizeKb: Number,
+    uploadedAt: { type: Date, default: Date.now },
+    uploadedBy: String
+  },
   // Extra Work / Parts with Customer Approval
   extraWorkRequests: [{
     id: String,

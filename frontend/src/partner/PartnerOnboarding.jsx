@@ -580,27 +580,39 @@ export function PartnerOnboarding({ partner, onNavigate, showToast }) {
               </h2>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#475569', marginBottom: 4 }}>
-                    Company PAN Number *
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label style={{ fontSize: 12.5, fontWeight: 600, color: '#475569' }}>
+                      Company PAN Number *
+                    </label>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: (formData.panNumber || '').length === 10 ? '#10b981' : '#64748b' }}>
+                      {(formData.panNumber || '').length}/10
+                    </span>
+                  </div>
                   <input
                     type="text"
+                    maxLength={10}
                     value={formData.panNumber}
-                    onChange={e => setFormData({ ...formData, panNumber: e.target.value.toUpperCase() })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5 }}
+                    onChange={e => setFormData({ ...formData, panNumber: e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10).toUpperCase() })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5, textTransform: 'uppercase' }}
                     placeholder="e.g. AABCA1234F"
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#475569', marginBottom: 4 }}>
-                    GSTIN / Tax Identification *
-                  </label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label style={{ fontSize: 12.5, fontWeight: 600, color: '#475569' }}>
+                      GSTIN / Tax Identification *
+                    </label>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: (formData.gstNumber || '').length === 15 ? '#10b981' : '#64748b' }}>
+                      {(formData.gstNumber || '').length}/15
+                    </span>
+                  </div>
                   <input
                     type="text"
+                    maxLength={15}
                     value={formData.gstNumber}
-                    onChange={e => setFormData({ ...formData, gstNumber: e.target.value.toUpperCase() })}
-                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5 }}
+                    onChange={e => setFormData({ ...formData, gstNumber: e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 15).toUpperCase() })}
+                    style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5, textTransform: 'uppercase' }}
                     placeholder="e.g. 27AABCA1234F1Z8"
                   />
                 </div>

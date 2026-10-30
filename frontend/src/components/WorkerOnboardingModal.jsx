@@ -90,6 +90,12 @@ export function WorkerOnboardingModal({
 
   function handleSubmitApplication(e) {
     e.preventDefault();
+    const cleanAadhaar = aadhaarNumber.replace(/\D/g, '');
+    if (cleanAadhaar && cleanAadhaar.length !== 16) {
+      setError('Aadhaar / Virtual ID (VID) must be exactly 16 numeric digits.');
+      return;
+    }
+    setError('');
     const tradeObj = CATEGORIES.find(c => c.id === selectedTrade);
     const newApp = {
       id: `WRK-${Date.now().toString().slice(-5)}`,
@@ -644,24 +650,58 @@ export function WorkerOnboardingModal({
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                    Aadhaar Number (for Police & KYC Verification)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="XXXX-XXXX-XXXX"
-                    value={aadhaarNumber}
-                    onChange={(e) => setAadhaarNumber(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#1E293B',
-                      border: '1px solid #334155',
-                      borderRadius: 0,
-                      padding: '10px 14px',
-                      color: '#FFFFFF',
-                      fontSize: 13.5
-                    }}
-                  />
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1' }}>
+                      Aadhaar Number (16 Digits for Police & KYC Verification)
+                    </label>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: aadhaarNumber.length === 16 ? '#10B981' : '#94A3B8' }}>
+                      {aadhaarNumber.length}/16
+                    </span>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={16}
+                      placeholder="Enter 16-digit Aadhaar / Virtual ID"
+                      value={aadhaarNumber}
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 16);
+                        setAadhaarNumber(digitsOnly);
+                        if (error) setError('');
+                      }}
+                      onKeyDown={(e) => {
+                        if (
+                          !/[0-9]/.test(e.key) &&
+                          !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End', 'Enter'].includes(e.key) &&
+                          !e.ctrlKey &&
+                          !e.metaKey
+                        ) {
+                          e.preventDefault();
+                        }
+                      }}
+                      style={{
+                        width: '100%',
+                        background: '#1E293B',
+                        border: error && aadhaarNumber && aadhaarNumber.length !== 16 ? '1px solid #EF4444' : (aadhaarNumber.length === 16 ? '1px solid #10B981' : '1px solid #334155'),
+                        borderRadius: 0,
+                        padding: '10px 38px 10px 14px',
+                        color: '#FFFFFF',
+                        fontSize: 13.5,
+                        letterSpacing: 1.2,
+                        outline: 'none'
+                      }}
+                    />
+                    {aadhaarNumber.length === 16 && (
+                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
+                        <CheckCircle2 size={16} color="#10B981" />
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
+                    Only 16 numeric digits accepted (dots or letters are not permitted).
+                  </div>
                 </div>
               </div>
 
@@ -843,7 +883,7 @@ export function WorkerOnboardingModal({
                     boxShadow: '0 4px 14px rgba(5, 150, 105, 0.3)'
                   }}
                 >
-                  <span>Go to Worker Dashboard (Awaiting Approval)</span>
+                  <span>Go to Worker Dashboard</span>
                   <ArrowRight size={16} />
                 </button>
 
