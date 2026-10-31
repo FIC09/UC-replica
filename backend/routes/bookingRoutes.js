@@ -486,6 +486,14 @@ router.delete('/:id', async (req, res) => {
     const existing = await Booking.findOne({ $or: query });
 
     if (existing) {
+      const assignedWorkerId = existing?.assignedProfessional?.id || existing?.assignedWorker?.id;
+      if (assignedWorkerId && existing.status !== 'Completed') {
+        WorkerApplication.updateOne(
+          { $or: [{ id: assignedWorkerId }, { applicationNumber: assignedWorkerId }] },
+          { $set: { dispatchState: 'Available', activeBookingId: '' } }
+        ).catch(() => {});
+      }
+
       if (existing.status === 'Completed' || existing.assignedProfessional?.id || existing.assignedWorker?.id) {
         // Retain completed/assigned order for technician records & wallet payout audit, hide from customer view
         existing.deletedByCustomer = true;

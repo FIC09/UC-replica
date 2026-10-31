@@ -2994,7 +2994,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                     const isSelected = selectedCandidate?.id === candidate.id;
                     const canAssign = candidate.isEligible && candidate.isAvailable;
 
-                    const isPresent = candidate.attendanceStatus === 'PRESENT';
+                    const isPresent = candidate.attendanceStatus === 'PRESENT' || candidate.attendanceStatus === 'BUSY' || (candidate.isOnline && candidate.attendanceStatus !== 'OFFLINE' && candidate.attendanceStatus !== 'ON_LEAVE');
                     const isOnLeave = candidate.attendanceStatus === 'ON_LEAVE';
                     const isOptimalWorkload = (candidate.activeBookingsCount || 0) === 0;
                     const isCapacityFull = candidate.isCapacityReached;
@@ -3108,7 +3108,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                                 gap: 4
                               }}>
                                 <Ban size={12} />
-                                Ineligible: {isOnLeave ? 'Technician is on approved leave today' : (!candidate.isOnline ? 'Technician is currently offline' : (isCapacityFull ? 'Technician reached max daily job capacity (4/4)' : 'Busy with conflicting slot'))}
+                                Ineligible: {isOnLeave ? 'Technician is on approved leave today' : (!candidate.isOnline ? 'Technician is currently offline' : (isCapacityFull ? `Technician reached max daily job capacity (${candidate.activeBookingsCount || 4}/${candidate.maxDailyJobs || 4})` : (candidate.isSlotConflict ? 'Busy with conflicting slot' : 'Currently unavailable for dispatch')))}
                               </div>
                             )}
                           </div>

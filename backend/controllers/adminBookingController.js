@@ -586,6 +586,22 @@ export async function assignProfessional(req, res) {
     booking.timeline.push(timelineEvent);
     await booking.save();
 
+    // Free previously assigned worker if reassigned
+    const newAssignedProId = professionalId || assignedProData.id;
+    if (previousWorkerId && previousWorkerId !== newAssignedProId) {
+      WorkerApplication.updateOne(
+        { $or: [{ id: previousWorkerId }, { applicationNumber: previousWorkerId }] },
+        { $set: { dispatchState: 'Available', activeBookingId: '' } }
+      ).catch(() => {});
+    }
+    // Update newly assigned worker dispatch state
+    if (newAssignedProId) {
+      WorkerApplication.updateOne(
+        { $or: [{ id: newAssignedProId }, { applicationNumber: newAssignedProId }] },
+        { $set: { dispatchState: 'Busy on Booking', activeBookingId: booking.id } }
+      ).catch(() => {});
+    }
+
     // Synchronize or create TrackingSession immediately so technician is instantly tracked
     try {
       const customerCoords = resolveCoordinates(booking.address, booking.serviceZone, booking.city || 'Krishnagiri');
@@ -804,6 +820,15 @@ export async function cancelBooking(req, res) {
     booking.timeline.push(timelineEvent);
     await booking.save();
 
+    // Free assigned worker back to Available
+    const cancelledWorkerId = booking.assignedProfessional?.id;
+    if (cancelledWorkerId) {
+      WorkerApplication.updateOne(
+        { $or: [{ id: cancelledWorkerId }, { applicationNumber: cancelledWorkerId }] },
+        { $set: { dispatchState: 'Available', activeBookingId: '' } }
+      ).catch(() => {});
+    }
+
     return res.json({
       success: true,
       message: `Booking #${id} has been cancelled.`,
@@ -985,7 +1010,7 @@ export async function getEligibleProfessionals(req, res) {
       const proId = w.id || c.id || (w._id ? w._id.toString() : '');
       const proName = w.applicantName || w.name || c.name || 'Professional';
       const isOnline = c.isOnline !== false && w.dispatchState !== 'Offline';
-      const isAvailable = !c.isBusy && !c.isSlotConflict;
+      const isAvailable = c.isAvailable != null ? c.isAvailable : (!c.isSlotConflict && !c.isCapacityReached && isOnline);
 
       return {
         id: proId,

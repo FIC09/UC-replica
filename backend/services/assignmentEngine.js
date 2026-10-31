@@ -408,11 +408,23 @@ export async function findEligibleProfessionals(bookingIdOrDoc, { scopePartnerId
 
     const activeJobsCount = workerActiveCountMap[worker.id] || 0;
     const isSlotConflict = busyWorkerIds.has(worker.id);
+
+    // Self-healing: If worker has 0 active jobs in system, heal any stale 'Busy on Booking' state
+    if (activeJobsCount === 0 && worker.dispatchState === 'Busy on Booking') {
+      worker.dispatchState = 'Available';
+      worker.activeBookingId = '';
+      WorkerApplication.updateOne(
+        { _id: worker._id },
+        { $set: { dispatchState: 'Available', activeBookingId: '' } }
+      ).catch(() => {});
+    }
+
     const scoreResult = calculateWorkerScore(worker, booking, customerCoords, activeJobsCount, isSlotConflict);
 
-    const isAvailable = (scoreResult.attendanceStatus === 'PRESENT') && !isSlotConflict && !scoreResult.isCapacityReached;
+    // A worker is available if they have no slot conflict, haven't exceeded daily capacity, and are not suspended/on leave/offline
+    const isAvailable = !isSlotConflict && !scoreResult.isCapacityReached && scoreResult.attendanceStatus !== 'ON_LEAVE' && scoreResult.attendanceStatus !== 'SUSPENDED' && worker.dispatchState !== 'Offline' && worker.dispatchState !== 'Suspended';
     const isOnline = onlineWorkerIds.includes(worker.id) || worker.dispatchState !== 'Offline';
-    const isBusy = isSlotConflict || worker.dispatchState === 'Busy on Booking';
+    const isBusy = isSlotConflict || (activeJobsCount > 0 && worker.dispatchState === 'Busy on Booking');
 
     return {
       worker: {
