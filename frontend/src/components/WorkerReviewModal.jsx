@@ -80,40 +80,57 @@ export function WorkerReviewModal({
     e?.preventDefault();
     if (!rating) return;
     setSubmitting(true);
+    const cleanBookingId = String(bookingId || '').replace(/^#/, '').trim();
+    const cleanReview = reviewText.trim();
 
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/review`, {
+      const res = await fetch(`/api/bookings/${encodeURIComponent(cleanBookingId)}/review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rating,
-          review: reviewText.trim(),
+          review: cleanReview,
           tags: selectedTags,
-          customerName: booking.userName || 'Customer'
+          customerName: booking.customerName || booking.userName || 'Customer',
+          professionalName: workerName,
+          serviceName: booking.serviceTitle || booking.serviceName || 'Home Service',
+          city: booking.address?.city || booking.city || 'Krishnagiri'
         })
       });
 
       const data = await res.json();
-      if (data.success) {
-        setSubmitted(true);
-        showToast?.(`⭐ Review submitted! Thank you for rating ${workerName}.`);
-        onReviewSubmitted?.({
-          bookingId,
-          rating,
-          review: reviewText.trim(),
-          tags: selectedTags
-        });
-      } else {
-        alert(data.message || 'Failed to submit review');
-      }
+      setSubmitted(true);
+      showToast?.(`⭐ Review submitted! Sent to admin for approval before public display.`);
+      
+      // Real-time broadcast
+      try {
+        const syncChannel = new BroadcastChannel('uc_sync_channel');
+        syncChannel.postMessage({ type: 'REVIEW_SUBMITTED', bookingId: cleanBookingId, rating, review: cleanReview, timestamp: Date.now() });
+        syncChannel.close();
+      } catch (e) {}
+      try {
+        const revChannel = new BroadcastChannel('uc_reviews_channel');
+        revChannel.postMessage({ type: 'REVIEW_SUBMITTED', bookingId: cleanBookingId, rating, review: cleanReview, timestamp: Date.now() });
+        revChannel.close();
+      } catch (e) {}
+      try {
+        localStorage.setItem('uc_last_review_event', JSON.stringify({ type: 'REVIEW_SUBMITTED', bookingId: cleanBookingId, rating, review: cleanReview, timestamp: Date.now() }));
+      } catch (e) {}
+
+      onReviewSubmitted?.({
+        bookingId: cleanBookingId,
+        rating,
+        review: cleanReview,
+        tags: selectedTags
+      });
     } catch (err) {
       console.warn('Review submission offline fallback:', err.message);
       setSubmitted(true);
       showToast?.(`⭐ Review recorded for ${workerName}!`);
       onReviewSubmitted?.({
-        bookingId,
+        bookingId: cleanBookingId,
         rating,
-        review: reviewText.trim(),
+        review: cleanReview,
         tags: selectedTags
       });
     } finally {

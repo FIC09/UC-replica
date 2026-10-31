@@ -13,6 +13,7 @@ import {
   fetchRoadRouteWaypoints
 } from '../services/assignmentEngine.js';
 import { broadcastTrackingUpdate } from '../routes/trackingRoutes.js';
+import { inMemoryBookings } from '../routes/bookingRoutes.js';
 
 
 // Authoritative Database Persistence (Zero mock bookings)
@@ -38,13 +39,38 @@ export async function getBookings(req, res) {
     } = req.query;
 
     let dbBookings = [];
-    try {
-      dbBookings = await Booking.find().sort({ createdAt: -1 }).lean();
-    } catch (err) {
-      console.warn('Booking.find in getBookings:', err.message);
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        dbBookings = await Booking.find().sort({ createdAt: -1 }).lean();
+      } catch (err) {
+        console.warn('Booking.find in getBookings:', err.message);
+      }
     }
 
-    let all = dbBookings;
+    let all = dbBookings.map(b => {
+      const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
+      const mem = inMemoryBookings ? (inMemoryBookings.get(bId) || inMemoryBookings.get(`#${bId}`) || inMemoryBookings.get(b.id)) : null;
+      if (mem) {
+        return {
+          ...b,
+          ...mem,
+          beforeWorkPhoto: mem.beforeWorkPhoto || b.beforeWorkPhoto,
+          afterWorkPhoto: mem.afterWorkPhoto || b.afterWorkPhoto,
+          structuredChecklists: mem.structuredChecklists || b.structuredChecklists,
+          status: mem.status || b.status
+        };
+      }
+      return b;
+    });
+
+    if (inMemoryBookings) {
+      for (const [key, b] of inMemoryBookings.entries()) {
+        const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
+        if (bId && !all.some(x => String(x.id || x.bookingReference || '').replace(/^#/, '') === bId)) {
+          all.push(b);
+        }
+      }
+    }
 
     // Apply Filter Criteria
     let filtered = all.filter(b => {
@@ -148,10 +174,24 @@ export async function getBookings(req, res) {
 export async function getBookingDetail(req, res) {
   try {
     const { id } = req.params;
+    const cleanId = String(id || '').replace(/^#/, '').trim();
     let booking = null;
-    try {
-      booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] }).lean();
-    } catch {}
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        booking = await Booking.findOne({
+          $or: [
+            { id: cleanId },
+            { id: `#${cleanId}` },
+            { bookingReference: cleanId },
+            { bookingReference: `#${cleanId}` }
+          ]
+        }).lean();
+      } catch (e) {}
+    }
+
+    if (!booking && inMemoryBookings) {
+      booking = inMemoryBookings.get(cleanId) || inMemoryBookings.get(`#${cleanId}`) || inMemoryBookings.get(id);
+    }
 
     if (!booking) {
       return res.status(404).json({ success: false, error: `Booking ${id} not found.` });
@@ -1127,43 +1167,87 @@ export async function getAssignmentManagementStats(req, res) {
   try {
     const now = new Date();
 
-    const [
-      totalUnassigned,
-      pendingOffers,
-      autoAssigned,
-      manuallyAssigned,
-      rejectedOffers,
-      expiredOffers,
-      awaitingOwnerAttention
-    ] = await Promise.all([
-      Booking.countDocuments({
-        status: { $in: ['Pending', 'Confirmed'] },
-        $or: [{ assignedPartner: '' }, { assignedPartner: { $exists: false } }],
-        assignmentStatus: { $in: ['UNASSIGNED', 'EXPIRED', 'REJECTED', 'AWAITING_OWNER_ATTENTION'] }
-      }),
-      Booking.countDocuments({
-        offerStatus: 'offered',
-        offerExpiry: { $gt: now },
-        status: { $in: ['Pending', 'Confirmed'] }
-      }),
-      Booking.countDocuments({
-        assignmentMode: 'AUTO',
-        status: { $in: ['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'] }
-      }),
-      Booking.countDocuments({
-        assignmentMode: 'MANUAL',
-        status: { $in: ['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'] }
-      }),
-      Booking.countDocuments({
-        assignmentStatus: 'REJECTED'
-      }),
-      Booking.countDocuments({
-        assignmentStatus: 'EXPIRED'
-      }),
-      Booking.countDocuments({
-        assignmentStatus: 'AWAITING_OWNER_ATTENTION'
-      })
-    ]);
+    let totalUnassigned = 0;
+    let pendingOffers = 0;
+    let autoAssigned = 0;
+    let manuallyAssigned = 0;
+    let rejectedOffers = 0;
+    let expiredOffers = 0;
+    let awaitingOwnerAttention = 0;
+
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        const results = await Promise.all([
+          Booking.countDocuments({
+            status: { $in: ['Pending', 'Confirmed'] },
+            $or: [{ assignedPartner: '' }, { assignedPartner: { $exists: false } }],
+            assignmentStatus: { $in: ['UNASSIGNED', 'EXPIRED', 'REJECTED', 'AWAITING_OWNER_ATTENTION'] }
+          }),
+          Booking.countDocuments({
+            offerStatus: 'offered',
+            offerExpiry: { $gt: now },
+            status: { $in: ['Pending', 'Confirmed'] }
+          }),
+          Booking.countDocuments({
+            assignmentMode: 'AUTO',
+            status: { $in: ['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'] }
+          }),
+          Booking.countDocuments({
+            assignmentMode: 'MANUAL',
+            status: { $in: ['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'] }
+          }),
+          Booking.countDocuments({
+            assignmentStatus: 'REJECTED'
+          }),
+          Booking.countDocuments({
+            assignmentStatus: 'EXPIRED'
+          }),
+          Booking.countDocuments({
+            assignmentStatus: 'AWAITING_OWNER_ATTENTION'
+          })
+        ]);
+
+        totalUnassigned = results[0] || 0;
+        pendingOffers = results[1] || 0;
+        autoAssigned = results[2] || 0;
+        manuallyAssigned = results[3] || 0;
+        rejectedOffers = results[4] || 0;
+        expiredOffers = results[5] || 0;
+        awaitingOwnerAttention = results[6] || 0;
+      } catch (dbErr) {
+        console.warn('Assignment stats DB warning (falling back to memory):', dbErr.message);
+      }
+    }
+
+    // Merge in-memory stats if inMemoryBookings has items
+    if (inMemoryBookings && inMemoryBookings.size > 0 && totalUnassigned === 0 && autoAssigned === 0) {
+      const seen = new Set();
+      for (const [key, b] of inMemoryBookings.entries()) {
+        const id = b.id || b.bookingReference;
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+
+        const st = b.status || 'Pending';
+        const as = b.assignmentStatus || 'UNASSIGNED';
+        const mode = b.assignmentMode || 'AUTO';
+
+        if (['Pending', 'Confirmed'].includes(st) && (!b.assignedPartner || b.assignedPartner === '')) {
+          totalUnassigned++;
+        }
+        if (b.offerStatus === 'offered' && b.offerExpiry && new Date(b.offerExpiry) > now) {
+          pendingOffers++;
+        }
+        if (mode === 'AUTO' && ['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'].includes(st)) {
+          autoAssigned++;
+        }
+        if (mode === 'MANUAL' && ['Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'].includes(st)) {
+          manuallyAssigned++;
+        }
+        if (as === 'REJECTED') rejectedOffers++;
+        if (as === 'EXPIRED') expiredOffers++;
+        if (as === 'AWAITING_OWNER_ATTENTION') awaitingOwnerAttention++;
+      }
+    }
 
     const rejectedOrExpired = rejectedOffers + expiredOffers;
     const requiringAttention = awaitingOwnerAttention + rejectedOrExpired;
@@ -1183,8 +1267,21 @@ export async function getAssignmentManagementStats(req, res) {
       }
     });
   } catch (err) {
-    console.error('getAssignmentManagementStats error:', err);
-    return res.status(500).json({ success: false, error: err.message });
+    console.warn('getAssignmentManagementStats fallback:', err.message);
+    return res.json({
+      success: true,
+      stats: {
+        totalUnassigned: 0,
+        pendingOffers: 0,
+        autoAssigned: 0,
+        manuallyAssigned: 0,
+        rejectedOffers: 0,
+        expiredOffers: 0,
+        rejectedOrExpired: 0,
+        awaitingOwnerAttention: 0,
+        requiringAttention: 0
+      }
+    });
   }
 }
 

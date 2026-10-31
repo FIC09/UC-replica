@@ -508,7 +508,12 @@ const bookingSchema = new mongoose.Schema({
   },
   reviewIsPublished: {
     type: Boolean,
-    default: true,
+    default: false,
+  },
+  reviewStatus: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected'],
+    default: 'Pending',
   },
   reviewFlagged: {
     type: Boolean,
@@ -568,4 +573,5 @@ bookingSchema.index({ status: 1, assignmentStatus: 1 });
 bookingSchema.index({ 'offeredTo.proId': 1, offerStatus: 1 });
 
 export const Booking = mongoose.model('Booking', bookingSchema);
+export default Booking;
 

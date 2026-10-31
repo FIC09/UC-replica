@@ -3212,7 +3212,23 @@ export async function uploadJobPhotoEvidence(req, res) {
     list.push(photoRecord);
     bookingEvidenceStore.set(id, list);
 
-    let booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
+    const cleanId = String(id || '').replace(/^#/, '').trim();
+    const bkgQuery = {
+      $or: [
+        { id: cleanId },
+        { id: `#${cleanId}` },
+        { bookingReference: cleanId },
+        { bookingReference: `#${cleanId}` }
+      ]
+    };
+
+    let booking = null;
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        booking = await Booking.findOne(bkgQuery);
+      } catch (dbErr) {}
+    }
+
     if (booking) {
       booking.structuredChecklists = booking.structuredChecklists || {};
       booking.structuredChecklists.photos = booking.structuredChecklists.photos || [];
@@ -3249,6 +3265,52 @@ export async function uploadJobPhotoEvidence(req, res) {
       });
       await booking.save();
     }
+
+    // Always synchronize to inMemoryBookings so admin views instantly reflect photos
+    try {
+      const { inMemoryBookings } = await import('../routes/bookingRoutes.js');
+      if (inMemoryBookings) {
+        let memB = inMemoryBookings.get(cleanId) || inMemoryBookings.get(`#${cleanId}`) || inMemoryBookings.get(id);
+        if (!memB && booking) {
+          memB = booking.toObject ? booking.toObject() : { ...booking };
+        }
+        if (memB) {
+          if (photoRecord.phase === 'before') {
+            memB.beforeWorkPhoto = {
+              url: photoRecord.url,
+              fileName: photoRecord.fileName,
+              fileSizeKb: photoRecord.fileSizeKb,
+              uploadedAt: photoRecord.uploadedAt,
+              uploadedBy: pro.applicantName || pro.name || 'Service Professional'
+            };
+          } else {
+            memB.afterWorkPhoto = {
+              url: photoRecord.url,
+              fileName: photoRecord.fileName,
+              fileSizeKb: photoRecord.fileSizeKb,
+              uploadedAt: photoRecord.uploadedAt,
+              uploadedBy: pro.applicantName || pro.name || 'Service Professional'
+            };
+          }
+          memB.structuredChecklists = memB.structuredChecklists || {};
+          memB.structuredChecklists.photos = memB.structuredChecklists.photos || [];
+          memB.structuredChecklists.photos.push(photoRecord);
+
+          inMemoryBookings.set(cleanId, memB);
+          inMemoryBookings.set(`#${cleanId}`, memB);
+          inMemoryBookings.set(id, memB);
+        }
+      }
+    } catch (memErr) {}
+
+    // Emit event for real-time synchronization
+    try {
+      emitEvent('BOOKING_UPDATED', {
+        bookingId: cleanId,
+        beforeWorkPhoto: booking?.beforeWorkPhoto || (photoRecord.phase === 'before' ? photoRecord : undefined),
+        afterWorkPhoto: booking?.afterWorkPhoto || (photoRecord.phase === 'after' ? photoRecord : undefined)
+      });
+    } catch (e) {}
 
     return res.json({
       success: true,
@@ -3760,8 +3822,31 @@ export async function getJobDetail(req, res) {
       });
     }
 
-    // Check DB first
-    let job = await Booking.findOne({ id }).lean();
+    // Check DB first with normalized id
+    const cleanId = String(id || '').replace(/^#/, '').trim();
+    let job = null;
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        job = await Booking.findOne({
+          $or: [
+            { id: cleanId },
+            { id: `#${cleanId}` },
+            { bookingReference: cleanId },
+            { bookingReference: `#${cleanId}` }
+          ]
+        }).lean();
+      } catch (dbErr) {}
+    }
+
+    if (!job) {
+      try {
+        const { inMemoryBookings } = await import('../routes/bookingRoutes.js');
+        if (inMemoryBookings) {
+          job = inMemoryBookings.get(cleanId) || inMemoryBookings.get(`#${cleanId}`) || inMemoryBookings.get(id);
+        }
+      } catch (e) {}
+    }
+
     if (job) {
       // STRICT AUTHORIZATION CHECK: Prevent worker from snooping on other workers' jobs!
       if (job.assignedProfessional && job.assignedProfessional.id && job.assignedProfessional.id !== proId) {
@@ -3775,7 +3860,11 @@ export async function getJobDetail(req, res) {
     // Fallback baseline lookup
     if (!job) {
       const allJobs = await getAllJobsForPro(proId);
-      job = allJobs.find(j => j.id === id || j.bookingReference === id);
+      job = allJobs.find(j => {
+        const jId = String(j.id || '').replace(/^#/, '');
+        const jRef = String(j.bookingReference || '').replace(/^#/, '');
+        return jId === cleanId || jRef === cleanId;
+      });
 
       if (!job && (id === 'JOB-9410' || id === 'UC-829410' || id === 'JOB-9411' || id === 'UC-829411' || id === 'JOB-9388')) {
         if (proId !== 'PRO-8841') {
@@ -3824,7 +3913,31 @@ export async function updateJobStatus(req, res) {
       });
     }
 
-    let booking = await Booking.findOne({ $or: [{ id }, { bookingReference: id }] });
+    const cleanId = String(id || '').replace(/^#/, '').trim();
+    const bkgQuery = {
+      $or: [
+        { id: cleanId },
+        { id: `#${cleanId}` },
+        { bookingReference: cleanId },
+        { bookingReference: `#${cleanId}` }
+      ]
+    };
+    let booking = null;
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        booking = await Booking.findOne(bkgQuery);
+      } catch (dbErr) {}
+    }
+
+    if (!booking) {
+      try {
+        const { inMemoryBookings } = await import('../routes/bookingRoutes.js');
+        if (inMemoryBookings) {
+          booking = inMemoryBookings.get(cleanId) || inMemoryBookings.get(`#${cleanId}`) || inMemoryBookings.get(id);
+        }
+      } catch (e) {}
+    }
+
     if (booking && booking.assignedProfessional?.id && booking.assignedProfessional.id !== proId) {
       return res.status(403).json({
         success: false,
@@ -3990,9 +4103,28 @@ export async function updateJobStatus(req, res) {
         actorRole: 'Service Professional',
         timestamp: new Date()
       });
-      await booking.save();
+      if (booking.markModified && booking.save) {
+        booking.markModified('status');
+        booking.markModified('beforeWorkPhoto');
+        booking.markModified('afterWorkPhoto');
+        booking.markModified('structuredChecklists');
+        booking.markModified('timeline');
+        try { await booking.save(); } catch (sErr) {}
+      }
+
+      // Synchronize inMemoryBookings
+      try {
+        const { inMemoryBookings } = await import('../routes/bookingRoutes.js');
+        if (inMemoryBookings) {
+          const plainBooking = booking.toObject ? booking.toObject() : { ...booking };
+          inMemoryBookings.set(cleanId, plainBooking);
+          inMemoryBookings.set(`#${cleanId}`, plainBooking);
+          inMemoryBookings.set(id, plainBooking);
+        }
+      } catch (e) {}
     } else {
       syntheticJobStatusStore.set(id, status);
+      syntheticJobStatusStore.set(cleanId, status);
     }
 
     // Synchronize to PostgreSQL bookings table

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { AdminLayout } from './AdminLayout';
-import { AdminLogin } from './AdminLogin';
 import { adminClient } from './adminClient';
 
 // Import Admin Views
@@ -128,6 +127,13 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
     showToast(`Welcome back, ${user.name}`);
   }, [handleNavigate, showToast]);
 
+  const handleExitToMarketplace = useCallback(() => {
+    if (typeof onExitToMarketplace === 'function') {
+      onExitToMarketplace();
+    }
+    window.location.replace('/');
+  }, [onExitToMarketplace]);
+
   const handleLogout = useCallback(async () => {
     try {
       await adminClient.logout();
@@ -144,9 +150,16 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
     // Broadcast event across app
     window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: null } }));
 
+    if (typeof onAppLogout === 'function') {
+      try { onAppLogout(); } catch {}
+    }
+    if (typeof onExitToMarketplace === 'function') {
+      try { onExitToMarketplace(); } catch {}
+    }
+
     // Unconditionally redirect straight to landing page
-    window.location.href = '/';
-  }, []);
+    window.location.replace('/');
+  }, [onAppLogout, onExitToMarketplace]);
 
   const handleToggleWeatherSurge = useCallback((active) => {
     setWeatherSurge(active);
@@ -159,18 +172,15 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
       });
   }, [showToast]);
 
-  const handleExitToMarketplace = useCallback(() => {
-    window.location.href = '/';
-  }, []);
+  // If unauthenticated or accessing /admin/login, immediately redirect to main landing page
+  useEffect(() => {
+    if (!isAuthenticated || currentPath === '/admin/login') {
+      handleExitToMarketplace();
+    }
+  }, [isAuthenticated, currentPath, handleExitToMarketplace]);
 
-  // If path is specifically /admin/login or user is unauthenticated
   if (!isAuthenticated || currentPath === '/admin/login') {
-    return (
-      <AdminLogin
-        onLoginSuccess={handleLoginSuccess}
-        onNavigateToMarketplace={handleExitToMarketplace}
-      />
-    );
+    return null;
   }
 
   // Normalize path

@@ -152,9 +152,14 @@ export const adminClient = {
   },
 
   // Overview Metrics
+  getOverview: (params = {}) => {
+    const query = '?' + new URLSearchParams(params).toString();
+    return fetchWithFallback(`/overview${query}`, {}, { success: true, data: { metrics: {}, lastUpdated: new Date().toLocaleTimeString() } });
+  },
+
   getOverviewMetrics: (params = {}) => {
     const query = '?' + new URLSearchParams(params).toString();
-    return fetchWithFallback(`/overview${query}`);
+    return fetchWithFallback(`/overview${query}`, {}, { success: true, data: { metrics: {}, lastUpdated: new Date().toLocaleTimeString() } });
   },
 
   // Real-Time Bookings Operations
@@ -196,7 +201,20 @@ export const adminClient = {
     });
   },
 
-  getAssignmentStats: () => fetchWithFallback('/bookings/assignment-stats'),
+  getAssignmentStats: () => fetchWithFallback('/bookings/assignment-stats', {}, {
+    success: true,
+    stats: {
+      totalUnassigned: 0,
+      pendingOffers: 0,
+      autoAssigned: 0,
+      manuallyAssigned: 0,
+      rejectedOffers: 0,
+      expiredOffers: 0,
+      rejectedOrExpired: 0,
+      awaitingOwnerAttention: 0,
+      requiringAttention: 0
+    }
+  }),
 
   getEligibleProfessionals: (bookingId, search = '') => fetchWithFallback(`/bookings/${bookingId}/eligible-professionals?search=${encodeURIComponent(search)}`),
 

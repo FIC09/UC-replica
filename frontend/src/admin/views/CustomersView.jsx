@@ -65,9 +65,11 @@ export function CustomersView({ onShowToast, onNavigate }) {
   const [confirmAnonymiseText, setConfirmAnonymiseText] = useState('');
   const [newCustomerNote, setNewCustomerNote] = useState('');
 
-  // Fetch Customers
-  const fetchCustomersList = () => {
-    setLoading(true);
+  // Fetch Customers (with silent background refresh to prevent UI table blinking)
+  const fetchCustomersList = (showLoading = false) => {
+    if (showLoading) {
+      setLoading(true);
+    }
     adminClient.getCustomers({
       search,
       status: statusFilter,
@@ -76,23 +78,28 @@ export function CustomersView({ onShowToast, onNavigate }) {
       limit: 10
     })
       .then(res => {
-        setCustomers(res.customers || []);
-        if (res.pagination) {
+        if (res && Array.isArray(res.customers)) {
+          setCustomers(res.customers);
+        }
+        if (res && res.pagination) {
           setPagination(res.pagination);
         }
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((err) => {
+        console.warn('Customer list refresh notice:', err?.message);
+        setLoading(false);
+      });
   };
 
   useEffect(() => {
-    fetchCustomersList();
+    fetchCustomersList(customers.length === 0);
   }, [search, statusFilter, cityFilter, page]);
 
   // Live real-time sync when a new customer registers or updates across any tab
   useEffect(() => {
     function handleCustomerChange() {
-      fetchCustomersList();
+      fetchCustomersList(false);
     }
     window.addEventListener('uc:customer-registered', handleCustomerChange);
     window.addEventListener('uc:auth-changed', handleCustomerChange);
@@ -105,7 +112,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
       broadcastChannel.onmessage = (event) => {
         const data = event.data || {};
         if (data.type === 'CUSTOMER_CREATED' || data.type === 'CUSTOMER_UPDATED' || data.type === 'CUSTOMER_DELETED' || data.type === 'BOOKING_CREATED') {
-          fetchCustomersList();
+          fetchCustomersList(false);
           if (data.type === 'CUSTOMER_CREATED' && data.customer?.name) {
             onShowToast && onShowToast(`👤 New customer registered: ${data.customer.name}!`);
           }
@@ -116,15 +123,15 @@ export function CustomersView({ onShowToast, onNavigate }) {
     // 2. Cross-Tab Storage Event Fallback
     const handleStorageEvent = (e) => {
       if (e.key === 'uc_last_customer_event' || e.key === 'uc_last_booking_event') {
-        fetchCustomersList();
+        fetchCustomersList(false);
       }
     };
     window.addEventListener('storage', handleStorageEvent);
 
-    // 3. 3-second Silent Polling for guaranteed real-time updates
+    // 3. Silent Polling for guaranteed real-time updates (Smooth, zero table flicker or blinking)
     const interval = setInterval(() => {
-      fetchCustomersList();
-    }, 3000);
+      fetchCustomersList(false);
+    }, 4000);
 
     return () => {
       window.removeEventListener('uc:customer-registered', handleCustomerChange);

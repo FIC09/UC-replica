@@ -528,11 +528,73 @@ router.get('/:id/review', async (req, res) => {
   }
 });
 
-// POST submit review and star ratings for booking and worker
+// GET published and approved customer reviews for the public landing page
+router.get('/reviews/published', async (req, res) => {
+  try {
+    let reviewsList = [];
+    if (mongoose.connection && mongoose.connection.readyState === 1 && Booking) {
+      try {
+        reviewsList = await Booking.find({
+          rating: { $exists: true, $ne: null },
+          $or: [
+            { reviewIsPublished: true },
+            { reviewStatus: 'Approved' }
+          ]
+        })
+          .sort({ reviewedAt: -1, updatedAt: -1 })
+          .limit(25)
+          .lean();
+      } catch (err) {}
+    }
+
+    // Merge in-memory approved reviews
+    if (inMemoryBookings) {
+      for (const [key, b] of inMemoryBookings.entries()) {
+        const bRef = String(b.id || b.bookingReference || '').replace(/^#/, '');
+        const isApproved = b.reviewIsPublished === true || b.reviewStatus === 'Approved';
+        if (b.rating && isApproved && !reviewsList.some(x => String(x.id || x.bookingReference || '').replace(/^#/, '') === bRef)) {
+          reviewsList.unshift(b);
+        }
+      }
+    }
+
+    const publicReviews = reviewsList.map(b => {
+      const cleanRef = String(b.id || b.bookingReference || 'UC-000000').replace(/^#/, '');
+      return {
+        id: `pub-rev-${cleanRef}`,
+        bookingId: `#${cleanRef}`,
+        rawBookingId: cleanRef,
+        name: b.customerName || b.userName || 'Verified Customer',
+        locality: (b.city ? `${b.city}, Tamil Nadu` : 'Krishnagiri, Tamil Nadu'),
+        service: b.serviceName || 'Home Service',
+        rating: Number(b.rating) || 5,
+        date: (b.reviewedAt || b.updatedAt)
+          ? new Date(b.reviewedAt || b.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+          : 'Recently',
+        avatar: b.userAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        comment: b.review || 'Service completed thoroughly.',
+        verified: true,
+        isApproved: true,
+        isLiveApproved: true
+      };
+    });
+
+    return res.json({
+      success: true,
+      count: publicReviews.length,
+      reviews: publicReviews
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST submit review and star ratings for booking and worker (Enters Moderation Queue)
 router.post('/:id/review', async (req, res) => {
   try {
-    const { id } = req.params;
-    const { rating, review = '', tags = [], customerName } = req.body;
+    const rawId = req.params.id;
+    const cleanId = String(rawId || '').replace(/^#/, '').trim();
+    const { rating, review = '', tags = [], customerName, professionalName, serviceName, city } = req.body;
 
     const numRating = Number(rating);
     if (!numRating || numRating < 1 || numRating > 5) {
@@ -546,22 +608,34 @@ router.post('/:id/review', async (req, res) => {
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       try {
         booking = await Booking.findOne({
-          $or: [{ id }, { bookingReference: id }]
+          $or: [
+            { id: cleanId },
+            { id: `#${cleanId}` },
+            { bookingReference: cleanId },
+            { bookingReference: `#${cleanId}` }
+          ]
         });
       } catch (dbErr) {}
     }
 
     if (!booking) {
-      booking = inMemoryBookings.get(id) || inMemoryBookings.get(String(id).toUpperCase());
+      booking = inMemoryBookings.get(cleanId) ||
+                inMemoryBookings.get(`#${cleanId}`) ||
+                inMemoryBookings.get(String(cleanId).toUpperCase()) ||
+                inMemoryBookings.get(`#${String(cleanId).toUpperCase()}`);
     }
 
     if (!booking) {
       // Build a minimal booking record so customer feedback is never lost
       booking = {
-        id,
-        bookingReference: id,
+        id: cleanId,
+        bookingReference: `#${cleanId}`,
         userName: customerName || 'Customer',
-        serviceName: 'Home Service',
+        customerName: customerName || 'Customer',
+        assignedPartner: professionalName || 'violet',
+        assignedProfessional: { name: professionalName || 'violet' },
+        serviceName: serviceName || 'AC & Appliance Repair',
+        city: city || 'Krishnagiri',
         status: 'Completed',
         timeline: []
       };
@@ -571,20 +645,35 @@ router.post('/:id/review', async (req, res) => {
     booking.rating = numRating;
     booking.review = commentText;
     booking.reviewedAt = new Date();
-    booking.reviewIsPublished = true;
+    // Reviews require admin approval before being published to public landing page
+    booking.reviewIsPublished = false;
+    booking.reviewStatus = 'Pending';
+
+    if (customerName) {
+      booking.userName = customerName;
+      booking.customerName = customerName;
+    }
+    if (professionalName) {
+      booking.assignedPartner = professionalName;
+      if (!booking.assignedProfessional) booking.assignedProfessional = {};
+      booking.assignedProfessional.name = professionalName;
+    }
+    if (serviceName) booking.serviceName = serviceName;
+    if (city) booking.city = city;
 
     if (booking.markModified && booking.save) {
       booking.markModified('review');
       booking.markModified('rating');
       booking.markModified('reviewedAt');
       booking.markModified('reviewIsPublished');
+      booking.markModified('reviewStatus');
       if (Array.isArray(booking.timeline)) {
         booking.timeline.push({
           id: `tl-${Date.now()}`,
           status: 'Reviewed',
-          title: 'Customer Review Submitted',
+          title: 'Customer Review Submitted (Pending Admin Approval)',
           description: `Customer rated ${numRating}★: "${commentText.slice(0, 100)}${commentText.length > 100 ? '...' : ''}"`,
-          actor: customerName || booking.userName || 'Customer',
+          actor: customerName || booking.customerName || booking.userName || 'Customer',
           actorRole: 'Customer',
           timestamp: new Date()
         });
@@ -592,15 +681,33 @@ router.post('/:id/review', async (req, res) => {
       try { await booking.save(); } catch (saveErr) {}
     }
 
-    // Always update in-memory store so it appears instantly across all admin views
+    // Always update in-memory store under cleanId and #cleanId so it appears instantly across all admin views
     const plainBooking = booking.toObject ? booking.toObject() : { ...booking };
-    inMemoryBookings.set(id, plainBooking);
-    inMemoryBookings.set(plainBooking.id || id, plainBooking);
+    plainBooking.id = cleanId;
+    plainBooking.bookingReference = `#${cleanId}`;
+    plainBooking.rating = numRating;
+    plainBooking.review = commentText;
+    plainBooking.reviewedAt = booking.reviewedAt;
+    plainBooking.reviewIsPublished = false;
+    plainBooking.reviewStatus = 'Pending';
+    if (customerName) {
+      plainBooking.userName = customerName;
+      plainBooking.customerName = customerName;
+    }
+    if (professionalName) {
+      plainBooking.assignedPartner = professionalName;
+      plainBooking.assignedProfessional = { ...(plainBooking.assignedProfessional || {}), name: professionalName };
+    }
+    if (serviceName) plainBooking.serviceName = serviceName;
+    if (city) plainBooking.city = city;
+
+    inMemoryBookings.set(cleanId, plainBooking);
+    inMemoryBookings.set(`#${cleanId}`, plainBooking);
 
     // Synchronize to TrackingSession
     try {
       await TrackingSession.findOneAndUpdate(
-        { $or: [{ bookingId: id }, { bookingReference: id }] },
+        { $or: [{ bookingId: cleanId }, { bookingReference: cleanId }, { bookingId: `#${cleanId}` }, { bookingReference: `#${cleanId}` }] },
         { rating: numRating, review: commentText }
       );
     } catch (trkErr) {}

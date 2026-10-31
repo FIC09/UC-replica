@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { 
-  Building2, Users, Calendar, Briefcase, TrendingUp, CreditCard, 
-  FileText, AlertTriangle, Star, Award, Package, LifeBuoy, Bell, 
-  BarChart3, ShieldCheck, UserCheck, History, Settings, ChevronLeft, 
-  ChevronRight, LogOut, Menu, X, ArrowUpRight, CheckCircle2, Shield, RotateCcw,
-  Navigation
+  Building2, TrendingUp, CreditCard, 
+  FileText, AlertTriangle, Bell, 
+  BarChart3, ShieldCheck, History, Settings, ChevronLeft, 
+  ChevronRight, LogOut, Menu, X, CheckCircle2, Shield, RotateCcw
 } from 'lucide-react';
 import { partnerClient } from './partnerClient';
 
@@ -25,11 +24,7 @@ export function PartnerLayout({
     {
       group: 'Core Operations',
       items: [
-        { path: '/partner', label: 'Overview', icon: Building2 },
-        { path: '/partner/live-tracking', label: 'Live Worker Tracking', icon: Navigation, badge: 'Live' },
-        { path: '/partner/bookings', label: 'Bookings & Dispatch', icon: Briefcase, badge: 'Active' },
-        { path: '/partner/calendar', label: 'Schedule Board', icon: Calendar },
-        { path: '/partner/team', label: 'Technician Fleet', icon: Users }
+        { path: '/partner', label: 'Overview', icon: Building2 }
       ]
     },
     {
@@ -39,12 +34,6 @@ export function PartnerLayout({
         { path: '/partner/settlements', label: 'Settlements & Bank', icon: CreditCard },
         { path: '/partner/invoices', label: 'GST Tax Invoices', icon: FileText },
         { path: '/partner/refunds-disputes', label: 'Refunds & Disputes', icon: AlertTriangle }
-      ]
-    },
-    {
-      group: 'Quality & Growth',
-      items: [
-        { path: '/partner/reviews', label: 'Customer Reviews', icon: Star }
       ]
     },
     {
@@ -110,7 +99,7 @@ export function PartnerLayout({
               </div>
               <div>
                 <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a', letterSpacing: 0.5, textTransform: 'uppercase', display: 'block', lineHeight: 1.2 }}>
-                  Urban Partner
+                  Business Partner
                 </span>
                 <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 600, letterSpacing: 0.2 }}>
                   Franchise Portal
@@ -356,58 +345,6 @@ export function PartnerLayout({
                   return currentPath.replace('/partner/', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
                 })()}
               </span>
-            </div>
-
-            {/* Top Actions: Role Switcher & Marketplace Exit */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              {staff?.role && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  padding: '0 12px',
-                  height: 36,
-                  boxSizing: 'border-box',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: 8,
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  color: '#334155'
-                }}>
-                  <UserCheck size={14} color="#7c3aed" />
-                  <span>Role: <strong style={{ color: '#0f172a' }}>{staff?.role}</strong></span>
-                </div>
-              )}
-
-              {/* Exit to Customer Marketplace */}
-              {onExitToMarketplace && (
-                <button
-                  type="button"
-                  onClick={onExitToMarketplace}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '0 14px',
-                    height: 36,
-                    boxSizing: 'border-box',
-                    background: '#ffffff',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: 8,
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                    color: '#334155',
-                    cursor: 'pointer',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
-                    transition: 'all 0.15s ease'
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.color = '#7c3aed'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#334155'; }}
-                >
-                  Marketplace <ArrowUpRight size={14} />
-                </button>
-              )}
             </div>
           </div>
         </header>

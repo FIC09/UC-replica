@@ -73,105 +73,6 @@ export function OverviewView({ onNavigate, showToast, staff }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Top Banner with Entity & Franchise Badges */}
-      <div style={{
-        background: '#ffffff',
-        borderRadius: 14,
-        padding: '20px 24px',
-        border: '1px solid #e2e8f0',
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 16,
-        boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{
-            width: 48,
-            height: 48,
-            borderRadius: 12,
-            background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
-            color: '#fff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)'
-          }}>
-            <Building2 size={26} />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', margin: 0 }}>
-                {partner.businessName}
-              </h1>
-              <span style={{
-                background: '#f3e8ff',
-                color: '#7c3aed',
-                fontSize: 12,
-                fontWeight: 700,
-                padding: '3px 10px',
-                borderRadius: 20,
-                border: '1px solid #d8b4fe'
-              }}>
-                {partner.tier || 'Gold Franchise'}
-              </span>
-              <span style={{
-                background: '#ecfdf5',
-                color: '#059669',
-                fontSize: 12,
-                fontWeight: 600,
-                padding: '3px 10px',
-                borderRadius: 20,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4
-              }}>
-                <ShieldCheck size={13} /> Verified Enterprise Partner
-              </span>
-            </div>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0 0' }}>
-              Partner ID: <strong>{partner.id}</strong> • Operating City: <strong>{partner.city || 'Mumbai'}</strong> • Settlement: <strong style={{ color: '#4f46e5' }}>Settle to Business Corporate Account</strong>
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <button
-            onClick={() => onNavigate('/partner/bookings')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '9px 16px',
-              background: '#7c3aed',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer'
-            }}
-          >
-            <Briefcase size={15} /> Dispatch Board ({metrics.unassignedBookings || 0} Unassigned)
-          </button>
-          <button
-            onClick={loadSummary}
-            title="Refresh dashboard summary"
-            style={{
-              padding: '9px 12px',
-              background: '#f8fafc',
-              border: '1px solid #cbd5e1',
-              borderRadius: 8,
-              color: '#475569',
-              cursor: 'pointer'
-            }}
-          >
-            <RefreshCw size={15} className={loading ? 'spin' : ''} />
-          </button>
-        </div>
-      </div>
-
       {/* Filter Toolbar */}
       <div style={{
         background: '#ffffff',
@@ -235,6 +136,27 @@ export function OverviewView({ onNavigate, showToast, staff }) {
               <option value="electrician-plumbing">Electrician & Plumbing</option>
             </select>
           </div>
+
+          <button
+            onClick={loadSummary}
+            title="Refresh dashboard summary"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 12px',
+              background: '#f8fafc',
+              border: '1px solid #cbd5e1',
+              borderRadius: 6,
+              color: '#475569',
+              fontSize: 12.5,
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            <RefreshCw size={13} className={loading ? 'spin' : ''} />
+            <span>Refresh</span>
+          </button>
         </div>
       </div>
 

@@ -97,6 +97,72 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/calling', callingRoutes);
 app.use('/api/payments', paymentRoutes);
 
+// Public API endpoint for approved customer reviews displayed on the main landing page
+app.get('/api/reviews', async (req, res) => {
+  try {
+    const { inMemoryBookings } = await import('./routes/bookingRoutes.js');
+    const { Booking } = await import('./models/Booking.js');
+    const mongoose = (await import('mongoose')).default;
+
+    let reviewsList = [];
+    if (mongoose.connection && mongoose.connection.readyState === 1 && Booking) {
+      try {
+        reviewsList = await Booking.find({
+          rating: { $exists: true, $ne: null },
+          $or: [
+            { reviewIsPublished: true },
+            { reviewStatus: 'Approved' }
+          ]
+        })
+          .sort({ reviewedAt: -1, updatedAt: -1 })
+          .limit(25)
+          .lean();
+      } catch (err) {
+        console.warn('Booking.find in /api/reviews:', err.message);
+      }
+    }
+
+    if (inMemoryBookings) {
+      for (const [key, b] of inMemoryBookings.entries()) {
+        const bRef = String(b.id || b.bookingReference || '').replace(/^#/, '');
+        const isApproved = b.reviewIsPublished === true || b.reviewStatus === 'Approved';
+        if (b.rating && isApproved && !reviewsList.some(x => String(x.id || x.bookingReference || '').replace(/^#/, '') === bRef)) {
+          reviewsList.unshift(b);
+        }
+      }
+    }
+
+    const publicReviews = reviewsList.map(b => {
+      const cleanRef = String(b.id || b.bookingReference || 'UC-000000').replace(/^#/, '');
+      return {
+        id: `pub-rev-${cleanRef}`,
+        bookingId: `#${cleanRef}`,
+        rawBookingId: cleanRef,
+        name: b.customerName || b.userName || 'Verified Customer',
+        locality: (b.city ? `${b.city}, Tamil Nadu` : 'Krishnagiri, Tamil Nadu'),
+        service: b.serviceName || 'Home Service',
+        rating: Number(b.rating) || 5,
+        date: (b.reviewedAt || b.updatedAt)
+          ? new Date(b.reviewedAt || b.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+          : 'Recently',
+        avatar: b.userAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        comment: b.review || 'Service completed thoroughly.',
+        verified: true,
+        isApproved: true,
+        isLiveApproved: true
+      };
+    });
+
+    return res.json({
+      success: true,
+      count: publicReviews.length,
+      reviews: publicReviews
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // 404 handler for API routes
 app.use('/api/*', (req, res) => {
   res.status(404).json({ success: false, message: `API route not found: ${req.originalUrl}` });

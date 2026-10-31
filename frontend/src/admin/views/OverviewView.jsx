@@ -43,7 +43,8 @@ export function OverviewView({ onNavigate, onShowToast }) {
     else setIsRefreshing(true);
 
     try {
-      const res = await adminClient.getOverview({ dateRange, city, category, partner });
+      const getOverviewFn = adminClient.getOverview || adminClient.getOverviewMetrics;
+      const res = await getOverviewFn({ dateRange, city, category, partner });
       if (res && res.data) {
         setData(res.data);
         const timestamp = res.data.lastUpdated || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
@@ -51,7 +52,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
         window.dispatchEvent(new CustomEvent('uc:admin-stats-updated', { detail: res.data }));
       }
     } catch (err) {
-      console.error('Error fetching real-time admin overview:', err);
+      console.warn('Overview sync status note:', err?.message);
     } finally {
       if (isInitial) setLoading(false);
       setIsRefreshing(false);

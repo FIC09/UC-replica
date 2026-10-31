@@ -75,7 +75,7 @@ export function PartnerLogin({ onLoginSuccess, onNavigate, onExitToMarketplace }
             <Building2 size={28} />
           </div>
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px 0', letterSpacing: 0.5 }}>
-            Urban Partner Portal
+            Business Partner Portal
           </h1>
           <p style={{ fontSize: 13.5, color: '#e9d5ff', margin: 0 }}>
             Enterprise Management for Agencies & Fleet Partners

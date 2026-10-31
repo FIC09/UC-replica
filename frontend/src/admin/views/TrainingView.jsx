@@ -240,7 +240,7 @@ export function TrainingView({ onShowToast }) {
                     cursor: 'pointer'
                   }}
                 >
-                  Assign Pro
+                  Assign Worker
                 </button>
               </div>
             </div>
@@ -385,7 +385,7 @@ export function TrainingView({ onShowToast }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <UserCheck size={18} color="#6E42E5" />
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
-                  Assign Pro to Course
+                  Assign Worker to Course
                 </h3>
               </div>
               <button

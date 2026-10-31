@@ -61,6 +61,8 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
   const [preWorkPhotoPreview, setPreWorkPhotoPreview] = useState(null);
   const [postWorkPhotoFile, setPostWorkPhotoFile] = useState(null);
   const [postWorkPhotoPreview, setPostWorkPhotoPreview] = useState(null);
+  const preWorkFileInputRef = useRef(null);
+  const postWorkFileInputRef = useRef(null);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [isCompletingWithPhoto, setIsCompletingWithPhoto] = useState(false);
   const [completionPhotoError, setCompletionPhotoError] = useState('');
@@ -356,18 +358,13 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
   };
 
   const handleInitiateCompletion = () => {
-    const hasPostWorkPhoto = job?.afterWorkPhoto?.url || (structuredChecklists?.photos || []).some(p => p.phase === 'after');
-    if (!hasPostWorkPhoto && !postWorkPhotoPreview) {
-      setShowCompletionModal(true);
-      return;
-    }
-    handleConfirmCompletionWithPhoto();
+    setShowCompletionModal(true);
   };
 
   const handleConfirmCompletionWithPhoto = async () => {
-    const hasPostWorkPhoto = job?.afterWorkPhoto?.url || (structuredChecklists?.photos || []).some(p => p.phase === 'after');
+    const hasPostWorkPhoto = job?.afterWorkPhoto?.url || postWorkPhotoPreview || (structuredChecklists?.photos || []).some(p => p.phase === 'after');
     if (!hasPostWorkPhoto && !postWorkPhotoPreview) {
-      setCompletionPhotoError('📸 Work completion photo is mandatory. Please capture or attach a photo.');
+      setCompletionPhotoError('📸 Work completion photo is mandatory. Please capture or attach a photo before finalizing.');
       return;
     }
 
@@ -397,11 +394,24 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
         } catch (uploadErr) {
           console.warn('Post-work Cloudinary upload sync error:', uploadErr);
         }
+      } else {
+        afterPhotoData = job?.afterWorkPhoto || (structuredChecklists?.photos || []).find(p => p.phase === 'after') || null;
       }
 
       await professionalClient.updateJobStatus(jobId, 'Completed', null, {
         afterWorkPhoto: afterPhotoData
       });
+
+      // Broadcast real-time sync event to Admin Dashboard
+      try {
+        const syncChannel = new BroadcastChannel('uc_sync_channel');
+        syncChannel.postMessage({ type: 'BOOKING_UPDATED', bookingId: jobId, timestamp: Date.now() });
+        syncChannel.close();
+      } catch (bcErr) {}
+      try {
+        localStorage.setItem('uc_last_booking_event', JSON.stringify({ type: 'BOOKING_UPDATED', bookingId: jobId, time: Date.now() }));
+      } catch (e) {}
+
       showToast(`✓ Job Completed! ₹${job.payout} credited to your wallet with verified photo evidence.`);
       setShowCompletionModal(false);
       setPostWorkPhotoFile(null);
@@ -417,12 +427,12 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
   const handleVerifyOtp = async () => {
     const hasPreWorkPhoto = job?.beforeWorkPhoto?.url || preWorkPhotoPreview || (structuredChecklists?.photos || []).some(p => p.phase === 'before');
     if (!hasPreWorkPhoto) {
-      setOtpError('📸 Pre-work photo is mandatory. Please upload or take a photo before starting service.');
+      setOtpError('📸 Pre-work photo is mandatory. Please capture or upload a photo before entering OTP.');
       return;
     }
 
     if (!otpInput || otpInput.trim().length !== 4) {
-      setOtpError('Please enter a 4-digit code provided by the customer.');
+      setOtpError('Please enter the 4-digit Safety PIN provided by the customer.');
       return;
     }
 
@@ -452,11 +462,24 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
         } catch (uploadErr) {
           console.warn('Pre-work Cloudinary upload sync error:', uploadErr);
         }
+      } else {
+        beforePhotoData = job?.beforeWorkPhoto || (structuredChecklists?.photos || []).find(p => p.phase === 'before') || null;
       }
 
       await professionalClient.updateJobStatus(jobId, 'In Progress', otpInput.trim(), {
         beforeWorkPhoto: beforePhotoData
       });
+
+      // Broadcast real-time sync event to Admin Dashboard
+      try {
+        const syncChannel = new BroadcastChannel('uc_sync_channel');
+        syncChannel.postMessage({ type: 'BOOKING_UPDATED', bookingId: jobId, timestamp: Date.now() });
+        syncChannel.close();
+      } catch (bcErr) {}
+      try {
+        localStorage.setItem('uc_last_booking_event', JSON.stringify({ type: 'BOOKING_UPDATED', bookingId: jobId, time: Date.now() }));
+      } catch (e) {}
+
       showToast('✓ Start OTP verified! Job is now In Progress.');
       setShowOtpModal(false);
       setOtpInput('');
@@ -1098,8 +1121,8 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
                 onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
               >
-                <span>🔑</span>
-                <span>Enter Customer Start OTP & Begin Service →</span>
+                <span>📸 🔑</span>
+                <span>Take Pre-Work Photo & Start Service →</span>
               </button>
             )}
 
@@ -1124,8 +1147,8 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
                 onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
               >
-                <span>✓</span>
-                <span>Complete Service & Credit Wallet (₹{job.payout})</span>
+                <span>📸 ✓</span>
+                <span>Complete Service & Upload Photo (₹{job.payout})</span>
               </button>
             )}
 
@@ -2676,361 +2699,514 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       )}
 
       {/* Start OTP Modal */}
-      {showOtpModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: 20
-        }}>
+      {showOtpModal && (() => {
+        const hasPrePhoto = Boolean(job?.beforeWorkPhoto?.url || preWorkPhotoPreview || (structuredChecklists?.photos || []).some(p => p.phase === 'before'));
+        return (
           <div style={{
-            background: '#ffffff',
-            borderRadius: 16,
-            padding: 24,
-            width: '100%',
-            maxWidth: 400,
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: 20
           }}>
-            <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0f172a', margin: '0 0 8px 0' }}>
-              Verify Customer Start OTP
-            </h3>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0' }}>
-              Ask homeowner <strong>{job.customer}</strong> for their 4-digit service PIN to begin. Code is validated on the backend.
-            </p>
-
             <div style={{
-              background: '#f1f5f9',
-              padding: '10px 14px',
-              borderRadius: 8,
-              fontSize: 12,
-              color: '#475569',
-              marginBottom: 14
+              background: '#ffffff',
+              borderRadius: 16,
+              padding: 24,
+              width: '100%',
+              maxWidth: 440,
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.25)',
+              maxHeight: '90vh',
+              overflowY: 'auto'
             }}>
-              Enter the 4-digit Safety PIN provided by the customer at the doorstep.
-            </div>
-
-            {/* Mandatory Pre-Work Photo Upload Section */}
-            <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 10,
-              padding: '12px 14px',
-              marginBottom: 16
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>
-                  📸 Pre-Work Photo (Mandatory)
-                </span>
-                {(job?.beforeWorkPhoto?.url || preWorkPhotoPreview) ? (
-                  <span style={{ fontSize: 10.5, fontWeight: 700, color: '#16a34a', background: '#dcfce7', padding: '2px 6px', borderRadius: 4 }}>
-                    ✓ Photo Ready
-                  </span>
-                ) : (
-                  <span style={{ fontSize: 10.5, fontWeight: 700, color: '#dc2626', background: '#fee2e2', padding: '2px 6px', borderRadius: 4 }}>
-                    * Required
-                  </span>
-                )}
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 10,
+                  background: hasPrePhoto ? '#dcfce7' : '#eff6ff',
+                  color: hasPrePhoto ? '#16a34a' : '#2563eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 20
+                }}>
+                  {hasPrePhoto ? '✓' : '📸'}
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    Start Service Verification
+                  </h3>
+                  <p style={{ fontSize: 12, color: '#64748b', margin: '2px 0 0 0' }}>
+                    Mandatory 2-Step Protocol: Pre-Work Photo → Customer OTP
+                  </p>
+                </div>
               </div>
-              <p style={{ fontSize: 11.5, color: '#64748b', margin: '0 0 10px 0' }}>
-                Capture / upload a photo of the equipment or work area before beginning.
-              </p>
 
-              {(job?.beforeWorkPhoto?.url || preWorkPhotoPreview) ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <img
-                    src={preWorkPhotoPreview || job?.beforeWorkPhoto?.url}
-                    alt="Pre-work"
-                    style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover', border: '1px solid #cbd5e1' }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {preWorkPhotoFile?.name || job?.beforeWorkPhoto?.fileName || 'pre_service_photo.jpg'}
+              {/* Step 1: Pre-Work Photo Section */}
+              <div style={{
+                background: hasPrePhoto ? '#f0fdf4' : '#fffbeb',
+                border: `1.5px solid ${hasPrePhoto ? '#86efac' : '#fde68a'}`,
+                borderRadius: 12,
+                padding: '12px 14px',
+                marginBottom: 14
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>📸</span>
+                    <span>Step 1: Pre-Work Inspection Photo</span>
+                  </span>
+                  {hasPrePhoto ? (
+                    <span style={{ fontSize: 10.5, fontWeight: 800, color: '#16a34a', background: '#dcfce7', padding: '2px 8px', borderRadius: 4 }}>
+                      ✓ Photo Ready
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 10.5, fontWeight: 800, color: '#b45309', background: '#fef3c7', padding: '2px 8px', borderRadius: 4 }}>
+                      * Mandatory First
+                    </span>
+                  )}
+                </div>
+                <p style={{ fontSize: 11.5, color: hasPrePhoto ? '#166534' : '#92400e', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                  {hasPrePhoto
+                    ? 'Pre-work inspection photo captured. Step 2 (Customer OTP) is now unlocked below.'
+                    : 'Worker must capture a photo of the appliance or work area before customer OTP is entered.'}
+                </p>
+
+                {hasPrePhoto ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#ffffff', padding: 8, borderRadius: 8, border: '1px solid #bbf7d0' }}>
+                    <img
+                      src={preWorkPhotoPreview || job?.beforeWorkPhoto?.url}
+                      alt="Pre-work preview"
+                      style={{ width: 50, height: 50, borderRadius: 6, objectFit: 'cover', border: '1px solid #cbd5e1' }}
+                    />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {preWorkPhotoFile?.name || job?.beforeWorkPhoto?.fileName || 'pre_work_photo.jpg'}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#16a34a', fontWeight: 600, marginTop: 2 }}>
+                        ✓ Photo attached
+                      </div>
+                      <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                        <button
+                          type="button"
+                          onClick={() => openLiveCamera({ phase: 'before' })}
+                          style={{ fontSize: 11, color: '#2563eb', fontWeight: 700, cursor: 'pointer', background: 'none', border: 'none', padding: 0, textDecoration: 'underline' }}
+                        >
+                          📷 Retake Camera
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => preWorkFileInputRef.current?.click()}
+                          style={{ fontSize: 11, color: '#2563eb', fontWeight: 700, cursor: 'pointer', background: 'none', border: 'none', padding: 0, textDecoration: 'underline' }}
+                        >
+                          📁 Choose File
+                        </button>
+                      </div>
                     </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', gap: 8 }}>
                     <button
                       type="button"
                       onClick={() => openLiveCamera({ phase: 'before' })}
-                      style={{ fontSize: 11, color: '#2563eb', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
+                      style={{
+                        flex: 1.2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        border: '1.5px solid #2563eb',
+                        background: '#2563eb',
+                        color: '#ffffff',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
                     >
-                      📷 Retake live photo
+                      <span>📷</span>
+                      <span>Live Camera</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => preWorkFileInputRef.current?.click()}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        padding: '10px 12px',
+                        borderRadius: 8,
+                        border: '1.5px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#334155',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span>📁</span>
+                      <span>Upload Photo</span>
                     </button>
                   </div>
+                )}
+              </div>
+
+              {/* Step 2: Customer Safety PIN */}
+              <div style={{
+                background: hasPrePhoto ? '#ffffff' : '#f8fafc',
+                border: `1.5px solid ${hasPrePhoto ? '#cbd5e1' : '#e2e8f0'}`,
+                borderRadius: 12,
+                padding: '14px 16px',
+                marginBottom: 16,
+                opacity: hasPrePhoto ? 1 : 0.6
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 800, color: hasPrePhoto ? '#0f172a' : '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span>{hasPrePhoto ? '🔓' : '🔒'}</span>
+                    <span>Step 2: Customer Start Safety PIN</span>
+                  </span>
+                  {!hasPrePhoto && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#64748b', background: '#e2e8f0', padding: '2px 6px', borderRadius: 4 }}>
+                      Locked
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => openLiveCamera({ phase: 'before' })}
+
+                <p style={{ fontSize: 11.5, color: '#64748b', margin: '0 0 10px 0', lineHeight: 1.4 }}>
+                  {hasPrePhoto
+                    ? `Ask homeowner ${job.customer || 'customer'} for their 4-digit Safety PIN at doorstep:`
+                    : '⚠️ Locked — You must capture or upload the pre-work photo in Step 1 above to unlock this PIN field.'}
+                </p>
+
+                <input
+                  type="text"
+                  maxLength={4}
+                  value={otpInput}
+                  disabled={!hasPrePhoto}
+                  onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                  placeholder={hasPrePhoto ? '••••' : 'Locked — Take photo first'}
                   style={{
                     width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                    padding: '11px 14px',
-                    borderRadius: 8,
-                    border: '1.5px dashed #2563eb',
-                    background: '#eff6ff',
-                    color: '#2563eb',
-                    fontSize: 12.5,
+                    padding: '12px 14px',
+                    fontSize: 24,
+                    letterSpacing: hasPrePhoto ? 10 : 2,
+                    textAlign: 'center',
                     fontWeight: 700,
+                    border: hasPrePhoto ? '2px solid #2563eb' : '2px solid #cbd5e1',
+                    background: hasPrePhoto ? '#ffffff' : '#f1f5f9',
+                    color: hasPrePhoto ? '#0f172a' : '#94a3b8',
+                    borderRadius: 10,
+                    boxSizing: 'border-box',
+                    cursor: hasPrePhoto ? 'text' : 'not-allowed',
+                    marginBottom: 8
+                  }}
+                  autoFocus={hasPrePhoto}
+                />
+              </div>
+
+              {otpError && (
+                <div style={{
+                  background: '#fee2e2',
+                  color: '#991b1b',
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  fontSize: 12.5,
+                  marginBottom: 14,
+                  fontWeight: 600
+                }}>
+                  ⚠️ {otpError}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowOtpModal(false);
+                    setOtpInput('');
+                    setOtpError('');
+                  }}
+                  disabled={isVerifyingOtp}
+                  style={{
+                    flex: 1,
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: 'none',
+                    padding: '12px 0',
+                    borderRadius: 10,
+                    fontSize: 13.5,
+                    fontWeight: 600,
                     cursor: 'pointer'
                   }}
                 >
-                  <span>📷</span>
-                  <span>Open Live Camera &amp; Take Pre-Work Photo</span>
+                  Cancel
                 </button>
-              )}
-            </div>
-
-            {otpError && (
-              <div style={{
-                background: '#fee2e2',
-                color: '#991b1b',
-                padding: '10px 12px',
-                borderRadius: 8,
-                fontSize: 13,
-                marginBottom: 14,
-                fontWeight: 600
-              }}>
-                {otpError}
+                <button
+                  type="button"
+                  onClick={handleVerifyOtp}
+                  disabled={isVerifyingOtp || !hasPrePhoto || otpInput.trim().length !== 4}
+                  style={{
+                    flex: 1.6,
+                    background: (!hasPrePhoto || otpInput.trim().length !== 4) ? '#94a3b8' : 'linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '12px 0',
+                    borderRadius: 10,
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: (!hasPrePhoto || otpInput.trim().length !== 4) ? 'not-allowed' : 'pointer',
+                    boxShadow: (!hasPrePhoto || otpInput.trim().length !== 4) ? 'none' : '0 4px 12px rgba(37,99,235,0.3)'
+                  }}
+                >
+                  {!hasPrePhoto
+                    ? '🔒 Take Photo to Unlock'
+                    : isVerifyingOtp
+                    ? 'Verifying PIN...'
+                    : '✓ Verify OTP & Start Service'}
+                </button>
               </div>
-            )}
-
-            <input
-              type="text"
-              maxLength={4}
-              value={otpInput}
-              onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
-              placeholder="••••"
-              style={{
-                width: '100%',
-                padding: '12px 14px',
-                fontSize: 26,
-                letterSpacing: 10,
-                textAlign: 'center',
-                fontWeight: 700,
-                border: '2px solid #cbd5e1',
-                borderRadius: 10,
-                boxSizing: 'border-box',
-                marginBottom: 20
-              }}
-              autoFocus
-            />
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => {
-                  setShowOtpModal(false);
-                  setOtpInput('');
-                  setOtpError('');
-                }}
-                disabled={isVerifyingOtp}
-                style={{
-                  flex: 1,
-                  background: '#f1f5f9',
-                  color: '#475569',
-                  border: 'none',
-                  padding: '12px 0',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleVerifyOtp}
-                disabled={isVerifyingOtp}
-                style={{
-                  flex: 1.5,
-                  background: '#2563eb',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '12px 0',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                {isVerifyingOtp ? 'Verifying...' : 'Verify & Start'}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Work Completion Photo Modal */}
-      {showCompletionModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999,
-          padding: 20
-        }}>
+      {showCompletionModal && (() => {
+        const hasPostPhoto = Boolean(postWorkPhotoPreview || job?.afterWorkPhoto?.url || (structuredChecklists?.photos || []).some(p => p.phase === 'after'));
+        return (
           <div style={{
-            background: '#ffffff',
-            borderRadius: 16,
-            padding: 24,
-            width: '100%',
-            maxWidth: 440,
-            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)'
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: 20
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-              <span style={{ fontSize: 24 }}>📸</span>
-              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
-                Upload Work Completion Photo
-              </h3>
-            </div>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px 0', lineHeight: 1.4 }}>
-              Before marking this service as completed and crediting <strong>₹{job?.payout}</strong> to your wallet, you must attach a photo of the finished work or cleaned area.
-            </p>
-
-            {completionPhotoError && (
-              <div style={{
-                background: '#fee2e2',
-                color: '#991b1b',
-                padding: '10px 12px',
-                borderRadius: 8,
-                fontSize: 12.5,
-                marginBottom: 14,
-                fontWeight: 600
-              }}>
-                ⚠️ {completionPhotoError}
-              </div>
-            )}
-
-            {/* Photo Selection Area */}
             <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 10,
-              padding: 14,
-              marginBottom: 20
+              background: '#ffffff',
+              borderRadius: 16,
+              padding: 24,
+              width: '100%',
+              maxWidth: 440,
+              boxShadow: '0 20px 25px -5px rgba(0,0,0,0.25)',
+              maxHeight: '90vh',
+              overflowY: 'auto'
             }}>
-              {(postWorkPhotoPreview || job?.afterWorkPhoto?.url) ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                <span style={{ fontSize: 24 }}>📸</span>
                 <div>
-                  <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: '1px solid #cbd5e1', marginBottom: 10 }}>
-                    <img
-                      src={postWorkPhotoPreview || job?.afterWorkPhoto?.url}
-                      alt="Work Completion Evidence"
-                      style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }}
-                    />
-                    <span style={{
-                      position: 'absolute',
-                      bottom: 8,
-                      right: 8,
-                      background: 'rgba(15,23,42,0.75)',
-                      color: '#ffffff',
-                      padding: '3px 8px',
-                      borderRadius: 4,
-                      fontSize: 11,
-                      fontWeight: 600
-                    }}>
-                      ✓ Photo Selected
-                    </span>
+                  <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: 0 }}>
+                    Work Completion Photo
+                  </h3>
+                  <p style={{ fontSize: 12, color: '#64748b', margin: '2px 0 0 0' }}>
+                    Mandatory SOP Compliance before Wallet Payout
+                  </p>
+                </div>
+              </div>
+              <p style={{ fontSize: 12.5, color: '#475569', margin: '0 0 16px 0', lineHeight: 1.4 }}>
+                Before marking this service as completed and crediting <strong>₹{job?.payout}</strong> to your wallet, you must attach a photo of the completed work or cleaned area.
+              </p>
+
+              {completionPhotoError && (
+                <div style={{
+                  background: '#fee2e2',
+                  color: '#991b1b',
+                  padding: '10px 12px',
+                  borderRadius: 8,
+                  fontSize: 12.5,
+                  marginBottom: 14,
+                  fontWeight: 600
+                }}>
+                  ⚠️ {completionPhotoError}
+                </div>
+              )}
+
+              {/* Photo Selection Area */}
+              <div style={{
+                background: hasPostPhoto ? '#f0fdf4' : '#f8fafc',
+                border: `1.5px solid ${hasPostPhoto ? '#86efac' : '#e2e8f0'}`,
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 20
+              }}>
+                {hasPostPhoto ? (
+                  <div>
+                    <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', border: '1px solid #cbd5e1', marginBottom: 10 }}>
+                      <img
+                        src={postWorkPhotoPreview || job?.afterWorkPhoto?.url}
+                        alt="Work Completion Evidence"
+                        style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }}
+                      />
+                      <span style={{
+                        position: 'absolute',
+                        bottom: 8,
+                        right: 8,
+                        background: 'rgba(15,23,42,0.8)',
+                        color: '#ffffff',
+                        padding: '3px 8px',
+                        borderRadius: 4,
+                        fontSize: 11,
+                        fontWeight: 700
+                      }}>
+                        ✓ Completion Photo Ready
+                      </span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 12, color: '#475569', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 200 }}>
+                        {postWorkPhotoFile?.name || job?.afterWorkPhoto?.fileName || 'completion_photo.jpg'}
+                      </span>
+                      <div style={{ display: 'flex', gap: 10 }}>
+                        <button
+                          type="button"
+                          onClick={() => openLiveCamera({ phase: 'after' })}
+                          style={{ fontSize: 11.5, color: '#059669', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
+                        >
+                          📷 Retake Camera
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => postWorkFileInputRef.current?.click()}
+                          style={{ fontSize: 11.5, color: '#059669', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
+                        >
+                          📁 Choose File
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, color: '#475569', fontWeight: 600 }}>
-                      {postWorkPhotoFile?.name || job?.afterWorkPhoto?.fileName || 'completion_photo.jpg'}
-                    </span>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     <button
                       type="button"
                       onClick={() => openLiveCamera({ phase: 'after' })}
-                      style={{ fontSize: 11.5, color: '#059669', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 10,
+                        padding: '14px 16px',
+                        borderRadius: 8,
+                        border: '2px solid #059669',
+                        background: '#059669',
+                        color: '#ffffff',
+                        cursor: 'pointer',
+                        fontSize: 13.5,
+                        fontWeight: 800
+                      }}
                     >
-                      📷 Retake Live Photo
+                      <span style={{ fontSize: 20 }}>📷</span>
+                      <span>Open Live Camera &amp; Take Completion Photo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => postWorkFileInputRef.current?.click()}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        padding: '11px',
+                        borderRadius: 8,
+                        border: '1.5px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#334155',
+                        cursor: 'pointer',
+                        fontSize: 12.5,
+                        fontWeight: 700
+                      }}
+                    >
+                      <span>📁</span>
+                      <span>Or Upload Photo File from Device</span>
                     </button>
                   </div>
-                </div>
-              ) : (
+                )}
+              </div>
+
+              {/* Hidden file inputs for direct selection */}
+              <input
+                ref={preWorkFileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                style={{ display: 'none' }}
+                onChange={handlePreWorkPhotoSelected}
+              />
+              <input
+                ref={postWorkFileInputRef}
+                type="file"
+                accept="image/*"
+                capture="environment"
+                style={{ display: 'none' }}
+                onChange={handlePostWorkPhotoSelected}
+              />
+
+              <div style={{ display: 'flex', gap: 10 }}>
                 <button
                   type="button"
-                  onClick={() => openLiveCamera({ phase: 'after' })}
+                  onClick={() => {
+                    setShowCompletionModal(false);
+                    setCompletionPhotoError('');
+                  }}
+                  disabled={isCompletingWithPhoto}
                   style={{
-                    width: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 10,
-                    padding: '24px 16px',
-                    borderRadius: 8,
-                    border: '2px dashed #059669',
-                    background: '#ecfdf5',
-                    color: '#047857',
-                    cursor: 'pointer',
-                    textAlign: 'center'
+                    flex: 1,
+                    background: '#f1f5f9',
+                    color: '#475569',
+                    border: 'none',
+                    padding: '12px 0',
+                    borderRadius: 10,
+                    fontSize: 13.5,
+                    fontWeight: 600,
+                    cursor: 'pointer'
                   }}
                 >
-                  <span style={{ fontSize: 34 }}>📷</span>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 800 }}>Open Live Camera &amp; Take Photo</div>
-                    <div style={{ fontSize: 11.5, color: '#065f46', marginTop: 3 }}>🔴 Live camera capture only (Gallery disabled)</div>
-                  </div>
+                  Cancel
                 </button>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCompletionModal(false);
-                  setCompletionPhotoError('');
-                }}
-                disabled={isCompletingWithPhoto}
-                style={{
-                  flex: 1,
-                  background: '#f1f5f9',
-                  color: '#475569',
-                  border: 'none',
-                  padding: '12px 0',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 600,
-                  cursor: 'pointer'
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmCompletionWithPhoto}
-                disabled={isCompletingWithPhoto || (!postWorkPhotoPreview && !job?.afterWorkPhoto?.url)}
-                style={{
-                  flex: 1.8,
-                  background: (!postWorkPhotoPreview && !job?.afterWorkPhoto?.url) ? '#94a3b8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                  color: '#ffffff',
-                  border: 'none',
-                  padding: '12px 0',
-                  borderRadius: 10,
-                  fontSize: 14,
-                  fontWeight: 700,
-                  cursor: (!postWorkPhotoPreview && !job?.afterWorkPhoto?.url) ? 'not-allowed' : 'pointer',
-                  boxShadow: (!postWorkPhotoPreview && !job?.afterWorkPhoto?.url) ? 'none' : '0 4px 12px rgba(5,150,105,0.3)'
-                }}
-              >
-                {isCompletingWithPhoto ? 'Finalizing...' : `✓ Confirm & Credit ₹${job?.payout}`}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmCompletionWithPhoto}
+                  disabled={isCompletingWithPhoto || !hasPostPhoto}
+                  style={{
+                    flex: 1.8,
+                    background: !hasPostPhoto ? '#94a3b8' : 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '12px 0',
+                    borderRadius: 10,
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: !hasPostPhoto ? 'not-allowed' : 'pointer',
+                    boxShadow: !hasPostPhoto ? 'none' : '0 4px 12px rgba(5,150,105,0.3)'
+                  }}
+                >
+                  {isCompletingWithPhoto
+                    ? 'Finalizing...'
+                    : !hasPostPhoto
+                    ? '🔒 Take Photo to Complete'
+                    : `✓ Confirm & Credit ₹${job?.payout}`}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Zoom Image Modal */}
       {previewZoomImage && (

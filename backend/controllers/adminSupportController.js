@@ -67,32 +67,39 @@ export async function getReviews(req, res) {
     // Merge in-memory customer reviews
     if (inMemoryBookings) {
       for (const [key, b] of inMemoryBookings.entries()) {
-        const bRef = b.id || b.bookingReference;
-        if (b.rating && !bookingsWithReviews.some(x => (x.id || x.bookingReference) === bRef)) {
+        const bRef = String(b.id || b.bookingReference || '').replace(/^#/, '');
+        if (b.rating && !bookingsWithReviews.some(x => String(x.id || x.bookingReference || '').replace(/^#/, '') === bRef)) {
           bookingsWithReviews.unshift(b);
         }
       }
     }
 
-    const realReviews = bookingsWithReviews.map(b => ({
-      id: `rev-${b.id || b.bookingReference}`,
-      bookingId: b.id || b.bookingReference,
-      customerName: b.userName || 'Customer',
-      professionalName: b.assignedPartner || b.assignedProfessional?.name || 'Assigned Technician',
-      serviceName: b.serviceName || 'Home Service',
-      serviceTitle: b.serviceName || 'Home Service',
-      city: b.city || 'Krishnagiri',
-      rating: Number(b.rating) || 5,
-      comment: b.review || b.comment || 'Service completed successfully.',
-      isPublished: b.reviewIsPublished !== false,
-      flagged: b.reviewFlagged || false,
-      flaggedReason: b.reviewFlaggedReason || '',
-      date: (b.reviewedAt || b.updatedAt || b.createdAt)
-        ? new Date(b.reviewedAt || b.updatedAt || b.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-        : 'Recently',
-      createdAt: b.reviewedAt || b.updatedAt || b.createdAt || new Date(),
-      moderationHistory: []
-    }));
+    const realReviews = bookingsWithReviews.map(b => {
+      const cleanRef = String(b.id || b.bookingReference || 'UC-000000').replace(/^#/, '');
+      const isPub = b.reviewIsPublished === true;
+      const status = b.reviewStatus || (isPub ? 'Approved' : 'Pending');
+      return {
+        id: `rev-${cleanRef}`,
+        bookingId: `#${cleanRef}`,
+        rawBookingId: cleanRef,
+        customerName: b.customerName || b.userName || 'Customer',
+        professionalName: b.assignedPartner || b.assignedProfessional?.name || 'Assigned Technician',
+        serviceName: b.serviceName || 'Home Service',
+        serviceTitle: b.serviceName || 'Home Service',
+        city: b.city || 'Krishnagiri',
+        rating: Number(b.rating) || 5,
+        comment: b.review || b.comment || 'Service completed successfully.',
+        isPublished: isPub,
+        status: status,
+        flagged: b.reviewFlagged || false,
+        flaggedReason: b.reviewFlaggedReason || '',
+        date: (b.reviewedAt || b.updatedAt || b.createdAt)
+          ? new Date(b.reviewedAt || b.updatedAt || b.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+          : 'Recently',
+        createdAt: b.reviewedAt || b.updatedAt || b.createdAt || new Date(),
+        moderationHistory: b.moderationHistory || []
+      };
+    });
 
     return res.json({
       success: true,
@@ -111,39 +118,64 @@ export async function moderateReview(req, res) {
     const { isPublished, reason } = req.body;
     const published = Boolean(isPublished);
 
-    const rawBookingId = String(id).replace(/^rev-/, '');
+    const rawBookingId = String(id).replace(/^rev-/, '').replace(/^#/, '').trim();
+    let updatedBooking = null;
+
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       try {
         const booking = await Booking.findOne({
-          $or: [{ id: rawBookingId }, { bookingReference: rawBookingId }]
+          $or: [
+            { id: rawBookingId },
+            { id: `#${rawBookingId}` },
+            { bookingReference: rawBookingId },
+            { bookingReference: `#${rawBookingId}` }
+          ]
         });
 
         if (booking) {
           booking.reviewIsPublished = published;
+          booking.reviewStatus = published ? 'Approved' : 'Rejected';
           if (reason) {
             booking.reviewFlaggedReason = reason;
           }
           booking.markModified('reviewIsPublished');
+          booking.markModified('reviewStatus');
           await booking.save();
+          updatedBooking = booking.toObject ? booking.toObject() : booking;
         }
       } catch (dbErr) {}
     }
 
-    const memB = inMemoryBookings?.get(rawBookingId);
+    const memB = inMemoryBookings?.get(rawBookingId) || inMemoryBookings?.get(`#${rawBookingId}`);
     if (memB) {
       memB.reviewIsPublished = published;
+      memB.reviewStatus = published ? 'Approved' : 'Rejected';
       if (reason) memB.reviewFlaggedReason = reason;
       inMemoryBookings.set(rawBookingId, memB);
+      inMemoryBookings.set(`#${rawBookingId}`, memB);
+      if (!updatedBooking) updatedBooking = memB;
     }
+
+    const returnReview = {
+      id: `rev-${rawBookingId}`,
+      bookingId: `#${rawBookingId}`,
+      rawBookingId,
+      customerName: updatedBooking?.customerName || updatedBooking?.userName || 'Customer',
+      professionalName: updatedBooking?.assignedPartner || updatedBooking?.assignedProfessional?.name || 'Assigned Technician',
+      serviceName: updatedBooking?.serviceName || 'Home Service',
+      serviceTitle: updatedBooking?.serviceName || 'Home Service',
+      city: updatedBooking?.city || 'Krishnagiri',
+      rating: Number(updatedBooking?.rating) || 5,
+      comment: updatedBooking?.review || updatedBooking?.comment || '',
+      isPublished: published,
+      status: published ? 'Approved' : 'Rejected',
+      moderatedAt: new Date()
+    };
 
     return res.json({
       success: true,
-      message: `Review #${id} visibility set to ${published ? 'Public' : 'Hidden'}`,
-      review: {
-        id,
-        isPublished: published,
-        moderatedAt: new Date()
-      }
+      message: `Review #${rawBookingId} is now ${published ? 'Approved & Published to Landing Page' : 'Hidden from Catalogue'}`,
+      review: returnReview
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });

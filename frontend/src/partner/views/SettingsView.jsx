@@ -136,39 +136,12 @@ export function SettingsView({ showToast, staff }) {
             Business Profile & Operational Settings
           </h1>
           <p style={{ fontSize: 13.5, color: '#64748b', margin: '4px 0 0 0' }}>
-            Configure operational hours, contacts, and preferences. Distinguishes immediate edits from platform-approved statutory fields.
+            Configure operational hours, contacts, and preferences.
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f8fafc', padding: '6px 14px', borderRadius: 8, fontSize: 13, color: '#475569', border: '1px solid #e2e8f0' }}>
           <Clock size={16} color="#7c3aed" /> Timezone: Asia/Kolkata
-        </div>
-      </div>
-
-      {/* Distinction Guide Alert */}
-      <div style={{
-        background: '#f8fafc',
-        borderRadius: 12,
-        padding: '16px 20px',
-        border: '1px solid #e2e8f0',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-        gap: 16
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#16a34a', marginTop: 4, flexShrink: 0 }}></span>
-          <div style={{ fontSize: 13, color: '#334155' }}>
-            <strong style={{ color: '#166534', display: 'block' }}>Immediate Operational Edits</strong>
-            Phone numbers, operating hours, auto-dispatch rules, and notification preferences update instantly upon saving.
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-          <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#d97706', marginTop: 4, flexShrink: 0 }}></span>
-          <div style={{ fontSize: 13, color: '#334155' }}>
-            <strong style={{ color: '#b45309', display: 'block' }}>Platform Approval Required</strong>
-            Legal entity name, GSTIN, registered city, and approved coverage zones are protected by platform compliance audit rules.
-          </div>
         </div>
       </div>
 

@@ -1,6 +1,8 @@
+import mongoose from 'mongoose';
 import { User } from '../models/User.js';
 import { Booking } from '../models/Booking.js';
 import { Address } from '../models/Address.js';
+import { inMemoryBookings } from '../routes/bookingRoutes.js';
 
 // =========================================================================
 // AUTHORITATIVE CUSTOMER CONTROLLER (100% REAL-TIME DATABASE OPERATIONS)
@@ -50,10 +52,21 @@ export async function getCustomers(req, res) {
     }
 
     let allBookings = [];
-    try {
-      allBookings = await Booking.find().sort({ createdAt: -1 }).lean();
-    } catch (e) {
-      console.warn('Booking.find in getCustomers error:', e.message);
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        allBookings = await Booking.find().sort({ createdAt: -1 }).lean();
+      } catch (e) {
+        console.warn('Booking.find in getCustomers error:', e.message);
+      }
+    }
+
+    if (inMemoryBookings) {
+      for (const [key, b] of inMemoryBookings.entries()) {
+        const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
+        if (bId && !allBookings.some(x => String(x.id || x.bookingReference || '').replace(/^#/, '') === bId)) {
+          allBookings.push(b);
+        }
+      }
     }
 
     // Index booking statistics by phone (last 10 digits) and by customerId

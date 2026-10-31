@@ -2554,12 +2554,13 @@ function App() {
             showToast(`🛡️ Admin Operations Dashboard opened for ${loggedInUser.name}!`);
           } else if (loggedInUser.role === 'professional') {
             handleOpenProfessionalPortal();
-            showToast(`⚡ Professional Service Hub opened for ${loggedInUser.name}!`);
+            showToast(`⚡ Worker Dashboard opened for ${loggedInUser.name}!`);
           } else if (loggedInUser.role === 'partner') {
             handleOpenPartnerPortal();
-            showToast(`🏢 Partner Agency Portal opened for ${loggedInUser.agencyName || loggedInUser.name}!`);
+            showToast(`🏢 Business Partner Dashboard opened for ${loggedInUser.agencyName || loggedInUser.name}!`);
           } else {
-            showToast(`✨ Welcome, ${loggedInUser.name || 'User'}! Logged in successfully.`);
+            setIsBookingsModalOpen(true);
+            showToast(`✨ Welcome, ${loggedInUser.name || 'User'}! Customer Profile & Bookings opened.`);
           }
         }}
         onLogout={handleLogout}

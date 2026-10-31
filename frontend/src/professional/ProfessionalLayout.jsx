@@ -150,7 +150,7 @@ export function ProfessionalLayout({
       ? `${profile?.operationalHub || (profile?.locality ? `${profile.locality} Hub` : 'Krishnagiri Hub')} dispatches, customer OTP verification lifecycle, and shift duty`
       : PAGE_METADATA[matchedKey].subtitle
   } : {
-    title: "Urban Pro Partner Portal",
+    title: "Worker Dashboard",
     subtitle: "Manage dispatches, shifts, earnings, and operational compliance"
   };
 
@@ -227,7 +227,7 @@ export function ProfessionalLayout({
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
-                    Urban Pro
+                    Worker Dashboard
                   </span>
                   <span style={{
                     background: '#FEF3C7',
@@ -243,7 +243,7 @@ export function ProfessionalLayout({
                   </span>
                 </div>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Partner Portal
+                  Worker Portal
                 </div>
               </div>
             </div>

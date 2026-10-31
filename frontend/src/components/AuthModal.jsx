@@ -40,8 +40,9 @@ export function AuthModal({
   const [selectedRole, setSelectedRole] = useState(initialRole); // 'customer' | 'admin' | 'professional' | 'partner'
   
   // Login fields
-  const [loginEmail, setLoginEmail] = useState('customer@urbancompany.com');
-  const [loginPassword, setLoginPassword] = useState('customer123');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
@@ -284,114 +285,157 @@ export function AuthModal({
     setErrorMsg('');
     setSuccessMsg('');
 
-    const cleanEmail = loginEmail.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      setErrorMsg('Please enter a valid email address');
+    const cleanInput = (loginEmail || '').trim();
+    const cleanPassword = (loginPassword || '').trim();
+
+    if (!cleanInput) {
+      setErrorMsg('Please enter your email, phone, or username');
       return;
     }
-    if (!loginPassword || loginPassword.length < 4) {
-      setErrorMsg('Please enter your password (minimum 4 characters)');
+    if (!cleanPassword || cleanPassword.length < 3) {
+      setErrorMsg('Please enter your password');
       return;
     }
 
-    // Auto-detect role from credentials or selection
-    let detectedRole = selectedRole;
-    if (cleanEmail.includes('admin')) {
-      detectedRole = 'admin';
-    } else if (cleanEmail.includes('pro') || cleanEmail.includes('worker') || cleanEmail.includes('technician')) {
-      detectedRole = 'professional';
-    } else if (cleanEmail.includes('partner') || cleanEmail.includes('agency') || cleanEmail.includes('apex')) {
-      detectedRole = 'partner';
-    }
-
-    const preset = ROLE_PRESETS[detectedRole] || ROLE_PRESETS[selectedRole] || ROLE_PRESETS.customer;
-
-    let userName = preset.name;
-    if (cleanEmail.includes(preset.email.split('@')[0])) {
-      userName = preset.name;
-    } else {
-      userName = cleanEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-    }
-    const userPhone = preset.phone || '+91 98201 44521';
-
-    const authenticatedUser = {
-      name: userName,
-      email: cleanEmail,
-      phone: userPhone,
-      role: detectedRole,
-      trade: preset.trade,
-      agencyName: preset.agencyName,
-      isPlusMember: false
-    };
-
-    if (detectedRole === 'admin') {
-      try {
-        const adminRes = await adminClient.login(cleanEmail, loginPassword);
-        if (adminRes?.admin) {
-          authenticatedUser.name = adminRes.admin.name || authenticatedUser.name;
-          authenticatedUser.id = adminRes.admin.id;
-          authenticatedUser._id = adminRes.admin.id;
-        }
-      } catch (err) {
-        console.warn('Admin backend login fallback:', err?.message || err);
-      }
-    } else if (detectedRole === 'professional') {
-      try {
-        const proRes = await professionalClient.login({
-          identifier: cleanEmail,
-          password: loginPassword
-        });
-        if (proRes?.success && proRes?.professional) {
-          const pro = proRes.professional;
-          authenticatedUser.name = pro.applicantName || pro.name || authenticatedUser.name;
-          authenticatedUser.id = pro.id || pro.workerId;
-          authenticatedUser.workerId = pro.id || pro.workerId;
-          authenticatedUser._id = pro.id || pro.workerId;
-          authenticatedUser.email = pro.email || cleanEmail;
-          authenticatedUser.phone = pro.phone || authenticatedUser.phone;
-          authenticatedUser.trade = pro.tradeName || pro.trade || authenticatedUser.trade;
-          authenticatedUser.avatar = pro.avatar || (pro.applicantName ? pro.applicantName.slice(0, 2).toUpperCase() : 'PR');
-          authenticatedUser.tier = pro.tier;
-          authenticatedUser.status = pro.status;
-          authenticatedUser.operationalHub = pro.operationalHub;
-          authenticatedUser.walletBalance = pro.walletBalance || 0;
-          authenticatedUser.lifetimeEarnings = pro.lifetimeEarnings || 0;
-          authenticatedUser.jobsCompleted = pro.jobsCompleted || 0;
-          authenticatedUser.token = proRes.token;
-
-          professionalClient.setAuth(proRes.token, pro);
-        } else {
-          setErrorMsg(proRes?.error || 'Invalid credentials provided for Professional Field Hub.');
-          return;
-        }
-      } catch (err) {
-        setErrorMsg(err.message || 'Invalid professional credentials. Please check your email and password.');
-        return;
-      }
-    } else if (detectedRole === 'customer') {
-      authApi.register(userName, userPhone, cleanEmail)
-        .then(res => {
-          if (res?.user?._id) {
-            authenticatedUser._id = res.user._id;
-            authenticatedUser.id = res.user._id;
-            localStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
-          }
-        })
-        .catch(() => {});
-    }
+    setIsLoggingIn(true);
 
     try {
-      localStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
-    } catch {}
+      // 1. Unified server-side authentication (identifies exact role & account automatically)
+      const res = await authApi.unifiedLogin({
+        identifier: cleanInput,
+        password: cleanPassword
+      });
 
-    setupRoleAuth(detectedRole, authenticatedUser);
-    window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: authenticatedUser } }));
+      if (res && res.success && res.user && res.role) {
+        const detectedRole = res.role;
+        const authenticatedUser = {
+          ...res.user,
+          role: detectedRole,
+          token: res.token
+        };
 
-    setSuccessMsg(`Signing in as ${preset.label}... Opening ${preset.targetDashboard}`);
-    setTimeout(() => {
-      onLogin(authenticatedUser);
-      onClose();
-    }, 450);
+        try {
+          localStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
+        } catch {}
+
+        setupRoleAuth(detectedRole, authenticatedUser);
+        window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: authenticatedUser } }));
+
+        const targetDashboard = res.targetDashboard || (
+          detectedRole === 'admin' ? 'Admin Dashboard' :
+          detectedRole === 'professional' ? 'Worker Dashboard' :
+          detectedRole === 'partner' ? 'Business Partner Dashboard' :
+          'Customer Profile & Bookings'
+        );
+
+        setSuccessMsg(`✓ Logged in as ${authenticatedUser.name || 'User'}! Opening ${targetDashboard}...`);
+
+        setTimeout(() => {
+          setIsLoggingIn(false);
+          onLogin(authenticatedUser);
+          onClose();
+        }, 350);
+        return;
+      } else {
+        setErrorMsg(res?.error || 'Invalid credentials. Please verify your email/phone and password.');
+        setIsLoggingIn(false);
+        return;
+      }
+    } catch (err) {
+      console.warn('Unified login attempt fallback:', err?.message || err);
+
+      // 2. Client-side fallback checks
+      const cleanLower = cleanInput.toLowerCase();
+      let detectedRole = 'customer';
+      if (cleanLower.includes('admin')) {
+        detectedRole = 'admin';
+      } else if (cleanLower.includes('pro') || cleanLower.includes('worker') || cleanLower.includes('technician')) {
+        detectedRole = 'professional';
+      } else if (cleanLower.includes('partner') || cleanLower.includes('agency') || cleanLower.includes('apex')) {
+        detectedRole = 'partner';
+      }
+
+      const preset = ROLE_PRESETS[detectedRole] || ROLE_PRESETS.customer;
+      const authenticatedUser = {
+        name: preset.name,
+        email: cleanInput.includes('@') ? cleanInput : preset.email,
+        phone: preset.phone,
+        role: detectedRole,
+        trade: preset.trade,
+        agencyName: preset.agencyName
+      };
+
+      if (detectedRole === 'admin') {
+        try {
+          const adminRes = await adminClient.login(cleanInput, cleanPassword);
+          if (adminRes?.admin) {
+            authenticatedUser.name = adminRes.admin.name || authenticatedUser.name;
+            authenticatedUser.id = adminRes.admin.id;
+          }
+        } catch (adminErr) {
+          setErrorMsg(adminErr.message || 'Invalid administrator credentials.');
+          setIsLoggingIn(false);
+          return;
+        }
+      } else if (detectedRole === 'professional') {
+        try {
+          const proRes = await professionalClient.login({
+            identifier: cleanInput,
+            password: cleanPassword
+          });
+          if (proRes?.success && proRes?.professional) {
+            const pro = proRes.professional;
+            authenticatedUser.name = pro.applicantName || pro.name;
+            authenticatedUser.id = pro.id || pro.workerId;
+            authenticatedUser.workerId = pro.id || pro.workerId;
+            authenticatedUser.trade = pro.tradeName || pro.trade;
+            authenticatedUser.token = proRes.token;
+          } else {
+            setErrorMsg(proRes?.error || 'Invalid worker credentials.');
+            setIsLoggingIn(false);
+            return;
+          }
+        } catch (proErr) {
+          setErrorMsg(proErr.message || 'Invalid worker credentials.');
+          setIsLoggingIn(false);
+          return;
+        }
+      } else if (detectedRole === 'partner') {
+        try {
+          const partnerRes = await partnerClient.login({
+            emailOrPhone: cleanInput,
+            password: cleanPassword
+          });
+          if (partnerRes?.success && partnerRes?.partner) {
+            authenticatedUser.name = partnerRes.partner.ownerName || authenticatedUser.name;
+            authenticatedUser.businessName = partnerRes.partner.businessName;
+            authenticatedUser.agencyName = partnerRes.partner.businessName;
+          } else {
+            setErrorMsg(partnerRes?.error || 'Invalid partner credentials.');
+            setIsLoggingIn(false);
+            return;
+          }
+        } catch (partnerErr) {
+          setErrorMsg(partnerErr.message || 'Invalid partner credentials.');
+          setIsLoggingIn(false);
+          return;
+        }
+      }
+
+      try {
+        localStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
+      } catch {}
+
+      setupRoleAuth(detectedRole, authenticatedUser);
+      window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: authenticatedUser } }));
+
+      setSuccessMsg(`✓ Logged in successfully! Opening dashboard...`);
+      setTimeout(() => {
+        setIsLoggingIn(false);
+        onLogin(authenticatedUser);
+        onClose();
+      }, 350);
+    }
   }
 
   async function handleQuickLogin(roleKey) {
@@ -971,7 +1015,7 @@ export function AuthModal({
                 Welcome to Forge India Connect
               </h3>
               <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
-                Select your role or enter credentials to open your dashboard
+                Enter your credentials to open your target dashboard
               </p>
             </div>
 
@@ -1023,65 +1067,6 @@ export function AuthModal({
 
             {mode === 'login' ? (
               <div>
-                {/* 4 Role Selector Tabs */}
-                <div style={{ marginBottom: 14 }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
-                    Select Role &amp; Target Dashboard:
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
-                    {Object.entries(ROLE_PRESETS).map(([key, item]) => {
-                      const Icon = item.icon;
-                      const active = selectedRole === key;
-                      return (
-                        <button
-                          key={key}
-                          type="button"
-                          onClick={() => selectRole(key)}
-                          style={{
-                            background: active ? '#F5F3FF' : '#F8FAFC',
-                            border: `1.5px solid ${active ? '#7C3AED' : '#E2E8F0'}`,
-                            borderRadius: 10,
-                            padding: '8px 4px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: 4,
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          <Icon size={16} color={active ? '#7C3AED' : item.color} />
-                          <span style={{
-                            fontSize: 11,
-                            fontWeight: active ? 800 : 600,
-                            color: active ? '#7C3AED' : '#334155',
-                            whiteSpace: 'nowrap'
-                          }}>
-                            {key === 'customer' ? 'Customer' : key === 'admin' ? 'Admin' : key === 'professional' ? 'Pro Field' : 'Partner'}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Role Description Card */}
-                <div style={{
-                  background: 'rgba(124, 58, 237, 0.06)',
-                  border: '1px solid rgba(124, 58, 237, 0.2)',
-                  borderRadius: 10,
-                  padding: '9px 12px',
-                  marginBottom: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8
-                }}>
-                  <Sparkles size={16} color="#7C3AED" style={{ flexShrink: 0 }} />
-                  <div style={{ fontSize: 12, color: '#4C1D95', lineHeight: 1.35 }}>
-                    <strong>{activePreset.label}:</strong> {activePreset.desc} (Opens <strong>{activePreset.targetDashboard}</strong>)
-                  </div>
-                </div>
-
                 {/* Login Form */}
                 <form onSubmit={handleLoginSubmit}>
                   {errorMsg && (
@@ -1120,10 +1105,10 @@ export function AuthModal({
                     </div>
                   )}
 
-                  {/* Email Input */}
-                  <div style={{ marginBottom: 12 }}>
+                  {/* Email / Identifier Input */}
+                  <div style={{ marginBottom: 14 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
-                      Email Address or Username
+                      Email Address or Phone Number
                     </label>
                     <div style={{
                       display: 'flex',
@@ -1132,15 +1117,16 @@ export function AuthModal({
                       background: '#F8FAFC',
                       border: '1.5px solid #CBD5E1',
                       borderRadius: 10,
-                      padding: '9px 12px'
+                      padding: '10px 12px'
                     }}>
                       <Mail size={16} color="#64748B" />
                       <input
-                        type="email"
-                        placeholder="e.g. admin@urbancompany.com"
+                        type="text"
+                        placeholder="Enter email, phone, or username"
                         value={loginEmail}
                         onChange={(e) => setLoginEmail(e.target.value)}
                         required
+                        autoComplete="username"
                         style={{
                           border: 'none',
                           background: 'transparent',
@@ -1155,7 +1141,7 @@ export function AuthModal({
                   </div>
 
                   {/* Password Input */}
-                  <div style={{ marginBottom: 16 }}>
+                  <div style={{ marginBottom: 14 }}>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 5 }}>
                       Password
                     </label>
@@ -1166,15 +1152,16 @@ export function AuthModal({
                       background: '#F8FAFC',
                       border: '1.5px solid #CBD5E1',
                       borderRadius: 10,
-                      padding: '9px 12px'
+                      padding: '10px 12px'
                     }}>
                       <Lock size={16} color="#64748B" />
                       <input
                         type={showLoginPassword ? 'text' : 'password'}
-                        placeholder="Enter password"
+                        placeholder="Enter your password"
                         value={loginPassword}
                         onChange={(e) => setLoginPassword(e.target.value)}
                         required
+                        autoComplete="current-password"
                         style={{
                           border: 'none',
                           background: 'transparent',
@@ -1195,53 +1182,59 @@ export function AuthModal({
                     </div>
                   </div>
 
+                  {/* Options row */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18, fontSize: 12 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', color: '#64748B' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={rememberMe} 
+                        onChange={(e) => setRememberMe(e.target.checked)} 
+                        style={{ accentColor: '#7C3AED' }}
+                      />
+                      <span>Remember me</span>
+                    </label>
+                  </div>
+
                   {/* Submit Button */}
                   <button
                     type="submit"
+                    disabled={isLoggingIn}
                     style={{
                       width: '100%',
-                      background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
+                      background: isLoggingIn ? '#64748B' : 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: 12,
                       padding: '13px 20px',
                       fontSize: 14,
                       fontWeight: 800,
-                      cursor: 'pointer',
+                      cursor: isLoggingIn ? 'not-allowed' : 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 8,
-                      marginBottom: 10,
-                      boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)'
+                      boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)',
+                      transition: 'all 0.15s ease'
                     }}
                   >
-                    <span>Log In as {activePreset.label}</span>
-                    <ArrowRight size={16} />
-                  </button>
-
-                  {/* 1-Click Instant Demo Login Button */}
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin(selectedRole)}
-                    style={{
-                      width: '100%',
-                      background: '#F5F3FF',
-                      color: '#7C3AED',
-                      border: '1.5px solid #DDD6FE',
-                      borderRadius: 12,
-                      padding: '10px 20px',
-                      fontSize: 12.5,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6
-                    }}
-                  >
-                    <Zap size={14} color="#7C3AED" />
-                    <span>Instant 1-Click Login &amp; Open {activePreset.targetDashboard}</span>
+                    {isLoggingIn ? (
+                      <>
+                        <div style={{
+                          width: 16,
+                          height: 16,
+                          border: '2px solid #FFFFFF',
+                          borderTopColor: 'transparent',
+                          borderRadius: '50%',
+                          animation: 'spin 0.8s linear infinite'
+                        }} />
+                        <span>Verifying &amp; Opening Dashboard...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Sign In</span>
+                        <ArrowRight size={16} />
+                      </>
+                    )}
                   </button>
                 </form>
               </div>

@@ -200,10 +200,20 @@ export function BookingsView({ onShowToast, onNavigate }) {
 
     return adminClient.getBookings(params)
       .then(res => {
-        setBookings(res.bookings || []);
+        const fetchedList = res.bookings || [];
+        setBookings(fetchedList);
         if (res.pagination) {
           setPagination(res.pagination);
         }
+        setSelectedBooking(prev => {
+          if (!prev) return null;
+          const prevId = String(prev.id || prev.bookingReference || '').replace(/^#/, '');
+          const fresh = fetchedList.find(b => {
+            const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
+            return bId === prevId;
+          });
+          return fresh ? { ...prev, ...fresh } : prev;
+        });
         if (showLoadingSpinner) {
           setLoading(false);
         }
@@ -274,6 +284,21 @@ export function BookingsView({ onShowToast, onNavigate }) {
       }
     };
   }, []);
+
+  const handleSelectBooking = (booking) => {
+    if (!booking) return;
+    setSelectedBooking(booking);
+    const bId = String(booking.id || booking.bookingReference || '').replace(/^#/, '');
+    if (bId) {
+      adminClient.getBookingDetail(bId)
+        .then(res => {
+          if (res && res.booking) {
+            setSelectedBooking(prev => (prev && String(prev.id || prev.bookingReference || '').replace(/^#/, '') === bId) ? { ...prev, ...res.booking } : prev);
+          }
+        })
+        .catch(err => console.warn('Detail fetch note:', err.message));
+    }
+  };
 
   const handleOpenAssignModal = (booking) => {
     const b = booking || selectedBooking;
@@ -1625,7 +1650,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   return (
                     <tr
                       key={b.id || b.bookingReference}
-                      onClick={() => setSelectedBooking(b)}
+                      onClick={() => handleSelectBooking(b)}
                       style={{
                         borderBottom: '1px solid #F1F5F9',
                         cursor: 'pointer',
@@ -1724,7 +1749,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       {/* Actions */}
                       <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
-                          {/* Visible Assign Pro button for eligible bookings */}
+                          {/* Visible Assign Worker button for eligible bookings */}
                           {((!b.assignedPartner && !b.assignedProfessional?.name) || ['UNASSIGNED', 'OFFERED', 'EXPIRED', 'REJECTED', 'AWAITING_OWNER_ATTENTION'].includes(b.assignmentStatus)) && b.status !== 'Completed' && b.status !== 'Cancelled' && (
                             <button
                               type="button"
@@ -1732,7 +1757,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                                 e.stopPropagation();
                                 handleOpenAssignModal(b);
                               }}
-                              title="Assign Professional"
+                              title="Assign Worker"
                               style={{
                                 display: 'inline-flex',
                                 alignItems: 'center',
@@ -1750,7 +1775,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                               }}
                             >
                               <UserCheck size={13} />
-                              Assign Pro
+                              Assign Worker
                             </button>
                           )}
 
@@ -1810,7 +1835,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedBooking(b);
+                              handleSelectBooking(b);
                             }}
                             title="Inspect Booking Details"
                             style={{
@@ -2107,7 +2132,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   }}
                 >
                   <UserCheck size={14} />
-                  {selectedBooking.assignedPartner ? 'Reassign Pro' : 'Assign Pro'}
+                  {selectedBooking.assignedPartner ? 'Reassign Worker' : 'Assign Worker'}
                 </button>
 
                 <button
@@ -2353,7 +2378,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                         cursor: 'pointer'
                       }}
                     >
-                      Assign Pro Now
+                      Assign Worker Now
                     </button>
                   </div>
                 )}
@@ -2786,7 +2811,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                      Assign Professional to {activeModalBooking.id || activeModalBooking.bookingReference}
+                      Assign Worker to {activeModalBooking.id || activeModalBooking.bookingReference}
                     </h3>
                     <span style={{
                       backgroundColor: '#EFF6FF',
@@ -3144,7 +3169,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   {selectedCandidate ? (
                     <span>Selected: <strong style={{ color: '#7C3AED' }}>{selectedCandidate.name}</strong> • Offer expires in {offerTimeout}s</span>
                   ) : (
-                    <span>Select an eligible professional from the verified candidates above</span>
+                    <span>Select an eligible worker from the verified candidates above</span>
                   )}
                 </div>
 

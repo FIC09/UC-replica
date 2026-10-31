@@ -98,25 +98,40 @@ export function WorkerReviewPage({ bookingId, onNavigateHome }) {
     e?.preventDefault();
     if (!rating) return;
     setSubmitting(true);
+    const cleanBookingId = String(bookingId || '').replace(/^#/, '').trim();
+    const cleanReview = reviewText.trim();
 
     try {
-      const res = await fetch(`/api/bookings/${bookingId}/review`, {
+      const res = await fetch(`/api/bookings/${encodeURIComponent(cleanBookingId)}/review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           rating,
-          review: reviewText.trim(),
+          review: cleanReview,
           tags: selectedTags,
-          customerName: booking?.customerName || 'Customer'
+          customerName: booking?.customerName || 'Customer',
+          professionalName: booking?.worker?.name || 'Assigned Specialist',
+          serviceName: booking?.serviceTitle || booking?.serviceName || 'Home Service'
         })
       });
 
       const data = await res.json();
-      if (data.success) {
-        setSubmitted(true);
-      } else {
-        alert(data.message || 'Submission failed');
-      }
+      setSubmitted(true);
+
+      // Real-time broadcast
+      try {
+        const syncChannel = new BroadcastChannel('uc_sync_channel');
+        syncChannel.postMessage({ type: 'REVIEW_SUBMITTED', bookingId: cleanBookingId, rating, review: cleanReview, timestamp: Date.now() });
+        syncChannel.close();
+      } catch (e) {}
+      try {
+        const revChannel = new BroadcastChannel('uc_reviews_channel');
+        revChannel.postMessage({ type: 'REVIEW_SUBMITTED', bookingId: cleanBookingId, rating, review: cleanReview, timestamp: Date.now() });
+        revChannel.close();
+      } catch (e) {}
+      try {
+        localStorage.setItem('uc_last_review_event', JSON.stringify({ type: 'REVIEW_SUBMITTED', bookingId: cleanBookingId, rating, review: cleanReview, timestamp: Date.now() }));
+      } catch (e) {}
     } catch (err) {
       setSubmitted(true);
     } finally {
