@@ -180,6 +180,9 @@ import {
 import {
   PaintingServicePage
 } from './components/PaintingServicePage';
+import {
+  AboutUsPage
+} from './components/AboutUsPage';
 
 import {
   CATEGORIES,
@@ -199,6 +202,47 @@ import {
   authApi,
   couponsApi
 } from './api/apiClient';
+
+const VIEW_ROUTES = {
+  'home': { path: '/', title: 'Forge India Connect - Expert Home & Beauty Services on Demand' },
+  'electrician-service-page': { path: '/services/electrician', title: 'Electrician Services - Forge India Connect' },
+  'plumber-service-page': { path: '/services/plumber', title: 'Plumber Services - Forge India Connect' },
+  'carpenter-service-page': { path: '/services/carpenter', title: 'Carpenter Services - Forge India Connect' },
+  'ac-service-page': { path: '/services/ac-service', title: 'AC Services & Repair - Forge India Connect' },
+  'chimney-service-page': { path: '/services/chimney-service', title: 'Chimney Repair & Service - Forge India Connect' },
+  'geyser-service-page': { path: '/services/geyser-service', title: 'Geyser Repair - Forge India Connect' },
+  'laptop-service-page': { path: '/services/laptop-repair', title: 'Laptop & PC Repair - Forge India Connect' },
+  'refrigerator-service-page': { path: '/services/refrigerator-repair', title: 'Refrigerator Repair - Forge India Connect' },
+  'washing-machine-service-page': { path: '/services/washing-machine-repair', title: 'Washing Machine Repair - Forge India Connect' },
+  'microwave-service-page': { path: '/services/microwave-repair', title: 'Microwave Repair - Forge India Connect' },
+  'television-service-page': { path: '/services/tv-repair', title: 'Television Repair - Forge India Connect' },
+  'water-purifier-service-page': { path: '/services/water-purifier', title: 'Water Purifier Service - Forge India Connect' },
+  'native-purifier-page': { path: '/services/native-purifier', title: 'Native Water Purifier - Forge India Connect' },
+  'native-smart-locks-page': { path: '/services/native-smart-locks', title: 'Native Smart Locks - Forge India Connect' },
+  'salon-prime-page': { path: '/services/salon-women', title: 'Salon for Women - Forge India Connect' },
+  'salon-men-prime-page': { path: '/services/salon-men', title: 'Salon for Men - Forge India Connect' },
+  'salon-royale-page': { path: '/services/salon-royale', title: 'Salon Royale - Forge India Connect' },
+  'hair-studio-page': { path: '/services/hair-studio', title: 'Hair Studio - Forge India Connect' },
+  'cockroach-control-page': { path: '/services/pest-control', title: 'Pest Control - Forge India Connect' },
+  'full-home-cleaning-page': { path: '/services/full-home-cleaning', title: 'Full Home Cleaning - Forge India Connect' },
+  'kitchen-cleaning-page': { path: '/services/kitchen-cleaning', title: 'Kitchen Cleaning - Forge India Connect' },
+  'bathroom-cleaning-page': { path: '/services/bathroom-cleaning', title: 'Bathroom Cleaning - Forge India Connect' },
+  'painting-service-page': { path: '/services/painting', title: 'Painting Services - Forge India Connect' },
+  'quick-repairs-page': { path: '/services/quick-repairs', title: 'Quick Repairs - Forge India Connect' },
+  'checkout': { path: '/checkout', title: 'Checkout - Forge India Connect' },
+  'about-us': { path: '/about', title: 'About Us - Forge India Connect' }
+};
+
+function getViewFromPath(pathname) {
+  if (pathname === '/about' || pathname.startsWith('/about')) return 'about-us';
+  if (pathname.startsWith('/checkout')) return 'checkout';
+  for (const [viewKey, info] of Object.entries(VIEW_ROUTES)) {
+    if (info.path !== '/' && (pathname === info.path || pathname.startsWith(info.path))) {
+      return viewKey;
+    }
+  }
+  return 'home';
+}
 
 function App() {
   // Location State (persisted to localStorage)
@@ -245,14 +289,91 @@ function App() {
   const [isReviewRoute, setIsReviewRoute] = useState(() => {
     return window.location.pathname.startsWith('/review');
   });
+  const [isAboutRoute, setIsAboutRoute] = useState(() => {
+    return window.location.pathname === '/about' || window.location.pathname.startsWith('/about');
+  });
+  const [isCheckoutRoute, setIsCheckoutRoute] = useState(() => {
+    return window.location.pathname.startsWith('/checkout');
+  });
+
+  const [currentView, setCurrentView] = useState(() => {
+    if (window.location.pathname.startsWith('/admin') ||
+        window.location.pathname.startsWith('/professional') ||
+        window.location.pathname.startsWith('/partner') ||
+        window.location.pathname.startsWith('/review')) {
+      return 'home';
+    }
+    return getViewFromPath(window.location.pathname);
+  });
+
+  function navigateToView(viewKey, { replace = false } = {}) {
+    const route = VIEW_ROUTES[viewKey] || VIEW_ROUTES['home'];
+    setCurrentView(viewKey);
+    setIsAboutRoute(viewKey === 'about-us');
+    setIsCheckoutRoute(viewKey === 'checkout');
+
+    if (replace) {
+      window.history.replaceState({ view: viewKey }, '', route.path);
+    } else if (window.location.pathname !== route.path) {
+      window.history.pushState({ view: viewKey }, '', route.path);
+    }
+
+    if (route.title) {
+      document.title = route.title;
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function handleBackHome() {
+    if (window.history.state?.view && window.history.state.view !== 'home' && window.location.pathname !== '/') {
+      window.history.back();
+    } else {
+      navigateToView('home');
+    }
+  }
 
   useEffect(() => {
-    function handleLocationSync() {
-      setIsAdminRoute(window.location.pathname.startsWith('/admin'));
-      setIsProfessionalRoute(window.location.pathname.startsWith('/professional'));
-      setIsPartnerRoute(window.location.pathname.startsWith('/partner'));
-      setIsReviewRoute(window.location.pathname.startsWith('/review'));
+    function handleLocationSync(e) {
+      const path = window.location.pathname;
+      setIsAdminRoute(path.startsWith('/admin'));
+      setIsProfessionalRoute(path.startsWith('/professional'));
+      setIsPartnerRoute(path.startsWith('/partner'));
+      setIsReviewRoute(path.startsWith('/review'));
+
+      const atAbout = path === '/about' || path.startsWith('/about');
+      setIsAboutRoute(atAbout);
+      const atCheckout = path.startsWith('/checkout');
+      setIsCheckoutRoute(atCheckout);
+
+      let targetView = 'home';
+      if (e?.state?.view) {
+        targetView = e.state.view;
+      } else if (atAbout) {
+        targetView = 'about-us';
+      } else if (atCheckout) {
+        targetView = 'checkout';
+      } else {
+        targetView = getViewFromPath(path);
+      }
+
+      setCurrentView(targetView);
+      const route = VIEW_ROUTES[targetView] || VIEW_ROUTES['home'];
+      if (route?.title) {
+        document.title = route.title;
+      }
     }
+
+    // Set initial history state if not populated so Chrome back knows root state
+    const currentPath = window.location.pathname;
+    const initialView = getViewFromPath(currentPath);
+    const initialRoute = VIEW_ROUTES[initialView] || VIEW_ROUTES['home'];
+    if (!window.history.state || !window.history.state.view) {
+      window.history.replaceState({ view: initialView }, '', initialRoute.path);
+    }
+    if (initialRoute?.title) {
+      document.title = initialRoute.title;
+    }
+
     window.addEventListener('popstate', handleLocationSync);
     return () => window.removeEventListener('popstate', handleLocationSync);
   }, []);
@@ -276,7 +397,6 @@ function App() {
     } catch {}
   }, [user]);
 
-  const [currentView, setCurrentView] = useState('home');
   const [quickRepairsTrade, setQuickRepairsTrade] = useState('electrician');
 
   // Top Header Navigation Tabs: 'homes' | 'native' | 'beauty'
@@ -309,18 +429,15 @@ function App() {
       return;
     }
     if (catId === 'native-smart-locks') {
-      setCurrentView('native-smart-locks-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('native-smart-locks-page');
       return;
     }
     if (catId === 'native-ro' || catId === 'water-purifier') {
-      setCurrentView('native-purifier-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('native-purifier-page');
       return;
     }
     if (catId === 'womens-salon' || catId === 'salon-prime') {
-      setCurrentView('salon-prime-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('salon-prime-page');
       return;
     }
     if (catId === 'mens-salon') {
@@ -328,8 +445,7 @@ function App() {
       return;
     }
     if (catId === 'painting-decor' || catId === 'home-painting' || catId === 'painting') {
-      setCurrentView('painting-service-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('painting-service-page');
       return;
     }
     setActiveNavTab('homes');
@@ -712,7 +828,7 @@ function App() {
     setBookings(prev => [enriched, ...prev]);
     setCart({}); // clear cart
     setIsCheckoutModalOpen(false);
-    setCurrentView('home');
+    navigateToView('home');
     setActiveTrackingBooking(enriched);
     setLatestLiveBooking(enriched);
 
@@ -995,23 +1111,20 @@ function App() {
   function handleSelectMenSalonPreference(pref) {
     setIsMenSalonPreferenceOpen(false);
     if (pref === 'royale') {
-      setCurrentView('salon-royale-page');
+      navigateToView('salon-royale-page');
     } else {
-      setCurrentView('salon-men-prime-page');
+      navigateToView('salon-men-prime-page');
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleSelectFullCleaningOption(option) {
     setIsFullCleaningModalOpen(false);
     const optId = typeof option === 'string' ? option : option?.id;
     if (optId === 'cockroach-control' || option?.name?.toLowerCase().includes('cockroach')) {
-      setCurrentView('cockroach-control-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('cockroach-control-page');
       showToast('🛡️ Opened Cockroach & Pest Control Services');
     } else {
-      setCurrentView('full-home-cleaning-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('full-home-cleaning-page');
       showToast('✨ Opened Full Home & By-Room Cleaning Services');
     }
   }
@@ -1020,36 +1133,33 @@ function App() {
     setIsElectricianModalOpen(false);
     const tradeId = (typeof item === 'string' ? item : item?.id) || 'electrician';
     if (tradeId === 'plumber') {
-      setCurrentView('plumber-service-page');
+      navigateToView('plumber-service-page');
       showToast('🚰 Showing Plumber Details & Services Only');
     } else if (tradeId === 'carpenter') {
-      setCurrentView('carpenter-service-page');
+      navigateToView('carpenter-service-page');
       showToast('🪚 Showing Carpenter Details & Services Only');
     } else {
-      setCurrentView('electrician-service-page');
+      navigateToView('electrician-service-page');
       showToast('⚡ Showing Electrician Details & Services Only');
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleOpenElectricianTrade(trade = 'electrician') {
     setIsElectricianModalOpen(false);
     const tradeId = (typeof trade === 'string' ? trade : trade?.id) || 'electrician';
     if (tradeId === 'plumber') {
-      setCurrentView('plumber-service-page');
+      navigateToView('plumber-service-page');
     } else if (tradeId === 'carpenter') {
-      setCurrentView('carpenter-service-page');
+      navigateToView('carpenter-service-page');
     } else {
-      setCurrentView('electrician-service-page');
+      navigateToView('electrician-service-page');
     }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function handleSelectCleaningOption(option) {
     setIsCleaningModalOpen(false);
     if (option.id === 'kitchen-cleaning' || option.title?.toLowerCase().includes('kitchen')) {
-      setCurrentView('kitchen-cleaning-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('kitchen-cleaning-page');
       showToast('🍳 Opened Kitchen Cleaning services');
       return;
     }
@@ -1059,8 +1169,7 @@ function App() {
       option.id === 'bathroom-kitchen-combo' ||
       option.title?.toLowerCase().includes('bathroom')
     ) {
-      setCurrentView('bathroom-cleaning-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('bathroom-cleaning-page');
       showToast('✨ Opened Bathroom Cleaning services');
       return;
     }
@@ -1080,48 +1189,39 @@ function App() {
   function handleSelectAppliance(appliance) {
     setIsApplianceModalOpen(false);
     if (appliance.id === 'ac') {
-      setCurrentView('ac-service-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('ac-service-page');
       return;
     }
     if (appliance.id === 'chimney') {
-      setCurrentView('chimney-service-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('chimney-service-page');
       return;
     }
     if (appliance.id === 'geyser') {
-      setCurrentView('geyser-service-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('geyser-service-page');
       return;
     }
     if (appliance.id === 'laptop') {
-      setCurrentView('laptop-service-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('laptop-service-page');
       return;
     }
     if (appliance.id === 'refrigerator') {
-      setCurrentView('refrigerator-service-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('refrigerator-service-page');
       return;
     }
     if (appliance.id === 'washing-machine') {
-      setCurrentView('washing-machine-service-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('washing-machine-service-page');
       return;
     }
     if (appliance.id === 'microwave') {
-      setCurrentView('microwave-service-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('microwave-service-page');
       return;
     }
     if (appliance.id === 'television') {
-      setCurrentView('television-service-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('television-service-page');
       return;
     }
     if (appliance.id === 'water-purifier') {
-      setCurrentView('water-purifier-service-page');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      navigateToView('water-purifier-service-page');
       return;
     }
     handleCategorySelection(appliance.category);
@@ -1247,7 +1347,8 @@ function App() {
     setIsAdminRoute(false);
     setIsProfessionalRoute(false);
     setIsPartnerRoute(false);
-    setCurrentView('home');
+    setIsAboutRoute(false);
+    navigateToView('home', { replace: true });
     setActiveNavTab('homes');
     if (window.location.pathname !== '/') {
       window.location.href = '/';
@@ -1255,6 +1356,10 @@ function App() {
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
     showToast(`👋 Logged out successfully. Returning to Home.`);
+  }
+
+  function handleOpenAbout() {
+    navigateToView('about-us');
   }
 
   // ==========================================
@@ -1448,15 +1553,13 @@ function App() {
   function handleProceedToCheckout() {
     setIsCartOpen(false);
     setIsCheckoutModalOpen(false);
-    setCurrentView('checkout');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateToView('checkout');
   }
 
   function handleOpenCartView() {
     setIsCartOpen(false);
     setIsCheckoutModalOpen(false);
-    setCurrentView('checkout');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateToView('checkout');
   }
 
   // Available subcategories for the selected category
@@ -1488,10 +1591,8 @@ function App() {
       <AdminRouter
         onLogout={handleLogout}
         onExitToMarketplace={() => {
-          window.history.pushState({}, '', '/');
           setIsAdminRoute(false);
-          setCurrentView('home');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          navigateToView('home');
         }}
       />
     );
@@ -1503,10 +1604,8 @@ function App() {
       <ProfessionalRouter
         onLogout={handleLogout}
         onExitToMarketplace={() => {
-          window.history.pushState({}, '', '/');
           setIsProfessionalRoute(false);
-          setCurrentView('home');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          navigateToView('home');
         }}
       />
     );
@@ -1518,10 +1617,8 @@ function App() {
       <PartnerRouter
         onLogout={handleLogout}
         onExitToMarketplace={() => {
-          window.history.pushState({}, '', '/');
           setIsPartnerRoute(false);
-          setCurrentView('home');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          navigateToView('home');
         }}
       />
     );
@@ -1534,10 +1631,8 @@ function App() {
       <WorkerReviewPage
         bookingId={rawBookingId}
         onNavigateHome={() => {
-          window.history.pushState({}, '', '/');
           setIsReviewRoute(false);
-          setCurrentView('home');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
+          navigateToView('home');
         }}
       />
     );
@@ -1571,10 +1666,7 @@ function App() {
 
       {currentView === 'ac-service-page' ? (
         <ACServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1588,10 +1680,7 @@ function App() {
         />
       ) : currentView === 'chimney-service-page' ? (
         <ChimneyServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1604,10 +1693,7 @@ function App() {
         />
       ) : currentView === 'geyser-service-page' ? (
         <GeyserServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1620,10 +1706,7 @@ function App() {
         />
       ) : currentView === 'television-service-page' ? (
         <TelevisionServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1636,10 +1719,7 @@ function App() {
         />
       ) : currentView === 'microwave-service-page' ? (
         <MicrowaveServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1652,10 +1732,7 @@ function App() {
         />
       ) : currentView === 'washing-machine-service-page' ? (
         <WashingMachineServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1668,10 +1745,7 @@ function App() {
         />
       ) : currentView === 'refrigerator-service-page' ? (
         <RefrigeratorServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1684,10 +1758,7 @@ function App() {
         />
       ) : currentView === 'laptop-service-page' ? (
         <LaptopServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1700,10 +1771,7 @@ function App() {
         />
       ) : currentView === 'water-purifier-service-page' ? (
         <WaterPurifierServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1716,10 +1784,7 @@ function App() {
         />
       ) : currentView === 'native-purifier-page' ? (
         <NativeWaterPurifierPage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1732,10 +1797,7 @@ function App() {
         />
       ) : currentView === 'native-smart-locks-page' ? (
         <NativeSmartLocksPage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1748,10 +1810,7 @@ function App() {
         />
       ) : currentView === 'electrician-service-page' ? (
         <ElectricianServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1764,10 +1823,7 @@ function App() {
         />
       ) : currentView === 'plumber-service-page' ? (
         <PlumberServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1780,10 +1836,7 @@ function App() {
         />
       ) : currentView === 'carpenter-service-page' ? (
         <CarpenterServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1796,10 +1849,7 @@ function App() {
         />
       ) : currentView === 'bathroom-cleaning-page' ? (
         <BathroomCleaningServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1812,10 +1862,7 @@ function App() {
         />
       ) : currentView === 'kitchen-cleaning-page' ? (
         <KitchenCleaningServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1828,10 +1875,7 @@ function App() {
         />
       ) : currentView === 'full-home-cleaning-page' ? (
         <FullHomeCleaningServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1844,10 +1888,7 @@ function App() {
         />
       ) : currentView === 'cockroach-control-page' ? (
         <CockroachControlServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1860,10 +1901,7 @@ function App() {
         />
       ) : currentView === 'quick-repairs-service-page' ? (
         <QuickRepairsServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           initialTrade={quickRepairsTrade}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
@@ -1877,10 +1915,7 @@ function App() {
         />
       ) : currentView === 'salon-prime-page' ? (
         <SalonPrimeServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1894,10 +1929,7 @@ function App() {
         />
       ) : currentView === 'hair-studio-page' ? (
         <HairStudioWomenServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1911,10 +1943,7 @@ function App() {
         />
       ) : currentView === 'salon-royale-page' ? (
         <SalonRoyaleServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1927,10 +1956,7 @@ function App() {
         />
       ) : currentView === 'salon-men-prime-page' ? (
         <SalonMenPrimeServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1943,10 +1969,7 @@ function App() {
         />
       ) : currentView === 'painting-service-page' ? (
         <PaintingServicePage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           selectedCity={selectedCity}
           selectedLocality={selectedLocality}
           onOpenLocationModal={() => setIsLocationModalOpen(true)}
@@ -1957,12 +1980,9 @@ function App() {
           onOpenCheckout={handleProceedToCheckout}
           showToast={showToast}
         />
-      ) : currentView === 'checkout' ? (
+      ) : isCheckoutRoute || currentView === 'checkout' ? (
         <UrbanCheckoutPage
-          onBackHome={() => {
-            setCurrentView('home');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBackHome={handleBackHome}
           cart={cart}
           onUpdateQty={handleUpdateQty}
           onRemoveItem={handleRemoveItem}
@@ -1979,6 +1999,33 @@ function App() {
           showToast={showToast}
           hasUCPlus={hasUCPlus}
           onToggleUCPlus={handleOpenUCPlusPayment}
+        />
+      ) : isAboutRoute || currentView === 'about-us' ? (
+        <AboutUsPage
+          onBackHome={handleBackHome}
+          onOpenWorkerOnboarding={() => setIsWorkerOnboardingOpen(true)}
+          onOpenPartnerOnboarding={() => setIsPartnerOnboardingOpen(true)}
+          onOpenAuth={handleOpenAuth}
+          onOpenContact={() => {
+            const footerEl = document.querySelector('.uc-footer');
+            if (footerEl) footerEl.scrollIntoView({ behavior: 'smooth' });
+          }}
+          user={user}
+          selectedCity={selectedCity}
+          onSelectCity={(city) => {
+            const matchedKey = Object.keys(CITY_LOCALITIES).find(
+              k => k.toLowerCase() === (city || '').trim().toLowerCase()
+            );
+            const defaultLocality = (matchedKey && CITY_LOCALITIES[matchedKey]?.[0])
+              || 'Central';
+            handleLocationSelect(city, defaultLocality);
+          }}
+          onOpenPartnerDashboard={() => {
+            window.history.pushState({}, '', '/partner');
+            setIsPartnerRoute(true);
+          }}
+          onOpenProfessionalPortal={handleOpenProfessionalPortal}
+          onOpenAdminPortal={handleOpenAdminPortal}
         />
       ) : (
         <>
@@ -2009,27 +2056,21 @@ function App() {
         services={services}
         onSelectService={(s) => {
           if (s?.title?.toLowerCase().includes('lock') || s?.subcategory?.toLowerCase().includes('lock') || s?.id?.includes('lock')) {
-            setCurrentView('native-smart-locks-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('native-smart-locks-page');
           } else if (s?.title?.toLowerCase().includes('purifier') || s?.subcategory?.toLowerCase().includes('purifier') || s?.id?.includes('purifier')) {
             if (s?.title?.toLowerCase().includes('repair') || s?.title?.toLowerCase().includes('service') || s?.id?.includes('repair') || s?.id?.includes('service')) {
-              setCurrentView('water-purifier-service-page');
+              navigateToView('water-purifier-service-page');
             } else {
-              setCurrentView('native-purifier-page');
+              navigateToView('native-purifier-page');
             }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
           } else if (s?.title?.toLowerCase().includes('refrigerator') || s?.subcategory?.toLowerCase().includes('refrigerator') || s?.id?.includes('refrigerator') || s?.title?.toLowerCase().includes('fridge')) {
-            setCurrentView('refrigerator-service-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('refrigerator-service-page');
           } else if (s?.title?.toLowerCase().includes('washing') || s?.subcategory?.toLowerCase().includes('washing') || s?.id?.includes('washing') || s?.title?.toLowerCase().includes('washer')) {
-            setCurrentView('washing-machine-service-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('washing-machine-service-page');
           } else if (s?.title?.toLowerCase().includes('microwave') || s?.subcategory?.toLowerCase().includes('microwave') || s?.id?.includes('microwave')) {
-            setCurrentView('microwave-service-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('microwave-service-page');
           } else if (s?.title?.toLowerCase().includes('television') || s?.subcategory?.toLowerCase().includes('television') || s?.id?.includes('television') || s?.title?.toLowerCase().includes('tv') || s?.id?.includes('tv')) {
-            setCurrentView('television-service-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('television-service-page');
           } else if (
             s?.category === 'quick-repairs' ||
             s?.subcategory === 'Electrician' ||
@@ -2051,13 +2092,12 @@ function App() {
               trade = 'carpenter';
             }
             if (trade === 'plumber') {
-              setCurrentView('plumber-service-page');
+              navigateToView('plumber-service-page');
             } else if (trade === 'carpenter') {
-              setCurrentView('carpenter-service-page');
+              navigateToView('carpenter-service-page');
             } else {
-              setCurrentView('electrician-service-page');
+              navigateToView('electrician-service-page');
             }
-            window.scrollTo({ top: 0, behavior: 'smooth' });
           } else if (
             s?.title?.toLowerCase().includes('cockroach') ||
             s?.subcategory?.toLowerCase().includes('pest') ||
@@ -2065,8 +2105,7 @@ function App() {
             s?.id?.includes('cockroach') ||
             s?.id?.includes('pest')
           ) {
-            setCurrentView('cockroach-control-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('cockroach-control-page');
           } else if (
             s?.title?.toLowerCase().includes('full home') ||
             s?.title?.toLowerCase().includes('furnished') ||
@@ -2076,22 +2115,19 @@ function App() {
             s?.subcategory?.toLowerCase().includes('full home') ||
             s?.id?.includes('full-home')
           ) {
-            setCurrentView('full-home-cleaning-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('full-home-cleaning-page');
           } else if (
             s?.title?.toLowerCase().includes('kitchen') ||
             s?.subcategory?.toLowerCase().includes('kitchen') ||
             s?.id?.includes('kitchen')
           ) {
-            setCurrentView('kitchen-cleaning-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('kitchen-cleaning-page');
           } else if (
             s?.title?.toLowerCase().includes('bathroom') ||
             s?.subcategory?.toLowerCase().includes('bathroom') ||
             s?.id?.includes('bathroom')
           ) {
-            setCurrentView('bathroom-cleaning-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('bathroom-cleaning-page');
           } else if (
             s?.title?.toLowerCase().includes('ac') ||
             s?.subcategory?.toLowerCase().includes('ac') ||
@@ -2099,8 +2135,7 @@ function App() {
             s?.id?.includes('ac') ||
             s?.id?.includes('srv-')
           ) {
-            setCurrentView('ac-service-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('ac-service-page');
           } else {
             setSelectedDetailService(s);
           }
@@ -2116,8 +2151,7 @@ function App() {
           activeNavTab={activeNavTab}
           onSelectNavTab={handleSelectNavTab}
           onOpenACPage={() => {
-            setCurrentView('ac-service-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('ac-service-page');
           }}
           onOpenApplianceModal={() => setIsApplianceModalOpen(true)}
           onOpenCleaningModal={() => setIsCleaningModalOpen(true)}
@@ -2130,20 +2164,16 @@ function App() {
           }}
           onOpenFullCleaningModal={() => setIsFullCleaningModalOpen(true)}
           onOpenPurifierPage={() => {
-            setCurrentView('native-purifier-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('native-purifier-page');
           }}
           onOpenSalonPrimePage={() => {
-            setCurrentView('salon-prime-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('salon-prime-page');
           }}
           onOpenHairStudioPage={() => {
-            setCurrentView('hair-studio-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('hair-studio-page');
           }}
           onOpenSmartLocksPage={() => {
-            setCurrentView('native-smart-locks-page');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            navigateToView('native-smart-locks-page');
           }}
           onSelectCategory={(catId) => {
             handleCategorySelection(catId);
@@ -2157,8 +2187,7 @@ function App() {
             services={services}
             onSelectService={(s) => {
               if (s?.category === 'ac-appliances' || s?.title?.toLowerCase().includes('ac') || s?.id?.includes('srv-')) {
-                setCurrentView('ac-service-page');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                navigateToView('ac-service-page');
               } else {
                 setSelectedDetailService(s);
               }
@@ -2173,66 +2202,51 @@ function App() {
               }
             }}
             onOpenACPage={() => {
-              setCurrentView('ac-service-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('ac-service-page');
             }}
             onOpenChimneyPage={() => {
-              setCurrentView('chimney-service-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('chimney-service-page');
             }}
             onOpenLaptopPage={() => {
-              setCurrentView('laptop-service-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('laptop-service-page');
             }}
             onOpenRefrigeratorPage={() => {
-              setCurrentView('refrigerator-service-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('refrigerator-service-page');
             }}
             onOpenWashingMachinePage={() => {
-              setCurrentView('washing-machine-service-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('washing-machine-service-page');
             }}
             onOpenMicrowavePage={() => {
-              setCurrentView('microwave-service-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('microwave-service-page');
             }}
             onOpenTelevisionPage={() => {
-              setCurrentView('television-service-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('television-service-page');
             }}
             onOpenCleaningModal={() => setIsCleaningModalOpen(true)}
             onOpenFullCleaningModal={() => setIsFullCleaningModalOpen(true)}
             onOpenSmartLocksPage={() => {
-              setCurrentView('native-smart-locks-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('native-smart-locks-page');
             }}
             onOpenPurifierPage={() => {
-              setCurrentView('native-purifier-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('native-purifier-page');
             }}
             onOpenWaterPurifierServicePage={() => {
-              setCurrentView('water-purifier-service-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('water-purifier-service-page');
             }}
             onOpenBathroomCleaningPage={() => {
-              setCurrentView('bathroom-cleaning-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('bathroom-cleaning-page');
             }}
             onOpenKitchenCleaningPage={() => {
-              setCurrentView('kitchen-cleaning-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('kitchen-cleaning-page');
             }}
             onOpenFullHomeCleaningPage={() => {
-              setCurrentView('full-home-cleaning-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('full-home-cleaning-page');
             }}
             onOpenCockroachControlPage={() => {
-              setCurrentView('cockroach-control-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('cockroach-control-page');
             }}
             onOpenPaintingPage={() => {
-              setCurrentView('painting-service-page');
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              navigateToView('painting-service-page');
             }}
           />
         )}
@@ -2245,8 +2259,7 @@ function App() {
             {/* Native by UC Spotlight Showcase */}
             <NativeSpotlightSection
               onExploreNative={() => {
-                setCurrentView('native-purifier-page');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                navigateToView('native-purifier-page');
               }}
             />
 
@@ -2292,6 +2305,7 @@ function App() {
         onOpenWorkerOnboarding={() => setIsWorkerOnboardingOpen(true)}
         onOpenProfessionalPortal={handleOpenProfessionalPortal}
         onOpenAdminPortal={handleOpenAdminPortal}
+        onOpenAbout={handleOpenAbout}
       />
         </>
       )}

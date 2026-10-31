@@ -30,7 +30,7 @@ const API_BASE = '/api/professional';
 class ProfessionalClient {
   constructor() {
     this.token = sessionStorage.getItem('uc_pro_token') || localStorage.getItem('uc_pro_token') || '';
-    this.proId = localStorage.getItem('uc_pro_id') || 'WRK-79932';
+    this.proId = localStorage.getItem('uc_pro_id') || '';
   }
 
   setAuth(token, proUser) {
@@ -39,9 +39,12 @@ class ProfessionalClient {
       sessionStorage.setItem('uc_pro_token', token);
       localStorage.setItem('uc_pro_token', token);
     }
-    if (proUser && proUser.id) {
-      this.proId = proUser.id;
-      localStorage.setItem('uc_pro_id', proUser.id);
+    const id = proUser?.id || proUser?.workerId;
+    if (id) {
+      this.proId = id;
+      localStorage.setItem('uc_pro_id', id);
+    }
+    if (proUser) {
       localStorage.setItem('uc_pro_user', JSON.stringify(proUser));
     }
   }
@@ -127,14 +130,12 @@ class ProfessionalClient {
 
   async request(endpoint, options = {}) {
     const user = this.getStoredUser();
-    const effectiveProId = (this.proId && this.proId !== 'PRO-8841') 
-      ? this.proId 
-      : (user?.id && user?.id !== 'PRO-8841' ? user.id : 'WRK-79932');
+    const effectiveProId = this.proId || user?.id || user?.workerId || '';
 
     const headers = {
       'Content-Type': 'application/json',
       ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-      'x-professional-id': effectiveProId,
+      ...(effectiveProId ? { 'x-professional-id': effectiveProId } : {}),
       ...(user?.email ? { 'x-professional-email': user.email } : {}),
       ...(user?.applicantName || user?.name ? { 'x-professional-name': user.applicantName || user.name } : {}),
       ...(options.headers || {})

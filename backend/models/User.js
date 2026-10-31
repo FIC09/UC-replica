@@ -61,6 +61,10 @@ const userSchema = new mongoose.Schema({
     trim: true,
     default: '',
   },
+  password: {
+    type: String,
+    default: '',
+  },
   hasUCPlus: {
     type: Boolean,
     default: false,

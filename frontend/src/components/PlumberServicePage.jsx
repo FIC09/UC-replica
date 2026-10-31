@@ -249,28 +249,8 @@ export function PlumberServicePage({
           justifyContent: 'space-between',
           gap: 16
         }}>
-          {/* Back & Title */}
+          {/* Title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button
-              type="button"
-              onClick={onBackHome}
-              title="Return to home"
-              style={{
-                background: '#F1F5F9',
-                border: 'none',
-                borderRadius: 10,
-                width: 36,
-                height: 36,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#1E293B'
-              }}
-            >
-              <ArrowLeft size={18} />
-            </button>
-
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 18 }}>💧</span>

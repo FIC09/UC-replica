@@ -53,6 +53,19 @@ export function AuthModal({
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [showSignupPassword, setShowSignupPassword] = useState(false);
 
+  // Email OTP & Password flow state for Signup
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [signupOtp, setSignupOtp] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [accountCreatedSuccess, setAccountCreatedSuccess] = useState(false);
+  const [createdUserData, setCreatedUserData] = useState(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [otpSentEmail, setOtpSentEmail] = useState('');
+  const [devOtpHint, setDevOtpHint] = useState('');
+
   // Validation / Feedback
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -155,7 +168,7 @@ export function AuthModal({
       sessionStorage.setItem('uc_partner_token', 'simulated-partner-jwt-token');
       localStorage.setItem('uc_partner_token', 'simulated-partner-jwt-token');
     } else if (role === 'professional') {
-      const workerName = userObj.name || userObj.applicantName || 'Professional';
+      const workerName = userObj.applicantName || userObj.name || 'Professional';
       const cleanName = workerName.trim();
       const parts = cleanName.split(/\s+/);
       const computedInitials = parts.length >= 2
@@ -163,24 +176,30 @@ export function AuthModal({
         : cleanName.slice(0, 2).toUpperCase() || 'PR';
 
       const proData = {
-        id: userObj.id || userObj.workerId || 'WRK-79932',
+        id: userObj.id || userObj.workerId || userObj._id || '',
+        workerId: userObj.id || userObj.workerId || userObj._id || '',
         applicantName: workerName,
         name: workerName,
-        phone: userObj.phone || '+91 98205 11982',
+        phone: userObj.phone || '',
         email: userObj.email || `${cleanName.toLowerCase().replace(/\s+/g, '.')}@urbanpro.com`,
-        avatar: computedInitials,
-        trade: userObj.trade || userObj.tradeName || 'Master AC Specialist & Electrician',
+        avatar: userObj.avatar || computedInitials,
+        trade: userObj.trade || userObj.tradeName || 'AC & Appliance Repair Specialist',
         tier: userObj.tier || 'New Partner (Level 1)',
         employmentType: userObj.employmentType || 'Direct Freelance',
         walletBalance: userObj.walletBalance != null ? Number(userObj.walletBalance) : 0,
         lifetimeEarnings: userObj.lifetimeEarnings != null ? Number(userObj.lifetimeEarnings) : 0,
         jobsCompleted: userObj.jobsCompleted != null ? Number(userObj.jobsCompleted) : 0,
         isOnline: true,
-        status: userObj.status || 'Active'
+        status: userObj.status || 'Approved'
       };
-      professionalClient.setAuth('simulated-pro-jwt-token', proData);
-      sessionStorage.setItem('uc_pro_token', 'simulated-pro-jwt-token');
-      localStorage.setItem('uc_pro_token', 'simulated-pro-jwt-token');
+      const proToken = userObj.token || sessionStorage.getItem('uc_pro_token') || localStorage.getItem('uc_pro_token') || 'simulated-pro-jwt-token';
+      professionalClient.setAuth(proToken, proData);
+      sessionStorage.setItem('uc_pro_token', proToken);
+      localStorage.setItem('uc_pro_token', proToken);
+      if (proData.id) {
+        localStorage.setItem('uc_pro_id', proData.id);
+      }
+      localStorage.setItem('uc_pro_user', JSON.stringify(proData));
     } else if (role === 'admin') {
       sessionStorage.setItem('uc_admin_auth', 'true');
       localStorage.setItem('uc_admin_auth', 'true');
@@ -212,6 +231,17 @@ export function AuthModal({
     setErrorMsg('');
   }
 
+  // Countdown timer for OTP resend cooldown
+  useEffect(() => {
+    let timer;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   // Handle escape key & initialMode sync
   useEffect(() => {
     if (isOpen) {
@@ -222,6 +252,16 @@ export function AuthModal({
         setMode('login');
         setIsSwitchingAccount(true);
       }
+      setIsEmailVerified(false);
+      setIsOtpSent(false);
+      setAccountCreatedSuccess(false);
+      setCreatedUserData(null);
+      setIsCreatingAccount(false);
+      setSignupOtp('');
+      setIsSendingOtp(false);
+      setIsVerifyingOtp(false);
+      setResendCooldown(0);
+      setDevOtpHint('');
       setErrorMsg('');
       setSuccessMsg('');
     }
@@ -295,6 +335,39 @@ export function AuthModal({
       } catch (err) {
         console.warn('Admin backend login fallback:', err?.message || err);
       }
+    } else if (detectedRole === 'professional') {
+      try {
+        const proRes = await professionalClient.login({
+          identifier: cleanEmail,
+          password: loginPassword
+        });
+        if (proRes?.success && proRes?.professional) {
+          const pro = proRes.professional;
+          authenticatedUser.name = pro.applicantName || pro.name || authenticatedUser.name;
+          authenticatedUser.id = pro.id || pro.workerId;
+          authenticatedUser.workerId = pro.id || pro.workerId;
+          authenticatedUser._id = pro.id || pro.workerId;
+          authenticatedUser.email = pro.email || cleanEmail;
+          authenticatedUser.phone = pro.phone || authenticatedUser.phone;
+          authenticatedUser.trade = pro.tradeName || pro.trade || authenticatedUser.trade;
+          authenticatedUser.avatar = pro.avatar || (pro.applicantName ? pro.applicantName.slice(0, 2).toUpperCase() : 'PR');
+          authenticatedUser.tier = pro.tier;
+          authenticatedUser.status = pro.status;
+          authenticatedUser.operationalHub = pro.operationalHub;
+          authenticatedUser.walletBalance = pro.walletBalance || 0;
+          authenticatedUser.lifetimeEarnings = pro.lifetimeEarnings || 0;
+          authenticatedUser.jobsCompleted = pro.jobsCompleted || 0;
+          authenticatedUser.token = proRes.token;
+
+          professionalClient.setAuth(proRes.token, pro);
+        } else {
+          setErrorMsg(proRes?.error || 'Invalid credentials provided for Professional Field Hub.');
+          return;
+        }
+      } catch (err) {
+        setErrorMsg(err.message || 'Invalid professional credentials. Please check your email and password.');
+        return;
+      }
     } else if (detectedRole === 'customer') {
       authApi.register(userName, userPhone, cleanEmail)
         .then(res => {
@@ -345,6 +418,28 @@ export function AuthModal({
       } catch (err) {
         console.warn('Admin backend quick login fallback:', err?.message || err);
       }
+    } else if (roleKey === 'professional') {
+      try {
+        const proRes = await professionalClient.login({
+          identifier: preset.email,
+          password: preset.password
+        });
+        if (proRes?.success && proRes?.professional) {
+          const pro = proRes.professional;
+          authenticatedUser.name = pro.applicantName || pro.name || authenticatedUser.name;
+          authenticatedUser.id = pro.id || pro.workerId;
+          authenticatedUser.workerId = pro.id || pro.workerId;
+          authenticatedUser._id = pro.id || pro.workerId;
+          authenticatedUser.email = pro.email || preset.email;
+          authenticatedUser.phone = pro.phone || authenticatedUser.phone;
+          authenticatedUser.trade = pro.tradeName || pro.trade;
+          authenticatedUser.avatar = pro.avatar;
+          authenticatedUser.token = proRes.token;
+          professionalClient.setAuth(proRes.token, pro);
+        }
+      } catch (err) {
+        console.warn('Pro quick login fallback:', err?.message || err);
+      }
     }
 
     try {
@@ -361,8 +456,81 @@ export function AuthModal({
     }, 350);
   }
 
-  async function handleSignupSubmit(e) {
-    e.preventDefault();
+  // Step 1: Send OTP to Email from Verify Button
+  async function handleSendEmailOtp() {
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    const cleanEmail = signupEmail.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setErrorMsg('Please enter a valid email address first.');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    try {
+      const res = await authApi.sendRegistrationOtp({
+        email: cleanEmail,
+        name: signupName.trim() || 'New Customer',
+        phone: signupPhone.trim() || ''
+      });
+
+      if (res && res.success) {
+        setOtpSentEmail(cleanEmail);
+        setIsOtpSent(true);
+        setResendCooldown(30);
+        setSignupOtp('');
+        if (res.devOtp) {
+          setDevOtpHint(res.devOtp);
+        }
+        setSuccessMsg(res.message || `A verification code was dispatched to ${cleanEmail}`);
+      } else {
+        setErrorMsg(res?.message || 'Failed to dispatch verification code. Please check your email.');
+      }
+    } catch (apiErr) {
+      setErrorMsg(apiErr.message || 'Error communicating with registration server.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  }
+
+  // Step 2: Verify the 6-Digit Email Code
+  async function handleVerifyEmailOtp(e) {
+    if (e) e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    const cleanOtp = signupOtp.trim();
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      setErrorMsg('Please enter the full 6-digit verification code.');
+      return;
+    }
+
+    const targetEmail = (otpSentEmail || signupEmail).trim().toLowerCase();
+    setIsVerifyingOtp(true);
+    try {
+      const res = await authApi.verifyEmailOtp({
+        email: targetEmail,
+        otp: cleanOtp
+      });
+
+      if (res && res.success) {
+        setIsEmailVerified(true);
+        setIsOtpSent(false);
+        setSuccessMsg('✓ Email verified successfully! You can now set your password below.');
+      } else {
+        setErrorMsg(res?.message || 'Invalid or expired verification code.');
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Verification failed. Please check the code and try again.');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  }
+
+  // Step 3: Complete Account Registration with Passwords
+  async function handleFinalSignupSubmit(e) {
+    if (e) e.preventDefault();
     setErrorMsg('');
     setSuccessMsg('');
 
@@ -378,8 +546,8 @@ export function AuthModal({
       setErrorMsg('Please enter a valid 10-digit mobile number');
       return;
     }
-    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
-      setErrorMsg('Please enter a valid email address');
+    if (!isEmailVerified) {
+      setErrorMsg('Please click the "Verify" button on your email address first.');
       return;
     }
     if (!signupPassword || signupPassword.length < 4) {
@@ -404,51 +572,57 @@ export function AuthModal({
       if (savedLocality) currentLocality = savedLocality;
     } catch {}
 
-    let newUser = {
-      name: cleanName,
-      email: cleanEmail,
-      phone: formattedPhone,
-      city: currentCity,
-      locality: currentLocality,
-      role: 'customer',
-      isPlusMember: false
-    };
-
+    setIsCreatingAccount(true);
     try {
-      const res = await authApi.register({
+      const res = await authApi.verifyRegistrationOtp({
+        email: cleanEmail,
+        otp: signupOtp,
         name: cleanName,
         phone: formattedPhone,
-        email: cleanEmail,
+        password: signupPassword,
         city: currentCity,
         locality: currentLocality
       });
-      if (res?.user) {
-        newUser._id = res.user._id || res.user.id;
-        newUser.id = res.user.id || res.user._id;
-        if (res.user.city) newUser.city = res.user.city;
-        if (res.user.locality) newUser.locality = res.user.locality;
-        if (res.user.savedAddresses) newUser.savedAddresses = res.user.savedAddresses;
+
+      if (res && res.success && res.user) {
+        const newUser = {
+          ...res.user,
+          id: res.user._id || res.user.id,
+          _id: res.user._id || res.user.id,
+          role: 'customer'
+        };
+
+        try {
+          localStorage.setItem('uc_user', JSON.stringify(newUser));
+          window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: newUser } }));
+          window.dispatchEvent(new CustomEvent('uc:customer-registered', { detail: newUser }));
+          const syncChannel = new BroadcastChannel('uc_sync_channel');
+          syncChannel.postMessage({ type: 'CUSTOMER_CREATED', customer: newUser, timestamp: Date.now() });
+          syncChannel.close();
+          localStorage.setItem('uc_last_customer_event', JSON.stringify({ type: 'CUSTOMER_CREATED', customer: newUser, timestamp: Date.now() }));
+        } catch {}
+
+        setCreatedUserData(newUser);
+        setAccountCreatedSuccess(true);
+
+        // Display quote celebration screen, then proceed into dashboard
+        setTimeout(() => {
+          onLogin(newUser);
+          onClose();
+        }, 2200);
+      } else {
+        setErrorMsg(res?.message || 'Failed to complete registration.');
       }
-    } catch (apiErr) {
-      console.warn('Backend customer register notice:', apiErr.message);
+    } catch (err) {
+      setErrorMsg(err.message || 'Error communicating with server.');
+    } finally {
+      setIsCreatingAccount(false);
     }
+  }
 
-    try {
-      localStorage.setItem('uc_user', JSON.stringify(newUser));
-      window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: newUser } }));
-      window.dispatchEvent(new CustomEvent('uc:customer-registered', { detail: newUser }));
-      // Cross-tab broadcast for real-time reflection in Admin Dashboard
-      const syncChannel = new BroadcastChannel('uc_sync_channel');
-      syncChannel.postMessage({ type: 'CUSTOMER_CREATED', customer: newUser, timestamp: Date.now() });
-      syncChannel.close();
-      localStorage.setItem('uc_last_customer_event', JSON.stringify({ type: 'CUSTOMER_CREATED', customer: newUser, timestamp: Date.now() }));
-    } catch {}
-
-    setSuccessMsg('Account created successfully! Logging you in...');
-    setTimeout(() => {
-      onLogin(newUser);
-      onClose();
-    }, 450);
+  async function handleResendOtp() {
+    if (resendCooldown > 0 || isSendingOtp) return;
+    handleSendEmailOtp();
   }
 
   const activePreset = ROLE_PRESETS[selectedRole] || ROLE_PRESETS.customer;
@@ -781,19 +955,20 @@ export function AuthModal({
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                width: 44,
-                height: 44,
+                width: 48,
+                height: 48,
                 borderRadius: 12,
                 background: '#0F172A',
                 color: '#fff',
                 fontWeight: 900,
-                fontSize: 18,
+                fontSize: 16,
+                letterSpacing: '-0.3px',
                 marginBottom: 8
               }}>
-                UC
+                FIC
               </div>
               <h3 style={{ fontSize: 21, fontWeight: 900, color: '#0F172A', margin: '0 0 4px' }}>
-                Welcome to Urban Company
+                Welcome to Forge India Connect
               </h3>
               <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
                 Select your role or enter credentials to open your dashboard
@@ -1070,9 +1245,75 @@ export function AuthModal({
                   </button>
                 </form>
               </div>
+            ) : accountCreatedSuccess ? (
+              /* Success Celebration Quote Screen */
+              <div style={{ textAlign: 'center', padding: '36px 20px', animation: 'fadeIn 0.3s ease' }}>
+                <div style={{
+                  width: 68,
+                  height: 68,
+                  borderRadius: '50%',
+                  background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+                  color: '#FFFFFF',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 8px 24px rgba(16, 185, 129, 0.35)',
+                  marginBottom: 16
+                }}>
+                  <CheckCircle2 size={36} />
+                </div>
+
+                <div style={{
+                  fontSize: 12,
+                  fontWeight: 800,
+                  color: '#059669',
+                  textTransform: 'uppercase',
+                  letterSpacing: 1.5,
+                  marginBottom: 8
+                }}>
+                  ✨ Registration Verified ✨
+                </div>
+
+                <blockquote style={{
+                  fontSize: 22,
+                  fontWeight: 900,
+                  color: '#0F172A',
+                  margin: '0 0 12px',
+                  lineHeight: 1.3,
+                  fontStyle: 'italic',
+                  padding: '0 10px'
+                }}>
+                  “Account created successfully”
+                </blockquote>
+
+                <p style={{
+                  fontSize: 14,
+                  color: '#64748B',
+                  margin: '0 auto 24px',
+                  maxWidth: 320,
+                  lineHeight: 1.5
+                }}>
+                  Welcome aboard, <strong style={{ color: '#0F172A' }}>{createdUserData?.name || signupName}</strong>! Your account has been registered and verified.
+                </p>
+
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  background: '#F1F5F9',
+                  borderRadius: 24,
+                  padding: '8px 18px',
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  color: '#475569'
+                }}>
+                  <div className="animate-spin" style={{ width: 14, height: 14, border: '2px solid #6E42E5', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                  <span>Signing you in &amp; opening your dashboard...</span>
+                </div>
+              </div>
             ) : (
               /* Signup Form */
-              <form onSubmit={handleSignupSubmit}>
+              <form onSubmit={handleFinalSignupSubmit}>
                 {errorMsg && (
                   <div style={{
                     backgroundColor: '#FEF2F2',
@@ -1081,9 +1322,13 @@ export function AuthModal({
                     padding: '8px 12px',
                     borderRadius: 8,
                     fontSize: 12.5,
-                    marginBottom: 12
+                    marginBottom: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
                   }}>
-                    {errorMsg}
+                    <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                    <span>{errorMsg}</span>
                   </div>
                 )}
                 {successMsg && (
@@ -1094,19 +1339,24 @@ export function AuthModal({
                     padding: '8px 12px',
                     borderRadius: 8,
                     fontSize: 12.5,
-                    marginBottom: 12
+                    marginBottom: 12,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6
                   }}>
-                    {successMsg}
+                    <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
+                    <span>{successMsg}</span>
                   </div>
                 )}
 
+                {/* Full Name */}
                 <div style={{ marginBottom: 10 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
                     Full Name
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. Renu"
+                    placeholder="e.g. Selva Kumar"
                     value={signupName}
                     onChange={(e) => setSignupName(e.target.value)}
                     required
@@ -1121,6 +1371,7 @@ export function AuthModal({
                   />
                 </div>
 
+                {/* Mobile Number */}
                 <div style={{ marginBottom: 10 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
                     Mobile Number
@@ -1142,84 +1393,401 @@ export function AuthModal({
                   />
                 </div>
 
+                {/* Email Address with Inline Verify Button in the same box */}
                 <div style={{ marginBottom: 10 }}>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Email Address
+                    Email Address (For Verification Code)
                   </label>
-                  <input
-                    type="email"
-                    placeholder="e.g. rahul@example.com"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: 9,
-                      border: '1.5px solid #CBD5E1',
-                      fontSize: 13,
-                      boxSizing: 'border-box'
-                    }}
-                  />
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    background: isEmailVerified ? '#F0FDF4' : '#F8FAFC',
+                    border: isEmailVerified ? '1.5px solid #86EFAC' : '1.5px solid #CBD5E1',
+                    borderRadius: 9,
+                    padding: '4px 6px 4px 12px',
+                    transition: 'all 0.2s ease'
+                  }}>
+                    <Mail size={16} color={isEmailVerified ? '#16A34A' : '#64748B'} style={{ flexShrink: 0 }} />
+                    <input
+                      type="email"
+                      placeholder="e.g. rahul@example.com"
+                      value={signupEmail}
+                      disabled={isEmailVerified}
+                      onChange={(e) => {
+                        setSignupEmail(e.target.value);
+                        if (isEmailVerified) setIsEmailVerified(false);
+                        if (isOtpSent) setIsOtpSent(false);
+                      }}
+                      required
+                      style={{
+                        width: '100%',
+                        border: 'none',
+                        background: 'transparent',
+                        fontSize: 13,
+                        color: '#0F172A',
+                        outline: 'none',
+                        padding: '6px 0',
+                        fontWeight: isEmailVerified ? 700 : 500
+                      }}
+                    />
+                    {isEmailVerified ? (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                        background: '#DCFCE7',
+                        color: '#15803D',
+                        padding: '5px 10px',
+                        borderRadius: 6,
+                        fontSize: 11.5,
+                        fontWeight: 800,
+                        flexShrink: 0
+                      }}>
+                        <CheckCircle2 size={13} />
+                        <span>Verified</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEmailVerified(false);
+                            setIsOtpSent(false);
+                            setSignupOtp('');
+                          }}
+                          title="Change Email"
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: 11,
+                            color: '#16A34A',
+                            marginLeft: 4,
+                            padding: 0,
+                            textDecoration: 'underline'
+                          }}
+                        >
+                          Edit
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isSendingOtp || !signupEmail.trim() || !signupEmail.includes('@')}
+                        onClick={handleSendEmailOtp}
+                        style={{
+                          background: (isSendingOtp || !signupEmail.trim() || !signupEmail.includes('@')) ? '#E2E8F0' : '#6E42E5',
+                          color: (isSendingOtp || !signupEmail.trim() || !signupEmail.includes('@')) ? '#94A3B8' : '#FFFFFF',
+                          border: 'none',
+                          padding: '7px 14px',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 800,
+                          cursor: (isSendingOtp || !signupEmail.trim() || !signupEmail.includes('@')) ? 'not-allowed' : 'pointer',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {isSendingOtp ? (
+                          <>
+                            <div className="animate-spin" style={{ width: 12, height: 12, border: '2px solid #FFFFFF', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                            <span>Sending...</span>
+                          </>
+                        ) : (
+                          <span>{isOtpSent ? 'Resend' : 'Verify'}</span>
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
-                <div style={{ marginBottom: 10 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Create Password
-                  </label>
-                  <input
-                    type={showSignupPassword ? 'text' : 'password'}
-                    placeholder="Minimum 4 characters"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: 9,
-                      border: '1.5px solid #CBD5E1',
-                      fontSize: 13,
-                      boxSizing: 'border-box'
-                    }}
-                  />
+                {/* Inline OTP Input Box when OTP is sent */}
+                {isOtpSent && !isEmailVerified && (
+                  <div style={{
+                    background: '#FAF5FF',
+                    border: '1.5px solid #DDD6FE',
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    marginBottom: 12,
+                    animation: 'fadeIn 0.2s ease'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: '#5B21B6' }}>
+                        Enter 6-Digit Email Code
+                      </label>
+                      <span style={{ fontSize: 11, color: '#7C3AED', fontWeight: 600 }}>
+                        Sent to {otpSentEmail}
+                      </span>
+                    </div>
+
+                    {devOtpHint && (
+                      <div style={{
+                        background: '#EFF6FF',
+                        border: '1px dashed #93C5FD',
+                        color: '#1E40AF',
+                        padding: '5px 10px',
+                        borderRadius: 6,
+                        fontSize: 11.5,
+                        marginBottom: 8,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}>
+                        <span>Quick Fill Code: <strong>{devOtpHint}</strong></span>
+                        <button
+                          type="button"
+                          onClick={() => setSignupOtp(devOtpHint)}
+                          style={{
+                            background: '#DBEAFE',
+                            border: 'none',
+                            color: '#1D4ED8',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: 4,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Auto Fill
+                        </button>
+                      </div>
+                    )}
+
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={6}
+                        autoFocus
+                        placeholder="••••••"
+                        value={signupOtp}
+                        onChange={(e) => setSignupOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        style={{
+                          flex: 1,
+                          padding: '8px 12px',
+                          borderRadius: 8,
+                          border: '1.5px solid #7C3AED',
+                          fontSize: 18,
+                          fontWeight: 900,
+                          letterSpacing: 6,
+                          textAlign: 'center',
+                          backgroundColor: '#FFFFFF',
+                          color: '#0F172A',
+                          outline: 'none'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={isVerifyingOtp || signupOtp.trim().length !== 6}
+                        onClick={handleVerifyEmailOtp}
+                        style={{
+                          background: (isVerifyingOtp || signupOtp.trim().length !== 6) ? '#CBD5E1' : '#7C3AED',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: 8,
+                          padding: '10px 16px',
+                          fontSize: 12.5,
+                          fontWeight: 800,
+                          cursor: (isVerifyingOtp || signupOtp.trim().length !== 6) ? 'not-allowed' : 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          flexShrink: 0
+                        }}
+                      >
+                        {isVerifyingOtp ? (
+                          <>
+                            <div className="animate-spin" style={{ width: 12, height: 12, border: '2px solid #FFFFFF', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                            <span>Checking...</span>
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 size={14} />
+                            <span>Verify OTP</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, fontSize: 11 }}>
+                      <span style={{ color: '#6B7280' }}>⏱️ Code valid for 10 minutes</span>
+                      <button
+                        type="button"
+                        disabled={resendCooldown > 0 || isSendingOtp}
+                        onClick={handleSendEmailOtp}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: resendCooldown > 0 ? '#9CA3AF' : '#6E42E5',
+                          fontWeight: 700,
+                          cursor: (resendCooldown > 0 || isSendingOtp) ? 'not-allowed' : 'pointer',
+                          padding: 0
+                        }}
+                      >
+                        {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Password Fields: Locked until Email OTP is Verified */}
+                <div style={{
+                  opacity: isEmailVerified ? 1 : 0.65,
+                  transition: 'all 0.25s ease'
+                }}>
+                  {!isEmailVerified && (
+                    <div style={{
+                      background: '#FEF3C7',
+                      border: '1px solid #FDE68A',
+                      color: '#92400E',
+                      padding: '6px 10px',
+                      borderRadius: 7,
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      marginBottom: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6
+                    }}>
+                      <Lock size={13} style={{ flexShrink: 0 }} />
+                      <span>Verify email above to unlock password setup</span>
+                    </div>
+                  )}
+
+                  {/* Create Password */}
+                  <div style={{ marginBottom: 10 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Create Password {isEmailVerified && <span style={{ color: '#059669', fontSize: 11 }}>✓ Unlocked</span>}
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showSignupPassword ? 'text' : 'password'}
+                        placeholder={isEmailVerified ? 'Minimum 4 characters' : 'Verify email first to enter password'}
+                        value={signupPassword}
+                        disabled={!isEmailVerified}
+                        onChange={(e) => setSignupPassword(e.target.value)}
+                        required={isEmailVerified}
+                        style={{
+                          width: '100%',
+                          padding: '9px 36px 9px 12px',
+                          borderRadius: 9,
+                          border: isEmailVerified ? '1.5px solid #7C3AED' : '1.5px solid #CBD5E1',
+                          fontSize: 13,
+                          boxSizing: 'border-box',
+                          backgroundColor: isEmailVerified ? '#FFFFFF' : '#F1F5F9',
+                          cursor: isEmailVerified ? 'text' : 'not-allowed'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={!isEmailVerified}
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: 10,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: isEmailVerified ? 'pointer' : 'default',
+                          color: '#94A3B8',
+                          padding: 0
+                        }}
+                      >
+                        {showSignupPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div style={{ marginBottom: 16 }}>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
+                      Confirm Password
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showSignupPassword ? 'text' : 'password'}
+                        placeholder={isEmailVerified ? 'Re-enter password' : 'Verify email first to enter password'}
+                        value={signupConfirmPassword}
+                        disabled={!isEmailVerified}
+                        onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                        required={isEmailVerified}
+                        style={{
+                          width: '100%',
+                          padding: '9px 36px 9px 12px',
+                          borderRadius: 9,
+                          border: isEmailVerified ? '1.5px solid #7C3AED' : '1.5px solid #CBD5E1',
+                          fontSize: 13,
+                          boxSizing: 'border-box',
+                          backgroundColor: isEmailVerified ? '#FFFFFF' : '#F1F5F9',
+                          cursor: isEmailVerified ? 'text' : 'not-allowed'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={!isEmailVerified}
+                        onClick={() => setShowSignupPassword(!showSignupPassword)}
+                        style={{
+                          position: 'absolute',
+                          right: 10,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: isEmailVerified ? 'pointer' : 'default',
+                          color: '#94A3B8',
+                          padding: 0
+                        }}
+                      >
+                        {showSignupPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
-                <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 4 }}>
-                    Confirm Password
-                  </label>
-                  <input
-                    type={showSignupPassword ? 'text' : 'password'}
-                    placeholder="Re-enter password"
-                    value={signupConfirmPassword}
-                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                    required
-                    style={{
-                      width: '100%',
-                      padding: '9px 12px',
-                      borderRadius: 9,
-                      border: '1.5px solid #CBD5E1',
-                      fontSize: 13,
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
+                {/* Final Submit Button */}
                 <button
                   type="submit"
+                  disabled={!isEmailVerified || isCreatingAccount}
                   style={{
                     width: '100%',
-                    background: '#0F172A',
+                    background: !isEmailVerified 
+                      ? '#94A3B8' 
+                      : 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 11,
                     padding: '12px',
                     fontSize: 14,
                     fontWeight: 800,
-                    cursor: 'pointer'
+                    cursor: (!isEmailVerified || isCreatingAccount) ? 'not-allowed' : 'pointer',
+                    opacity: (!isEmailVerified || isCreatingAccount) ? 0.75 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    boxShadow: isEmailVerified ? '0 4px 14px rgba(15, 23, 42, 0.25)' : 'none',
+                    transition: 'all 0.2s ease'
                   }}
                 >
-                  Create Customer Account
+                  {isCreatingAccount ? (
+                    <>
+                      <div className="animate-spin" style={{ width: 16, height: 16, border: '2px solid #FFFFFF', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                      <span>Creating Your Account...</span>
+                    </>
+                  ) : !isEmailVerified ? (
+                    <>
+                      <Lock size={15} />
+                      <span>Verify Email to Continue</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Create Account &amp; Complete Registration</span>
+                      <ArrowRight size={16} />
+                    </>
+                  )}
                 </button>
               </form>
             )}

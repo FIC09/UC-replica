@@ -287,28 +287,8 @@ export function CockroachControlServicePage({
           justifyContent: 'space-between',
           gap: 16
         }}>
-          {/* Left: Brand Logo & Back */}
+          {/* Left: Brand Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button
-              type="button"
-              onClick={onBackHome}
-              title="Return to Home"
-              style={{
-                background: '#F3F4F6',
-                border: 'none',
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#111827'
-              }}
-            >
-              <ArrowLeft size={18} />
-            </button>
-
             {/* Urban Company Logo */}
             <div 
               onClick={onBackHome}

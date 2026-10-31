@@ -2,6 +2,7 @@ import React from 'react';
 import { HardHat, Building2, ArrowRight, CheckCircle2, TrendingUp, Users, ShieldCheck, DollarSign } from 'lucide-react';
 
 export function OnboardingShowcaseSection({
+  selectedCity = '',
   onOpenWorkerOnboarding,
   onOpenPartnerOnboarding
 }) {
@@ -27,7 +28,7 @@ export function OnboardingShowcaseSection({
             marginBottom: 6
           }}>
             <ShieldCheck size={14} />
-            <span>GROW WITH URBAN COMPANY MUMBAI</span>
+            <span>GROW WITH FORGE INDIA CONNECT</span>
           </div>
           <h2 style={{
             fontSize: 26,

@@ -231,28 +231,8 @@ export function PaintingServicePage({
           height: 68,
           gap: 16
         }}>
-          {/* Back button + Brand */}
+          {/* Brand */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button
-              type="button"
-              onClick={onBackHome}
-              style={{
-                background: '#F1F5F9',
-                border: 'none',
-                borderRadius: '50%',
-                width: 38,
-                height: 38,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#0F172A',
-                transition: 'all 0.15s ease'
-              }}
-              title="Return to Home"
-            >
-              <ArrowLeft size={18} />
-            </button>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: 18 }}>🎨</span>

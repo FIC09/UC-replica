@@ -788,27 +788,6 @@ export function HairStudioWomenServicePage({
           
           {/* Left: Back Arrow + UC Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button
-              type="button"
-              onClick={onBackHome}
-              style={{
-                background: '#F1F5F9',
-                border: 'none',
-                borderRadius: '50%',
-                width: 38,
-                height: 38,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#0F172A',
-                transition: 'background 0.15s'
-              }}
-              title="Back to Home"
-            >
-              <ArrowLeft size={18} />
-            </button>
-
             <div 
               onClick={onBackHome}
               style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}

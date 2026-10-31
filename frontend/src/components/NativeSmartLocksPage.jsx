@@ -143,29 +143,8 @@ export function NativeSmartLocksPage({
           justifyContent: 'space-between',
           gap: 20
         }}>
-          {/* Left: Back button + UC Logo */}
+          {/* Left: Brand Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button
-              type="button"
-              onClick={onBackHome}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#111827',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                padding: 4,
-                borderRadius: 8,
-                transition: 'background-color 0.15s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F1F5F9'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-              title="Back to Home"
-            >
-              <ArrowLeft size={22} strokeWidth={2.4} />
-            </button>
-
             <div 
               onClick={onBackHome}
               style={{ 

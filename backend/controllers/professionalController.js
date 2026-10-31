@@ -1384,21 +1384,9 @@ export async function professionalLogin(req, res) {
 
     let pro = null;
     let targetId = proId;
-    if (!targetId && identifier) {
-      const found = professionalsStore.find(p =>
-        p.email.toLowerCase() === identifier.toLowerCase().trim() ||
-        p.phone.replace(/\D/g, '').includes(identifier.replace(/\D/g, '')) ||
-        p.id.toLowerCase() === identifier.toLowerCase().trim()
-      );
-      if (found) targetId = found.id;
-    }
 
-    if (targetId) {
-      pro = professionalsStore.find(p => p.id === targetId);
-    }
-
-    // Check MongoDB WorkerApplication if not found in mock store
-    if (!pro && (identifier || targetId)) {
+    // Check MongoDB WorkerApplication FIRST for authentic registered technicians
+    if (identifier || targetId) {
       try {
         const queryTerm = (identifier || targetId || '').trim();
         const cleanDigits = queryTerm.replace(/\D/g, '');
@@ -1416,22 +1404,23 @@ export async function professionalLogin(req, res) {
           pro = {
             id: dbWorker.id,
             workerId: dbWorker.id,
-            applicantName: dbWorker.applicantName,
-            legalName: dbWorker.applicantName,
+            applicantName: dbWorker.applicantName || dbWorker.name,
+            name: dbWorker.applicantName || dbWorker.name,
+            legalName: dbWorker.applicantName || dbWorker.name,
             phone: dbWorker.phone,
-            email: dbWorker.email || `${dbWorker.applicantName.toLowerCase().replace(/\s+/g, '.')}@urbanpro.com`,
+            email: dbWorker.email || `${(dbWorker.applicantName || 'pro').toLowerCase().replace(/\s+/g, '.')}@urbanpro.com`,
             password: dbWorker.password || '',
-            avatar: dbWorker.avatar || 'WR',
+            avatar: dbWorker.avatar || '',
             trade: dbWorker.tradeName || dbWorker.trade,
             tradeName: dbWorker.tradeName || dbWorker.trade,
             categories: dbWorker.categories && dbWorker.categories.length > 0 ? dbWorker.categories : [dbWorker.tradeName || dbWorker.trade],
             skills: dbWorker.skills && dbWorker.skills.length > 0 ? dbWorker.skills : ['Verified Service Specialist'],
             experience: dbWorker.experience || '2 years',
-            city: dbWorker.city || 'Mumbai',
+            city: dbWorker.city || 'Krishnagiri',
             locality: dbWorker.locality,
-            operationalHub: dbWorker.operationalHub || 'Bandra West Central Hub',
+            operationalHub: dbWorker.operationalHub || 'Krishnagiri Town (Direct Service)',
             serviceAreas: dbWorker.serviceAreas && dbWorker.serviceAreas.length > 0 ? dbWorker.serviceAreas : [dbWorker.locality],
-            status: dbWorker.status || 'Pending Review',
+            status: dbWorker.status || 'Approved',
             tier: dbWorker.tier || 'New Professional',
             employmentType: dbWorker.employmentType || 'Direct Freelance',
             rating: dbWorker.rating || 5.0,
@@ -1442,8 +1431,30 @@ export async function professionalLogin(req, res) {
             documents: dbWorker.documents || {},
             bankDetails: dbWorker.bankDetails || {}
           };
+          targetId = dbWorker.id;
         }
-      } catch {}
+      } catch (err) {
+        console.warn('WorkerApplication lookup error in professionalLogin:', err.message);
+      }
+    }
+
+    // Check mock store only if not found in MongoDB
+    if (!pro && identifier) {
+      const cleanDigits = (identifier || '').replace(/\D/g, '');
+      const isPhone = !identifier.includes('@') && cleanDigits.length >= 8;
+      const found = professionalsStore.find(p =>
+        p.email.toLowerCase() === identifier.toLowerCase().trim() ||
+        (isPhone && p.phone.replace(/\D/g, '').includes(cleanDigits)) ||
+        p.id.toLowerCase() === identifier.toLowerCase().trim()
+      );
+      if (found) {
+        targetId = found.id;
+        pro = found;
+      }
+    }
+
+    if (!pro && targetId) {
+      pro = professionalsStore.find(p => p.id === targetId);
     }
 
     if (!pro && !identifier && !proId) {
@@ -1490,8 +1501,10 @@ export async function professionalLogin(req, res) {
     const token = jwt.sign(
       {
         proId: pro.id,
+        id: pro.id,
         role: 'professional',
-        name: pro.applicantName,
+        email: pro.email,
+        name: pro.applicantName || pro.name,
         trade: pro.trade,
         employmentType: pro.employmentType,
         status: pro.status
@@ -1663,8 +1676,10 @@ export async function verifyProfessionalOtp(req, res) {
     const token = jwt.sign(
       {
         proId: pro.id,
+        id: pro.id,
         role: 'professional',
-        name: pro.applicantName,
+        email: pro.email,
+        name: pro.applicantName || pro.name,
         trade: pro.trade,
         employmentType: pro.employmentType,
         status: pro.status
@@ -1881,7 +1896,9 @@ export async function resubmitOnboardingCorrections(req, res) {
 // -------------------------------------------------------------
 export async function getProfessionalProfile(req, res) {
   try {
-    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-79932';
+    const authProId = req.professional?.proId || req.professional?.id;
+    const headerProId = req.headers['x-professional-id'];
+    const proId = authProId || (headerProId && headerProId !== 'WRK-79932' ? headerProId : null) || (req.professional?.id) || headerProId || 'WRK-79932';
     const proEmail = (req.headers['x-professional-email'] || req.professional?.email || '').trim().toLowerCase();
     const proName = (req.headers['x-professional-name'] || req.professional?.applicantName || req.professional?.name || '').trim();
     let pro = null;
@@ -1889,10 +1906,10 @@ export async function getProfessionalProfile(req, res) {
     // Check MongoDB WorkerApplication first for authentic database profile
     try {
       const orConds = [];
-      if (proId && proId !== 'PRO-8841') {
+      if (proEmail) orConds.push({ email: proEmail });
+      if (proId && proId !== 'PRO-8841' && proId !== 'WRK-79932') {
         orConds.push({ id: proId }, { applicationNumber: proId }, { id: (proId || '').toUpperCase() });
       }
-      if (proEmail) orConds.push({ email: proEmail });
       if (proName && !proName.toLowerCase().includes('vikram')) {
         orConds.push({ applicantName: new RegExp(`^${proName}$`, 'i') }, { name: new RegExp(`^${proName}$`, 'i') });
       }
@@ -2688,17 +2705,19 @@ async function getAllJobsForPro(proId, dbWorker = null) {
 // -------------------------------------------------------------
 export async function getTodayDashboard(req, res) {
   try {
-    const proId = req.professional?.id || req.headers['x-professional-id'] || 'WRK-79932';
+    const authProId = req.professional?.proId || req.professional?.id;
+    const headerProId = req.headers['x-professional-id'];
+    const proId = authProId || (headerProId && headerProId !== 'WRK-79932' ? headerProId : null) || (req.professional?.id) || headerProId || 'WRK-79932';
     const proEmail = (req.headers['x-professional-email'] || req.professional?.email || '').trim().toLowerCase();
     const proName = (req.headers['x-professional-name'] || req.professional?.applicantName || req.professional?.name || '').trim();
 
     let dbWorker = null;
     try {
       const orConds = [];
-      if (proId && proId !== 'PRO-8841') {
+      if (proEmail) orConds.push({ email: proEmail });
+      if (proId && proId !== 'PRO-8841' && proId !== 'WRK-79932') {
         orConds.push({ id: proId }, { applicationNumber: proId }, { id: (proId || '').toUpperCase() });
       }
-      if (proEmail) orConds.push({ email: proEmail });
       if (proName && !proName.toLowerCase().includes('vikram')) {
         orConds.push({ applicantName: new RegExp(`^${proName}$`, 'i') }, { name: new RegExp(`^${proName}$`, 'i') });
       }

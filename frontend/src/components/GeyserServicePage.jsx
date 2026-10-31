@@ -203,30 +203,8 @@ export function GeyserServicePage({
           justifyContent: 'space-between',
           gap: 16
         }}>
-          {/* Left: Back Arrow + Urban Company Logo */}
+          {/* Left: Brand Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button
-              type="button"
-              onClick={onBackHome}
-              title="Return to Home"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                border: '1px solid #E5E7EB',
-                backgroundColor: '#FFFFFF',
-                cursor: 'pointer',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#F3F4F6'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#FFFFFF'}
-            >
-              <ArrowLeft size={18} color="#111827" />
-            </button>
-
             <div 
               onClick={onBackHome}
               style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', userSelect: 'none' }}

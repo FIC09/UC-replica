@@ -21,6 +21,7 @@ import callingRoutes from './routes/callingRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 
 import { startAssignmentWatchdog } from './services/assignmentEngine.js';
+import { testSmtpConnection } from './services/emailService.js';
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +35,7 @@ async function bootstrapDatabases() {
   try {
     await connectDB();
     startAssignmentWatchdog(5000);
+    testSmtpConnection().catch(() => {});
   } catch (err) {
     console.error('Database bootstrap error:', err.message);
   }

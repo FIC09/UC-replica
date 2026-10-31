@@ -255,31 +255,8 @@ export function CarpenterServicePage({
           justifyContent: 'space-between',
           gap: 16
         }}>
-          {/* Back & Title */}
+          {/* Title */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button
-              type="button"
-              onClick={onBackHome}
-              title="Return to home"
-              style={{
-                background: '#F1F5F9',
-                border: 'none',
-                width: 38,
-                height: 38,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#0F172A',
-                transition: 'background-color 0.15s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E2E8F0'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#F1F5F9'}
-            >
-              <ArrowLeft size={19} />
-            </button>
-
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <h1 style={{

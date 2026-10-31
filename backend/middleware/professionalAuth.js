@@ -21,6 +21,9 @@ export async function verifyProfessionalAuth(req, res, next) {
         const decoded = jwt.verify(token, JWT_SECRET);
         if (decoded && decoded.role === 'professional') {
           proId = decoded.proId || decoded.id;
+          if (decoded.email && !req.headers['x-professional-email']) {
+            req.headers['x-professional-email'] = decoded.email;
+          }
         }
       } catch (err) {
         // Token invalid or expired
@@ -43,7 +46,10 @@ export async function verifyProfessionalAuth(req, res, next) {
     // Try finding professional in database
     let pro = null;
     const queryConditions = [];
-    if (proId && proId !== 'PRO-8841') {
+    if (proEmail) {
+      queryConditions.push({ email: proEmail });
+    }
+    if (proId && proId !== 'PRO-8841' && !(proEmail && proId === 'WRK-79932')) {
       queryConditions.push(
         { id: proId },
         { applicationNumber: proId },
@@ -52,9 +58,6 @@ export async function verifyProfessionalAuth(req, res, next) {
         { email: (proId || '').toLowerCase() },
         { phone: proId }
       );
-    }
-    if (proEmail) {
-      queryConditions.push({ email: proEmail });
     }
     if (proName && !proName.toLowerCase().includes('vikram')) {
       queryConditions.push(

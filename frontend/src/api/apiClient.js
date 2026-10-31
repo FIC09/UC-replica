@@ -31,6 +31,9 @@ async function request(endpoint, options = {}) {
 // 1. Auth API
 export const authApi = {
   login: (phone, name) => request('/auth/login', { method: 'POST', body: { phone, name } }),
+  sendRegistrationOtp: (data) => request('/auth/send-registration-otp', { method: 'POST', body: data }),
+  verifyEmailOtp: (data) => request('/auth/verify-email-otp', { method: 'POST', body: data }),
+  verifyRegistrationOtp: (data) => request('/auth/verify-registration-otp', { method: 'POST', body: data }),
   register: (nameOrData, phone, email, extra = {}) => {
     if (typeof nameOrData === 'object' && nameOrData !== null) {
       return request('/auth/register', { method: 'POST', body: nameOrData });

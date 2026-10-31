@@ -78,6 +78,13 @@ export function UrbanCheckoutPage({
 
   // Keep currentCity in sync if parent selectedCity changes
   React.useEffect(() => {
+    document.title = 'Checkout | Forge India Connect';
+    return () => {
+      document.title = 'Forge India Connect - Expert Home & Beauty Services on Demand';
+    };
+  }, []);
+
+  React.useEffect(() => {
     const clean = /chennai|poonamalle|adayalampattu|tiruvallur/i.test(selectedCity)
       ? 'Krishnagiri'
       : (selectedCity || 'Krishnagiri');
@@ -744,30 +751,7 @@ export function UrbanCheckoutPage({
           justifyContent: 'space-between'
         }}>
           {/* Logo & Checkout title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button
-              type="button"
-              onClick={onBackHome}
-              title="Return to home"
-              style={{
-                background: '#F8F9FA',
-                border: '1px solid #E5E7EB',
-                borderRadius: 8,
-                width: 34,
-                height: 34,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#374151',
-                transition: 'all 0.15s'
-              }}
-              onMouseEnter={e => e.currentTarget.style.backgroundColor = '#E5E7EB'}
-              onMouseLeave={e => e.currentTarget.style.backgroundColor = '#F8F9FA'}
-            >
-              <ArrowLeft size={17} />
-            </button>
-
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             {/* UC Square Badge */}
             <div style={{
               width: 32,

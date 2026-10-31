@@ -579,29 +579,8 @@ export function QuickRepairsServicePage({
           justifyContent: 'space-between',
           gap: 16
         }}>
-          {/* Back Home & Breadcrumbs */}
+          {/* Breadcrumbs */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <button
-              type="button"
-              onClick={onBackHome}
-              style={{
-                background: '#F1F5F9',
-                border: 'none',
-                width: 38,
-                height: 38,
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#0F172A',
-                transition: 'background 0.15s'
-              }}
-              title="Return to Home Screen"
-            >
-              <ArrowLeft size={18} strokeWidth={2.2} />
-            </button>
-
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#64748B', fontWeight: 600 }}>
                 <span onClick={onBackHome} style={{ cursor: 'pointer' }}>Home</span>

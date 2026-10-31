@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   CheckCircle2, 
@@ -21,7 +21,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { CATEGORIES } from '../data/servicesData';
-import { partnerApi } from '../api/apiClient';
+import { partnerApi, authApi } from '../api/apiClient';
 
 export function PartnerOnboardingModal({
   isOpen,
@@ -47,7 +47,87 @@ export function PartnerOnboardingModal({
   const [submittedPartnerApp, setSubmittedPartnerApp] = useState(null);
   const [error, setError] = useState('');
 
+  // Email Verification State
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [isOtpSent, setIsOtpSent] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [devOtpHint, setDevOtpHint] = useState('');
+
+  // Countdown timer for OTP resend cooldown
+  useEffect(() => {
+    let timer;
+    if (resendCooldown > 0) {
+      timer = setInterval(() => {
+        setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
   if (!isOpen) return null;
+
+  async function handleSendEmailOtp() {
+    setError('');
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please enter a valid official business email address first.');
+      return;
+    }
+
+    setIsSendingOtp(true);
+    try {
+      const res = await authApi.sendRegistrationOtp({
+        email: cleanEmail,
+        name: ownerName.trim() || businessName.trim() || 'Partner Applicant',
+        phone: phoneNumber.trim(),
+        purpose: 'partner'
+      });
+
+      if (res && res.success) {
+        setIsOtpSent(true);
+        setResendCooldown(30);
+        setOtpCode('');
+        if (res.devOtp) setDevOtpHint(res.devOtp);
+      } else {
+        setError(res?.message || 'Failed to send verification code. Please check your email.');
+      }
+    } catch (err) {
+      setError(err.message || 'Error communicating with verification service.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  }
+
+  async function handleVerifyEmailOtp() {
+    setError('');
+    const cleanOtp = otpCode.trim();
+    if (!cleanOtp || cleanOtp.length !== 6) {
+      setError('Please enter the full 6-digit verification code.');
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    try {
+      const res = await authApi.verifyEmailOtp({
+        email: email.trim().toLowerCase(),
+        otp: cleanOtp
+      });
+
+      if (res && res.success) {
+        setIsEmailVerified(true);
+        setIsOtpSent(false);
+      } else {
+        setError(res?.message || 'Invalid or expired verification code.');
+      }
+    } catch (err) {
+      setError(err.message || 'Error communicating with verification service.');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  }
 
   function handleNext(e) {
     e.preventDefault();
@@ -67,6 +147,10 @@ export function PartnerOnboardingModal({
     const cleanEmail = email.trim();
     if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       setError('Please enter a valid official business email address (e.g. operations@agency.in) for partner login.');
+      return;
+    }
+    if (!isEmailVerified) {
+      setError('Please click the "Verify" button on your official email address and enter the OTP before proceeding.');
       return;
     }
     if (!password || password.length < 6) {
@@ -130,6 +214,9 @@ export function PartnerOnboardingModal({
     setShowPassword(false);
     setGstNumber('');
     setError('');
+    setIsEmailVerified(false);
+    setIsOtpSent(false);
+    setOtpCode('');
     setSubmittedPartnerApp(null);
   }
 
@@ -404,26 +491,205 @@ export function PartnerOnboardingModal({
                     <Mail size={14} color="#8B5CF6" />
                     <span>Official Email Address (for Portal Login) *</span>
                   </label>
-                  <input
-                    type="email"
-                    required
-                    placeholder="operations@apexservices.in"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      if (error) setError('');
-                    }}
-                    style={{
-                      width: '100%',
-                      background: '#1E293B',
-                      border: '1px solid #334155',
-                      borderRadius: 0,
-                      padding: '10px 14px',
-                      color: '#FFFFFF',
-                      fontSize: 13.5,
-                      boxSizing: 'border-box'
-                    }}
-                  />
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: isEmailVerified ? 'rgba(139, 92, 246, 0.08)' : '#1E293B',
+                    border: isEmailVerified ? '1.5px solid #8B5CF6' : '1px solid #334155',
+                    padding: '3px 6px 3px 12px',
+                    gap: 8,
+                    boxSizing: 'border-box'
+                  }}>
+                    <input
+                      type="email"
+                      required
+                      disabled={isEmailVerified}
+                      placeholder="operations@apexservices.in"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (isEmailVerified) setIsEmailVerified(false);
+                        if (isOtpSent) setIsOtpSent(false);
+                        if (error) setError('');
+                      }}
+                      style={{
+                        width: '100%',
+                        background: 'transparent',
+                        border: 'none',
+                        outline: 'none',
+                        color: isEmailVerified ? '#DDD6FE' : '#FFFFFF',
+                        fontSize: 13.5,
+                        padding: '7px 0',
+                        fontWeight: isEmailVerified ? 600 : 400
+                      }}
+                    />
+                    {isEmailVerified ? (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        background: 'rgba(139, 92, 246, 0.2)',
+                        color: '#C4B5FD',
+                        padding: '4px 8px',
+                        fontSize: 11.5,
+                        fontWeight: 700,
+                        flexShrink: 0
+                      }}>
+                        <CheckCircle2 size={13} color="#A78BFA" />
+                        <span>Verified</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEmailVerified(false);
+                            setIsOtpSent(false);
+                            setOtpCode('');
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            fontSize: 11,
+                            color: '#94A3B8',
+                            marginLeft: 4,
+                            padding: 0,
+                            textDecoration: 'underline'
+                          }}
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isSendingOtp || !email.trim() || !email.includes('@')}
+                        onClick={handleSendEmailOtp}
+                        style={{
+                          background: (isSendingOtp || !email.trim() || !email.includes('@')) ? '#334155' : '#8B5CF6',
+                          color: (isSendingOtp || !email.trim() || !email.includes('@')) ? '#64748B' : '#FFFFFF',
+                          border: 'none',
+                          padding: '6px 12px',
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          cursor: (isSendingOtp || !email.trim() || !email.includes('@')) ? 'not-allowed' : 'pointer',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        {isSendingOtp ? (
+                          <>
+                            <div className="animate-spin" style={{ width: 11, height: 11, border: '2px solid #FFFFFF', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                            <span>Sending...</span>
+                          </>
+                        ) : (
+                          <span>{isOtpSent ? 'Resend' : 'Verify'}</span>
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Inline OTP Box when OTP is sent */}
+                  {isOtpSent && !isEmailVerified && (
+                    <div style={{
+                      background: 'rgba(15, 23, 42, 0.95)',
+                      border: '1.5px solid #8B5CF6',
+                      padding: '10px 12px',
+                      marginTop: 8,
+                      animation: 'fadeIn 0.2s ease'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#C4B5FD' }}>
+                          Enter 6-Digit Email OTP
+                        </span>
+                        <span style={{ fontSize: 10.5, color: '#94A3B8' }}>
+                          Sent to {email}
+                        </span>
+                      </div>
+
+                      {devOtpHint && (
+                        <div style={{
+                          background: 'rgba(139, 92, 246, 0.15)',
+                          border: '1px dashed #A78BFA',
+                          color: '#DDD6FE',
+                          padding: '3px 8px',
+                          fontSize: 11,
+                          fontWeight: 600,
+                          marginBottom: 8
+                        }}>
+                          Developer Demo Code: <strong style={{ color: '#FFFFFF', letterSpacing: '1px' }}>{devOtpHint}</strong>
+                        </div>
+                      )}
+
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <input
+                          type="text"
+                          maxLength={6}
+                          placeholder="6-digit OTP"
+                          value={otpCode}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                            setOtpCode(val);
+                            if (error) setError('');
+                          }}
+                          style={{
+                            flex: 1,
+                            background: '#1E293B',
+                            border: '1px solid #475569',
+                            color: '#FFFFFF',
+                            fontSize: 14,
+                            fontWeight: 700,
+                            letterSpacing: '3px',
+                            textAlign: 'center',
+                            padding: '6px 8px',
+                            outline: 'none'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          disabled={isVerifyingOtp || otpCode.length !== 6}
+                          onClick={handleVerifyEmailOtp}
+                          style={{
+                            background: (isVerifyingOtp || otpCode.length !== 6) ? '#334155' : '#8B5CF6',
+                            color: (isVerifyingOtp || otpCode.length !== 6) ? '#64748B' : '#FFFFFF',
+                            border: 'none',
+                            padding: '6px 14px',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: (isVerifyingOtp || otpCode.length !== 6) ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          {isVerifyingOtp ? 'Verifying...' : 'Verify OTP'}
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, fontSize: 10.5 }}>
+                        <span style={{ color: '#94A3B8' }}>Didn't receive email? Check spam.</span>
+                        {resendCooldown > 0 ? (
+                          <span style={{ color: '#64748B' }}>Resend in {resendCooldown}s</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={handleSendEmailOtp}
+                            disabled={isSendingOtp}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#A78BFA',
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                              textDecoration: 'underline',
+                              padding: 0
+                            }}
+                          >
+                            Resend Code
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
                     Your enterprise login username on the partner portal
                   </div>
@@ -434,14 +700,15 @@ export function PartnerOnboardingModal({
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                    <Lock size={14} color="#8B5CF6" />
+                    <Lock size={14} color={isEmailVerified ? '#8B5CF6' : '#64748B'} />
                     <span>Create Portal Password (min. 6 characters) *</span>
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
-                      placeholder="Enter a secure password"
+                      disabled={!isEmailVerified}
+                      placeholder={isEmailVerified ? "Enter a secure password" : "🔒 Verify official email first to create password"}
                       value={password}
                       onChange={(e) => {
                         setPassword(e.target.value);
@@ -449,39 +716,56 @@ export function PartnerOnboardingModal({
                       }}
                       style={{
                         width: '100%',
-                        background: '#1E293B',
-                        border: '1px solid #334155',
-                        borderRadius: 0,
+                        background: isEmailVerified ? '#1E293B' : '#0F172A',
+                        border: isEmailVerified ? '1px solid #334155' : '1px dashed #334155',
+                        opacity: isEmailVerified ? 1 : 0.6,
+                        cursor: isEmailVerified ? 'text' : 'not-allowed',
                         padding: '10px 40px 10px 14px',
                         color: '#FFFFFF',
                         fontSize: 13.5,
                         boxSizing: 'border-box'
                       }}
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      title={showPassword ? 'Hide password' : 'Show password'}
-                      style={{
-                        position: 'absolute',
-                        right: 8,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#94A3B8',
-                        cursor: 'pointer',
-                        padding: 6,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                      }}
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
+                    {isEmailVerified && (
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        title={showPassword ? 'Hide password' : 'Show password'}
+                        style={{
+                          position: 'absolute',
+                          right: 8,
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#94A3B8',
+                          cursor: 'pointer',
+                          padding: 6,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    )}
                   </div>
-                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
-                    Used along with your official email to log in once approved
+                  <div style={{ 
+                    fontSize: 11, 
+                    color: isEmailVerified ? '#94A3B8' : '#F59E0B', 
+                    marginTop: 4,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    {isEmailVerified ? (
+                      'Used along with your verified email to log in once approved'
+                    ) : (
+                      <>
+                        <span>🔒</span>
+                        <span>Verify your official email above to set portal password</span>
+                      </>
+                    )}
                   </div>
                 </div>
 
