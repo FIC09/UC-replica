@@ -135,15 +135,53 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
     `
   };
 
+  // 1. If Brevo REST API v3 key is provided, attempt HTTP delivery
+  const apiKey = process.env.BREVO_API_KEY || (process.env.BREVO_SMTP_KEY?.startsWith('xkeysib-') ? process.env.BREVO_SMTP_KEY : null);
+  if (apiKey) {
+    try {
+      const apiResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'api-key': apiKey,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          sender: { name: FROM_NAME, email: FROM_EMAIL },
+          to: [{ email: toEmail, name: recipientName }],
+          subject: mailOptions.subject,
+          htmlContent: mailOptions.html,
+          textContent: mailOptions.text
+        })
+      });
+      const data = await apiResponse.json();
+      if (apiResponse.ok && (data.messageId || data.messageIds)) {
+        const mId = data.messageId || (data.messageIds && data.messageIds[0]);
+        console.log(`✅ [Brevo API Sent] OTP email dispatched to ${toEmail} via Brevo REST API (MessageId: ${mId})`);
+        return { success: true, messageId: mId, method: 'api' };
+      }
+      console.warn('⚠️ [Brevo API Error]:', data);
+    } catch (apiErr) {
+      console.warn('⚠️ [Brevo API Fetch Error]:', apiErr.message);
+    }
+  }
+
+  // 2. Standard Brevo SMTP Relay Delivery
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ [Brevo Mail Sent] OTP email successfully dispatched to ${toEmail} (MessageId: ${info.messageId})`);
-    return { success: true, messageId: info.messageId };
+    console.log(`✅ [Brevo SMTP Sent] OTP email successfully dispatched to ${toEmail} (MessageId: ${info.messageId})`);
+    return { success: true, messageId: info.messageId, method: 'smtp' };
   } catch (err) {
-    console.error(`❌ [Brevo Mail Error] Failed to send OTP to ${toEmail}:`, err.message);
-    if (err.message && err.message.includes('525')) {
-      console.warn('💡 Brevo 525 5.7.1 Unauthorized IP address error: Please add sending IP to Authorized IPs in Brevo Dashboard.');
+    console.error(`❌ [Brevo SMTP Error] Failed to send OTP to ${toEmail}:`, err.message);
+    const isIpBlocked = Boolean(err.message && err.message.includes('525'));
+    if (isIpBlocked) {
+      console.warn('💡 Brevo 525 5.7.1 Unauthorized IP address: Brevo IP whitelist active. Add sending IP to Authorized IPs in Brevo Dashboard.');
     }
-    return { success: false, error: err.message };
+    return { 
+      success: false, 
+      error: err.message, 
+      isIpBlocked,
+      clientIp: '223.178.86.143'
+    };
   }
 }

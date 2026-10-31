@@ -138,14 +138,25 @@ app.get('/api/reviews', async (req, res) => {
         id: `pub-rev-${cleanRef}`,
         bookingId: `#${cleanRef}`,
         rawBookingId: cleanRef,
-        name: b.customerName || b.userName || 'Verified Customer',
+        name: (() => {
+          const raw = [b.userName, b.customerName, b.customer?.name, b.addressDetails?.contactName];
+          for (const c of raw) {
+            if (c && typeof c === 'string') {
+              const trimmed = c.trim();
+              if (trimmed && trimmed.toLowerCase() !== 'customer' && trimmed.toLowerCase() !== 'verified customer') {
+                return trimmed;
+              }
+            }
+          }
+          return b.userName || b.customerName || 'Verified Customer';
+        })(),
         locality: (b.city ? `${b.city}, Tamil Nadu` : 'Krishnagiri, Tamil Nadu'),
         service: b.serviceName || 'Home Service',
         rating: Number(b.rating) || 5,
         date: (b.reviewedAt || b.updatedAt)
           ? new Date(b.reviewedAt || b.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
           : 'Recently',
-        avatar: b.userAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        avatar: (b.userAvatar && !b.userAvatar.includes('unsplash.com')) ? b.userAvatar : null,
         comment: b.review || 'Service completed thoroughly.',
         verified: true,
         isApproved: true,

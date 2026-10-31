@@ -65,7 +65,6 @@ export function AuthModal({
   const [createdUserData, setCreatedUserData] = useState(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [otpSentEmail, setOtpSentEmail] = useState('');
-  const [devOtpHint, setDevOtpHint] = useState('');
 
   // Validation / Feedback
   const [errorMsg, setErrorMsg] = useState('');
@@ -262,7 +261,6 @@ export function AuthModal({
       setIsSendingOtp(false);
       setIsVerifyingOtp(false);
       setResendCooldown(0);
-      setDevOtpHint('');
       setErrorMsg('');
       setSuccessMsg('');
     }
@@ -524,9 +522,6 @@ export function AuthModal({
         setIsOtpSent(true);
         setResendCooldown(30);
         setSignupOtp('');
-        if (res.devOtp) {
-          setDevOtpHint(res.devOtp);
-        }
         setSuccessMsg(res.message || `A verification code was dispatched to ${cleanEmail}`);
       } else {
         setErrorMsg(res?.message || 'Failed to dispatch verification code. Please check your email.');
@@ -586,7 +581,8 @@ export function AuthModal({
       setErrorMsg('Please enter your full name');
       return;
     }
-    if (!cleanPhone || cleanPhone.replace(/\D/g, '').length < 10) {
+    const phoneDigits = cleanPhone.replace(/\D/g, '');
+    if (!phoneDigits || phoneDigits.length !== 10) {
       setErrorMsg('Please enter a valid 10-digit mobile number');
       return;
     }
@@ -1371,9 +1367,22 @@ export function AuthModal({
                   </label>
                   <input
                     type="tel"
-                    placeholder="e.g. 98765 43210"
+                    inputMode="numeric"
+                    pattern="[0-9]{10}"
+                    maxLength={10}
+                    placeholder="Enter 10-digit mobile number"
                     value={signupPhone}
-                    onChange={(e) => setSignupPhone(e.target.value)}
+                    onChange={(e) => setSignupPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    onKeyDown={(e) => {
+                      if (
+                        !/[0-9]/.test(e.key) &&
+                        !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'].includes(e.key) &&
+                        !e.ctrlKey &&
+                        !e.metaKey
+                      ) {
+                        e.preventDefault();
+                      }
+                    }}
                     required
                     style={{
                       width: '100%',
@@ -1514,38 +1523,7 @@ export function AuthModal({
                       </span>
                     </div>
 
-                    {devOtpHint && (
-                      <div style={{
-                        background: '#EFF6FF',
-                        border: '1px dashed #93C5FD',
-                        color: '#1E40AF',
-                        padding: '5px 10px',
-                        borderRadius: 6,
-                        fontSize: 11.5,
-                        marginBottom: 8,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between'
-                      }}>
-                        <span>Quick Fill Code: <strong>{devOtpHint}</strong></span>
-                        <button
-                          type="button"
-                          onClick={() => setSignupOtp(devOtpHint)}
-                          style={{
-                            background: '#DBEAFE',
-                            border: 'none',
-                            color: '#1D4ED8',
-                            fontSize: 11,
-                            fontWeight: 700,
-                            padding: '2px 8px',
-                            borderRadius: 4,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Auto Fill
-                        </button>
-                      </div>
-                    )}
+
 
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                       <input

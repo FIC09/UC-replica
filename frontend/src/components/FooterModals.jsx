@@ -1069,10 +1069,22 @@ export function FooterModals({ activeModal, onClose, selectedCity = 'Mumbai', on
                         </label>
                         <input
                           type="tel"
+                          inputMode="numeric"
+                          pattern="[0-9]{10}"
                           required
                           maxLength={10}
                           value={callbackPhone}
-                          onChange={(e) => setCallbackPhone(e.target.value)}
+                          onChange={(e) => setCallbackPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                          onKeyDown={(e) => {
+                            if (
+                              !/[0-9]/.test(e.key) &&
+                              !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'].includes(e.key) &&
+                              !e.ctrlKey &&
+                              !e.metaKey
+                            ) {
+                              e.preventDefault();
+                            }
+                          }}
                           placeholder="9876543210"
                           style={{
                             width: '100%',
@@ -1313,10 +1325,22 @@ export function FooterModals({ activeModal, onClose, selectedCity = 'Mumbai', on
                       </span>
                       <input
                         type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]{10}"
                         maxLength={10}
                         required
                         value={smsPhone}
-                        onChange={(e) => setSmsPhone(e.target.value)}
+                        onChange={(e) => setSmsPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                        onKeyDown={(e) => {
+                          if (
+                            !/[0-9]/.test(e.key) &&
+                            !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'].includes(e.key) &&
+                            !e.ctrlKey &&
+                            !e.metaKey
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
                         placeholder="Enter 10-digit number"
                         style={{
                           width: '100%',

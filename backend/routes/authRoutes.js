@@ -99,22 +99,25 @@ router.post('/send-registration-otp', async (req, res) => {
     // Send real-time email via Brevo SMTP
     const mailResult = await sendRegistrationOtpEmail(cleanEmail, cleanName, otp);
 
-    const responsePayload = {
-      success: true,
-      message: `A 6-digit verification code has been sent to ${cleanEmail}. Please check your inbox and spam folder.`,
-      email: cleanEmail,
-      expiresInMinutes: 10
-    };
+    if (!mailResult.success) {
+      const isIpBlocked = mailResult.isIpBlocked || (mailResult.error && mailResult.error.includes('525'));
+      const failureReason = isIpBlocked
+        ? `Brevo SMTP rejected connection with '525 5.7.1 Unauthorized IP address'. Please add your current IP (${mailResult.clientIp || '223.178.86.143'}) in Brevo Dashboard -> SMTP & API -> Authorized IP addresses, or disable the IP whitelist.`
+        : `Brevo email delivery failed: ${mailResult.error || 'Could not dispatch verification email'}`;
 
-    // Diagnostic assistance: In development mode, provide devOtp if Brevo IP authorization is pending
-    if (process.env.NODE_ENV === 'development') {
-      responsePayload.devOtp = otp;
-      if (!mailResult.success) {
-        responsePayload.deliveryNotice = mailResult.error;
-      }
+      return res.status(502).json({
+        success: false,
+        message: failureReason,
+        isIpBlocked
+      });
     }
 
-    res.json(responsePayload);
+    return res.json({
+      success: true,
+      message: `A 6-digit verification code has been dispatched to ${cleanEmail}. Please check your inbox and spam folder.`,
+      email: cleanEmail,
+      expiresInMinutes: 10
+    });
   } catch (error) {
     console.error('send-registration-otp error:', error);
     res.status(500).json({ success: false, message: error.message || 'Failed to send verification code.' });

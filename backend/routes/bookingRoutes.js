@@ -53,6 +53,7 @@ router.get('/', async (req, res) => {
         { customerName: { $regex: new RegExp(`^${userName.trim()}$`, 'i') } }
       ];
     }
+    query.deletedByCustomer = { $ne: true };
     const bookings = await Booking.find(query).sort({ createdAt: -1 });
     res.json({ success: true, count: bookings.length, bookings });
   } catch (error) {
@@ -113,10 +114,10 @@ router.post('/', async (req, res) => {
     const targetLat = bookingData.addressDetails?.lat;
     const targetLng = bookingData.addressDetails?.lng;
 
-    const isKrishnagiri = targetCity.toLowerCase().includes('krishnagiri') || 
-                          targetAddress.toLowerCase().includes('krishnagiri') ||
-                          targetLocality.toLowerCase().includes('rayakottai') ||
-                          targetLocality.toLowerCase().includes('kattiganapalli');
+    const isKrishnagiri = targetCity.toLowerCase().includes('krishnagiri') ||
+      targetAddress.toLowerCase().includes('krishnagiri') ||
+      targetLocality.toLowerCase().includes('rayakottai') ||
+      targetLocality.toLowerCase().includes('kattiganapalli');
 
     let coverageCheck = { allowed: true, serviceZone: targetLocality, city: targetCity };
     if (isKrishnagiri) {
@@ -142,7 +143,7 @@ router.post('/', async (req, res) => {
           candidateId = 'UC-' + Math.floor(100000 + Math.random() * 900000);
           existingBooking = await Booking.findOne({ id: candidateId }).lean();
         }
-      } catch (e) {}
+      } catch (e) { }
     }
     bookingData.id = candidateId;
     bookingData.bookingReference = candidateId;
@@ -428,7 +429,13 @@ router.post('/:id/auto-assign', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const query = [{ id }, { bookingReference: id }];
+    const cleanId = String(id).replace(/^#/, '');
+    const query = [
+      { id: cleanId },
+      { id: `#${cleanId}` },
+      { bookingReference: cleanId },
+      { bookingReference: `#${cleanId}` }
+    ];
     if (mongoose.isValidObjectId(id)) {
       query.push({ _id: id });
     }
@@ -438,35 +445,83 @@ router.put('/:id', async (req, res) => {
       { new: true }
     );
     if (!updated) {
+      if (inMemoryBookings && (inMemoryBookings.has(cleanId) || inMemoryBookings.has(`#${cleanId}`))) {
+        const memB = inMemoryBookings.get(cleanId) || inMemoryBookings.get(`#${cleanId}`);
+        Object.assign(memB, req.body);
+        inMemoryBookings.set(cleanId, memB);
+        inMemoryBookings.set(`#${cleanId}`, memB);
+        return res.json({ success: true, booking: memB });
+      }
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
-    emitEvent('BOOKING_UPDATED', { bookingId: id, status: updated.status });
+
+    if (inMemoryBookings) {
+      const plain = updated.toObject ? updated.toObject() : updated;
+      inMemoryBookings.set(cleanId, plain);
+      inMemoryBookings.set(`#${cleanId}`, plain);
+    }
+
+    emitEvent('BOOKING_UPDATED', { bookingId: cleanId, status: updated.status });
     res.json({ success: true, booking: updated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// DELETE booking
+// DELETE booking (Permanent removal across MongoDB Atlas and memory)
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const query = [{ id }, { bookingReference: id }];
+    const cleanId = String(id).replace(/^#/, '');
+    const query = [
+      { id: cleanId },
+      { id: `#${cleanId}` },
+      { bookingReference: cleanId },
+      { bookingReference: `#${cleanId}` }
+    ];
     if (mongoose.isValidObjectId(id)) {
       query.push({ _id: id });
     }
-    const deleted = await Booking.findOneAndDelete({ $or: query });
-    if (!deleted) {
-      return res.status(404).json({ success: false, message: 'Booking not found' });
+
+    const existing = await Booking.findOne({ $or: query });
+
+    if (existing) {
+      if (existing.status === 'Completed' || existing.assignedProfessional?.id || existing.assignedWorker?.id) {
+        // Retain completed/assigned order for technician records & wallet payout audit, hide from customer view
+        existing.deletedByCustomer = true;
+        await existing.save();
+        if (inMemoryBookings) {
+          inMemoryBookings.delete(cleanId);
+          inMemoryBookings.delete(`#${cleanId}`);
+          inMemoryBookings.delete(id);
+        }
+        emitEvent('BOOKING_DELETED', { bookingId: cleanId });
+        return res.json({ success: true, message: `Booking ${cleanId} removed from customer history`, deletedId: cleanId });
+      }
+
+      await Booking.deleteOne({ _id: existing._id });
     }
+
+    // Purge from in-memory cache as well
+    if (inMemoryBookings) {
+      inMemoryBookings.delete(cleanId);
+      inMemoryBookings.delete(`#${cleanId}`);
+      inMemoryBookings.delete(id);
+    }
+
     try {
       await TrackingSession.deleteMany({
-        $or: [{ bookingId: id }, { bookingReference: id }]
+        $or: [
+          { bookingId: cleanId },
+          { bookingId: `#${cleanId}` },
+          { bookingReference: cleanId },
+          { bookingReference: `#${cleanId}` }
+        ]
       });
-    } catch (e) {}
+    } catch (e) { }
 
-    emitEvent('BOOKING_DELETED', { bookingId: id });
-    res.json({ success: true, message: `Booking ${id} deleted successfully`, deletedId: id });
+    emitEvent('BOOKING_DELETED', { bookingId: cleanId });
+    res.json({ success: true, message: `Booking ${cleanId} deleted permanently`, deletedId: cleanId });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -544,7 +599,7 @@ router.get('/reviews/published', async (req, res) => {
           .sort({ reviewedAt: -1, updatedAt: -1 })
           .limit(25)
           .lean();
-      } catch (err) {}
+      } catch (err) { }
     }
 
     // Merge in-memory approved reviews
@@ -564,14 +619,25 @@ router.get('/reviews/published', async (req, res) => {
         id: `pub-rev-${cleanRef}`,
         bookingId: `#${cleanRef}`,
         rawBookingId: cleanRef,
-        name: b.customerName || b.userName || 'Verified Customer',
+        name: (() => {
+          const raw = [b.userName, b.customerName, b.customer?.name, b.addressDetails?.contactName];
+          for (const c of raw) {
+            if (c && typeof c === 'string') {
+              const trimmed = c.trim();
+              if (trimmed && trimmed.toLowerCase() !== 'customer' && trimmed.toLowerCase() !== 'verified customer') {
+                return trimmed;
+              }
+            }
+          }
+          return b.userName || b.customerName || 'Verified Customer';
+        })(),
         locality: (b.city ? `${b.city}, Tamil Nadu` : 'Krishnagiri, Tamil Nadu'),
         service: b.serviceName || 'Home Service',
         rating: Number(b.rating) || 5,
         date: (b.reviewedAt || b.updatedAt)
           ? new Date(b.reviewedAt || b.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
           : 'Recently',
-        avatar: b.userAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+        avatar: (b.userAvatar && !b.userAvatar.includes('unsplash.com')) ? b.userAvatar : null,
         comment: b.review || 'Service completed thoroughly.',
         verified: true,
         isApproved: true,
@@ -615,14 +681,14 @@ router.post('/:id/review', async (req, res) => {
             { bookingReference: `#${cleanId}` }
           ]
         });
-      } catch (dbErr) {}
+      } catch (dbErr) { }
     }
 
     if (!booking) {
       booking = inMemoryBookings.get(cleanId) ||
-                inMemoryBookings.get(`#${cleanId}`) ||
-                inMemoryBookings.get(String(cleanId).toUpperCase()) ||
-                inMemoryBookings.get(`#${String(cleanId).toUpperCase()}`);
+        inMemoryBookings.get(`#${cleanId}`) ||
+        inMemoryBookings.get(String(cleanId).toUpperCase()) ||
+        inMemoryBookings.get(`#${String(cleanId).toUpperCase()}`);
     }
 
     if (!booking) {
@@ -678,7 +744,7 @@ router.post('/:id/review', async (req, res) => {
           timestamp: new Date()
         });
       }
-      try { await booking.save(); } catch (saveErr) {}
+      try { await booking.save(); } catch (saveErr) { }
     }
 
     // Always update in-memory store under cleanId and #cleanId so it appears instantly across all admin views
@@ -710,7 +776,7 @@ router.post('/:id/review', async (req, res) => {
         { $or: [{ bookingId: cleanId }, { bookingReference: cleanId }, { bookingId: `#${cleanId}` }, { bookingReference: `#${cleanId}` }] },
         { rating: numRating, review: commentText }
       );
-    } catch (trkErr) {}
+    } catch (trkErr) { }
 
     // Update Worker Rating & Review History in WorkerApplication
     const workerId = booking.assignedProfessional?.id;
@@ -726,7 +792,7 @@ router.post('/:id/review', async (req, res) => {
         const newRating = currentRating === 0
           ? numRating
           : Number(((currentRating * Math.max(1, currentJobs - 1) + numRating) / Math.max(1, currentJobs)).toFixed(2));
-        
+
         worker.rating = newRating;
         workerRating = newRating;
 

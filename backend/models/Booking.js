@@ -3,9 +3,9 @@ import mongoose from 'mongoose';
 export const VALID_LIFECYCLE_TRANSITIONS = {
   'Pending': ['Confirmed', 'Cancelled', 'Failed'],
   'Confirmed': ['Assigned', 'Cancelled', 'Failed'],
-  'Assigned': ['En Route', 'Arrived', 'In Progress', 'Assigned', 'Confirmed', 'Cancelled', 'Failed'], // Allows En Route travel, direct arrival, or OTP start
-  'En Route': ['Arrived', 'In Progress', 'Cancelled', 'Failed'],
-  'Arrived': ['In Progress', 'Cancelled', 'Failed'], // On-site arrival awaiting start OTP
+  'Assigned': ['En Route', 'Arrived', 'In Progress', 'Completed', 'Assigned', 'Confirmed', 'Cancelled', 'Failed'], // Allows En Route travel, direct arrival, OTP start, or direct completion
+  'En Route': ['Arrived', 'In Progress', 'Completed', 'Cancelled', 'Failed'],
+  'Arrived': ['In Progress', 'Completed', 'Cancelled', 'Failed'], // On-site arrival awaiting start OTP or direct completion
   'In Progress': ['Completed', 'Failed', 'Cancelled'],
   'Completed': [], // Terminal
   'Cancelled': [], // Terminal
@@ -535,6 +535,10 @@ const bookingSchema = new mongoose.Schema({
   createdAtFormatted: {
     type: String,
     default: '',
+  },
+  deletedByCustomer: {
+    type: Boolean,
+    default: false,
   },
 }, {
   timestamps: true,

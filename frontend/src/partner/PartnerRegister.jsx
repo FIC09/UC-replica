@@ -172,10 +172,22 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
                     </label>
                     <input
                       type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       required
-                      placeholder="+91 98XXX XXXXX"
+                      placeholder="10-digit mobile number"
                       value={formData.phone}
-                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                      onChange={e => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      onKeyDown={(e) => {
+                        if (
+                          !/[0-9]/.test(e.key) &&
+                          !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'].includes(e.key) &&
+                          !e.ctrlKey &&
+                          !e.metaKey
+                        ) {
+                          e.preventDefault();
+                        }
+                      }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5 }}
                     />
                   </div>

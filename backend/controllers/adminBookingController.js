@@ -1289,35 +1289,52 @@ export async function getAssignmentManagementStats(req, res) {
 export async function deleteBooking(req, res) {
   try {
     const { id } = req.params;
-    const query = [{ id }, { bookingReference: id }];
+    const cleanId = String(id).replace(/^#/, '');
+    const query = [
+      { id: cleanId },
+      { id: `#${cleanId}` },
+      { bookingReference: cleanId },
+      { bookingReference: `#${cleanId}` }
+    ];
     if (mongoose.isValidObjectId(id)) {
       query.push({ _id: id });
     }
     const deleted = await Booking.findOneAndDelete({ $or: query });
-    if (!deleted) {
-      return res.status(404).json({ success: false, error: `Booking #${id} not found.` });
-    }
+
+    try {
+      const { inMemoryBookings } = await import('../routes/bookingRoutes.js');
+      if (inMemoryBookings) {
+        inMemoryBookings.delete(cleanId);
+        inMemoryBookings.delete(`#${cleanId}`);
+        inMemoryBookings.delete(id);
+      }
+    } catch (e) {}
 
     // Delete associated live tracking sessions
     try {
       await TrackingSession.deleteMany({
-        $or: [{ bookingId: id }, { bookingReference: id }]
+        $or: [
+          { bookingId: cleanId },
+          { bookingId: `#${cleanId}` },
+          { bookingReference: cleanId },
+          { bookingReference: `#${cleanId}` }
+        ]
       });
     } catch (e) {}
 
     // Emit real-time synchronization events
     try {
       emitEvent('BOOKING_DELETED', {
-        entityId: id,
+        entityId: cleanId,
         room: 'admin:operations',
-        payload: { bookingId: id }
+        payload: { bookingId: cleanId }
       });
     } catch (e) {}
 
     return res.json({
       success: true,
-      message: `Booking #${id} deleted permanently from database.`,
-      deletedId: id
+      message: `Booking #${cleanId} deleted permanently from database.`,
+      deletedId: cleanId
     });
   } catch (err) {
     console.error('deleteBooking error:', err);

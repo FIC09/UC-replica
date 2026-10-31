@@ -426,25 +426,54 @@ export function MyBookingsModal({
                             <span>Edit</span>
                           </button>
 
-                          {/* DELETE: Cancel Booking */}
+                          {/* CANCEL: Cancel Booking */}
                           <button
                             type="button"
                             onClick={() => setCancellingBooking(b)}
                             style={{
                               padding: '8px 12px',
                               borderRadius: 8,
-                              background: '#FEE2E2',
-                              color: '#DC2626',
+                              background: '#FFF1F2',
+                              color: '#E11D48',
+                              border: '1px solid #FECDD3',
                               fontSize: 12,
                               fontWeight: 700,
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 4
+                              gap: 4,
+                              cursor: 'pointer'
                             }}
                             title="Cancel service booking"
                           >
-                            <Trash2 size={13} />
+                            <AlertTriangle size={13} />
                             <span>Cancel</span>
+                          </button>
+
+                          {/* DELETE: Permanently Delete Booking */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (window.confirm(`Permanently delete booking #${b.id || b.bookingReference}? This will remove it from the database.`)) {
+                                onDeleteBookingHistory(b.id || b.bookingReference);
+                              }
+                            }}
+                            style={{
+                              padding: '8px 12px',
+                              borderRadius: 8,
+                              background: '#FEE2E2',
+                              color: '#DC2626',
+                              border: '1px solid #FECACA',
+                              fontSize: 12,
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              cursor: 'pointer'
+                            }}
+                            title="Permanently remove booking from database"
+                          >
+                            <Trash2 size={13} />
+                            <span>Delete</span>
                           </button>
                         </>
                       )}
@@ -736,36 +765,63 @@ export function MyBookingsModal({
                   </select>
                 </div>
 
-                <div style={{ display: 'flex', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    <button
+                      type="button"
+                      onClick={() => setCancellingBooking(null)}
+                      style={{
+                        flex: 1,
+                        padding: 10,
+                        borderRadius: 8,
+                        border: '1.5px solid #E2E8F0',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: '#4B5563',
+                        background: '#fff'
+                      }}
+                    >
+                      Keep Booking
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleConfirmCancel}
+                      style={{
+                        flex: 1,
+                        padding: 10,
+                        borderRadius: 8,
+                        background: '#EA580C',
+                        color: '#fff',
+                        fontSize: 13,
+                        fontWeight: 700,
+                        border: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Mark as Cancelled
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setCancellingBooking(null)}
+                    onClick={() => {
+                      if (cancellingBooking) {
+                        onDeleteBookingHistory(cancellingBooking.id || cancellingBooking.bookingReference);
+                        setCancellingBooking(null);
+                      }
+                    }}
                     style={{
-                      flex: 1,
-                      padding: 10,
+                      width: '100%',
+                      padding: '8px 12px',
                       borderRadius: 8,
-                      border: '1.5px solid #E2E8F0',
-                      fontSize: 13,
+                      background: '#FEF2F2',
+                      color: '#B91C1C',
+                      border: '1px solid #FECACA',
+                      fontSize: 12,
                       fontWeight: 700,
-                      color: '#4B5563'
+                      cursor: 'pointer'
                     }}
                   >
-                    Keep Booking
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleConfirmCancel}
-                    style={{
-                      flex: 1,
-                      padding: 10,
-                      borderRadius: 8,
-                      background: '#DC2626',
-                      color: '#fff',
-                      fontSize: 13,
-                      fontWeight: 700
-                    }}
-                  >
-                    Confirm Cancel
+                    🗑️ Delete Permanently from Database
                   </button>
                 </div>
               </div>

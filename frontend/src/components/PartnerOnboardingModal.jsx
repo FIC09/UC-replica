@@ -54,7 +54,6 @@ export function PartnerOnboardingModal({
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [devOtpHint, setDevOtpHint] = useState('');
 
   // Countdown timer for OTP resend cooldown
   useEffect(() => {
@@ -90,7 +89,6 @@ export function PartnerOnboardingModal({
         setIsOtpSent(true);
         setResendCooldown(30);
         setOtpCode('');
-        if (res.devOtp) setDevOtpHint(res.devOtp);
       } else {
         setError(res?.message || 'Failed to send verification code. Please check your email.');
       }
@@ -607,20 +605,6 @@ export function PartnerOnboardingModal({
                           Sent to {email}
                         </span>
                       </div>
-
-                      {devOtpHint && (
-                        <div style={{
-                          background: 'rgba(139, 92, 246, 0.15)',
-                          border: '1px dashed #A78BFA',
-                          color: '#DDD6FE',
-                          padding: '3px 8px',
-                          fontSize: 11,
-                          fontWeight: 600,
-                          marginBottom: 8
-                        }}>
-                          Developer Demo Code: <strong style={{ color: '#FFFFFF', letterSpacing: '1px' }}>{devOtpHint}</strong>
-                        </div>
-                      )}
 
                       <div style={{ display: 'flex', gap: 8 }}>
                         <input

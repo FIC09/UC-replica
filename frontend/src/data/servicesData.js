@@ -1428,7 +1428,7 @@ export const REVIEWS = [
     service: 'Rica Roll-on Waxing & O3+ Bridal Facial',
     rating: 5,
     date: 'Yesterday',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+    avatar: null,
     comment:
       'The beautician Priya arrived right on time with sealed single-use kit and disposable sheets. The Rica roll-on was practically painless compared to regular salon waxing! Absolutely loved the glow from O3+ facial.',
     verified: true,
@@ -1440,7 +1440,7 @@ export const REVIEWS = [
     service: 'Powerjet AC Servicing',
     rating: 5,
     date: '2 days ago',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=200&q=80',
+    avatar: null,
     comment:
       'The PowerJet machine cleaned so much hidden black sludge out of my split AC cooling coils! He wrapped the AC in a waterproof funnel bag so not a single drop fell on my wooden flooring. Cooling is icy cold now.',
     verified: true,
@@ -1452,7 +1452,7 @@ export const REVIEWS = [
     service: 'Intense Bathroom Cleaning & Descaling',
     rating: 5,
     date: '4 days ago',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=200&q=80',
+    avatar: null,
     comment:
       'Our Mumbai hard water had created stubborn white limescale stains on the glass partition and taps. After 45 mins of foam scrubbing, the bathroom literally looks like a 5-star hotel! Super impressed with Urban Company.',
     verified: true,
@@ -1464,7 +1464,7 @@ export const REVIEWS = [
     service: 'Native M2 Copper RO Water Purifier',
     rating: 5,
     date: '1 week ago',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=200&q=80',
+    avatar: null,
     comment:
       'Replacing my old purifier with Native M2 was the best decision. Zero filter replacements for 2 years! The copper and alkaline taste is crisp and sweet. The technician finished installation cleanly in 90 mins.',
     verified: true,

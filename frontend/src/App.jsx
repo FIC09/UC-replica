@@ -537,34 +537,17 @@ function App() {
       try {
         const bRes = await bookingsApi.getAll();
         if (isMounted) {
-          const serverBookings = bRes?.bookings || [];
-          const serverIds = new Set(serverBookings.map(b => (b.id || b.bookingReference || '').toLowerCase()));
-
-          // Recover and auto-sync any offline or locally pending bookings
-          let localBookings = [];
+          const serverBookings = Array.isArray(bRes?.bookings) ? bRes.bookings : [];
+          setBookings(serverBookings);
           try {
-            const raw = localStorage.getItem('uc_bookings');
-            if (raw) localBookings = JSON.parse(raw);
+            localStorage.setItem('uc_bookings', JSON.stringify(serverBookings));
           } catch {}
 
-          const unsynced = Array.isArray(localBookings)
-            ? localBookings.filter(b => b && b.id && !serverIds.has((b.id || '').toLowerCase()) && !serverIds.has((b.bookingReference || '').toLowerCase()))
-            : [];
-
-          // Upload pending bookings to backend in background
-          for (const pending of unsynced) {
-            bookingsApi.create(pending)
-              .then(() => {
-                broadcastBookingSync('BOOKING_CREATED', { booking: pending, id: pending.id });
-              })
-              .catch(syncErr => console.warn('Sync pending booking notice:', syncErr.message));
-          }
-
-          const combined = [...unsynced, ...serverBookings];
-          if (combined.length > 0) {
-            setBookings(combined);
-            const active = combined.find(b => b.status === 'Confirmed' || b.status === 'Assigned' || b.status === 'In Progress') || combined[0];
+          if (serverBookings.length > 0) {
+            const active = serverBookings.find(b => b.status === 'Confirmed' || b.status === 'Assigned' || b.status === 'In Progress') || serverBookings[0];
             if (active) setLatestLiveBooking(active);
+          } else {
+            setLatestLiveBooking(null);
           }
         }
       } catch (bErr) {
@@ -875,49 +858,158 @@ function App() {
     } catch (lsErr) {}
   }
 
+  // Real-time Cross-Tab & Admin Synchronization Listener for Bookings
+  useEffect(() => {
+    let syncChannel = null;
+    try {
+      syncChannel = new BroadcastChannel('uc_sync_channel');
+      syncChannel.onmessage = (event) => {
+        const d = event.data || {};
+        if (d.type === 'BOOKING_DELETED') {
+          const targetId = String(d.bookingId || d.id || '').replace(/^#/, '');
+          setBookings(prev => {
+            const next = prev.filter(b => String(b.id || b.bookingReference || '').replace(/^#/, '') !== targetId);
+            try {
+              localStorage.setItem('uc_bookings', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+        } else if (d.type === 'BOOKING_CREATED' && d.booking) {
+          const newId = String(d.booking.id || d.booking.bookingReference || '').replace(/^#/, '');
+          setBookings(prev => {
+            if (prev.some(b => String(b.id || b.bookingReference || '').replace(/^#/, '') === newId)) return prev;
+            const next = [d.booking, ...prev];
+            try {
+              localStorage.setItem('uc_bookings', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+        } else if (d.type === 'BOOKING_UPDATED') {
+          const targetId = String(d.bookingId || d.id || '').replace(/^#/, '');
+          setBookings(prev => {
+            const next = prev.map(b => {
+              if (String(b.id || b.bookingReference || '').replace(/^#/, '') === targetId) {
+                return { ...b, ...d };
+              }
+              return b;
+            });
+            try {
+              localStorage.setItem('uc_bookings', JSON.stringify(next));
+            } catch {}
+            return next;
+          });
+        }
+      };
+    } catch (e) {}
+
+    const handleStorageEvent = (e) => {
+      if (e.key === 'uc_last_booking_event' && e.newValue) {
+        try {
+          const d = JSON.parse(e.newValue);
+          if (d.type === 'BOOKING_DELETED') {
+            const targetId = String(d.bookingId || d.id || '').replace(/^#/, '');
+            setBookings(prev => {
+              const next = prev.filter(b => String(b.id || b.bookingReference || '').replace(/^#/, '') !== targetId);
+              try {
+                localStorage.setItem('uc_bookings', JSON.stringify(next));
+              } catch {}
+              return next;
+            });
+          }
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorageEvent);
+
+    return () => {
+      if (syncChannel) {
+        try { syncChannel.close(); } catch {}
+      }
+      window.removeEventListener('storage', handleStorageEvent);
+    };
+  }, []);
+
   function handleUpdateBookingSlot(id, newSlot) {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, slot: newSlot } : b));
-    bookingsApi.update(id, { slot: newSlot }).catch(err => console.warn('Backend slot update failed:', err));
-    broadcastBookingSync('BOOKING_UPDATED', { id, slot: newSlot });
-    showToast(`🕒 Booking ${id} rescheduled to ${newSlot}`);
+    const cleanId = String(id).replace(/^#/, '');
+    setBookings(prev => {
+      const next = prev.map(b => {
+        const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
+        return bId === cleanId ? { ...b, slot: newSlot } : b;
+      });
+      try { localStorage.setItem('uc_bookings', JSON.stringify(next)); } catch {}
+      return next;
+    });
+    bookingsApi.update(cleanId, { slot: newSlot }).catch(err => console.warn('Backend slot update failed:', err));
+    broadcastBookingSync('BOOKING_UPDATED', { id: cleanId, bookingId: cleanId, slot: newSlot });
+    showToast(`🕒 Booking #${cleanId} rescheduled to ${newSlot}`);
   }
 
   function handleUpdateBookingAddress(id, newAddress, newNotes) {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, address: newAddress, notes: newNotes } : b));
-    bookingsApi.update(id, { address: newAddress, notes: newNotes }).catch(err => console.warn('Backend address update failed:', err));
-    broadcastBookingSync('BOOKING_UPDATED', { id, address: newAddress });
-    showToast(`📍 Delivery details updated for ${id}`);
+    const cleanId = String(id).replace(/^#/, '');
+    setBookings(prev => {
+      const next = prev.map(b => {
+        const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
+        return bId === cleanId ? { ...b, address: newAddress, notes: newNotes } : b;
+      });
+      try { localStorage.setItem('uc_bookings', JSON.stringify(next)); } catch {}
+      return next;
+    });
+    bookingsApi.update(cleanId, { address: newAddress, notes: newNotes }).catch(err => console.warn('Backend address update failed:', err));
+    broadcastBookingSync('BOOKING_UPDATED', { id: cleanId, bookingId: cleanId, address: newAddress });
+    showToast(`📍 Delivery details updated for #${cleanId}`);
   }
 
   function handleCancelBooking(id, reason) {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'Cancelled', cancelReason: reason } : b));
-    bookingsApi.update(id, { status: 'Cancelled', cancelReason: reason }).catch(err => console.warn('Backend cancel sync failed:', err));
-    broadcastBookingSync('BOOKING_UPDATED', { id, status: 'Cancelled' });
-    showToast(`🚫 Booking ${id} has been cancelled.`);
+    const cleanId = String(id).replace(/^#/, '');
+    setBookings(prev => {
+      const updated = prev.map(b => {
+        const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
+        return bId === cleanId ? { ...b, status: 'Cancelled', cancelReason: reason } : b;
+      });
+      try { localStorage.setItem('uc_bookings', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    bookingsApi.update(cleanId, { status: 'Cancelled', cancelReason: reason }).catch(err => console.warn('Backend cancel sync failed:', err));
+    broadcastBookingSync('BOOKING_UPDATED', { id: cleanId, bookingId: cleanId, status: 'Cancelled', cancelReason: reason });
+    showToast(`🚫 Booking #${cleanId} has been cancelled.`);
   }
 
   function handleDeleteBookingHistory(id) {
-    setBookings(prev => prev.filter(b => b.id !== id));
-    bookingsApi.delete(id).catch(err => console.warn('Backend booking delete failed:', err));
-    broadcastBookingSync('BOOKING_DELETED', { id });
-    showToast(`🗑️ Removed booking record from history.`);
+    const cleanId = String(id).replace(/^#/, '');
+    setBookings(prev => {
+      const updated = prev.filter(b => {
+        const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
+        return bId !== cleanId;
+      });
+      try { localStorage.setItem('uc_bookings', JSON.stringify(updated)); } catch {}
+      return updated;
+    });
+    bookingsApi.delete(cleanId).catch(err => console.warn('Backend booking delete failed:', err));
+    broadcastBookingSync('BOOKING_DELETED', { id: cleanId, bookingId: cleanId });
+    showToast(`🗑️ Permanently deleted booking #${cleanId}`);
   }
 
   function handleUpdateBookingStatus(id, newStatus, partnerName) {
-    setBookings(prev => prev.map(b => {
-      if (b.id !== id) return b;
-      return {
-        ...b,
-        status: newStatus,
-        assignedPartner: partnerName || b.assignedPartner || 'Rajesh Kumar'
-      };
-    }));
-    bookingsApi.update(id, {
+    const cleanId = String(id).replace(/^#/, '');
+    setBookings(prev => {
+      const next = prev.map(b => {
+        const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
+        if (bId !== cleanId) return b;
+        return {
+          ...b,
+          status: newStatus,
+          assignedPartner: partnerName || b.assignedPartner || 'Rajesh Kumar'
+        };
+      });
+      try { localStorage.setItem('uc_bookings', JSON.stringify(next)); } catch {}
+      return next;
+    });
+    bookingsApi.update(cleanId, {
       status: newStatus,
       assignedPartner: partnerName || 'Rajesh Kumar'
     }).catch(err => console.warn('Backend status update failed:', err));
-    broadcastBookingSync('BOOKING_UPDATED', { id, status: newStatus });
-    showToast(`✓ Order #${id} updated to ${newStatus}`);
+    broadcastBookingSync('BOOKING_UPDATED', { id: cleanId, bookingId: cleanId, status: newStatus });
+    showToast(`✓ Order #${cleanId} updated to ${newStatus}`);
   }
 
   // ==========================================

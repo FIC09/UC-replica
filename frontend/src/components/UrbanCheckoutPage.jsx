@@ -1015,9 +1015,22 @@ export function UrbanCheckoutPage({
                         />
                         <input
                           type="tel"
+                          inputMode="numeric"
+                          pattern="[0-9]{10}"
+                          maxLength={10}
                           placeholder="10-digit Mobile Number"
                           value={inlineSignupPhone}
-                          onChange={e => setInlineSignupPhone(e.target.value)}
+                          onChange={e => setInlineSignupPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                          onKeyDown={(e) => {
+                            if (
+                              !/[0-9]/.test(e.key) &&
+                              !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'].includes(e.key) &&
+                              !e.ctrlKey &&
+                              !e.metaKey
+                            ) {
+                              e.preventDefault();
+                            }
+                          }}
                           required
                           style={{
                             padding: '10px 12px',

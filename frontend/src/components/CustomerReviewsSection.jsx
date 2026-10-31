@@ -2,6 +2,35 @@ import React, { useState, useEffect } from 'react';
 import { Star, ShieldCheck, Sparkles } from 'lucide-react';
 import { REVIEWS } from '../data/servicesData';
 
+const AVATAR_PALETTES = [
+  { bg: '#EEF2FF', text: '#4338CA', border: '#C7D2FE' }, // Indigo
+  { bg: '#F5F3FF', text: '#6D28D9', border: '#DDD6FE' }, // Purple
+  { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' }, // Emerald
+  { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' }, // Amber
+  { bg: '#FDF2F8', text: '#BE185D', border: '#FBCFE8' }, // Pink
+  { bg: '#ECFEFF', text: '#0E7490', border: '#A5F3FC' }, // Cyan
+  { bg: '#F0F9FF', text: '#0369A1', border: '#BAE6FD' }, // Sky
+];
+
+function getCustomerAvatarTheme(name = '') {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % AVATAR_PALETTES.length;
+  return AVATAR_PALETTES[index];
+}
+
+function getCustomerInitials(name = '') {
+  const clean = name.trim();
+  if (!clean || clean.toLowerCase() === 'customer' || clean.toLowerCase() === 'verified customer') {
+    return 'C';
+  }
+  const parts = clean.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
 export function CustomerReviewsSection() {
   const [publishedReviews, setPublishedReviews] = useState([]);
 
@@ -167,31 +196,44 @@ export function CustomerReviewsSection() {
                 <div>
                   {/* Top: Avatar, Name, Locality, Stars */}
                   <div className="review-card-top compact">
-                    {r.avatar ? (
-                      <img
-                        src={r.avatar}
-                        alt={r.name}
-                        className="review-avatar compact"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: '50%',
-                        backgroundColor: '#6E42E5',
-                        color: '#FFFFFF',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontWeight: 800,
-                        fontSize: 13
-                      }}>
-                        {(r.name || 'C')[0].toUpperCase()}
-                      </div>
-                    )}
+                    {(() => {
+                      const isMockPhoto = !r.avatar || r.avatar.includes('unsplash.com') || r.avatar.includes('randomuser.me') || r.avatar.includes('placeholder');
+                      const avatarTheme = getCustomerAvatarTheme(r.name);
+                      const initials = getCustomerInitials(r.name);
+
+                      if (!isMockPhoto) {
+                        return (
+                          <img
+                            src={r.avatar}
+                            alt={r.name}
+                            className="review-avatar compact"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                        );
+                      }
+
+                      return (
+                        <div style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: '50%',
+                          backgroundColor: avatarTheme.bg,
+                          color: avatarTheme.text,
+                          border: `1.5px solid ${avatarTheme.border}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontWeight: 800,
+                          fontSize: 12.5,
+                          letterSpacing: '0.5px',
+                          flexShrink: 0
+                        }}>
+                          {initials}
+                        </div>
+                      );
+                    })()}
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

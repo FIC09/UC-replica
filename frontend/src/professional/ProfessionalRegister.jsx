@@ -524,9 +524,21 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
                 </label>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={10}
                   value={formData.phone}
-                  onChange={(e) => updateField('phone', e.target.value)}
-                  placeholder="+91 98205 11982"
+                  onChange={(e) => updateField('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  onKeyDown={(e) => {
+                    if (
+                      !/[0-9]/.test(e.key) &&
+                      !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'].includes(e.key) &&
+                      !e.ctrlKey &&
+                      !e.metaKey
+                    ) {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder="10-digit mobile number"
                   style={{
                     width: '100%',
                     padding: '12px 14px',
