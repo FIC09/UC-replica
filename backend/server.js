@@ -64,8 +64,7 @@ const corsOptions = {
     return callback(new Error(`CORS blocked: Origin ${origin} not permitted.`));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token', 'x-professional-id', 'x-partner-token', 'x-partner-id', 'x-user-id', 'x-user-role', 'x-user-name', 'x-razorpay-signature'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
 };
 
 app.use(cors(corsOptions));

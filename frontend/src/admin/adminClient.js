@@ -27,7 +27,7 @@ async function ensureAdminLoggedIn() {
         body: JSON.stringify({ email: 'admin@urbancompany.com', password: 'admin123' })
       });
       if (loginRes.ok) {
-        const authData = await loginRes.json();
+        const authData = await loginRes.json().catch(() => ({}));
         if (authData.token) {
           sessionStorage.setItem('uc_admin_token', authData.token);
           localStorage.setItem('uc_admin_token', authData.token);
@@ -91,8 +91,8 @@ async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
       throw error;
     }
 
-    const data = await res.json();
-    return data;
+    const data = await res.json().catch(() => null);
+    return data !== null ? data : (emptyFallback !== null ? emptyFallback : {});
   } catch (err) {
     if (emptyFallback !== null) {
       return emptyFallback;
@@ -109,9 +109,9 @@ export const adminClient = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(data.error || 'Login failed');
+      throw new Error(data.error || data.message || `Login failed with status ${res.status}`);
     }
     if (data.token) {
       sessionStorage.setItem('uc_admin_token', data.token);

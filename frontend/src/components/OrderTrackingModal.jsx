@@ -187,6 +187,9 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
 
     // 3. Connect SSE live stream for real-time telemetry
     const eventSource = new EventSource(`/api/tracking/stream/${targetId}`);
+    eventSource.onerror = () => {
+      try { eventSource.close(); } catch (_) {}
+    };
     eventSource.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);

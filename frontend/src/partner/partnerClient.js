@@ -99,7 +99,7 @@ class PartnerClient {
         body: JSON.stringify({ emailOrPhone: 'partner@urbancompany.com', password: 'partner123' })
       });
       if (res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         if (data.token) {
           this.setAuth(data.token, data.partner, data.staff);
           return data.token;

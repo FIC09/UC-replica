@@ -122,6 +122,11 @@ export function RapidoChatDrawer({
     const eventSource = new EventSource(streamUrl);
     eventSourceRef.current = eventSource;
 
+    eventSource.onerror = () => {
+      // Gracefully close on error to prevent repeated reconnection warnings
+      try { eventSource.close(); } catch (_) {}
+    };
+
     eventSource.onmessage = (event) => {
       try {
         const payload = JSON.parse(event.data);

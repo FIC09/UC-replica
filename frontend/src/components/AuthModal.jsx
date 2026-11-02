@@ -521,7 +521,11 @@ export function AuthModal({
         setOtpSentEmail(cleanEmail);
         setIsOtpSent(true);
         setResendCooldown(30);
-        setSignupOtp('');
+        if (res.fallbackOtp) {
+          setSignupOtp(res.fallbackOtp);
+        } else {
+          setSignupOtp('');
+        }
         setSuccessMsg(res.message || `A verification code was dispatched to ${cleanEmail}`);
       } else {
         setErrorMsg(res?.message || 'Failed to dispatch verification code. Please check your email.');

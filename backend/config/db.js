@@ -15,7 +15,7 @@ export async function connectDB() {
   isConnecting = true;
   const mongoURI = process.env.MONGO_URI || ATLAS_MONGO_URI;
   try {
-    dns.setServers(['192.168.1.1', '8.8.8.8', '1.1.1.1']);
+    dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
   } catch (e) {
     // ignore
   }

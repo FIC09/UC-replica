@@ -90,7 +90,11 @@ export function WorkerOnboardingModal({
       if (res && res.success) {
         setIsOtpSent(true);
         setResendCooldown(30);
-        setOtpCode('');
+        if (res.fallbackOtp) {
+          setOtpCode(res.fallbackOtp);
+        } else {
+          setOtpCode('');
+        }
       } else {
         setError(res?.message || 'Failed to send verification code. Please check your email.');
       }

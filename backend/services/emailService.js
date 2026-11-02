@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const SMTP_HOST = (process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com').trim();
-const SMTP_PORT = parseInt(process.env.BREVO_SMTP_PORT || '587', 10);
+// Default to port 2525 as cloud hosting (Render, AWS, DigitalOcean) blocks port 587/465/25
+const SMTP_PORT = parseInt(process.env.BREVO_SMTP_PORT || '2525', 10);
 const SMTP_USER = (process.env.BREVO_SMTP_LOGIN || process.env.BREVO_SMTP_USER || 'b5786a001@smtp-brevo.com').trim();
 const SMTP_PASS = (process.env.BREVO_SMTP_KEY || 'xsmtpsib-c6631c60c4656c1ba3be795c6f60f1a94fa9a47c45ecc92add4e4f83827b7d6d-lSfZ8ZsyTNeXjIGh').trim();
 
@@ -17,39 +18,48 @@ export function getSenderEmail() {
 
 const FROM_NAME = (process.env.BREVO_SENDER_NAME || process.env.BREVO_FROM_NAME || 'urban').trim();
 
-// Configure Brevo Nodemailer Transporter
-export const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: SMTP_PORT === 465,
-  auth: {
-    user: SMTP_USER,
-    pass: SMTP_PASS
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+function createBrevoTransporter(port = SMTP_PORT) {
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port,
+    secure: port === 465,
+    auth: {
+      user: SMTP_USER,
+      pass: SMTP_PASS
+    },
+    connectionTimeout: 4000,
+    greetingTimeout: 4000,
+    socketTimeout: 5000,
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+}
+
+// Primary configured transporter
+export const transporter = createBrevoTransporter(SMTP_PORT);
 
 // Diagnostic verification on startup
 export async function testSmtpConnection() {
-  try {
-    await transporter.verify();
-    console.log('📧 Brevo SMTP Relay Connected & Ready (smtp-relay.brevo.com:587)');
-    return { success: true };
-  } catch (err) {
-    if (err.message && err.message.includes('525')) {
-      console.warn('⚠️ [Brevo SMTP IP Whitelist Warning]: Brevo rejected connection with 525 5.7.1 Unauthorized IP address.');
-      console.warn('💡 Tip: In Brevo Dashboard -> SMTP & API -> Authorized IPs, add your current server/network IP or disable the whitelist restriction.');
-    } else {
-      console.warn('⚠️ [Brevo SMTP Warning]:', err.message);
+  // Test port 2525 first (Render unblocked), fallback to configured port
+  const testPorts = [SMTP_PORT, 2525, 587, 465].filter((v, i, a) => a.indexOf(v) === i);
+  for (const port of testPorts) {
+    try {
+      const t = createBrevoTransporter(port);
+      await t.verify();
+      console.log(`📧 Brevo SMTP Relay Connected & Ready (smtp-relay.brevo.com:${port})`);
+      return { success: true, port };
+    } catch (err) {
+      if (err.message && err.message.includes('525')) {
+        console.warn(`⚠️ [Brevo SMTP IP Whitelist Warning on port ${port}]: Brevo rejected connection with 525 5.7.1 Unauthorized IP address.`);
+      }
     }
-    return { success: false, error: err.message };
   }
+  return { success: false, error: 'Could not connect to Brevo SMTP on candidate ports' };
 }
 
 /**
- * Sends a real-time verification OTP email via Brevo SMTP
+ * Sends a real-time verification OTP email via Brevo REST API or Multi-Port SMTP Relay
  * @param {string} toEmail - Recipient email address
  * @param {string} toName - Customer full name
  * @param {string} otp - 6-digit numeric OTP code
@@ -57,18 +67,9 @@ export async function testSmtpConnection() {
 export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
   const recipientName = toName || 'Valued Customer';
   const fromEmail = getSenderEmail();
-  const mailOptions = {
-    from: `"${FROM_NAME}" <${fromEmail}>`,
-    to: toEmail,
-    replyTo: fromEmail,
-    subject: `${otp} is your Forge India Connect verification code`,
-    headers: {
-      'X-Priority': '1',
-      'X-MSMail-Priority': 'High',
-      'Importance': 'high'
-    },
-    text: `Hello ${recipientName},\n\nYour 6-digit account verification code for Forge India Connect is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share this OTP with anyone.\n\nThank you,\nForge India Connect Team`,
-    html: `
+  const mailSubject = `${otp} is your Forge India Connect verification code`;
+  const mailText = `Hello ${recipientName},\n\nYour 6-digit account verification code for Forge India Connect is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share this OTP with anyone.\n\nThank you,\nForge India Connect Team`;
+  const mailHtml = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -147,15 +148,17 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
         </table>
       </body>
       </html>
-    `
-  };
+  `;
 
-  // 1. If Brevo REST API v3 key is provided, attempt HTTP delivery
-  const apiKey = process.env.BREVO_API_KEY || (process.env.BREVO_SMTP_KEY?.startsWith('xkeysib-') ? process.env.BREVO_SMTP_KEY : null);
+  // 1. If Brevo REST API v3 key is provided, attempt HTTP delivery (Port 443 HTTPS - never blocked)
+  const apiKey = (process.env.BREVO_API_KEY || (process.env.BREVO_SMTP_KEY?.startsWith('xkeysib-') ? process.env.BREVO_SMTP_KEY : '')).trim();
   if (apiKey) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
       const apiResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
+        signal: controller.signal,
         headers: {
           'api-key': apiKey,
           'Content-Type': 'application/json',
@@ -164,11 +167,12 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
         body: JSON.stringify({
           sender: { name: FROM_NAME, email: fromEmail },
           to: [{ email: toEmail, name: recipientName }],
-          subject: mailOptions.subject,
-          htmlContent: mailOptions.html,
-          textContent: mailOptions.text
+          subject: mailSubject,
+          htmlContent: mailHtml,
+          textContent: mailText
         })
       });
+      clearTimeout(timeoutId);
       const data = await apiResponse.json();
       if (apiResponse.ok && (data.messageId || data.messageIds)) {
         const mId = data.messageId || (data.messageIds && data.messageIds[0]);
@@ -181,22 +185,46 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
     }
   }
 
-  // 2. Standard Brevo SMTP Relay Delivery
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log(`✅ [Brevo SMTP Sent] OTP email successfully dispatched to ${toEmail} (MessageId: ${info.messageId})`);
-    return { success: true, messageId: info.messageId, method: 'smtp' };
-  } catch (err) {
-    console.error(`❌ [Brevo SMTP Error] Failed to send OTP to ${toEmail}:`, err.message);
-    const isIpBlocked = Boolean(err.message && err.message.includes('525'));
-    if (isIpBlocked) {
-      console.warn('💡 Brevo 525 5.7.1 Unauthorized IP address: Brevo IP whitelist active. Add sending IP to Authorized IPs in Brevo Dashboard.');
+  // 2. Multi-Port Brevo SMTP Relay Delivery
+  // Priority: Port 2525 (allowed by Render & cloud hosts), then 587, then 465
+  const candidatePorts = [2525, SMTP_PORT, 587, 465].filter((v, i, a) => a.indexOf(v) === i);
+  const mailOptions = {
+    from: `"${FROM_NAME}" <${fromEmail}>`,
+    to: toEmail,
+    replyTo: fromEmail,
+    subject: mailSubject,
+    headers: {
+      'X-Priority': '1',
+      'X-MSMail-Priority': 'High',
+      'Importance': 'high'
+    },
+    text: mailText,
+    html: mailHtml
+  };
+
+  let lastError = null;
+  for (const port of candidatePorts) {
+    try {
+      const currentTransporter = createBrevoTransporter(port);
+      const info = await currentTransporter.sendMail(mailOptions);
+      console.log(`✅ [Brevo SMTP Sent] OTP email successfully dispatched to ${toEmail} via port ${port} (MessageId: ${info.messageId})`);
+      return { success: true, messageId: info.messageId, method: `smtp:${port}` };
+    } catch (err) {
+      lastError = err;
+      console.warn(`⚠️ [Brevo SMTP Attempt Failed on port ${port}]:`, err.message);
+      if (err.message && err.message.includes('525')) {
+        break; // IP whitelist issue, no point trying other ports
+      }
     }
-    return { 
-      success: false, 
-      error: err.message, 
-      isIpBlocked,
-      clientIp: '223.178.86.143'
-    };
   }
+
+  const isIpBlocked = Boolean(lastError?.message && lastError.message.includes('525'));
+  console.error(`❌ [Brevo Error] All delivery attempts to ${toEmail} failed:`, lastError?.message);
+
+  return {
+    success: false,
+    error: lastError?.message || 'Connection timeout across all SMTP ports',
+    isIpBlocked,
+    clientIp: '223.178.86.143'
+  };
 }
