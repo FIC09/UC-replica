@@ -471,17 +471,22 @@ export const adminClient = {
   // Support, Reviews & Moderation
   getSupportTickets: (params = {}) => {
     const q = new URLSearchParams(params).toString();
-    return fetchWithFallback(`/support/tickets?${q}`, {}, { success: true, tickets: [] });
+    return fetchWithFallback(`/support/tickets?${q}`, {}, { success: true, count: 0, openCount: 0, tickets: [] });
   },
+
+  createSupportTicket: (data) => fetchWithFallback('/support/tickets', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
 
   addTicketMessage: (id, text, isInternal = false) => fetchWithFallback(`/support/tickets/${id}/message`, {
     method: 'POST',
     body: JSON.stringify({ text, isInternal })
   }),
 
-  updateTicketStatus: (id, status) => fetchWithFallback(`/support/tickets/${id}/status`, {
+  updateTicketStatus: (id, status, closureReason = '') => fetchWithFallback(`/support/tickets/${id}/status`, {
     method: 'PUT',
-    body: JSON.stringify({ status })
+    body: JSON.stringify({ status, closureReason })
   }),
 
   getReviews: () => fetchWithFallback('/reviews', {}, { success: true, reviews: [] }),

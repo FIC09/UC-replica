@@ -18,10 +18,11 @@ import {
   LogOut,
   Zap,
   Menu,
-  X
+  X,
+  HelpCircle
 } from 'lucide-react';
 import { OfflineBanner } from './views/StateViews';
-import { getInitials } from './professionalClient';
+import { getInitials, professionalClient } from './professionalClient';
 import { usePlatformSettings } from '../utils/usePlatformSettings';
 
 // Dynamic Page Titles & Subtitles matching Admin Dashboard format
@@ -62,6 +63,10 @@ const PAGE_METADATA = {
     title: "Dispatch Broadcasts & Alerts",
     subtitle: "System notifications, high-demand weather advisories, and SLA reminders"
   },
+  '/professional/support': {
+    title: "Support Tickets & Safety Desk",
+    subtitle: "Raise disputes, query payouts or jobs, and communicate with platform support desk in real time"
+  },
   '/professional/settings': {
     title: "App Settings & Operational Preferences",
     subtitle: "Dispatch radar, audio alerts, device sessions, and security PIN"
@@ -81,7 +86,42 @@ export function ProfessionalLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
+  const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
+  const [openTicketsCount, setOpenTicketsCount] = useState(0);
   const { isSurgeActive, surgeAmount } = usePlatformSettings();
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const notifRes = await professionalClient.getNotifications();
+        if (notifRes.success) {
+          setUnreadAlertsCount(notifRes.unreadCount || 0);
+        }
+      } catch (err) {
+        // silent
+      }
+      try {
+        const supportRes = await professionalClient.getSupportTickets({ status: 'Open' });
+        if (supportRes.success && supportRes.tickets) {
+          setOpenTicketsCount(supportRes.tickets.length);
+        }
+      } catch (err) {
+        // silent
+      }
+    };
+
+    fetchCounts();
+    const interval = setInterval(fetchCounts, 4000);
+    const handleSync = () => fetchCounts();
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('uc:support-tickets-updated', handleSync);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('uc:support-tickets-updated', handleSync);
+    };
+  }, []);
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);
@@ -122,6 +162,7 @@ export function ProfessionalLayout({
     { path: '/professional/availability', label: 'Shift Availability', icon: Clock },
     { path: '/professional/payouts', label: 'Payouts & Banking', icon: Landmark },
     { path: '/professional/notifications', label: 'Alerts & Broadcasts', icon: Bell },
+    { path: '/professional/support', label: 'Support & Tickets', icon: HelpCircle },
     { path: '/professional/settings', label: 'App Settings', icon: Settings }
   ];
 
@@ -357,6 +398,32 @@ export function ProfessionalLayout({
                   >
                     <IconComponent size={16} color={active ? '#7C3AED' : '#94A3B8'} />
                     <span>{item.label}</span>
+                    {item.path === '/professional/notifications' && unreadAlertsCount > 0 && (
+                      <span style={{
+                        marginLeft: 'auto',
+                        backgroundColor: '#EF4444',
+                        color: '#FFFFFF',
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: 10
+                      }}>
+                        {unreadAlertsCount}
+                      </span>
+                    )}
+                    {item.path === '/professional/support' && openTicketsCount > 0 && (
+                      <span style={{
+                        marginLeft: 'auto',
+                        backgroundColor: '#3B82F6',
+                        color: '#FFFFFF',
+                        fontSize: 10,
+                        fontWeight: 800,
+                        padding: '1px 6px',
+                        borderRadius: 10
+                      }}>
+                        {openTicketsCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}

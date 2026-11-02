@@ -45,6 +45,20 @@ export function SupportView({ onShowToast }) {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [closureReason, setClosureReason] = useState('');
 
+  // Ticket creation modal
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [creatingTicket, setCreatingTicket] = useState(false);
+  const [ticketForm, setTicketForm] = useState({
+    callerName: '',
+    callerRole: 'Customer',
+    callerPhone: '',
+    bookingId: '',
+    serviceTitle: '',
+    issueCategory: 'Service Quality / Workmanship',
+    priority: 'Medium',
+    message: ''
+  });
+
   // Revisit modal
   const [showRevisitModal, setShowRevisitModal] = useState(false);
   const [revisitForm, setRevisitForm] = useState({
@@ -62,11 +76,24 @@ export function SupportView({ onShowToast }) {
   useEffect(() => {
     loadTickets();
     loadRevisits();
+    const interval = setInterval(() => {
+      loadTickets();
+      loadRevisits();
+    }, 4000);
+    return () => clearInterval(interval);
   }, []);
 
   function loadTickets() {
     adminClient.getSupportTickets()
-      .then(res => setTickets(res.tickets || []))
+      .then(res => {
+        const list = res.tickets || [];
+        setTickets(list);
+        setSelectedTicket(prev => {
+          if (!prev) return null;
+          const updated = list.find(t => (t.id && t.id === prev.id) || (t.referenceNumber && t.referenceNumber === prev.referenceNumber));
+          return updated || prev;
+        });
+      })
       .catch(() => {});
   }
 
@@ -74,6 +101,39 @@ export function SupportView({ onShowToast }) {
     adminClient.getRevisits()
       .then(res => setRevisits(res.revisits || []))
       .catch(() => {});
+  }
+
+  // Handle creating real support ticket
+  async function handleCreateTicket(e) {
+    e.preventDefault();
+    if (!ticketForm.callerName.trim() || !ticketForm.message.trim()) return;
+    setCreatingTicket(true);
+
+    try {
+      const res = await adminClient.createSupportTicket(ticketForm);
+      if (res && res.success) {
+        setTickets(prev => [res.ticket, ...prev]);
+        setShowTicketModal(false);
+        setTicketForm({
+          callerName: '',
+          callerRole: 'Customer',
+          callerPhone: '',
+          bookingId: '',
+          serviceTitle: '',
+          issueCategory: 'Service Quality / Workmanship',
+          priority: 'Medium',
+          message: ''
+        });
+        window.dispatchEvent(new CustomEvent('uc:support-tickets-updated'));
+        if (onShowToast) onShowToast('✓ Real Support Ticket created & logged to database');
+      } else {
+        if (onShowToast) onShowToast(res?.error || 'Failed to create ticket');
+      }
+    } catch (err) {
+      if (onShowToast) onShowToast(`Error: ${err.message}`);
+    } finally {
+      setCreatingTicket(false);
+    }
   }
 
   // Handle adding reply or internal note
@@ -88,6 +148,7 @@ export function SupportView({ onShowToast }) {
         setSelectedTicket(res.ticket);
         setTickets(prev => prev.map(t => t.id === selectedTicket.id ? res.ticket : t));
         setReplyText('');
+        window.dispatchEvent(new CustomEvent('uc:support-tickets-updated'));
         if (onShowToast) {
           onShowToast(isInternalNote ? '🔒 Internal note recorded' : '✓ Reply sent to user');
         }
@@ -112,6 +173,7 @@ export function SupportView({ onShowToast }) {
       if (res.success) {
         setSelectedTicket(res.ticket);
         setTickets(prev => prev.map(t => t.id === selectedTicket.id ? res.ticket : t));
+        window.dispatchEvent(new CustomEvent('uc:support-tickets-updated'));
         if (onShowToast) onShowToast(`Ticket marked as ${statusValue}`);
       }
     } catch (err) {
@@ -151,14 +213,22 @@ export function SupportView({ onShowToast }) {
 
   const filteredTickets = tickets.filter(t => {
     if (statusFilter !== 'ALL' && t.status !== statusFilter) return false;
-    if (priorityFilter !== 'ALL' && t.priority !== priorityFilter) return false;
+    if (priorityFilter !== 'ALL') {
+      if (priorityFilter === 'Normal' || priorityFilter === 'Medium') {
+        if (t.priority !== 'Normal' && t.priority !== 'Medium') return false;
+      } else if (t.priority !== priorityFilter) {
+        return false;
+      }
+    }
     if (roleFilter !== 'ALL' && t.callerRole !== roleFilter) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       const match = (t.id || '').toLowerCase().includes(q) ||
+        (t.referenceNumber || '').toLowerCase().includes(q) ||
         (t.callerName || '').toLowerCase().includes(q) ||
         (t.bookingId || '').toLowerCase().includes(q) ||
         (t.category || '').toLowerCase().includes(q) ||
+        (t.subject || '').toLowerCase().includes(q) ||
         (t.assignedOwner || '').toLowerCase().includes(q);
       if (!match) return false;
     }
@@ -203,27 +273,51 @@ export function SupportView({ onShowToast }) {
             </p>
           </div>
 
-          {activeTab === 'revisits' && (
-            <button
-              type="button"
-              onClick={() => setShowRevisitModal(true)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '9px 16px',
-                borderRadius: 8,
-                backgroundColor: '#6E42E5',
-                color: '#FFFFFF',
-                border: 'none',
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer'
-              }}
-            >
-              <Plus size={16} /> Log Warranty Revisit Dispute
-            </button>
-          )}
+          <div style={{ display: 'flex', gap: 10 }}>
+            {activeTab === 'tickets' && (
+              <button
+                type="button"
+                onClick={() => setShowTicketModal(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '9px 16px',
+                  borderRadius: 8,
+                  backgroundColor: '#6E42E5',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={16} /> Log Support Ticket
+              </button>
+            )}
+
+            {activeTab === 'revisits' && (
+              <button
+                type="button"
+                onClick={() => setShowRevisitModal(true)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '9px 16px',
+                  borderRadius: 8,
+                  backgroundColor: '#6E42E5',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                <Plus size={16} /> Log Warranty Revisit Dispute
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Sub-Tabs */}
@@ -367,9 +461,10 @@ export function SupportView({ onShowToast }) {
                   }}
                 >
                   <option value="ALL">All Priorities</option>
+                  <option value="Critical">Critical</option>
                   <option value="Urgent">Urgent</option>
                   <option value="High">High</option>
-                  <option value="Medium">Medium</option>
+                  <option value="Normal">Normal / Medium</option>
                   <option value="Low">Low</option>
                 </select>
               </div>
@@ -457,7 +552,7 @@ export function SupportView({ onShowToast }) {
                       <td style={{ padding: '14px 18px' }}>
                         <div style={{ fontWeight: 600, color: '#334155' }}>{t.category}</div>
                         <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
-                          {t.conversation?.length || 0} messages logged
+                          {(t.conversation || t.messages || []).length} messages logged
                         </div>
                       </td>
 
@@ -749,7 +844,7 @@ export function SupportView({ onShowToast }) {
               gap: 14,
               backgroundColor: '#F8FAFC'
             }}>
-              {selectedTicket.conversation?.map((msg, idx) => (
+              {(selectedTicket.conversation || selectedTicket.messages || []).map((msg, idx) => (
                 <div
                   key={msg.id || idx}
                   style={{
@@ -903,6 +998,165 @@ export function SupportView({ onShowToast }) {
         </div>
       )}
       </div>
+
+      {/* ========================================================================= */}
+      {/* MODAL: LOG REAL SUPPORT TICKET                                             */}
+      {/* ========================================================================= */}
+      {showTicketModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.45)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: 16
+        }}>
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 16,
+            maxWidth: 520,
+            width: '100%',
+            overflow: 'hidden',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
+            border: '1px solid #E2E8F0'
+          }}>
+            <div style={{
+              padding: '18px 24px',
+              borderBottom: '1px solid #E2E8F0',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#0F172A' }}>Log Support Ticket</h3>
+                <p style={{ margin: '2px 0 0 0', fontSize: 12, color: '#64748B' }}>Real database support ticket with SLA tracking</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTicketModal(false)}
+                style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#94A3B8' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateTicket} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Caller Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Ramesh Patil"
+                    value={ticketForm.callerName}
+                    onChange={e => setTicketForm(prev => ({ ...prev, callerName: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Caller Role</label>
+                  <select
+                    value={ticketForm.callerRole}
+                    onChange={e => setTicketForm(prev => ({ ...prev, callerRole: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, backgroundColor: '#FFFFFF', boxSizing: 'border-box' }}
+                  >
+                    <option value="Customer">Customer</option>
+                    <option value="Professional">Professional</option>
+                    <option value="Business Partner">Business Partner</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Booking / Order Ref</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. UC-772454"
+                    value={ticketForm.bookingId}
+                    onChange={e => setTicketForm(prev => ({ ...prev, bookingId: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="10-digit phone"
+                    value={ticketForm.callerPhone}
+                    onChange={e => setTicketForm(prev => ({ ...prev, callerPhone: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Priority</label>
+                  <select
+                    value={ticketForm.priority}
+                    onChange={e => setTicketForm(prev => ({ ...prev, priority: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, backgroundColor: '#FFFFFF', boxSizing: 'border-box' }}
+                  >
+                    <option value="Low">Low (24h SLA)</option>
+                    <option value="Medium">Medium (12h SLA)</option>
+                    <option value="High">High (6h SLA)</option>
+                    <option value="Urgent">Urgent (2h SLA)</option>
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Issue Category</label>
+                  <select
+                    value={ticketForm.issueCategory}
+                    onChange={e => setTicketForm(prev => ({ ...prev, issueCategory: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, backgroundColor: '#FFFFFF', boxSizing: 'border-box' }}
+                  >
+                    <option value="Service Quality / Workmanship">Service Quality / Workmanship</option>
+                    <option value="Delayed / No Show Technician">Delayed / No Show Technician</option>
+                    <option value="Billing & Payment Dispute">Billing & Payment Dispute</option>
+                    <option value="Damage & Property Compensation">Damage & Property Compensation</option>
+                    <option value="Safety & Code of Conduct">Safety & Code of Conduct</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Initial Issue Description *</label>
+                <textarea
+                  required
+                  rows={3}
+                  placeholder="Describe the complaint or support issue..."
+                  value={ticketForm.message}
+                  onChange={e => setTicketForm(prev => ({ ...prev, message: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowTicketModal(false)}
+                  style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #D1D5DB', backgroundColor: '#FFFFFF', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingTicket}
+                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                >
+                  {creatingTicket ? 'Saving...' : 'Register Ticket'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ========================================================================= */}
       {/* MODAL: LOG REVISIT WARRANTY DISPUTE                                       */}

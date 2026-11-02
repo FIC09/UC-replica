@@ -35,24 +35,45 @@ export function SupportView({ showToast }) {
   // Draft key
   const DRAFT_KEY = 'support_ticket_new';
 
-  const loadTickets = async () => {
+  const loadTickets = async (showLoadingState = false) => {
     try {
-      setLoading(true);
+      if (showLoadingState) setLoading(true);
       const params = {};
       if (activeCategoryFilter !== 'all') params.category = activeCategoryFilter;
       const res = await professionalClient.getSupportTickets(params);
       if (res.success && res.tickets) {
         setTickets(res.tickets);
+        setSelectedTicket(prev => {
+          if (!prev) return null;
+          const targetId = prev.id || prev.referenceNumber || prev.reference;
+          const found = res.tickets.find(t => (t.id && t.id === targetId) || (t.referenceNumber && t.referenceNumber === targetId) || (t.reference && t.reference === targetId));
+          return found || prev;
+        });
       }
     } catch (err) {
-      showToast(err.message || 'Failed to load support tickets');
+      if (showLoadingState) {
+        showToast(err.message || 'Failed to load support tickets');
+      }
     } finally {
-      setLoading(false);
+      if (showLoadingState) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadTickets();
+    loadTickets(true);
+    const interval = setInterval(() => {
+      loadTickets(false);
+    }, 3500);
+
+    const handleSync = () => loadTickets(false);
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('uc:support-tickets-updated', handleSync);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('uc:support-tickets-updated', handleSync);
+    };
   }, [activeCategoryFilter]);
 
   // Restore draft if available
@@ -96,7 +117,8 @@ export function SupportView({ showToast }) {
       setSubject('');
       setDescription('');
       setAttachmentName('');
-      loadTickets();
+      loadTickets(false);
+      window.dispatchEvent(new CustomEvent('uc:support-tickets-updated'));
     } catch (err) {
       showToast(err.message || 'Failed to submit ticket');
     } finally {
@@ -127,7 +149,8 @@ export function SupportView({ showToast }) {
       setShowSafetyModal(false);
       setSafetyDescription('');
       setConsentLocationShare(false);
-      loadTickets();
+      loadTickets(false);
+      window.dispatchEvent(new CustomEvent('uc:support-tickets-updated'));
     } catch (err) {
       showToast(err.message || 'Failed to submit safety escalation');
     } finally {
@@ -147,7 +170,8 @@ export function SupportView({ showToast }) {
       showToast('Message added to support thread.');
       setSelectedTicket(res.ticket);
       setReplyText('');
-      loadTickets();
+      loadTickets(false);
+      window.dispatchEvent(new CustomEvent('uc:support-tickets-updated'));
     } catch (err) {
       showToast(err.message || 'Failed to send message');
     } finally {

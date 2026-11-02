@@ -60,6 +60,7 @@ export function AdminLayout({
   }, []);
 
   const [bookingBadge, setBookingBadge] = useState(null);
+  const [supportBadge, setSupportBadge] = useState(null);
 
   useEffect(() => {
     function handleStatsUpdate(e) {
@@ -70,6 +71,28 @@ export function AdminLayout({
     window.addEventListener('uc:admin-stats-updated', handleStatsUpdate);
     return () => window.removeEventListener('uc:admin-stats-updated', handleStatsUpdate);
   }, []);
+
+  useEffect(() => {
+    function refreshSupportBadge() {
+      adminClient.getSupportTickets()
+        .then(res => {
+          const count = typeof res.openCount === 'number'
+            ? res.openCount
+            : (res.tickets || []).filter(t => t.status !== 'Resolved' && t.status !== 'Closed' && t.status !== 'RESOLVED' && t.status !== 'CLOSED').length;
+          setSupportBadge(count > 0 ? String(count) : null);
+        })
+        .catch(() => setSupportBadge(null));
+    }
+
+    refreshSupportBadge();
+    const interval = setInterval(refreshSupportBadge, 4000);
+    window.addEventListener('uc:support-tickets-updated', refreshSupportBadge);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('uc:support-tickets-updated', refreshSupportBadge);
+    };
+  }, [currentPath]);
 
   // Navigation Items Grouping
   const NAV_SECTIONS = [
@@ -102,7 +125,7 @@ export function AdminLayout({
     {
       title: 'QUALITY & SUPPORT',
       items: [
-        { path: '/admin/support', label: 'Support Tickets', icon: HelpCircle, badge: '3' },
+        { path: '/admin/support', label: 'Support Tickets', icon: HelpCircle, badge: supportBadge },
         { path: '/admin/reviews', label: 'Customer Reviews', icon: Star }
       ]
     },

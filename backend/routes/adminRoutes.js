@@ -125,6 +125,7 @@ import {
 
 import {
   getSupportTickets,
+  createSupportTicket,
   addTicketMessage,
   updateTicketStatus,
   getReviews,
@@ -291,8 +292,14 @@ router.put('/refunds/:id/reject', requireAdminAuth, requirePermission('refunds',
 // 12. CUSTOMER & PRO SUPPORT
 // ==========================================
 router.get('/support', requireAdminAuth, requirePermission('support', 'view'), getSupportTickets);
+router.get('/support/tickets', requireAdminAuth, requirePermission('support', 'view'), getSupportTickets);
+router.post('/support/tickets', requireAdminAuth, requirePermission('support', 'edit'), createSupportTicket);
 router.post('/support/:id/messages', requireAdminAuth, requirePermission('support', 'edit'), addTicketMessage);
+router.post('/support/:id/message', requireAdminAuth, requirePermission('support', 'edit'), addTicketMessage);
+router.post('/support/tickets/:id/messages', requireAdminAuth, requirePermission('support', 'edit'), addTicketMessage);
+router.post('/support/tickets/:id/message', requireAdminAuth, requirePermission('support', 'edit'), addTicketMessage);
 router.put('/support/:id/status', requireAdminAuth, requirePermission('support', 'edit'), updateTicketStatus);
+router.put('/support/tickets/:id/status', requireAdminAuth, requirePermission('support', 'edit'), updateTicketStatus);
 
 // ==========================================
 // 13. REVIEWS & RATINGS MODERATION

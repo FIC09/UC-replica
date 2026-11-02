@@ -12,6 +12,7 @@ import { acceptAssignmentOffer, rejectAssignmentOffer } from '../services/assign
 import { TrackingSession } from '../models/TrackingSession.js';
 import { broadcastTrackingUpdate } from '../routes/trackingRoutes.js';
 import { uploadToCloudinary } from '../config/cloudinary.js';
+import { SupportTicket } from '../models/SupportTicket.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'urban_company_jwt_secret_key_2026';
 
@@ -5891,36 +5892,151 @@ export async function placeShopOrder(req, res) {
 // -------------------------------------------------------------
 // 10. SUPPORT & SAFETY
 // -------------------------------------------------------------
+export function sendWorkerNotification(target, { title, message, category = 'support_responses', deepLink = '/professional/support', ticketId = '' }) {
+  let proId = target;
+  if (!notificationsStore[proId]) {
+    const cleanTarget = String(target || '').replace(/\D/g, '').slice(-10);
+    const found = professionalsStore.find(p =>
+      p.id === target ||
+      (p.phone && cleanTarget && p.phone.replace(/\D/g, '').includes(cleanTarget)) ||
+      (p.email && target && p.email.toLowerCase() === String(target).toLowerCase())
+    );
+    if (found) {
+      proId = found.id;
+    } else {
+      proId = proId || 'PRO-8841';
+    }
+  }
+
+  initProData(proId);
+  if (!notificationsStore[proId]) {
+    notificationsStore[proId] = [];
+  }
+
+  const notifObj = {
+    id: `notif-${proId}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    category,
+    title: title || 'Support Desk Response',
+    message: message || 'A support agent has replied to your inquiry.',
+    read: false,
+    deepLink: deepLink || '/professional/support',
+    deliveryChannel: 'in_app',
+    deliveryStatus: 'Delivered (In-App Verified)',
+    deduplicationKey: `DEDUP-${proId}-NOTIF-${Date.now()}`,
+    ticketId: ticketId || '',
+    createdAt: new Date()
+  };
+
+  notificationsStore[proId].unshift(notifObj);
+  return notifObj;
+}
+
 export async function getSupportTickets(req, res) {
   try {
     const proId = req.professional.id;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional || {};
     initProData(proId);
 
     const { category, status, priority, page = 1, limit = 20 } = req.query;
-    let list = supportTicketsStore[proId] || [];
 
-    if (category) list = list.filter(t => t.category === category);
-    if (status) list = list.filter(t => t.status === status);
-    if (priority) list = list.filter(t => t.priority === priority);
+    // Fetch real tickets from MongoDB Atlas SupportTicket collection
+    let dbTickets = [];
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      const cleanPhone = (pro.phone || '').replace(/\D/g, '').slice(-10);
+      const orConditions = [
+        { workerId: String(proId) },
+        { callerRole: 'Professional', workerId: { $in: [String(proId), 'PRO-8841', ''] } }
+      ];
+      if (cleanPhone) {
+        orConditions.push({ callerPhone: { $regex: cleanPhone } });
+      }
+      if (pro.email) {
+        orConditions.push({ callerEmail: pro.email.toLowerCase() });
+      }
 
-    // CRITICAL SECURITY RULE: Strip staff internal notes from worker response!
-    const sanitizedTickets = list.map(t => {
-      const copy = { ...t, reference: t.reference || t.id };
-      delete copy.internalStaffNotes;
-      return copy;
-    });
+      const rawDbTickets = await SupportTicket.find({ $or: orConditions }).sort({ createdAt: -1 }).lean();
+
+      dbTickets = rawDbTickets.map(t => {
+        // Strip staff internal notes from worker response (security rule)
+        const visibleMessages = (t.messages || [])
+          .filter(m => !m.isInternal)
+          .map(m => ({
+            id: m.id || String(m._id) || `MSG-${Math.random()}`,
+            sender: m.sender || (m.senderRole === 'Professional' ? 'Professional' : 'Platform Support Desk'),
+            senderRole: m.senderRole || 'Support Desk',
+            text: m.text,
+            timestamp: m.timestamp || t.createdAt,
+            attachments: m.attachments || []
+          }));
+
+        return {
+          id: t.referenceNumber || String(t._id),
+          reference: t.referenceNumber || String(t._id),
+          referenceNumber: t.referenceNumber || String(t._id),
+          subject: t.subject || t.issueCategory || `${(t.category || 'SUPPORT').toUpperCase()} Ticket`,
+          category: t.category || 'booking_support',
+          priority: t.priority || 'Normal',
+          relatedBookingId: t.bookingId || '',
+          relatedPayoutRef: '',
+          description: (visibleMessages[0]?.text) || t.subject || '',
+          status: t.status || 'Open',
+          messages: visibleMessages,
+          resolutionHistory: [
+            {
+              timestamp: t.createdAt,
+              status: t.status || 'Open',
+              updatedBy: t.callerName || 'Professional',
+              note: `Ticket registered with reference ${t.referenceNumber}`
+            },
+            ...(t.closureReason ? [{
+              timestamp: t.closedAt || t.updatedAt || new Date(),
+              status: t.status,
+              updatedBy: t.assignedAgent || 'Support Operations Desk',
+              note: t.closureReason
+            }] : [])
+          ],
+          attachments: (t.evidence || []).map((ev, i) => ({
+            fileName: `Attachment-${i + 1}`,
+            fileUrl: ev,
+            mimeType: 'image/jpeg'
+          })),
+          createdAt: t.createdAt
+        };
+      });
+    }
+
+    // Merge with in-memory tickets deduplicating by reference
+    let list = [...dbTickets];
+    const seenRefs = new Set(dbTickets.map(t => t.reference || t.id));
+
+    const memList = supportTicketsStore[proId] || [];
+    for (const memTicket of memList) {
+      const ref = memTicket.reference || memTicket.id;
+      if (!seenRefs.has(ref)) {
+        const copy = { ...memTicket, reference: ref };
+        delete copy.internalStaffNotes;
+        list.push(copy);
+        seenRefs.add(ref);
+      }
+    }
+
+    if (category && category !== 'all') list = list.filter(t => t.category === category);
+    if (status && status !== 'all') list = list.filter(t => t.status === status);
+    if (priority && priority !== 'all') list = list.filter(t => t.priority === priority);
+
+    list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
     const pageNum = parseInt(page) || 1;
     const limitNum = parseInt(limit) || 20;
     const startIndex = (pageNum - 1) * limitNum;
-    const paginated = sanitizedTickets.slice(startIndex, startIndex + limitNum);
+    const paginated = list.slice(startIndex, startIndex + limitNum);
 
     return res.json({
       success: true,
       tickets: paginated,
-      totalCount: sanitizedTickets.length,
+      totalCount: list.length,
       page: pageNum,
-      totalPages: Math.ceil(sanitizedTickets.length / limitNum) || 1,
+      totalPages: Math.ceil(list.length / limitNum) || 1,
       categories: [
         { id: 'booking_support', label: 'Booking-Related Support' },
         { id: 'earnings_payout', label: 'Earnings & Payout Support' },
@@ -5933,7 +6049,7 @@ export async function getSupportTickets(req, res) {
         safetyDesk24x7: '+91 1800 209 8820',
         hubDispatchHelpline: '+91 98200 44911',
         safetyCellEmail: 'safety-cell@urbanpro.com',
-        operationalHub: 'Bandra West Central Hub'
+        operationalHub: 'Krishnagiri Central Hub'
       }
     });
   } catch (err) {
@@ -5944,7 +6060,7 @@ export async function getSupportTickets(req, res) {
 export async function createSupportTicket(req, res) {
   try {
     const proId = req.professional.id;
-    const pro = professionalsStore.find(p => p.id === proId) || req.professional;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional || {};
     initProData(proId);
 
     // Idempotency guard
@@ -5968,28 +6084,13 @@ export async function createSupportTicket(req, res) {
       'Safety incident reporting': 'safety_incident',
       'safety_incident': 'safety_incident'
     };
-    const cat = categoryMap[category] || category;
-    const validCategories = ['booking_support', 'earnings_payout', 'account_onboarding', 'technical_issue', 'safety_incident'];
-    if (!cat || !validCategories.includes(cat)) {
-      return res.status(400).json({
-        success: false,
-        error: `Invalid support category. Must be one of: ${validCategories.join(', ')}`
-      });
-    }
-
-    const validPriorities = ['Normal', 'High', 'Urgent', 'Critical'];
-    if (priority && !validPriorities.includes(priority)) {
-      return res.status(400).json({
-        success: false,
-        error: `Invalid priority level. Must be one of: ${validPriorities.join(', ')}`
-      });
-    }
+    const cat = categoryMap[category] || category || 'booking_support';
 
     const ticketDesc = description || message || subject;
-    if (!ticketDesc || ticketDesc.trim().length < 5) {
+    if (!ticketDesc || ticketDesc.trim().length < 3) {
       return res.status(400).json({
         success: false,
-        error: 'Ticket description is required and must contain at least 5 characters.'
+        error: 'Ticket description is required and must contain at least 3 characters.'
       });
     }
 
@@ -6003,12 +6104,6 @@ export async function createSupportTicket(req, res) {
             error: `Attachment ${att.fileName || 'file'} exceeds the 5MB maximum platform limit.`
           });
         }
-        if (att.mimeType && !['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(att.mimeType.toLowerCase())) {
-          return res.status(400).json({
-            success: false,
-            error: `Attachment type ${att.mimeType} is not permitted. Only JPG, PNG, and PDF allowed.`
-          });
-        }
         validAttachments.push({
           fileName: att.fileName || 'attachment',
           fileUrl: att.fileUrl || 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300',
@@ -6018,13 +6113,18 @@ export async function createSupportTicket(req, res) {
       }
     }
 
-    const ticketId = `TKT-${proId}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const count = await SupportTicket.countDocuments().catch(() => Math.floor(Math.random() * 1000));
+    const ticketId = `TCK-${1000 + count + 1}`;
     const now = new Date();
+    const callerName = pro.applicantName || pro.name || 'Service Professional';
+    const callerPhone = pro.phone || '';
+    const callerEmail = pro.email || '';
 
     const newTicket = {
       id: ticketId,
       reference: ticketId,
-      subject: subject || `${cat.replace('_', ' ').toUpperCase()} Ticket`,
+      referenceNumber: ticketId,
+      subject: subject || `${cat.replace(/_/g, ' ').toUpperCase()} Inquiry`,
       category: cat,
       priority,
       relatedBookingId: relatedBookingId || '',
@@ -6035,7 +6135,7 @@ export async function createSupportTicket(req, res) {
       messages: [
         {
           id: `MSG-${Math.floor(1000 + Math.random() * 9000)}`,
-          sender: 'Professional',
+          sender: callerName,
           senderRole: 'Professional',
           text: ticketDesc.trim(),
           timestamp: now,
@@ -6046,32 +6146,66 @@ export async function createSupportTicket(req, res) {
         {
           timestamp: now,
           status: 'Open',
-          updatedBy: pro.applicantName || 'Professional',
+          updatedBy: callerName,
           note: 'Ticket created via Professional Portal'
         }
       ],
-      internalStaffNotes: [], // Staff notes stay strictly private
+      internalStaffNotes: [],
       createdAt: now
     };
 
+    // 1. Real Database persistence to MongoDB Atlas
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        await SupportTicket.create({
+          referenceNumber: ticketId,
+          bookingId: relatedBookingId || '',
+          serviceTitle: relatedBookingId ? `Service Dispute - ${relatedBookingId}` : 'Professional Partner Support',
+          callerName,
+          callerRole: 'Professional',
+          workerId: String(proId),
+          callerPhone,
+          callerEmail,
+          issueCategory: subject || cat,
+          category: cat,
+          subject: newTicket.subject,
+          priority,
+          status: 'Open',
+          messages: [{
+            id: `MSG-${Math.floor(1000 + Math.random() * 9000)}`,
+            sender: callerName,
+            senderRole: 'Professional',
+            text: ticketDesc.trim(),
+            isInternal: false,
+            timestamp: now,
+            attachments: validAttachments
+          }],
+          evidence: validAttachments.map(a => a.fileUrl || a.fileName)
+        });
+      } catch (dbErr) {
+        console.error('Failed to persist SupportTicket to MongoDB:', dbErr);
+      }
+    }
+
+    // 2. Also keep in in-memory store
+    if (!supportTicketsStore[proId]) supportTicketsStore[proId] = [];
     supportTicketsStore[proId].unshift(newTicket);
 
     recordProfessionalAudit(
       proId,
-      { type: 'professional', id: proId, name: pro.applicantName },
+      { type: 'professional', id: proId, name: callerName },
       'SUPPORT_TICKET_CREATED',
       { type: 'SupportTicket', id: ticketId },
-      `Raised ${priority} priority ${category} ticket: ${newTicket.subject}`,
-      { ticketId, category, priority, relatedBookingId, relatedPayoutRef }
+      `Raised ${priority} priority ${cat} ticket: ${newTicket.subject}`,
+      { ticketId, category: cat, priority, relatedBookingId, relatedPayoutRef }
     );
 
-    // Prepare safe sanitized return object
     const returnTicket = { ...newTicket };
     delete returnTicket.internalStaffNotes;
 
     const responsePayload = {
       success: true,
-      message: `Support ticket ${ticketId} created. Priority: ${priority}. Support desk notified.`,
+      message: `Support ticket #${ticketId} created. Platform support desk notified.`,
       ticket: returnTicket
     };
 
@@ -6088,56 +6222,95 @@ export async function createSupportTicket(req, res) {
 export async function addTicketMessage(req, res) {
   try {
     const proId = req.professional.id;
+    const pro = professionalsStore.find(p => p.id === proId) || req.professional || {};
     const { id } = req.params;
     const { message, text, attachments } = req.body;
     initProData(proId);
-
-    const ticket = (supportTicketsStore[proId] || []).find(t => t.id === id || t.reference === id);
-    if (!ticket) {
-      return res.status(404).json({ success: false, error: 'Support ticket not found.' });
-    }
 
     const msgText = (text || message || '').trim();
     if (!msgText) {
       return res.status(400).json({ success: false, error: 'Message text cannot be empty.' });
     }
 
+    const senderName = pro.applicantName || pro.name || 'Professional';
     const msgObj = {
       id: `MSG-${Math.floor(1000 + Math.random() * 9000)}`,
-      sender: 'Professional',
+      sender: senderName,
       senderRole: 'Professional',
       text: msgText,
       timestamp: new Date(),
       attachments: attachments || []
     };
 
-    ticket.messages.push(msgObj);
-    if (ticket.status === 'Resolved' || ticket.status === 'Closed') {
-      ticket.status = 'Open';
-      ticket.resolutionHistory.push({
-        timestamp: new Date(),
-        status: 'Reopened',
-        updatedBy: req.professional.name || 'Professional',
-        note: 'Reopened by professional with additional inquiry.'
+    // Update in MongoDB Atlas
+    let dbTicket = null;
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      dbTicket = await SupportTicket.findOne({
+        $or: [
+          { referenceNumber: id },
+          { _id: mongoose.isValidObjectId(id) ? id : null }
+        ]
       });
+
+      if (dbTicket) {
+        dbTicket.messages.push({
+          id: msgObj.id,
+          sender: senderName,
+          senderRole: 'Professional',
+          text: msgText,
+          isInternal: false,
+          attachments: attachments || [],
+          timestamp: new Date()
+        });
+        if (dbTicket.status === 'Resolved' || dbTicket.status === 'Closed') {
+          dbTicket.status = 'Open';
+        }
+        await dbTicket.save();
+      }
+    }
+
+    // Update in-memory ticket
+    const ticket = (supportTicketsStore[proId] || []).find(t => t.id === id || t.reference === id);
+    if (ticket) {
+      ticket.messages.push(msgObj);
+      if (ticket.status === 'Resolved' || ticket.status === 'Closed') {
+        ticket.status = 'Open';
+        ticket.resolutionHistory.push({
+          timestamp: new Date(),
+          status: 'Reopened',
+          updatedBy: senderName,
+          note: 'Reopened by professional with additional inquiry.'
+        });
+      }
+    }
+
+    if (!dbTicket && !ticket) {
+      return res.status(404).json({ success: false, error: 'Support ticket not found.' });
     }
 
     recordProfessionalAudit(
       proId,
-      { type: 'professional', id: proId, name: req.professional.name },
+      { type: 'professional', id: proId, name: senderName },
       'TICKET_MESSAGE_SENT',
-      { type: 'SupportTicket', id: ticket.id },
+      { type: 'SupportTicket', id },
       'Appended message to support ticket thread',
-      { ticketId: ticket.id }
+      { ticketId: id }
     );
 
-    const safeTicket = { ...ticket };
-    delete safeTicket.internalStaffNotes;
+    const returnTicket = ticket ? { ...ticket } : {
+      id: dbTicket.referenceNumber,
+      reference: dbTicket.referenceNumber,
+      subject: dbTicket.subject,
+      category: dbTicket.category,
+      status: dbTicket.status,
+      messages: dbTicket.messages.filter(m => !m.isInternal)
+    };
+    delete returnTicket.internalStaffNotes;
 
     return res.json({
       success: true,
       message: 'Message added to ticket thread.',
-      ticket: safeTicket
+      ticket: returnTicket
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
@@ -6223,6 +6396,47 @@ export async function escalateSafetyIncident(req, res) {
     };
 
     supportTicketsStore[proId].unshift(safetyTicket);
+
+    // Persist critical safety escalation to MongoDB Atlas
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        await SupportTicket.create({
+          referenceNumber: ticketId,
+          bookingId: relatedBookingId || '',
+          serviceTitle: `🚨 SAFETY ESCALATION: ${type.replace(/_/g, ' ').toUpperCase()}`,
+          callerName: pro.applicantName || 'Service Professional',
+          callerRole: 'Professional',
+          workerId: String(proId),
+          callerPhone: pro.phone || '',
+          callerEmail: pro.email || '',
+          issueCategory: 'Safety Incident Reporting',
+          category: 'safety_incident',
+          subject: safetyTicket.subject,
+          priority: 'Critical',
+          status: 'Open',
+          messages: [
+            {
+              id: `MSG-${Math.floor(1000 + Math.random() * 9000)}`,
+              sender: pro.applicantName || 'Professional',
+              senderRole: 'Professional',
+              text: `SAFETY ESCALATION: ${description || 'Safety incident escalated with authorized live GPS sharing.'}`,
+              isInternal: false,
+              timestamp: now
+            },
+            {
+              id: `MSG-${Math.floor(1000 + Math.random() * 9000)}`,
+              sender: 'Platform 24x7 Safety Desk',
+              senderRole: 'Safety Cell',
+              text: 'Emergency escalation received. Safety officer dispatching immediate callback. If in immediate physical danger, exit the premises now.',
+              isInternal: false,
+              timestamp: new Date(now.getTime() + 1000)
+            }
+          ]
+        });
+      } catch (dbErr) {
+        console.error('Failed to persist safety escalation to MongoDB:', dbErr);
+      }
+    }
 
     recordProfessionalAudit(
       proId,
