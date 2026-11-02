@@ -29,6 +29,7 @@ import {
   Plus
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
+import { formatSlotDisplay } from '../../utils/slotDates';
 
 export function CustomersView({ onShowToast, onNavigate }) {
   const [customers, setCustomers] = useState([]);
@@ -1053,7 +1054,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
                             {bk.serviceName}
                           </div>
                           <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
-                            Slot: {bk.slot || 'Scheduled'} • Pro: <strong>{bk.assignedPartner || bk.proName || 'Unassigned'}</strong>
+                            Slot: {formatSlotDisplay(bk.slot, bk.scheduledDate, bk.createdAt)} • Pro: <strong>{bk.assignedPartner || bk.proName || 'Unassigned'}</strong>
                           </div>
                         </div>
 

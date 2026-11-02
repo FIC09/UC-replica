@@ -45,6 +45,7 @@ import {
   Edit2
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
+import { parseSlotInfo, formatSlotDisplay } from '../../utils/slotDates';
 
 // Valid Lifecycle Pipeline definition
 const LIFECYCLE_STAGES = ['Pending', 'Confirmed', 'Assigned', 'En Route', 'In Progress', 'Completed'];
@@ -645,7 +646,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
       city: b.city || b.addressDetails?.city || 'Krishnagiri',
       serviceZone: b.serviceZone || b.addressDetails?.locality || 'Gandhi Nagar',
       address: b.address || b.addressDetails?.fullAddress || '',
-      slot: b.slot || '11:30 AM - 01:00 PM',
+      slot: formatSlotDisplay(b.slot, b.scheduledDate, b.createdAt),
       status: b.status || 'Pending',
       paymentStatus: b.paymentStatus || 'Pending',
       paymentMethod: b.paymentMethod || 'Cash After Service (COD)',
@@ -788,7 +789,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
       `"${b.partnerAgency || b.assignedBusinessPartner?.name || 'Direct'}"`,
       `"${b.city || ''}"`,
       `"${b.serviceZone || b.locality || ''}"`,
-      `"${b.slot || ''}"`,
+      `"${formatSlotDisplay(b.slot, b.scheduledDate, b.createdAt)}"`,
       `"${b.status || ''}"`,
       `"${b.paymentStatus || ''}"`,
       `"${b.totalAmount || 0}"`,
@@ -1706,10 +1707,64 @@ export function BookingsView({ onShowToast, onNavigate }) {
 
                       {/* Scheduled Slot */}
                       <td style={{ padding: '14px 16px', color: '#334155' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <Clock size={13} color="#64748B" />
-                          <span>{b.slot || 'Pending Slot'}</span>
-                        </div>
+                        {(() => {
+                          const slotInfo = parseSlotInfo(b.slot, b.scheduledDate, b.createdAt);
+                          return (
+                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                              <Clock
+                                size={13}
+                                color={slotInfo.isToday ? '#2563EB' : (slotInfo.isPast ? '#94A3B8' : '#64748B')}
+                                style={{ marginTop: 2, flexShrink: 0 }}
+                              />
+                              <div>
+                                <div style={{
+                                  fontWeight: 600,
+                                  fontSize: 13,
+                                  color: slotInfo.isToday ? '#1D4ED8' : (slotInfo.isPast ? '#475569' : '#0F172A'),
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  flexWrap: 'wrap'
+                                }}>
+                                  <span>{slotInfo.datePart}</span>
+                                  {slotInfo.isPast && (
+                                    <span style={{
+                                      fontSize: 9.5,
+                                      fontWeight: 700,
+                                      padding: '1px 5px',
+                                      borderRadius: 4,
+                                      background: '#F1F5F9',
+                                      color: '#64748B',
+                                      border: '1px solid #E2E8F0',
+                                      textTransform: 'uppercase'
+                                    }}>
+                                      Past
+                                    </span>
+                                  )}
+                                  {slotInfo.isToday && (
+                                    <span style={{
+                                      fontSize: 9.5,
+                                      fontWeight: 700,
+                                      padding: '1px 5px',
+                                      borderRadius: 4,
+                                      background: '#EFF6FF',
+                                      color: '#1D4ED8',
+                                      border: '1px solid #BFDBFE',
+                                      textTransform: 'uppercase'
+                                    }}>
+                                      Today
+                                    </span>
+                                  )}
+                                </div>
+                                {slotInfo.timePart && (
+                                  <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 1 }}>
+                                    {slotInfo.timePart}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Status */}
@@ -2828,7 +2883,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   <div style={{ fontSize: 12, color: '#64748B', marginTop: 4, display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                     <span>Customer: <strong style={{ color: '#0F172A' }}>{activeModalBooking.userName || activeModalBooking.customerName}</strong></span>
                     <span>•</span>
-                    <span>Slot: <strong style={{ color: '#0F172A' }}>{activeModalBooking.slot}</strong></span>
+                    <span>Slot: <strong style={{ color: '#0F172A' }}>{formatSlotDisplay(activeModalBooking.slot, activeModalBooking.scheduledDate, activeModalBooking.createdAt)}</strong></span>
                     <span>•</span>
                     <span>Location: <strong style={{ color: '#0F172A' }}>{activeModalBooking.serviceZone || activeModalBooking.city}</strong></span>
                   </div>
@@ -3303,7 +3358,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   Current Slot:
                 </label>
                 <div style={{ fontSize: 12, color: '#64748B', backgroundColor: '#F8FAFC', padding: '8px 12px', borderRadius: 6 }}>
-                  {selectedBooking.slot}
+                  {formatSlotDisplay(selectedBooking.slot, selectedBooking.scheduledDate, selectedBooking.createdAt)}
                 </div>
               </div>
 

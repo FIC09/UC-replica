@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { professionalClient, getInitials, getPartnerTier } from '../professionalClient';
 import { usePlatformSettings } from '../../utils/usePlatformSettings';
+import { formatSlotDisplay } from '../../utils/slotDates';
 import {
   ShieldAlert,
   PhoneCall,
@@ -901,7 +902,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                       {nextJob.serviceName}
                     </h2>
                     <div style={{ fontSize: 13.5, color: '#475569' }}>
-                      Slot: <strong style={{ color: '#0F172A' }}>{nextJob.slot}</strong> ({nextJob.timeZone || 'Asia/Kolkata'})
+                      Slot: <strong style={{ color: '#0F172A' }}>{formatSlotDisplay(nextJob.slot, nextJob.scheduledDate, nextJob.createdAt)}</strong> ({nextJob.timeZone || 'Asia/Kolkata'})
                     </div>
                     <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 3 }}>
                       Estimated Service Duration: <strong>{nextJob.estimatedDuration}</strong>

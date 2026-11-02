@@ -10,6 +10,7 @@ import React, { useState, useEffect, useRef } from 'react';
  */
 export function LiveCameraModal({
   isOpen,
+  phase = 'after',
   title = 'Capture Live Work Verification Photo',
   subtitle = 'Live camera capture only. Platform policy strictly requires live evidence.',
   onCapture,
@@ -18,6 +19,7 @@ export function LiveCameraModal({
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const mediaStreamRef = useRef(null);
+  const fallbackFileInputRef = useRef(null);
 
   const [isStreaming, setIsStreaming] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
@@ -274,9 +276,22 @@ export function LiveCameraModal({
 
   function handleConfirm() {
     if (capturedImage && onCapture) {
-      onCapture(capturedImage);
+      onCapture(capturedImage, phase);
     }
     handleCloseModal();
+  }
+
+  function handleFallbackFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCapturedImage(reader.result);
+      setCameraError('');
+      stopCamera();
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   }
 
   function handleCloseModal() {
@@ -296,7 +311,7 @@ export function LiveCameraModal({
       right: 0,
       bottom: 0,
       backgroundColor: 'rgba(15, 23, 42, 0.88)',
-      zIndex: 10000,
+      zIndex: 10005,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -482,23 +497,40 @@ export function LiveCameraModal({
               <div style={{ fontSize: 12, color: '#CBD5E1', maxWidth: 380, lineHeight: 1.5 }}>
                 {cameraError}
               </div>
-              <button
-                type="button"
-                onClick={startCamera}
-                style={{
-                  marginTop: 6,
-                  backgroundColor: '#7C3AED',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  borderRadius: 8,
-                  padding: '9px 18px',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                🔄 Retry Camera Access
-              </button>
+              <div style={{ display: 'flex', gap: 10, marginTop: 6, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  style={{
+                    backgroundColor: '#7C3AED',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '9px 18px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔄 Retry Camera Access
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fallbackFileInputRef.current?.click()}
+                  style={{
+                    backgroundColor: '#2563EB',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '9px 18px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  📁 Upload Photo from Device Instead
+                </button>
+              </div>
             </div>
           ) : (
             /* Live Camera Stream View */
@@ -790,6 +822,13 @@ export function LiveCameraModal({
           )}
         </div>
       </div>
+      <input
+        ref={fallbackFileInputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: 'none' }}
+        onChange={handleFallbackFile}
+      />
       <canvas ref={canvasRef} style={{ display: 'none' }} />
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { professionalClient } from '../professionalClient';
 import { RapidoChatDrawer } from '../../components/RapidoChatDrawer';
+import { formatSlotDisplay } from '../../utils/slotDates';
 
 export function JobsView({ onNavigate, showToast }) {
   const [activeTab, setActiveTab] = useState('upcoming'); // 'upcoming' | 'action_required' | 'in_progress' | 'completed' | 'cancelled' | 'offers'
@@ -141,9 +142,7 @@ export function JobsView({ onNavigate, showToast }) {
   // Handle Lifecycle Transitions
   const handleLifecycleTransition = async (job, targetStatus, requiresOtp = false) => {
     if (requiresOtp || targetStatus === 'In Progress') {
-      setSelectedJobForOtp(job);
-      setOtpInput('');
-      setOtpError('');
+      onNavigate(`/professional/jobs/${job.id}`);
       return;
     }
 
@@ -342,7 +341,7 @@ export function JobsView({ onNavigate, showToast }) {
                   {topOffer.serviceName} • ₹{topOffer.payout || topOffer.totalAmount} Technician Payout
                 </div>
                 <div style={{ fontSize: 12, color: '#C7D2FE', marginTop: 2 }}>
-                  Area: <strong>{topOffer.area}</strong> • Scheduled: <strong>{topOffer.slot}</strong>
+                  Area: <strong>{topOffer.area}</strong> • Scheduled: <strong>{formatSlotDisplay(topOffer.slot, topOffer.scheduledDate, topOffer.createdAt)}</strong>
                 </div>
               </div>
             </div>
@@ -550,7 +549,7 @@ export function JobsView({ onNavigate, showToast }) {
                         {offer.serviceName}
                       </h3>
                       <div style={{ fontSize: 13, color: '#64748b' }}>
-                        Slot: <strong style={{ color: '#0f172a' }}>{offer.slot}</strong> ({offer.estimatedDuration})
+                        Slot: <strong style={{ color: '#0f172a' }}>{formatSlotDisplay(offer.slot, offer.scheduledDate, offer.createdAt)}</strong> ({offer.estimatedDuration})
                       </div>
                     </div>
 
@@ -692,7 +691,7 @@ export function JobsView({ onNavigate, showToast }) {
                     {job.serviceName}
                   </h3>
                   <div style={{ fontSize: 13, color: '#64748b' }}>
-                    Slot: <strong style={{ color: '#0f172a' }}>{job.slot}</strong> ({job.timeZone || 'Asia/Kolkata (IST)'})
+                    Slot: <strong style={{ color: '#0f172a' }}>{formatSlotDisplay(job.slot, job.scheduledDate, job.createdAt)}</strong> ({job.timeZone || 'Asia/Kolkata (IST)'})
                   </div>
                   <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
                     Est Duration: <strong>{job.estimatedDuration}</strong>
@@ -851,7 +850,7 @@ export function JobsView({ onNavigate, showToast }) {
 
                   {job.status === 'Arrived' && (
                     <button
-                      onClick={() => handleLifecycleTransition(job, 'In Progress', true)}
+                      onClick={() => onNavigate(`/professional/jobs/${job.id}`)}
                       style={{
                         background: '#2563eb',
                         color: '#ffffff',
@@ -863,7 +862,7 @@ export function JobsView({ onNavigate, showToast }) {
                         cursor: 'pointer'
                       }}
                     >
-                      🔑 Verify OTP & Begin Service
+                      📸 🔑 Take Photo & Start Service →
                     </button>
                   )}
 

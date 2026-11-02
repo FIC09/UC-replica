@@ -3,7 +3,8 @@ import {
   Building2, TrendingUp, CreditCard, 
   FileText, AlertTriangle, Bell, 
   BarChart3, ShieldCheck, History, Settings, ChevronLeft, 
-  ChevronRight, LogOut, Menu, X, CheckCircle2, Shield, RotateCcw
+  ChevronRight, LogOut, Menu, X, CheckCircle2, Shield, RotateCcw,
+  Briefcase, Users, Calendar, Radio
 } from 'lucide-react';
 import { partnerClient } from './partnerClient';
 
@@ -24,7 +25,11 @@ export function PartnerLayout({
     {
       group: 'Core Operations',
       items: [
-        { path: '/partner', label: 'Overview', icon: Building2 }
+        { path: '/partner', label: 'Overview', icon: Building2 },
+        { path: '/partner/live-tracking', label: 'Live Operations', icon: Radio, badge: 'Live' },
+        { path: '/partner/bookings', label: 'Bookings & Dispatch', icon: Briefcase },
+        { path: '/partner/team', label: 'Field Professionals', icon: Users },
+        { path: '/partner/calendar', label: 'Schedule Calendar', icon: Calendar }
       ]
     },
     {

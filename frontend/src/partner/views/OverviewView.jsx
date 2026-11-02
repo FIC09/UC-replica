@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Building2, Users, Calendar, Briefcase, TrendingUp, CheckCircle2, 
   Clock, AlertCircle, ArrowUpRight, ShieldCheck, ChevronRight, HardHat,
@@ -17,29 +17,75 @@ export function OverviewView({ onNavigate, showToast, staff }) {
   const [categoryFilter, setCategoryFilter] = useState('ALL');
   const [proFilter, setProFilter] = useState('ALL');
 
+  const filtersRef = useRef({ dateRange, cityFilter, categoryFilter, proFilter });
   useEffect(() => {
-    loadSummary();
+    filtersRef.current = { dateRange, cityFilter, categoryFilter, proFilter };
   }, [dateRange, cityFilter, categoryFilter, proFilter]);
 
-  async function loadSummary() {
-    setLoading(true);
+  async function loadSummary(showSpinner = true) {
+    if (showSpinner) setLoading(true);
     try {
+      const current = filtersRef.current || {};
       const params = {};
-      if (dateRange !== 'all') params.dateRange = dateRange;
-      if (cityFilter !== 'ALL') params.city = cityFilter;
-      if (categoryFilter !== 'ALL') params.category = categoryFilter;
-      if (proFilter !== 'ALL') params.proId = proFilter;
+      if (current.dateRange !== 'all') params.dateRange = current.dateRange;
+      if (current.cityFilter !== 'ALL') params.city = current.cityFilter;
+      if (current.categoryFilter !== 'ALL') params.category = current.categoryFilter;
+      if (current.proFilter !== 'ALL') params.proId = current.proFilter;
 
       const res = await partnerClient.getDashboardSummary(params);
       if (res && res.success) {
         setData(res);
       }
     } catch (err) {
-      showToast?.('Error loading dashboard summary: ' + err.message);
+      if (showSpinner) showToast?.('Error loading dashboard summary: ' + err.message);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }
+
+  // 1. Initial & Filter-Triggered Load
+  useEffect(() => {
+    loadSummary(true);
+  }, [dateRange, cityFilter, categoryFilter, proFilter]);
+
+  // 2. Real-Time Synchronization Engine (BroadcastChannel + LocalStorage + Focus + 3s Silent Poll)
+  useEffect(() => {
+    let broadcastChannel = null;
+    try {
+      broadcastChannel = new BroadcastChannel('uc_sync_channel');
+      broadcastChannel.onmessage = (event) => {
+        const d = event.data || {};
+        if (d.type === 'BOOKING_CREATED' || d.type === 'BOOKING_UPDATED' || d.type === 'BOOKING_DELETED') {
+          loadSummary(false);
+        }
+      };
+    } catch (e) {}
+
+    const handleStorage = (e) => {
+      if (e.key === 'uc_last_booking_event') {
+        loadSummary(false);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    const handleFocus = () => {
+      loadSummary(false);
+    };
+    window.addEventListener('focus', handleFocus);
+
+    const interval = setInterval(() => {
+      loadSummary(false);
+    }, 3000);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleFocus);
+      if (broadcastChannel) {
+        try { broadcastChannel.close(); } catch (e) {}
+      }
+    };
+  }, []);
 
   const partner = data?.partner || partnerClient.getStoredPartner();
   const metrics = data?.metrics || {

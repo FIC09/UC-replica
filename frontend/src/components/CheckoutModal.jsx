@@ -151,6 +151,7 @@ export function CheckoutModal({
       },
       notes: deliveryNotes.trim() || undefined,
       slot: `${selectedDate}, ${selectedTime}`,
+      scheduledDate: availableDates.find(d => `${d.prefix} (${d.sub})` === selectedDate)?.dateObj,
       contact: `${custName} (${formattedPhone})`,
       paymentMethod: paymentMethod.toUpperCase(),
       paymentStatus: 'Paid',

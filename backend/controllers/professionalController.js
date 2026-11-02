@@ -4065,8 +4065,20 @@ export async function updateJobStatus(req, res) {
       });
     }
 
-    // Enforce Customer Start OTP when advancing to 'In Progress'
+    // Enforce Customer Start OTP & Mandatory Pre-Work Photo when advancing to 'In Progress'
     if (status === 'In Progress') {
+      const hasBeforePhoto = Boolean(
+        booking?.beforeWorkPhoto?.url ||
+        req.body?.beforeWorkPhoto ||
+        (booking?.structuredChecklists?.photos || []).some(p => p.phase === 'before')
+      );
+      if (!hasBeforePhoto) {
+        return res.status(400).json({
+          success: false,
+          error: '📸 SOP Policy Requirement: A verified pre-work inspection photo must be captured before entering customer OTP to start the job.'
+        });
+      }
+
       const attemptsRecord = jobOtpAttemptsStore.get(id) || { attempts: 0, expiresAt: Date.now() + 10 * 60 * 1000 };
       if (attemptsRecord.attempts >= 3) {
         return res.status(429).json({
@@ -4090,6 +4102,21 @@ export async function updateJobStatus(req, res) {
         });
       }
       jobOtpAttemptsStore.delete(id);
+    }
+
+    // Enforce Mandatory Post-Work Photo when advancing to 'Completed'
+    if (status === 'Completed') {
+      const hasAfterPhoto = Boolean(
+        booking?.afterWorkPhoto?.url ||
+        req.body?.afterWorkPhoto ||
+        (booking?.structuredChecklists?.photos || []).some(p => p.phase === 'after')
+      );
+      if (!hasAfterPhoto) {
+        return res.status(400).json({
+          success: false,
+          error: '📸 SOP Policy Requirement: A verified post-work completion photo must be captured before marking job as completed.'
+        });
+      }
     }
 
     // Lifecycle transition validity check

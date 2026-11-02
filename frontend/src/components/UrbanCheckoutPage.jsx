@@ -701,6 +701,7 @@ export function UrbanCheckoutPage({
         contactPhone: formattedPhone
       },
       slot: `${selectedDate}, ${selectedTime}`,
+      scheduledDate: selectedDateObj?.dateObj,
       status: 'Confirmed',
       paymentStatus: (paymentDetails?.method === 'cod' || paymentDetails?.methodLabel?.toLowerCase().includes('cash')) ? 'Pending' : 'Paid',
       paymentMethod: paymentDetails?.methodLabel || paymentMethod.toUpperCase(),

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Briefcase, Search, Filter, HardHat, Phone, MapPin, Calendar, 
   Clock, CheckCircle, AlertTriangle, X, ChevronRight, MessageSquare, 
@@ -6,6 +6,7 @@ import {
   HelpCircle, CheckCircle2, XCircle, ArrowRight
 } from 'lucide-react';
 import { partnerClient } from '../partnerClient';
+import { formatSlotDisplay } from '../../utils/slotDates';
 
 export function BookingsView({ showToast, staff, onNavigate }) {
   const [bookings, setBookings] = useState([]);
@@ -40,26 +41,72 @@ export function BookingsView({ showToast, staff, onNavigate }) {
   const [isOverrideOpen, setIsOverrideOpen] = useState(false);
   const [overrideJustification, setOverrideJustification] = useState('');
 
+  const filtersRef = useRef({ statusFilter, proFilter });
   useEffect(() => {
-    loadBookings();
+    filtersRef.current = { statusFilter, proFilter };
   }, [statusFilter, proFilter]);
 
-  async function loadBookings() {
-    setLoading(true);
+  async function loadBookings(showSpinner = true) {
+    if (showSpinner) setLoading(true);
     try {
+      const current = filtersRef.current || {};
       const filters = {};
-      if (statusFilter !== 'ALL') filters.status = statusFilter;
-      if (proFilter !== 'ALL') filters.proId = proFilter;
+      if (current.statusFilter !== 'ALL') filters.status = current.statusFilter;
+      if (current.proFilter !== 'ALL') filters.proId = current.proFilter;
       const res = await partnerClient.getBookings(filters);
       if (res && res.success) {
         setBookings(res.bookings || []);
       }
     } catch (err) {
-      showToast?.('Error fetching bookings: ' + err.message);
+      if (showSpinner) showToast?.('Error fetching bookings: ' + err.message);
     } finally {
-      setLoading(false);
+      if (showSpinner) setLoading(false);
     }
   }
+
+  // 1. Initial & Filter-Triggered Load
+  useEffect(() => {
+    loadBookings(true);
+  }, [statusFilter, proFilter]);
+
+  // 2. Real-Time Synchronization Engine (BroadcastChannel + LocalStorage + Focus + 3s Silent Poll)
+  useEffect(() => {
+    let broadcastChannel = null;
+    try {
+      broadcastChannel = new BroadcastChannel('uc_sync_channel');
+      broadcastChannel.onmessage = (event) => {
+        const d = event.data || {};
+        if (d.type === 'BOOKING_CREATED' || d.type === 'BOOKING_UPDATED' || d.type === 'BOOKING_DELETED') {
+          loadBookings(false);
+        }
+      };
+    } catch (e) {}
+
+    const handleStorage = (e) => {
+      if (e.key === 'uc_last_booking_event') {
+        loadBookings(false);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    const handleFocus = () => {
+      loadBookings(false);
+    };
+    window.addEventListener('focus', handleFocus);
+
+    const interval = setInterval(() => {
+      loadBookings(false);
+    }, 3000);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleFocus);
+      if (broadcastChannel) {
+        try { broadcastChannel.close(); } catch (e) {}
+      }
+    };
+  }, []);
 
   async function handleOpenDetail(b) {
     setSelectedBooking(b);
@@ -377,7 +424,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
                     <td style={{ padding: '14px 16px', color: '#64748b' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Clock size={13} color="#7c3aed" />
-                        <span>{b.slot || '11:00 AM - 01:00 PM'}</span>
+                        <span>{formatSlotDisplay(b.slot, b.scheduledDate, b.createdAt) || '11:00 AM - 01:00 PM'}</span>
                       </div>
                     </td>
                     <td style={{ padding: '14px 16px', color: '#475569' }}>

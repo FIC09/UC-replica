@@ -23,6 +23,7 @@ import {
   Info
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
+import { parseSlotInfo, formatSlotDisplay } from '../../utils/slotDates';
 
 export function OverviewView({ onNavigate, onShowToast }) {
   const [data, setData] = useState(null);
@@ -743,7 +744,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                   <div style={{ fontSize: 11.5, color: '#64748B' }}>{b.locality}, {b.city}</div>
                 </td>
                 <td style={{ padding: '12px 18px', color: '#475569', fontSize: 12.5 }}>
-                  {b.slot}
+                  {formatSlotDisplay(b.slot, b.scheduledDate, b.createdAt)}
                 </td>
                 <td style={{ padding: '12px 18px' }}>
                   {b.assignedPartner ? (

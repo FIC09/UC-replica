@@ -5,6 +5,7 @@ import { useWebRtcVoiceCall } from '../../utils/useWebRtcVoiceCall';
 import { WebRtcCallModal } from '../../components/WebRtcCallModal';
 import { usePlatformSettings } from '../../utils/usePlatformSettings';
 import { LiveCameraModal } from '../../components/LiveCameraModal';
+import { formatSlotDisplay } from '../../utils/slotDates';
 
 export function JobDetailView({ jobId, onNavigate, showToast }) {
   const { platformTakeRate, isSurgeActive, surgeAmount } = usePlatformSettings();
@@ -87,14 +88,31 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
     });
   };
 
-  const handleLiveCameraCaptured = (dataUrl) => {
-    if (liveCameraConfig.phase === 'before') {
+  const handleLiveCameraCaptured = async (dataUrl, capturedPhase) => {
+    const effectivePhase = capturedPhase || liveCameraConfig.phase;
+    if (effectivePhase === 'before') {
+      const fileName = `pre_work_${Date.now()}.jpg`;
       setPreWorkPhotoPreview(dataUrl);
-      setPreWorkPhotoFile({ name: `pre_work_${Date.now()}.jpg`, size: 1200 * 1024, type: 'image/jpeg' });
+      setPreWorkPhotoFile({ name: fileName, size: 1200 * 1024, type: 'image/jpeg' });
       setOtpError('');
-    } else if (liveCameraConfig.phase === 'after') {
+      try {
+        await professionalClient.uploadJobPhotoEvidence(jobId, {
+          phase: 'before',
+          photoType: 'work_area',
+          fileBase64: dataUrl,
+          fileName,
+          fileSizeKb: 1200,
+          mimeType: 'image/jpeg'
+        });
+        showToast('✓ Pre-work inspection photo captured & verified!');
+        await loadJob();
+      } catch (uploadErr) {
+        console.warn('Pre-work background upload sync:', uploadErr);
+      }
+    } else {
+      const fileName = `post_work_${Date.now()}.jpg`;
       setPostWorkPhotoPreview(dataUrl);
-      setPostWorkPhotoFile({ name: `post_work_${Date.now()}.jpg`, size: 1200 * 1024, type: 'image/jpeg' });
+      setPostWorkPhotoFile({ name: fileName, size: 1200 * 1024, type: 'image/jpeg' });
       setCompletionPhotoError('');
     }
 
@@ -279,11 +297,27 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
     if (!file) return;
     setPreWorkPhotoFile(file);
     const reader = new FileReader();
-    reader.onload = () => {
-      setPreWorkPhotoPreview(reader.result);
+    reader.onload = async () => {
+      const dataUrl = reader.result;
+      setPreWorkPhotoPreview(dataUrl);
       setOtpError('');
+      try {
+        await professionalClient.uploadJobPhotoEvidence(jobId, {
+          phase: 'before',
+          photoType: 'work_area',
+          fileBase64: dataUrl,
+          fileName: file.name || `pre_work_${Date.now()}.jpg`,
+          fileSizeKb: Math.round(file.size / 1024),
+          mimeType: file.type || 'image/jpeg'
+        });
+        showToast('✓ Pre-work inspection photo uploaded & verified!');
+        await loadJob();
+      } catch (uploadErr) {
+        console.warn('Pre-work background upload sync:', uploadErr);
+      }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handlePostWorkPhotoSelected = (e) => {
@@ -296,6 +330,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
       setCompletionPhotoError('');
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleUploadPreWorkPhotoDirectly = async (e) => {
@@ -944,7 +979,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 gap: 6
               }}>
                 <span>📅</span>
-                <span>Scheduled Slot: <strong style={{ color: '#0F172A' }}>{job.slot}</strong> <span style={{ color: '#64748B', fontSize: 11.5 }}>({job.timeZone || 'Asia/Kolkata (IST)'})</span></span>
+                <span>Scheduled Slot: <strong style={{ color: '#0F172A' }}>{formatSlotDisplay(job.slot, job.scheduledDate, job.createdAt)}</strong> <span style={{ color: '#64748B', fontSize: 11.5 }}>({job.timeZone || 'Asia/Kolkata (IST)'})</span></span>
               </div>
 
               <div style={{
@@ -1366,11 +1401,50 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                       <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
                         Uploaded {beforePhoto.uploadedAt ? new Date(beforePhoto.uploadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'on record'}
                       </div>
+                      <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                        <button
+                          type="button"
+                          onClick={() => openLiveCamera({
+                            phase: 'before',
+                            title: 'Retake Pre-Work Photo',
+                            onSuccess: async (dataUrl) => {
+                              await professionalClient.uploadJobPhotoEvidence(jobId, {
+                                phase: 'before',
+                                photoType: 'work_area',
+                                fileBase64: dataUrl,
+                                fileName: `pre_work_${Date.now()}.jpg`,
+                                fileSizeKb: 1200,
+                                mimeType: 'image/jpeg'
+                              });
+                              showToast('✓ Pre-work verification photo uploaded successfully!');
+                              await loadJob();
+                            }
+                          })}
+                          style={{ fontSize: 11, color: '#7C3AED', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
+                        >
+                          📷 Retake Live
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => preWorkFileInputRef.current?.click()}
+                          style={{ fontSize: 11, color: '#2563EB', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
+                        >
+                          📁 Choose File
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p style={{ fontSize: 11.5, color: '#78350F', margin: '0 0 10px 0' }}>
+                      You must capture a live photo of the initial work area before starting the service.
+                    </p>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       <button
                         type="button"
                         onClick={() => openLiveCamera({
                           phase: 'before',
-                          title: 'Retake Pre-Work Photo',
+                          title: 'Capture Pre-Work Verification Photo',
                           onSuccess: async (dataUrl) => {
                             await professionalClient.uploadJobPhotoEvidence(jobId, {
                               phase: 'before',
@@ -1384,52 +1458,44 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                             await loadJob();
                           }
                         })}
-                        style={{ fontSize: 11, color: '#7C3AED', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', marginTop: 4, display: 'inline-block', background: 'none', border: 'none', padding: 0 }}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '8px 14px',
+                          borderRadius: 8,
+                          border: '1px solid #D97706',
+                          background: '#FFF',
+                          color: '#B45309',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
                       >
-                        📷 Retake Live Photo
+                        <span>📷</span>
+                        <span>Capture Live Pre-Work Photo</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => preWorkFileInputRef.current?.click()}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          padding: '8px 14px',
+                          borderRadius: 8,
+                          border: '1px solid #CBD5E1',
+                          background: '#FFF',
+                          color: '#334155',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <span>📁</span>
+                        <span>Upload File</span>
                       </button>
                     </div>
-                  </div>
-                ) : (
-                  <div>
-                    <p style={{ fontSize: 11.5, color: '#78350F', margin: '0 0 10px 0' }}>
-                      You must capture a live photo of the initial work area before starting the service.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => openLiveCamera({
-                        phase: 'before',
-                        title: 'Capture Pre-Work Verification Photo',
-                        onSuccess: async (dataUrl) => {
-                          await professionalClient.uploadJobPhotoEvidence(jobId, {
-                            phase: 'before',
-                            photoType: 'work_area',
-                            fileBase64: dataUrl,
-                            fileName: `pre_work_${Date.now()}.jpg`,
-                            fileSizeKb: 1200,
-                            mimeType: 'image/jpeg'
-                          });
-                          showToast('✓ Pre-work verification photo uploaded successfully!');
-                          await loadJob();
-                        }
-                      })}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        padding: '8px 14px',
-                        borderRadius: 8,
-                        border: '1px solid #D97706',
-                        background: '#FFF',
-                        color: '#B45309',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <span>📷</span>
-                      <span>Capture Live Pre-Work Photo</span>
-                    </button>
                   </div>
                 )}
               </div>
@@ -3139,24 +3205,6 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 )}
               </div>
 
-              {/* Hidden file inputs for direct selection */}
-              <input
-                ref={preWorkFileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                style={{ display: 'none' }}
-                onChange={handlePreWorkPhotoSelected}
-              />
-              <input
-                ref={postWorkFileInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                style={{ display: 'none' }}
-                onChange={handlePostWorkPhotoSelected}
-              />
-
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
                   type="button"
@@ -3514,9 +3562,28 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
         peerAvatar={job?.customerAvatar || job?.userAvatar || ''}
       />
 
+      {/* Global Hidden File Inputs for Direct Photo Selection from Any Modal or Card */}
+      <input
+        ref={preWorkFileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handlePreWorkPhotoSelected}
+      />
+      <input
+        ref={postWorkFileInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        style={{ display: 'none' }}
+        onChange={handlePostWorkPhotoSelected}
+      />
+
       {/* Direct Live Camera Modal */}
       <LiveCameraModal
         isOpen={liveCameraConfig.isOpen}
+        phase={liveCameraConfig.phase}
         title={liveCameraConfig.title}
         subtitle={liveCameraConfig.subtitle}
         onCapture={handleLiveCameraCaptured}

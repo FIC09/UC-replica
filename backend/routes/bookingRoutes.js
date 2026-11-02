@@ -231,6 +231,18 @@ router.post('/', async (req, res) => {
       } else {
         bookingData.scheduledDate = parsedDate;
       }
+    } else if (bookingData.slot) {
+      const dateInParen = String(bookingData.slot).match(/\((\d{1,2})\s+([A-Za-z]{3,9})(?:\s+(\d{4}))?\)/);
+      if (dateInParen) {
+        const day = parseInt(dateInParen[1], 10);
+        const mStr = dateInParen[2].slice(0, 3).toLowerCase();
+        const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+        const mIndex = months.indexOf(mStr);
+        const yr = dateInParen[3] ? parseInt(dateInParen[3], 10) : new Date().getFullYear();
+        if (mIndex !== -1) {
+          bookingData.scheduledDate = new Date(yr, mIndex, day);
+        }
+      }
     }
 
     if (!bookingData.pricingBreakdown || !bookingData.pricingBreakdown.total) {

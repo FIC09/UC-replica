@@ -80,8 +80,20 @@ export async function getOverviewDashboardMetrics(req, res) {
 
     if (dateRange === 'today') {
       periodBookings = filteredBookings.filter(b => {
-        const slotText = (b.slot || '').toLowerCase();
-        if (slotText.includes('today')) return true;
+        if (b.scheduledDate) {
+          const sd = new Date(b.scheduledDate);
+          if (!isNaN(sd.getTime())) {
+            return sd.getFullYear() === now.getFullYear() && sd.getMonth() === now.getMonth() && sd.getDate() === now.getDate();
+          }
+        }
+        const m = (b.slot || '').match(/\((\d{1,2})\s+([A-Za-z]{3,9})\)/);
+        if (m) {
+          const dNum = parseInt(m[1], 10);
+          const mStr = m[2].slice(0, 3).toLowerCase();
+          const months = ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec'];
+          const mIdx = months.indexOf(mStr);
+          return dNum === now.getDate() && mIdx === now.getMonth();
+        }
         const d = b.createdAt ? new Date(b.createdAt) : null;
         return d && d >= todayStart;
       });
@@ -155,8 +167,21 @@ export async function getOverviewDashboardMetrics(req, res) {
 
     // Today's Bookings
     const todayBookingsCount = filteredBookings.filter(b => {
-      const slotText = (b.slot || '').toLowerCase();
-      return slotText.includes('today') || (b.createdAt && new Date(b.createdAt) >= todayStart);
+      if (b.scheduledDate) {
+        const sd = new Date(b.scheduledDate);
+        if (!isNaN(sd.getTime())) {
+          return sd.getFullYear() === now.getFullYear() && sd.getMonth() === now.getMonth() && sd.getDate() === now.getDate();
+        }
+      }
+      const m = (b.slot || '').match(/\((\d{1,2})\s+([A-Za-z]{3,9})\)/);
+      if (m) {
+        const dNum = parseInt(m[1], 10);
+        const mStr = m[2].slice(0, 3).toLowerCase();
+        const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+        const mIdx = months.indexOf(mStr);
+        return dNum === now.getDate() && mIdx === now.getMonth();
+      }
+      return b.createdAt && new Date(b.createdAt) >= todayStart;
     }).length || Math.min(18, periodBookings.length);
 
     // In-Transit / Active

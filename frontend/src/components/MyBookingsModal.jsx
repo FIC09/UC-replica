@@ -15,7 +15,7 @@ import {
   FileText,
   MessageSquare
 } from 'lucide-react';
-import { getAvailableServiceDates } from '../utils/slotDates';
+import { getAvailableServiceDates, formatSlotDisplay } from '../utils/slotDates';
 import { RapidoChatDrawer } from './RapidoChatDrawer';
 import { WorkerReviewModal } from './WorkerReviewModal';
 
@@ -284,7 +284,7 @@ export function MyBookingsModal({
                     {/* Slot */}
                     <div style={{ fontSize: 12.5, color: '#4B5563', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
                       <Clock size={14} color="#6E42E5" />
-                      <span>{b.slot}</span>
+                      <span>{formatSlotDisplay(b.slot, b.scheduledDate, b.createdAt)}</span>
                     </div>
 
                     {/* Address */}
@@ -585,7 +585,7 @@ export function MyBookingsModal({
 
               <form onSubmit={handleSaveReschedule} style={{ padding: 20 }}>
                 <div style={{ fontSize: 12.5, color: '#64748B', marginBottom: 14 }}>
-                  Current Slot: <strong>{reschedulingBooking.slot}</strong>
+                  Current Slot: <strong>{formatSlotDisplay(reschedulingBooking.slot, reschedulingBooking.scheduledDate, reschedulingBooking.createdAt)}</strong>
                 </div>
 
                 {/* Date options */}

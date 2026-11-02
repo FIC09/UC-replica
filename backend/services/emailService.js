@@ -2,12 +2,20 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-const SMTP_HOST = process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com';
+const SMTP_HOST = (process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com').trim();
 const SMTP_PORT = parseInt(process.env.BREVO_SMTP_PORT || '587', 10);
-const SMTP_USER = process.env.BREVO_SMTP_USER || 'b5786a001@smtp-brevo.com';
-const SMTP_PASS = process.env.BREVO_SMTP_KEY || 'xsmtpsib-c6631c60c4656c1ba3be795c6f60f1a94fa9a47c45ecc92add4e4f83827b7d6d-lSfZ8ZsyTNeXjIGh';
-const FROM_EMAIL = process.env.BREVO_FROM_EMAIL || 'b5786a001@smtp-brevo.com';
-const FROM_NAME = process.env.BREVO_FROM_NAME || 'Forge India Connect';
+const SMTP_USER = (process.env.BREVO_SMTP_LOGIN || process.env.BREVO_SMTP_USER || 'b5786a001@smtp-brevo.com').trim();
+const SMTP_PASS = (process.env.BREVO_SMTP_KEY || 'xsmtpsib-c6631c60c4656c1ba3be795c6f60f1a94fa9a47c45ecc92add4e4f83827b7d6d-lSfZ8ZsyTNeXjIGh').trim();
+
+export function getSenderEmail() {
+  const envFrom = (process.env.BREVO_SENDER_EMAIL || process.env.BREVO_FROM_EMAIL || '').trim();
+  if (envFrom && !envFrom.includes('@smtp-brevo.com')) {
+    return envFrom;
+  }
+  return 'forgeindiaconnectfic@gmail.com';
+}
+
+const FROM_NAME = (process.env.BREVO_SENDER_NAME || process.env.BREVO_FROM_NAME || 'urban').trim();
 
 // Configure Brevo Nodemailer Transporter
 export const transporter = nodemailer.createTransport({
@@ -48,10 +56,17 @@ export async function testSmtpConnection() {
  */
 export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
   const recipientName = toName || 'Valued Customer';
+  const fromEmail = getSenderEmail();
   const mailOptions = {
-    from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
+    from: `"${FROM_NAME}" <${fromEmail}>`,
     to: toEmail,
+    replyTo: fromEmail,
     subject: `${otp} is your Forge India Connect verification code`,
+    headers: {
+      'X-Priority': '1',
+      'X-MSMail-Priority': 'High',
+      'Importance': 'high'
+    },
     text: `Hello ${recipientName},\n\nYour 6-digit account verification code for Forge India Connect is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share this OTP with anyone.\n\nThank you,\nForge India Connect Team`,
     html: `
       <!DOCTYPE html>
@@ -147,7 +162,7 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
           'Accept': 'application/json'
         },
         body: JSON.stringify({
-          sender: { name: FROM_NAME, email: FROM_EMAIL },
+          sender: { name: FROM_NAME, email: fromEmail },
           to: [{ email: toEmail, name: recipientName }],
           subject: mailOptions.subject,
           htmlContent: mailOptions.html,

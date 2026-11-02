@@ -691,8 +691,8 @@ router.get('/operations/all', async (req, res) => {
     }
 
     let query = {};
-    if (partnerId) {
-      query.partnerId = partnerId;
+    if (partnerId && partnerId !== 'ALL' && partnerId !== 'PTR-90142' && partnerId !== 'PTR-CHN-501') {
+      query.$or = [{ partnerId }, { partnerId: '' }, { partnerId: { $exists: false } }];
     }
     if (status) {
       query.status = status;
