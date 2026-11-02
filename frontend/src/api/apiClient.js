@@ -3,11 +3,16 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
 async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
+  const controller = new AbortController();
+  const timeoutMs = options.timeout || 15000;
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   const config = {
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
+    signal: options.signal || controller.signal,
     ...options,
   };
 
@@ -17,12 +22,17 @@ async function request(endpoint, options = {}) {
 
   try {
     const res = await fetch(url, config);
+    clearTimeout(timeoutId);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       throw new Error(data.message || `Request failed with status ${res.status}`);
     }
     return data;
   } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection and try again.');
+    }
     console.warn(`API [${options.method || 'GET'}] ${endpoint} failed:`, error.message);
     throw error;
   }
