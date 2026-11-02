@@ -46,13 +46,19 @@ bootstrapDatabases();
 const allowedOrigins = [
   process.env.CLIENT_URL || 'http://localhost:5173',
   'http://127.0.0.1:5173',
-  'http://localhost:5000'
+  'http://localhost:5000',
+  'https://urban-rosy.vercel.app'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+    if (
+      allowedOrigins.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('localhost') ||
+      process.env.NODE_ENV === 'development'
+    ) {
       return callback(null, true);
     }
     return callback(new Error(`CORS blocked: Origin ${origin} not permitted.`));
