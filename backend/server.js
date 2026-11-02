@@ -50,7 +50,7 @@ const allowedOrigins = [
   'https://urban-rosy.vercel.app'
 ];
 
-app.use(cors({
+const corsOptions = {
   origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     if (
@@ -66,7 +66,10 @@ app.use(cors({
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-token', 'x-professional-id', 'x-partner-token', 'x-partner-id', 'x-user-id', 'x-user-role', 'x-user-name', 'x-razorpay-signature'],
-}));
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
