@@ -2206,7 +2206,7 @@ export async function updateAvailability(req, res) {
     const { isOnline, workingHours, workingDays, shiftBreaks, workingSlots, serviceAreas, newLeave, leaves } = req.body;
 
     let pro = professionalsStore.find(p => p.id === proId) || req.professional;
-    if (isOnline === true && pro.status !== 'Approved') {
+    if (isOnline === true && pro.status !== 'Approved' && pro.status !== 'Active') {
       return res.status(403).json({
         success: false,
         error: `Cannot go online. Account onboarding approval required (current status: "${pro.status || 'Under Review'}").`
@@ -2528,7 +2528,10 @@ async function getAllJobsForPro(proId, dbWorker = null) {
       { 'assignedProfessional.id': proId },
       { 'assignedWorker.id': proId },
       { assignedWorkerId: proId },
-      { workerId: proId }
+      { workerId: proId },
+      { 'assignedProfessional._id': proId },
+      { 'assignedWorker._id': proId },
+      { assignedPartner: new RegExp(`^${proId}$`, 'i') }
     ];
     if (dbWorker) {
       if (dbWorker.id) {
@@ -2537,6 +2540,17 @@ async function getAllJobsForPro(proId, dbWorker = null) {
           { 'assignedProfessional.id': dbWorker.id },
           { assignedWorkerId: dbWorker.id },
           { workerId: dbWorker.id }
+        );
+      }
+      if (dbWorker._id) {
+        const idStr = String(dbWorker._id);
+        conditions.push(
+          { 'assignedWorker.id': idStr },
+          { 'assignedProfessional.id': idStr },
+          { assignedWorkerId: idStr },
+          { workerId: idStr },
+          { 'assignedProfessional._id': dbWorker._id },
+          { 'assignedWorker._id': dbWorker._id }
         );
       }
       const wName = dbWorker.applicantName || dbWorker.name;
@@ -3841,7 +3855,7 @@ export async function getAssignedJobs(req, res) {
         error: `Account Suspended: ${pro.suspendReason || 'Please contact your local operational hub manager for reinstatement.'}`
       });
     }
-    if (pro.status !== 'Approved') {
+    if (pro.status !== 'Approved' && pro.status !== 'Active') {
       return res.status(403).json({
         success: false,
         error: `Account Pending Verification: Your current onboarding status is "${pro.status || 'Under Review'}". Active job management unlocks once approved by compliance.`
@@ -3908,7 +3922,7 @@ export async function getJobDetail(req, res) {
         error: `Account Suspended: ${pro.suspendReason || 'Please contact your local operational hub manager for reinstatement.'}`
       });
     }
-    if (pro.status !== 'Approved') {
+    if (pro.status !== 'Approved' && pro.status !== 'Active') {
       return res.status(403).json({
         success: false,
         error: `Account Pending Verification: Your current onboarding status is "${pro.status || 'Under Review'}".`
@@ -3999,7 +4013,7 @@ export async function updateJobStatus(req, res) {
         error: `Account Suspended: ${pro.suspendReason || 'Please contact your local operational hub manager for reinstatement.'}`
       });
     }
-    if (pro.status !== 'Approved') {
+    if (pro.status !== 'Approved' && pro.status !== 'Active') {
       return res.status(403).json({
         success: false,
         error: `Account Pending Verification: Cannot update jobs while account is "${pro.status || 'Under Review'}".`
@@ -5102,7 +5116,7 @@ export async function requestWithdrawal(req, res) {
       }
     } catch (e) {}
 
-    if (pro.status !== 'Approved') {
+    if (pro.status !== 'Approved' && pro.status !== 'Active') {
       return res.status(403).json({
         success: false,
         error: 'Payout withdrawals locked until full KYC verification approval.'

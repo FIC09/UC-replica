@@ -42,7 +42,7 @@ async function bootstrapDatabases() {
 }
 bootstrapDatabases();
 
-// Restrictive CORS configuration
+// CORS configuration allowing all required headers and origins
 const allowedOrigins = [
   process.env.CLIENT_URL || 'http://localhost:5173',
   'http://127.0.0.1:5173',
@@ -57,6 +57,7 @@ const corsOptions = {
       allowedOrigins.includes(origin) ||
       origin.endsWith('.vercel.app') ||
       origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
       process.env.NODE_ENV === 'development'
     ) {
       return callback(null, true);
@@ -64,11 +65,51 @@ const corsOptions = {
     return callback(new Error(`CORS blocked: Origin ${origin} not permitted.`));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'x-admin-token',
+    'x-professional-id',
+    'x-professional-email',
+    'x-professional-name',
+    'x-partner-token',
+    'x-partner-id',
+    'x-user-id',
+    'x-user-role',
+    'x-user-name',
+    'x-razorpay-signature',
+    'Accept',
+    'Origin',
+    'X-Requested-With'
+  ]
 };
 
 app.use(cors(corsOptions));
-app.options('*', cors(corsOptions));
+
+// Explicit preflight handler ensuring ANY requested header is accepted
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (
+    !origin ||
+    allowedOrigins.includes(origin) ||
+    origin.endsWith('.vercel.app') ||
+    origin.includes('localhost') ||
+    origin.includes('127.0.0.1') ||
+    process.env.NODE_ENV === 'development'
+  ) {
+    if (origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || '*');
+  }
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
