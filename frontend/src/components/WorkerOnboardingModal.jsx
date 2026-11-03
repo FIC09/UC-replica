@@ -56,8 +56,6 @@ export function WorkerOnboardingModal({
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
-  const [fallbackNotice, setFallbackNotice] = useState('');
-  const fallbackOtpRef = useRef('');
 
   // Countdown timer for OTP resend cooldown
   useEffect(() => {
@@ -74,7 +72,6 @@ export function WorkerOnboardingModal({
 
   async function handleSendEmailOtp() {
     setError('');
-    setFallbackNotice('');
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       setError('Please enter a valid email address first.');
@@ -82,20 +79,6 @@ export function WorkerOnboardingModal({
     }
 
     setIsSendingOtp(true);
-    const instantOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    fallbackOtpRef.current = instantOtp;
-
-    // Safety timer: Never allow UI to hang for more than 3.5s
-    let didTimeout = false;
-    const fastTimer = setTimeout(() => {
-      didTimeout = true;
-      setIsSendingOtp(false);
-      setIsOtpSent(true);
-      setResendCooldown(30);
-      setOtpCode(instantOtp);
-      setFallbackNotice(`Verification code: ${instantOtp}`);
-    }, 3500);
-
     try {
       const res = await authApi.sendRegistrationOtp({
         email: cleanEmail,
@@ -104,33 +87,15 @@ export function WorkerOnboardingModal({
         purpose: 'worker'
       });
 
-      clearTimeout(fastTimer);
-      if (didTimeout) return;
-
-      if (res && res.success) {
+      if (res && res.success && res.emailDispatched) {
         setIsOtpSent(true);
         setResendCooldown(30);
-        if (res.fallbackOtp) {
-          fallbackOtpRef.current = res.fallbackOtp;
-          setOtpCode(res.fallbackOtp);
-          setFallbackNotice(`Verification code: ${res.fallbackOtp}`);
-        } else {
-          setOtpCode('');
-        }
+        setOtpCode('');
       } else {
-        // Fallback to instant code
-        setIsOtpSent(true);
-        setResendCooldown(30);
-        setOtpCode(instantOtp);
-        setFallbackNotice(`Verification code: ${instantOtp}`);
+        setError(res?.message || 'Failed to dispatch verification email. Please check your email configuration.');
       }
     } catch (err) {
-      clearTimeout(fastTimer);
-      if (didTimeout) return;
-      setIsOtpSent(true);
-      setResendCooldown(30);
-      setOtpCode(instantOtp);
-      setFallbackNotice(`Verification code: ${instantOtp}`);
+      setError(err.message || 'Error communicating with verification service.');
     } finally {
       setIsSendingOtp(false);
     }
@@ -140,20 +105,11 @@ export function WorkerOnboardingModal({
     setError('');
     const cleanOtp = otpCode.trim();
     if (!cleanOtp || cleanOtp.length !== 6) {
-      setError('Please enter the full 6-digit verification code.');
+      setError('Please enter the full 6-digit verification code sent to your email.');
       return;
     }
 
     setIsVerifyingOtp(true);
-
-    // If matches fallback OTP, instantly verify
-    if (fallbackOtpRef.current && cleanOtp === fallbackOtpRef.current) {
-      setIsEmailVerified(true);
-      setIsOtpSent(false);
-      setIsVerifyingOtp(false);
-      return;
-    }
-
     try {
       const res = await authApi.verifyEmailOtp({
         email: email.trim().toLowerCase(),
@@ -164,20 +120,10 @@ export function WorkerOnboardingModal({
         setIsEmailVerified(true);
         setIsOtpSent(false);
       } else {
-        if (fallbackOtpRef.current && cleanOtp === fallbackOtpRef.current) {
-          setIsEmailVerified(true);
-          setIsOtpSent(false);
-        } else {
-          setError(res?.message || 'Invalid or expired verification code.');
-        }
+        setError(res?.message || 'Invalid or expired verification code.');
       }
     } catch (err) {
-      if (fallbackOtpRef.current && cleanOtp === fallbackOtpRef.current) {
-        setIsEmailVerified(true);
-        setIsOtpSent(false);
-      } else {
-        setError(err.message || 'Verification failed. Please try again.');
-      }
+      setError(err.message || 'Verification failed. Please try again.');
     } finally {
       setIsVerifyingOtp(false);
     }
@@ -608,29 +554,11 @@ export function WorkerOnboardingModal({
                         </span>
                       </div>
 
-                      {fallbackNotice && (
-                        <div style={{
-                          background: 'rgba(16, 185, 129, 0.15)',
-                          border: '1px solid #10B981',
-                          color: '#6EE7B7',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          padding: '5px 8px',
-                          marginBottom: 8,
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}>
-                          <span>✓ {fallbackNotice}</span>
-                          <span style={{ fontSize: 9.5, opacity: 0.85, background: '#10B981', color: '#0F172A', padding: '1px 5px', fontWeight: 800 }}>Auto-filled</span>
-                        </div>
-                      )}
-
                       <div style={{ display: 'flex', gap: 8 }}>
                         <input
                           type="text"
                           maxLength={6}
-                          placeholder="6-digit OTP"
+                          placeholder="Enter 6-digit OTP from email"
                           value={otpCode}
                           onChange={(e) => {
                             const val = e.target.value.replace(/\D/g, '').slice(0, 6);

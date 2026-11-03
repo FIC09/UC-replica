@@ -65,8 +65,6 @@ export function AuthModal({
   const [createdUserData, setCreatedUserData] = useState(null);
   const [resendCooldown, setResendCooldown] = useState(0);
   const [otpSentEmail, setOtpSentEmail] = useState('');
-  const [fallbackNotice, setFallbackNotice] = useState('');
-  const fallbackOtpRef = useRef('');
 
   // Validation / Feedback
   const [errorMsg, setErrorMsg] = useState('');
@@ -504,7 +502,6 @@ export function AuthModal({
   async function handleSendEmailOtp() {
     setErrorMsg('');
     setSuccessMsg('');
-    setFallbackNotice('');
 
     const cleanEmail = signupEmail.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
@@ -513,22 +510,6 @@ export function AuthModal({
     }
 
     setIsSendingOtp(true);
-    const instantOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    fallbackOtpRef.current = instantOtp;
-
-    // Safety timer: Never allow UI to hang for more than 3.5s
-    let didTimeout = false;
-    const fastTimer = setTimeout(() => {
-      didTimeout = true;
-      setIsSendingOtp(false);
-      setOtpSentEmail(cleanEmail);
-      setIsOtpSent(true);
-      setResendCooldown(30);
-      setSignupOtp(instantOtp);
-      setFallbackNotice(`Verification code: ${instantOtp}`);
-      setSuccessMsg(`Verification code generated: ${instantOtp}`);
-    }, 3500);
-
     try {
       const res = await authApi.sendRegistrationOtp({
         email: cleanEmail,
@@ -536,38 +517,17 @@ export function AuthModal({
         phone: signupPhone.trim() || ''
       });
 
-      clearTimeout(fastTimer);
-      if (didTimeout) return;
-
-      if (res && res.success) {
+      if (res && res.success && res.emailDispatched) {
         setOtpSentEmail(cleanEmail);
         setIsOtpSent(true);
         setResendCooldown(30);
-        if (res.fallbackOtp) {
-          fallbackOtpRef.current = res.fallbackOtp;
-          setSignupOtp(res.fallbackOtp);
-          setFallbackNotice(`Verification code: ${res.fallbackOtp}`);
-        } else {
-          setSignupOtp('');
-        }
+        setSignupOtp('');
         setSuccessMsg(res.message || `A verification code was dispatched to ${cleanEmail}`);
       } else {
-        setOtpSentEmail(cleanEmail);
-        setIsOtpSent(true);
-        setResendCooldown(30);
-        setSignupOtp(instantOtp);
-        setFallbackNotice(`Verification code: ${instantOtp}`);
-        setSuccessMsg(`Verification code: ${instantOtp}`);
+        setErrorMsg(res?.message || 'Failed to dispatch verification code. Please check your email configuration.');
       }
     } catch (apiErr) {
-      clearTimeout(fastTimer);
-      if (didTimeout) return;
-      setOtpSentEmail(cleanEmail);
-      setIsOtpSent(true);
-      setResendCooldown(30);
-      setSignupOtp(instantOtp);
-      setFallbackNotice(`Verification code: ${instantOtp}`);
-      setSuccessMsg(`Verification code: ${instantOtp}`);
+      setErrorMsg(apiErr.message || 'Error communicating with registration server.');
     } finally {
       setIsSendingOtp(false);
     }
@@ -588,14 +548,6 @@ export function AuthModal({
     const targetEmail = (otpSentEmail || signupEmail).trim().toLowerCase();
     setIsVerifyingOtp(true);
 
-    if (fallbackOtpRef.current && cleanOtp === fallbackOtpRef.current) {
-      setIsEmailVerified(true);
-      setIsOtpSent(false);
-      setIsVerifyingOtp(false);
-      setSuccessMsg('✓ Email verified successfully! You can now set your password below.');
-      return;
-    }
-
     try {
       const res = await authApi.verifyEmailOtp({
         email: targetEmail,
@@ -607,22 +559,10 @@ export function AuthModal({
         setIsOtpSent(false);
         setSuccessMsg('✓ Email verified successfully! You can now set your password below.');
       } else {
-        if (fallbackOtpRef.current && cleanOtp === fallbackOtpRef.current) {
-          setIsEmailVerified(true);
-          setIsOtpSent(false);
-          setSuccessMsg('✓ Email verified successfully! You can now set your password below.');
-        } else {
-          setErrorMsg(res?.message || 'Invalid or expired verification code.');
-        }
+        setErrorMsg(res?.message || 'Invalid or expired verification code.');
       }
     } catch (err) {
-      if (fallbackOtpRef.current && cleanOtp === fallbackOtpRef.current) {
-        setIsEmailVerified(true);
-        setIsOtpSent(false);
-        setSuccessMsg('✓ Email verified successfully! You can now set your password below.');
-      } else {
-        setErrorMsg(err.message || 'Verification failed. Please check the code and try again.');
-      }
+      setErrorMsg(err.message || 'Verification failed. Please check the code and try again.');
     } finally {
       setIsVerifyingOtp(false);
     }

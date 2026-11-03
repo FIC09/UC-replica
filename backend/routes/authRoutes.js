@@ -106,20 +106,17 @@ router.post('/send-registration-otp', async (req, res) => {
     const mailResult = await sendRegistrationOtpEmail(cleanEmail, cleanName, otp);
 
     if (!mailResult.success) {
-      console.warn(`⚠️ [Brevo Email Dispatch Delayed/Failed]:`, mailResult.error);
+      console.warn(`⚠️ [Brevo Email Dispatch Failed]:`, mailResult.error);
       const isIpBlocked = mailResult.isIpBlocked || (mailResult.error && mailResult.error.includes('525'));
       const failureReason = isIpBlocked
-        ? `Brevo SMTP rejected connection with '525 5.7.1 Unauthorized IP address'. Please add your current IP in Brevo Dashboard.`
-        : `Brevo email delivery delayed: ${mailResult.error || 'Could not dispatch verification email'}`;
+        ? `Brevo SMTP rejected connection with '525 5.7.1 Unauthorized IP address'. In Brevo Dashboard > SMTP & API > Authorized IPs, delete all IP addresses to allow cloud sending.`
+        : (mailResult.error || 'Failed to dispatch verification email via Brevo.');
 
-      return res.json({
-        success: true,
+      return res.status(502).json({
+        success: false,
         emailDispatched: false,
-        warning: failureReason,
-        fallbackOtp: otp,
-        message: `Verification code generated. If email delivery is delayed by host firewall, use: ${otp}`,
-        email: cleanEmail,
-        expiresInMinutes: 10
+        message: failureReason,
+        isIpBlocked
       });
     }
 

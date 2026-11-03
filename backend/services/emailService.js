@@ -237,8 +237,8 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
   };
 
   const smtpDeliveryPromise = (async () => {
-    // Only attempt configured port (default 2525) to avoid compounding timeouts
-    const candidatePorts = [SMTP_PORT, 2525].filter((v, i, a) => a.indexOf(v) === i);
+    // Attempt configured port (default 2525), then 587
+    const candidatePorts = [SMTP_PORT, 2525, 587].filter((v, i, a) => a.indexOf(v) === i);
     let lastError = null;
     for (const port of candidatePorts) {
       try {
@@ -266,16 +266,16 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
     };
   })();
 
-  // Guarantee that this function never hangs the server response for more than 2.8 seconds
+  // Guarantee that this function never hangs the server response for more than 8 seconds
   const timeoutPromise = new Promise((resolve) => {
     setTimeout(() => {
       resolve({
         success: false,
-        error: 'SMTP connection timed out: Host firewall blocked outbound mail ports',
+        error: 'SMTP connection timed out: Brevo mail server did not respond within 8 seconds',
         isIpBlocked: false,
         clientIp: '223.178.86.143'
       });
-    }, 2800);
+    }, 8000);
   });
 
   return Promise.race([smtpDeliveryPromise, timeoutPromise]);
