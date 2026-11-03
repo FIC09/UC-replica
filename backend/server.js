@@ -126,7 +126,9 @@ app.get('/api/health', async (req, res) => {
     uptime: process.uptime(),
     service: 'Forge India Connect Marketplace Backend API',
     database: 'MongoDB Atlas',
-    mongoStatus: 'connected'
+    mongoStatus: 'connected',
+    hasBrevoApiKey: Boolean(process.env.BREVO_API_KEY || (process.env.BREVO_SMTP_KEY && process.env.BREVO_SMTP_KEY.startsWith('xkeysib-'))),
+    brevoKeyPrefix: (process.env.BREVO_API_KEY || process.env.BREVO_SMTP_KEY || '').slice(0, 8)
   });
 });
 

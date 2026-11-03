@@ -184,8 +184,18 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
         return { success: true, messageId: mId, method: 'api' };
       }
       console.warn('⚠️ [Brevo API Error]:', data);
+      return {
+        success: false,
+        error: `Brevo API rejected delivery (${apiResponse.status}): ${data.message || JSON.stringify(data)}`,
+        isIpBlocked: false
+      };
     } catch (apiErr) {
       console.warn('⚠️ [Brevo API Fetch Error]:', apiErr.message);
+      return {
+        success: false,
+        error: `Brevo API connection error: ${apiErr.message}`,
+        isIpBlocked: false
+      };
     }
   }
 
