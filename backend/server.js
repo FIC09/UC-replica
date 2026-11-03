@@ -130,6 +130,17 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
+// Diagnostic Server Outbound IP endpoint
+app.get('/api/server-ip', async (req, res) => {
+  try {
+    const ipRes = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(4000) });
+    const data = await ipRes.json();
+    res.json({ success: true, serverIp: data.ip });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Mount API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);
