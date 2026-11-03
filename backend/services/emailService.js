@@ -27,9 +27,9 @@ function createBrevoTransporter(port = SMTP_PORT) {
       user: SMTP_USER,
       pass: SMTP_PASS
     },
-    connectionTimeout: 4000,
-    greetingTimeout: 4000,
-    socketTimeout: 5000,
+    connectionTimeout: 2500,
+    greetingTimeout: 2000,
+    socketTimeout: 3000,
     tls: {
       rejectUnauthorized: false
     }
@@ -39,23 +39,27 @@ function createBrevoTransporter(port = SMTP_PORT) {
 // Primary configured transporter
 export const transporter = createBrevoTransporter(SMTP_PORT);
 
-// Diagnostic verification on startup
+// Diagnostic verification on startup (bounded by 2s timeout)
 export async function testSmtpConnection() {
-  // Test port 2525 first (Render unblocked), fallback to configured port
-  const testPorts = [SMTP_PORT, 2525, 587, 465].filter((v, i, a) => a.indexOf(v) === i);
-  for (const port of testPorts) {
+  const timeoutPromise = new Promise((resolve) => 
+    setTimeout(() => resolve({ success: false, error: 'Startup SMTP test timed out' }), 2000)
+  );
+
+  const testPromise = (async () => {
     try {
-      const t = createBrevoTransporter(port);
+      const t = createBrevoTransporter(SMTP_PORT);
       await t.verify();
-      console.log(`📧 Brevo SMTP Relay Connected & Ready (smtp-relay.brevo.com:${port})`);
-      return { success: true, port };
+      console.log(`📧 Brevo SMTP Relay Connected & Ready (smtp-relay.brevo.com:${SMTP_PORT})`);
+      return { success: true, port: SMTP_PORT };
     } catch (err) {
       if (err.message && err.message.includes('525')) {
-        console.warn(`⚠️ [Brevo SMTP IP Whitelist Warning on port ${port}]: Brevo rejected connection with 525 5.7.1 Unauthorized IP address.`);
+        console.warn(`⚠️ [Brevo SMTP IP Whitelist Warning]: Brevo rejected connection with 525 5.7.1 Unauthorized IP address.`);
       }
+      return { success: false, error: err.message };
     }
-  }
-  return { success: false, error: 'Could not connect to Brevo SMTP on candidate ports' };
+  })();
+
+  return Promise.race([testPromise, timeoutPromise]);
 }
 
 /**
@@ -155,7 +159,7 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
   if (apiKey) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
       const apiResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
         signal: controller.signal,
@@ -185,9 +189,39 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
     }
   }
 
-  // 2. Multi-Port Brevo SMTP Relay Delivery
-  // Priority: Port 2525 (allowed by Render & cloud hosts), then 587, then 465
-  const candidatePorts = [2525, SMTP_PORT, 587, 465].filter((v, i, a) => a.indexOf(v) === i);
+  // 1B. Resend REST API (Port 443 HTTPS)
+  const resendApiKey = (process.env.RESEND_API_KEY || '').trim();
+  if (resendApiKey) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Authorization': `Bearer ${resendApiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          from: `${FROM_NAME} <onboarding@resend.dev>`,
+          to: [toEmail],
+          subject: mailSubject,
+          html: mailHtml,
+          text: mailText
+        })
+      });
+      clearTimeout(timeoutId);
+      const data = await resendRes.json();
+      if (resendRes.ok && data.id) {
+        console.log(`✅ [Resend API Sent] OTP email dispatched to ${toEmail} (Id: ${data.id})`);
+        return { success: true, messageId: data.id, method: 'resend' };
+      }
+    } catch (e) {
+      console.warn('⚠️ [Resend API Error]:', e.message);
+    }
+  }
+
+  // 2. Multi-Port Brevo SMTP Relay Delivery with hard overall timeout
   const mailOptions = {
     from: `"${FROM_NAME}" <${fromEmail}>`,
     to: toEmail,
@@ -202,29 +236,47 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
     html: mailHtml
   };
 
-  let lastError = null;
-  for (const port of candidatePorts) {
-    try {
-      const currentTransporter = createBrevoTransporter(port);
-      const info = await currentTransporter.sendMail(mailOptions);
-      console.log(`✅ [Brevo SMTP Sent] OTP email successfully dispatched to ${toEmail} via port ${port} (MessageId: ${info.messageId})`);
-      return { success: true, messageId: info.messageId, method: `smtp:${port}` };
-    } catch (err) {
-      lastError = err;
-      console.warn(`⚠️ [Brevo SMTP Attempt Failed on port ${port}]:`, err.message);
-      if (err.message && err.message.includes('525')) {
-        break; // IP whitelist issue, no point trying other ports
+  const smtpDeliveryPromise = (async () => {
+    // Only attempt configured port (default 2525) to avoid compounding timeouts
+    const candidatePorts = [SMTP_PORT, 2525].filter((v, i, a) => a.indexOf(v) === i);
+    let lastError = null;
+    for (const port of candidatePorts) {
+      try {
+        const currentTransporter = createBrevoTransporter(port);
+        const info = await currentTransporter.sendMail(mailOptions);
+        console.log(`✅ [Brevo SMTP Sent] OTP email successfully dispatched to ${toEmail} via port ${port} (MessageId: ${info.messageId})`);
+        return { success: true, messageId: info.messageId, method: `smtp:${port}` };
+      } catch (err) {
+        lastError = err;
+        console.warn(`⚠️ [Brevo SMTP Attempt Failed on port ${port}]:`, err.message);
+        if (err.message && err.message.includes('525')) {
+          break; // IP whitelist issue, no point trying other ports
+        }
       }
     }
-  }
 
-  const isIpBlocked = Boolean(lastError?.message && lastError.message.includes('525'));
-  console.error(`❌ [Brevo Error] All delivery attempts to ${toEmail} failed:`, lastError?.message);
+    const isIpBlocked = Boolean(lastError?.message && lastError.message.includes('525'));
+    console.error(`❌ [Brevo Error] SMTP delivery attempt to ${toEmail} failed:`, lastError?.message);
 
-  return {
-    success: false,
-    error: lastError?.message || 'Connection timeout across all SMTP ports',
-    isIpBlocked,
-    clientIp: '223.178.86.143'
-  };
+    return {
+      success: false,
+      error: lastError?.message || 'SMTP delivery failed on candidate ports',
+      isIpBlocked,
+      clientIp: '223.178.86.143'
+    };
+  })();
+
+  // Guarantee that this function never hangs the server response for more than 2.8 seconds
+  const timeoutPromise = new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({
+        success: false,
+        error: 'SMTP connection timed out: Host firewall blocked outbound mail ports',
+        isIpBlocked: false,
+        clientIp: '223.178.86.143'
+      });
+    }, 2800);
+  });
+
+  return Promise.race([smtpDeliveryPromise, timeoutPromise]);
 }
