@@ -3,10 +3,59 @@ import { Coupon } from '../models/Coupon.js';
 
 const router = express.Router();
 
+const DEFAULT_COUPONS = [
+  {
+    code: 'MUMBAI100',
+    discount: 100,
+    discountAmount: 100,
+    type: 'flat',
+    minOrder: 399,
+    description: 'Flat ₹100 off on all services in Mumbai',
+    desc: 'Flat ₹100 off on all services in Mumbai',
+    isActive: true,
+  },
+  {
+    code: 'FIRST50',
+    discount: 150,
+    discountAmount: 150,
+    type: 'flat',
+    minOrder: 500,
+    description: '₹150 off on your first home or salon service',
+    desc: '₹150 off on your first home or salon service',
+    isActive: true,
+  },
+  {
+    code: 'SUPERUC',
+    discount: 200,
+    discountAmount: 200,
+    type: 'flat',
+    minOrder: 899,
+    description: '₹200 discount on orders above ₹899',
+    desc: '₹200 discount on orders above ₹899',
+    isActive: true,
+  },
+];
+
 // GET all active coupons
 router.get('/', async (req, res) => {
   try {
-    const coupons = await Coupon.find({ isActive: true });
+    let coupons = [];
+    try {
+      coupons = await Coupon.find({ isActive: true }).sort({ createdAt: -1 }).lean();
+    } catch (dbErr) {
+      console.warn('Coupon.find error:', dbErr.message);
+    }
+
+    if (!Array.isArray(coupons)) coupons = [];
+
+    // Ensure default coupons are included if not already present
+    const existingCodes = new Set(coupons.map(c => (c.code || '').toUpperCase().trim()));
+    DEFAULT_COUPONS.forEach(def => {
+      if (!existingCodes.has(def.code)) {
+        coupons.push(def);
+      }
+    });
+
     res.json({ success: true, count: coupons.length, coupons });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -16,33 +65,69 @@ router.get('/', async (req, res) => {
 // POST verify coupon
 router.post('/verify', async (req, res) => {
   try {
-    const { code, orderAmount } = req.body;
-    if (!code) {
+    const { code } = req.body;
+    const orderAmount = Number(req.body.orderAmount ?? req.body.orderValue ?? 0);
+
+    if (!code || !String(code).trim()) {
       return res.status(400).json({ success: false, message: 'Coupon code is required' });
     }
 
-    const coupon = await Coupon.findOne({
-      code: code.trim().toUpperCase(),
-      isActive: true,
-    });
+    const rawCode = String(code).trim();
+    const normalizedCode = rawCode.toUpperCase().replace(/\s+/g, ' ');
+    const escapedPattern = normalizedCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
 
-    if (!coupon) {
-      return res.status(404).json({ success: false, message: 'Invalid or expired coupon code' });
+    let coupon = null;
+    try {
+      // 1. Flexible regex match (handles multiple spaces and case variations)
+      coupon = await Coupon.findOne({
+        code: { $regex: new RegExp(`^${escapedPattern}$`, 'i') },
+        isActive: true,
+      }).lean();
+
+      // 2. Exact uppercase match fallback
+      if (!coupon) {
+        coupon = await Coupon.findOne({
+          code: rawCode.toUpperCase(),
+          isActive: true,
+        }).lean();
+      }
+    } catch (dbErr) {
+      console.warn('Coupon.findOne error:', dbErr.message);
     }
 
-    if (orderAmount !== undefined && orderAmount < coupon.minOrder) {
-      return res.status(400).json({
+    // 3. Fallback to default coupons
+    if (!coupon) {
+      const defaultMatch = DEFAULT_COUPONS.find(c => c.code.toUpperCase() === normalizedCode);
+      if (defaultMatch) {
+        coupon = defaultMatch;
+      }
+    }
+
+    if (!coupon) {
+      return res.status(404).json({
         success: false,
-        message: `Coupon requires a minimum order of ₹${coupon.minOrder}`,
+        message: `Invalid or expired coupon code "${rawCode}". Try MUMBAI100, FIRST50 or SUPERUC`,
       });
     }
 
-    let calculatedDiscount = coupon.discount;
+    const minOrder = Number(coupon.minOrder || 0);
+    if (orderAmount > 0 && orderAmount < minOrder) {
+      return res.status(400).json({
+        success: false,
+        message: `Min order of ₹${minOrder} required for ${coupon.code}`,
+      });
+    }
+
+    let calculatedDiscount = Number(coupon.discount || coupon.discountAmount || 0);
     if (coupon.type === 'percentage') {
-      calculatedDiscount = Math.round((orderAmount * coupon.discount) / 100);
-      if (coupon.maxDiscount && calculatedDiscount > coupon.maxDiscount) {
-        calculatedDiscount = coupon.maxDiscount;
+      calculatedDiscount = Math.round((orderAmount * calculatedDiscount) / 100);
+      if (coupon.maxDiscount && calculatedDiscount > Number(coupon.maxDiscount)) {
+        calculatedDiscount = Number(coupon.maxDiscount);
       }
+    }
+
+    if (orderAmount > 0 && calculatedDiscount > orderAmount) {
+      calculatedDiscount = orderAmount;
     }
 
     res.json({
@@ -50,8 +135,11 @@ router.post('/verify', async (req, res) => {
       coupon: {
         code: coupon.code,
         discount: calculatedDiscount,
-        type: coupon.type,
-        description: coupon.description,
+        discountAmount: calculatedDiscount,
+        type: coupon.type || 'flat',
+        minOrder: minOrder,
+        maxDiscount: coupon.maxDiscount,
+        description: coupon.description || coupon.desc || '',
       },
     });
   } catch (error) {

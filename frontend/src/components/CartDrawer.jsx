@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Trash2, 
@@ -13,6 +13,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { COUPONS } from '../data/servicesData';
+import { couponsApi } from '../api/apiClient';
 
 export function CartDrawer({
   isOpen,
@@ -28,6 +29,36 @@ export function CartDrawer({
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
+  const [availableCoupons, setAvailableCoupons] = useState(COUPONS);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    couponsApi.getAll()
+      .then(res => {
+        if (!isMounted) return;
+        if (res && res.coupons && Array.isArray(res.coupons) && res.coupons.length > 0) {
+          const dynamic = res.coupons.map(c => ({
+            code: c.code,
+            discountAmount: Number(c.discountAmount || c.discount || 0),
+            discount: Number(c.discount || c.discountAmount || 0),
+            type: c.type || 'flat',
+            minOrder: Number(c.minOrder || 0),
+            maxDiscount: c.maxDiscount ? Number(c.maxDiscount) : undefined,
+            desc: c.description || c.desc || (c.type === 'percentage' ? `${c.discount}% OFF` : `Flat ₹${c.discount} off`)
+          }));
+          const merged = [...dynamic];
+          COUPONS.forEach(def => {
+            if (!merged.some(m => m.code.toUpperCase() === def.code.toUpperCase())) {
+              merged.push(def);
+            }
+          });
+          setAvailableCoupons(merged);
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
 
   if (!isOpen) return null;
 
@@ -45,23 +76,54 @@ export function CartDrawer({
   // Final Total
   const finalTotal = Math.max(0, itemsSubtotal - ucPlusDiscount - couponDiscount + hygieneFee + taxesFee);
 
-  function handleApplyCoupon(code) {
+  async function handleApplyCoupon(code) {
     setCouponError('');
     const targetCode = (code || couponCode).trim().toUpperCase();
-    const found = COUPONS.find(c => c.code === targetCode);
-
-    if (!found) {
-      setCouponError('Invalid coupon code. Try MUMBAI100 or SUPERUC');
+    if (!targetCode) {
+      setCouponError('Please enter a coupon code');
       return;
     }
 
-    if (itemsSubtotal < found.minOrder) {
-      setCouponError(`Min. order of ₹${found.minOrder} required for this coupon`);
-      return;
+    setIsApplyingCoupon(true);
+    try {
+      const res = await couponsApi.verify(targetCode, itemsSubtotal);
+      if (res && res.success && res.coupon) {
+        const discountAmt = Number(res.coupon.discountAmount ?? res.coupon.discount ?? 0);
+        setAppliedCoupon({
+          code: res.coupon.code,
+          discountAmount: discountAmt,
+          discount: discountAmt,
+          type: res.coupon.type,
+          minOrder: Number(res.coupon.minOrder || 0),
+          maxDiscount: res.coupon.maxDiscount,
+          desc: res.coupon.description || res.coupon.desc || ''
+        });
+        setCouponCode(res.coupon.code);
+        return;
+      }
+      throw new Error(res?.message || 'Invalid coupon code');
+    } catch (err) {
+      const fallback = availableCoupons.find(c => c.code.toUpperCase() === targetCode);
+      if (fallback) {
+        if (itemsSubtotal < fallback.minOrder) {
+          setCouponError(`Min. order of ₹${fallback.minOrder} required for this coupon`);
+          return;
+        }
+        let calcDiscount = fallback.discountAmount || fallback.discount || 0;
+        if (fallback.type === 'percentage') {
+          calcDiscount = Math.round((itemsSubtotal * calcDiscount) / 100);
+          if (fallback.maxDiscount && calcDiscount > fallback.maxDiscount) {
+            calcDiscount = fallback.maxDiscount;
+          }
+        }
+        setAppliedCoupon({ ...fallback, discountAmount: calcDiscount });
+        setCouponCode(fallback.code);
+        return;
+      }
+      setCouponError(err.message || 'Invalid coupon code. Try MUMBAI100 or SUPERUC');
+    } finally {
+      setIsApplyingCoupon(false);
     }
-
-    setAppliedCoupon(found);
-    setCouponCode(found.code);
   }
 
   function handleRemoveCoupon() {
@@ -293,8 +355,13 @@ export function CartDrawer({
                         type="button"
                         className="apply-coupon-btn"
                         onClick={() => handleApplyCoupon()}
+                        disabled={!couponCode.trim() || isApplyingCoupon}
+                        style={{
+                          opacity: (!couponCode.trim() || isApplyingCoupon) ? 0.6 : 1,
+                          cursor: (!couponCode.trim() || isApplyingCoupon) ? 'not-allowed' : 'pointer'
+                        }}
                       >
-                        Apply
+                        {isApplyingCoupon ? '...' : 'Apply'}
                       </button>
                     </div>
 
@@ -306,11 +373,12 @@ export function CartDrawer({
 
                     {/* Quick suggestion pills */}
                     <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-                      {COUPONS.map(c => (
+                      {availableCoupons.map(c => (
                         <button
                           key={c.code}
                           type="button"
                           onClick={() => handleApplyCoupon(c.code)}
+                          disabled={isApplyingCoupon}
                           style={{
                             fontSize: 11,
                             fontWeight: 700,
@@ -318,10 +386,11 @@ export function CartDrawer({
                             background: '#EFF6FF',
                             color: '#1D4ED8',
                             borderRadius: 6,
-                            border: '1px dashed #93C5FD'
+                            border: '1px dashed #93C5FD',
+                            cursor: isApplyingCoupon ? 'wait' : 'pointer'
                           }}
                         >
-                          {c.code} (-₹{c.discountAmount})
+                          {c.code} {c.type === 'percentage' ? `(${c.discount}% OFF)` : `(-₹${c.discountAmount || c.discount})`}
                         </button>
                       ))}
                     </div>

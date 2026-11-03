@@ -152,9 +152,59 @@ export async function createPromotion(req, res) {
 // Server-side Coupon Validation Endpoint
 export async function validatePromotion(req, res) {
   try {
-    const { code, orderValue, category, city, customerId, priorRedemptionCount = 0 } = req.body;
+    const { code, orderValue = 0, category, city, customerId, priorRedemptionCount = 0 } = req.body;
     const cleanCode = (code || '').toUpperCase().trim();
+    const escapedPattern = cleanCode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+');
 
+    // 1. Search database first
+    let dbCoupon = null;
+    try {
+      dbCoupon = await Coupon.findOne({
+        code: { $regex: new RegExp(`^${escapedPattern}$`, 'i') },
+        isActive: true,
+      }).lean();
+      if (!dbCoupon) {
+        dbCoupon = await Coupon.findOne({ code: cleanCode, isActive: true }).lean();
+      }
+    } catch (e) {
+      console.warn('Coupon.findOne error in validatePromotion:', e.message);
+    }
+
+    if (dbCoupon) {
+      const minOrder = Number(dbCoupon.minOrder || 0);
+      if (orderValue !== undefined && orderValue < minOrder) {
+        return res.status(400).json({
+          success: false,
+          valid: false,
+          reason: `Minimum order value for ${dbCoupon.code} is ₹${minOrder}.`
+        });
+      }
+
+      let discount = Number(dbCoupon.discount || dbCoupon.discountAmount || 0);
+      if (dbCoupon.type === 'percentage') {
+        discount = Math.round((orderValue * discount) / 100);
+        if (dbCoupon.maxDiscount && discount > Number(dbCoupon.maxDiscount)) {
+          discount = Number(dbCoupon.maxDiscount);
+        }
+      }
+
+      return res.json({
+        success: true,
+        valid: true,
+        discount: Math.min(discount, orderValue),
+        promotion: {
+          code: dbCoupon.code,
+          discountType: dbCoupon.type,
+          discountValue: dbCoupon.discount,
+          minOrderValue: minOrder,
+          maxDiscount: dbCoupon.maxDiscount,
+          status: dbCoupon.isActive ? 'Active' : 'Inactive',
+          description: dbCoupon.description || dbCoupon.desc || ''
+        }
+      });
+    }
+
+    // 2. Fallback to in-memory promotions
     const promo = mockPromotions.find(p => p.code === cleanCode);
     if (!promo) {
       return res.status(404).json({ success: false, valid: false, reason: 'Invalid promo code.' });

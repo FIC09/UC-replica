@@ -33,7 +33,7 @@ import {
   isSlotPassed, 
   getFirstAvailableSlot 
 } from '../utils/slotDates';
-import { authApi } from '../api/apiClient';
+import { authApi, couponsApi } from '../api/apiClient';
 import { usePlatformSettings } from '../utils/usePlatformSettings';
 
 export function UrbanCheckoutPage({
@@ -495,10 +495,41 @@ export function UrbanCheckoutPage({
   const [paymentMethod, setPaymentMethod] = useState('gpay');
   const [isPaymentGatewayOpen, setIsPaymentGatewayOpen] = useState(false);
 
-  // Coupon state (strictly zero auto-applied coupons; users can add on their own)
+  // Coupon state (dynamic database coupons + server verification)
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponError, setCouponError] = useState('');
+  const [availableCoupons, setAvailableCoupons] = useState(COUPONS);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  // Fetch all active promotions/coupons dynamically from the backend database
+  useEffect(() => {
+    let isMounted = true;
+    couponsApi.getAll()
+      .then(res => {
+        if (!isMounted) return;
+        if (res && res.coupons && Array.isArray(res.coupons) && res.coupons.length > 0) {
+          const dynamic = res.coupons.map(c => ({
+            code: c.code,
+            discountAmount: Number(c.discountAmount || c.discount || 0),
+            discount: Number(c.discount || c.discountAmount || 0),
+            type: c.type || 'flat',
+            minOrder: Number(c.minOrder || 0),
+            maxDiscount: c.maxDiscount ? Number(c.maxDiscount) : undefined,
+            desc: c.description || c.desc || (c.type === 'percentage' ? `${c.discount}% OFF` : `Flat ₹${c.discount} off`)
+          }));
+          const merged = [...dynamic];
+          COUPONS.forEach(def => {
+            if (!merged.some(m => m.code.toUpperCase() === def.code.toUpperCase())) {
+              merged.push(def);
+            }
+          });
+          setAvailableCoupons(merged);
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
 
   const cartItems = Object.values(cart || {}).filter(item => {
     const q = typeof item === 'number' ? item : (item?.qty ?? item?.quantity ?? 0);
@@ -545,31 +576,70 @@ export function UrbanCheckoutPage({
     return 'Services';
   }, [cartItems]);
 
-  function handleApplyCoupon(code) {
+  async function handleApplyCoupon(code) {
     setCouponError('');
     const target = (code || couponCode).trim().toUpperCase();
     if (!target) {
       setCouponError('Please enter a coupon code');
       return;
     }
-    const found = COUPONS.find(c => c.code.toUpperCase() === target);
-    if (!found) {
+
+    setIsApplyingCoupon(true);
+    try {
+      // 1. Verify coupon dynamically against the backend MongoDB database
+      const res = await couponsApi.verify(target, itemsSubtotal);
+      if (res && res.success && res.coupon) {
+        const discountAmt = Number(res.coupon.discountAmount ?? res.coupon.discount ?? 0);
+        const applied = {
+          code: res.coupon.code,
+          discountAmount: discountAmt,
+          discount: discountAmt,
+          type: res.coupon.type,
+          minOrder: Number(res.coupon.minOrder || 0),
+          maxDiscount: res.coupon.maxDiscount,
+          desc: res.coupon.description || res.coupon.desc || ''
+        };
+        setAppliedCoupon(applied);
+        setCouponCode('');
+        showToast(`🎉 Applied ${res.coupon.code}: Saved ₹${discountAmt}!`);
+        return;
+      }
+      throw new Error(res?.message || `Coupon "${target}" could not be applied`);
+    } catch (err) {
+      // 2. Client-side fallback for static/offline coupons
+      const fallback = availableCoupons.find(c => c.code.toUpperCase() === target);
+      if (fallback) {
+        if (itemsSubtotal < fallback.minOrder) {
+          setCouponError(`Min order of ₹${fallback.minOrder} required for ${fallback.code}`);
+          return;
+        }
+        let calcDiscount = fallback.discountAmount || fallback.discount || 0;
+        if (fallback.type === 'percentage') {
+          calcDiscount = Math.round((itemsSubtotal * calcDiscount) / 100);
+          if (fallback.maxDiscount && calcDiscount > fallback.maxDiscount) {
+            calcDiscount = fallback.maxDiscount;
+          }
+        }
+        setAppliedCoupon({
+          ...fallback,
+          discountAmount: calcDiscount
+        });
+        setCouponCode('');
+        showToast(`🎉 Applied ${fallback.code}: Saved ₹${calcDiscount}!`);
+        return;
+      }
+
       if (target === 'AUTO100' || target === 'SAVE100') {
         setAppliedCoupon({ code: target, discountAmount: 100 });
         setCouponCode('');
         showToast('🎉 Applied coupon: Saved ₹100!');
         return;
       }
-      setCouponError(`Invalid coupon code "${target}". Try MUMBAI100, FIRST50 or SUPERUC`);
-      return;
+
+      setCouponError(err.message || `Invalid coupon code "${target}". Try MUMBAI100, FIRST50 or SUPERUC`);
+    } finally {
+      setIsApplyingCoupon(false);
     }
-    if (itemsSubtotal < found.minOrder) {
-      setCouponError(`Min order of ₹${found.minOrder} required for ${found.code}`);
-      return;
-    }
-    setAppliedCoupon(found);
-    setCouponCode('');
-    showToast(`🎉 Applied ${found.code}: Saved ₹${found.discountAmount}!`);
   }
 
   async function handleQuickCheckoutSignup(e) {
@@ -1692,26 +1762,52 @@ export function UrbanCheckoutPage({
                       <button
                         type="button"
                         onClick={() => handleApplyCoupon()}
-                        disabled={!couponCode.trim()}
+                        disabled={!couponCode.trim() || isApplyingCoupon}
                         style={{
-                          backgroundColor: couponCode.trim() ? '#6E42E5' : '#E5E7EB',
-                          color: couponCode.trim() ? '#FFFFFF' : '#9CA3AF',
+                          backgroundColor: (couponCode.trim() && !isApplyingCoupon) ? '#6E42E5' : '#E5E7EB',
+                          color: (couponCode.trim() && !isApplyingCoupon) ? '#FFFFFF' : '#9CA3AF',
                           border: 'none',
                           borderRadius: 8,
                           padding: '8px 16px',
                           fontSize: 12.5,
                           fontWeight: 800,
-                          cursor: couponCode.trim() ? 'pointer' : 'not-allowed',
+                          cursor: (couponCode.trim() && !isApplyingCoupon) ? 'pointer' : 'not-allowed',
                           transition: 'all 0.15s'
                         }}
                       >
-                        Apply
+                        {isApplyingCoupon ? 'Applying...' : 'Apply'}
                       </button>
                     </div>
 
                     {couponError && (
                       <div style={{ fontSize: 12, color: '#EF4444', fontWeight: 600, marginTop: 6 }}>
                         {couponError}
+                      </div>
+                    )}
+
+                    {/* Quick suggestion pills for available active coupons */}
+                    {availableCoupons && availableCoupons.length > 0 && (
+                      <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
+                        {availableCoupons.slice(0, 4).map(c => (
+                          <button
+                            key={c.code}
+                            type="button"
+                            onClick={() => handleApplyCoupon(c.code)}
+                            disabled={isApplyingCoupon}
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: '4px 8px',
+                              background: '#F5F3FF',
+                              color: '#6E42E5',
+                              borderRadius: 6,
+                              border: '1px dashed #DDD6FE',
+                              cursor: isApplyingCoupon ? 'wait' : 'pointer'
+                            }}
+                          >
+                            {c.code} {c.type === 'percentage' ? `(${c.discount}% OFF)` : `(-₹${c.discountAmount || c.discount})`}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
