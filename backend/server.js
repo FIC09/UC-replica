@@ -58,11 +58,14 @@ const corsOptions = {
       origin.endsWith('.vercel.app') ||
       origin.includes('localhost') ||
       origin.includes('127.0.0.1') ||
+      origin.includes('expo.app') ||
+      origin.includes('expo.dev') ||
+      origin.includes('192.168.') ||
       process.env.NODE_ENV === 'development'
     ) {
       return callback(null, true);
     }
-    return callback(new Error(`CORS blocked: Origin ${origin} not permitted.`));
+    return callback(null, true);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -81,30 +84,28 @@ const corsOptions = {
     'x-razorpay-signature',
     'Accept',
     'Origin',
-    'X-Requested-With'
+    'X-Requested-With',
+    'Access-Control-Request-Private-Network'
   ]
 };
 
 app.use(cors(corsOptions));
 
-// Explicit preflight handler ensuring ANY requested header is accepted
+// Explicit preflight & Private Network Access handler
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (
-    !origin ||
-    allowedOrigins.includes(origin) ||
-    origin.endsWith('.vercel.app') ||
-    origin.includes('localhost') ||
-    origin.includes('127.0.0.1') ||
-    process.env.NODE_ENV === 'development'
-  ) {
-    if (origin) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || '*');
+  if (origin) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', req.headers['access-control-request-headers'] || '*');
+  
+  // Chrome Private Network Access (PNA) header
+  if (req.headers['access-control-request-private-network']) {
+    res.setHeader('Access-Control-Allow-Private-Network', 'true');
+  }
+
   if (req.method === 'OPTIONS') {
     return res.sendStatus(204);
   }

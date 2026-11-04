@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../config/api';
+import { API_BASE_URL, CLOUD_API_URL } from '../config/api';
 
 /**
  * Universal Mobile API Client connected directly to the Express & MongoDB Atlas backend.
@@ -9,7 +9,7 @@ class MobileApiClient {
   }
 
   async request(endpoint, options = {}) {
-    const url = `${this.baseUrl}${endpoint}`;
+    const primaryUrl = `${this.baseUrl}${endpoint}`;
     const headers = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
@@ -17,7 +17,7 @@ class MobileApiClient {
     };
 
     try {
-      const response = await fetch(url, {
+      const response = await fetch(primaryUrl, {
         ...options,
         headers
       });
@@ -27,6 +27,15 @@ class MobileApiClient {
       }
       return data;
     } catch (err) {
+      // Fallback to cloud HTTPS backend if local IP is unreachable or blocked by browser mixed content
+      if (this.baseUrl !== CLOUD_API_URL) {
+        try {
+          const fallbackUrl = `${CLOUD_API_URL}${endpoint}`;
+          const fallbackRes = await fetch(fallbackUrl, { ...options, headers });
+          const fallbackData = await fallbackRes.json();
+          if (fallbackRes.ok) return fallbackData;
+        } catch (_) {}
+      }
       console.warn(`[MobileApiClient] Error querying ${endpoint}:`, err.message);
       throw err;
     }
@@ -88,4 +97,3 @@ class MobileApiClient {
 
 export const mobileApi = new MobileApiClient(API_BASE_URL);
 export default mobileApi;
-
