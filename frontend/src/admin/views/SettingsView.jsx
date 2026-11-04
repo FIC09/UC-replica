@@ -99,7 +99,7 @@ const DEFAULT_SETTINGS = {
   companyLegalName: 'Forge India Connect Technologies Pvt. Ltd.',
   supportHelpline: '+91 1800 200 4567',
   supportEmail: 'corporate-ops@forgeindiaconnect.com',
-  headquartersAddress: 'Plot 19, Udyog Vihar Phase IV, Gurugram, Haryana - 122015, India',
+  headquartersAddress: 'Rayakottai Road, Krishnagiri, Tamil Nadu - 635111, India',
   gstinNumber: '07AAACU9812K1Z5',
 
   // Currency & Localization

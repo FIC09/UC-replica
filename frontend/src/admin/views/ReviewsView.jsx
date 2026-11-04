@@ -11,12 +11,14 @@ import {
   Filter,
   History,
   Check,
-  X
+  X,
+  RefreshCw
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
 
 export function ReviewsView({ onShowToast }) {
   const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [ratingFilter, setRatingFilter] = useState('ALL');
   const [statusTab, setStatusTab] = useState('ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'HIDDEN'
@@ -34,7 +36,10 @@ export function ReviewsView({ onShowToast }) {
       if (res && Array.isArray(res.reviews)) {
         setReviews(res.reviews);
       }
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -398,7 +403,23 @@ export function ReviewsView({ onShowToast }) {
 
       {/* Reviews Cards List */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {filteredReviews.length === 0 ? (
+        {loading ? (
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            padding: '36px',
+            borderRadius: 12,
+            border: '1px solid #E2E8F0',
+            textAlign: 'center',
+            color: '#64748B',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8
+          }}>
+            <RefreshCw size={16} className="animate-spin" />
+            <span>Loading verified customer reviews...</span>
+          </div>
+        ) : filteredReviews.length === 0 ? (
           <div style={{
             backgroundColor: '#FFFFFF',
             padding: '36px',

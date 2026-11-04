@@ -66,6 +66,15 @@ export function CustomersView({ onShowToast, onNavigate }) {
   const [confirmAnonymiseText, setConfirmAnonymiseText] = useState('');
   const [newCustomerNote, setNewCustomerNote] = useState('');
 
+  // Watchdog timer to ensure customer loading state never hangs indefinitely
+  useEffect(() => {
+    if (!loading) return;
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 4500);
+    return () => clearTimeout(safetyTimer);
+  }, [loading]);
+
   // Fetch Customers (with silent background refresh to prevent UI table blinking)
   const fetchCustomersList = (showLoading = false) => {
     if (showLoading) {
@@ -188,7 +197,23 @@ export function CustomersView({ onShowToast, onNavigate }) {
       return;
     }
 
-    adminClient.createCustomer(newCustomer)
+    const cleanDigits = (newCustomer.phone || '').replace(/\D/g, '');
+    if (cleanDigits.length !== 10) {
+      onShowToast && onShowToast(`Mobile number must be exactly 10 digits (received ${cleanDigits.length}).`);
+      return;
+    }
+    if (!/^[6-9]/.test(cleanDigits)) {
+      onShowToast && onShowToast('Mobile number must start with 6, 7, 8, or 9.');
+      return;
+    }
+
+    const payload = {
+      ...newCustomer,
+      phone: `+91 ${cleanDigits}`,
+      email: (newCustomer.email || '').trim().toLowerCase()
+    };
+
+    adminClient.createCustomer(payload)
       .then(res => {
         onShowToast && onShowToast(`✓ Customer account "${newCustomer.name}" created in real-time database!`);
         setIsCreateOpen(false);
@@ -306,62 +331,55 @@ export function CustomersView({ onShowToast, onNavigate }) {
       });
   }
 
-  // Status Badge
+  // Format long MongoDB ObjectIDs into human-readable compact IDs: CUST-XXXXXX
+  function formatCustomerId(id) {
+    if (!id) return '';
+    const str = String(id);
+    if (str.startsWith('CUST-') && str.length <= 12) return str;
+    const clean = str.replace(/[^a-zA-Z0-9]/g, '');
+    return `CUST-${clean.slice(-6).toUpperCase()}`;
+  }
+
+  // Compact, consistent status badge
   function renderStatusBadge(status) {
     const s = (status || 'Active').toLowerCase();
-    if (s === 'active') {
-      return (
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 5,
-          padding: '3px 8px',
-          borderRadius: 12,
-          fontSize: 12,
-          fontWeight: 600,
-          backgroundColor: '#F0FDF4',
-          color: '#16A34A',
-          border: '1px solid #BBF7D0'
-        }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#16A34A' }} />
-          Active Account
-        </span>
-      );
-    }
+    let bg = '#F0FDF4';
+    let color = '#15803D';
+    let border = '#BBF7D0';
+    let dotColor = '#16A34A';
+    let label = 'Active';
+
     if (s === 'suspended') {
-      return (
-        <span style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 5,
-          padding: '3px 8px',
-          borderRadius: 12,
-          fontSize: 12,
-          fontWeight: 600,
-          backgroundColor: '#FEF2F2',
-          color: '#DC2626',
-          border: '1px solid #FECACA'
-        }}>
-          <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#DC2626' }} />
-          Suspended
-        </span>
-      );
+      bg = '#FEF2F2';
+      color = '#B91C1C';
+      border = '#FECACA';
+      dotColor = '#DC2626';
+      label = 'Suspended';
+    } else if (s === 'anonymised' || s === 'inactive') {
+      bg = '#F1F5F9';
+      color = '#475569';
+      border = '#CBD5E1';
+      dotColor = '#64748B';
+      label = 'Anonymised';
     }
+
     return (
       <span style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: 5,
-        padding: '3px 8px',
-        borderRadius: 12,
-        fontSize: 12,
-        fontWeight: 600,
-        backgroundColor: '#F1F5F9',
-        color: '#64748B',
-        border: '1px solid #CBD5E1'
+        padding: '2px 8px',
+        borderRadius: 6,
+        fontSize: 11.5,
+        fontWeight: 700,
+        backgroundColor: bg,
+        color: color,
+        border: `1px solid ${border}`,
+        lineHeight: 1.3,
+        whiteSpace: 'nowrap'
       }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#64748B' }} />
-        Anonymised (GDPR)
+        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: dotColor, flexShrink: 0 }} />
+        {label}
       </span>
     );
   }
@@ -601,7 +619,9 @@ export function CustomersView({ onShowToast, onNavigate }) {
                           </div>
                           <div>
                             <div style={{ fontWeight: 700, color: '#0F172A' }}>{c.name}</div>
-                            <div style={{ fontSize: 11, color: '#64748B' }}>ID: {c.id || c._id}</div>
+                            <div style={{ fontSize: 11, color: '#64748B', fontFamily: 'monospace' }} title={c.id || c._id}>
+                              ID: {formatCustomerId(c.id || c._id)}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -792,7 +812,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
                   {renderStatusBadge(selectedCust.status)}
                 </div>
                 <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
-                  Client since {selectedCust.joinedDate || 'Jan 2026'} • ID: {selectedCust.id || selectedCust._id}
+                  Client since {selectedCust.joinedDate || 'Jan 2026'} • ID: <strong title={selectedCust.id || selectedCust._id}>{formatCustomerId(selectedCust.id || selectedCust._id)}</strong>
                 </div>
               </div>
 
@@ -1438,13 +1458,25 @@ export function CustomersView({ onShowToast, onNavigate }) {
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Phone Number *</label>
                   <input
-                    type="text"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
                     required
-                    placeholder="+91 94421 88390"
+                    placeholder="10-digit mobile number"
                     value={newCustomer.phone}
-                    onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value })}
+                    onChange={e => setNewCustomer({ ...newCustomer, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
                   />
+                  {newCustomer.phone && !/^[6-9]/.test(newCustomer.phone) && (
+                    <div style={{ color: '#dc2626', fontSize: 11.5, marginTop: 4 }}>
+                      Mobile number must start with 6, 7, 8, or 9.
+                    </div>
+                  )}
+                  {newCustomer.phone && newCustomer.phone.length > 0 && newCustomer.phone.length < 10 && /^[6-9]/.test(newCustomer.phone) && (
+                    <div style={{ color: '#d97706', fontSize: 11.5, marginTop: 4 }}>
+                      {10 - newCustomer.phone.length} more digit{10 - newCustomer.phone.length > 1 ? 's' : ''} required.
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Email Address</label>
@@ -1452,7 +1484,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
                     type="email"
                     placeholder="customer@example.com"
                     value={newCustomer.email}
-                    onChange={e => setNewCustomer({ ...newCustomer, email: e.target.value })}
+                    onChange={e => setNewCustomer({ ...newCustomer, email: e.target.value.toLowerCase() })}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
                   />
                 </div>

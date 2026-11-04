@@ -307,7 +307,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
           rating: ratingVal,
           review: commentToSend || 'Service completed thoroughly.',
           customerName: booking?.customerName || booking?.userName || 'Customer',
-          professionalName: proName || booking?.assignedProfessional?.name || 'violet',
+          professionalName: proName || booking?.assignedProfessional?.name || booking?.assignedPartner || 'Assigned Professional',
           serviceName: booking?.serviceTitle || booking?.serviceName || 'AC & Appliance Repair',
           city: booking?.address?.city || booking?.city || 'Krishnagiri'
         })
@@ -1597,9 +1597,9 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
               <LiveMapTracker
                 session={{
                   ...trackingData,
-                  status: (stage === 6 || liveBooking?.status === 'Completed') ? 'completed' : (trackingData?.status || 'arrived'),
-                  workerName: proName || trackingData?.workerName || 'Neal',
-                  workerTrade: proTrade || trackingData?.workerTrade || 'AC & Appliance Repair'
+                  status: (stage === 6 || liveBooking?.status === 'Completed') ? 'completed' : (trackingData?.status || (hasAssignedPro ? 'arrived' : 'unassigned')),
+                  workerName: proName || trackingData?.workerName || (hasAssignedPro ? 'Assigned Professional' : 'Pending Assignment'),
+                  workerTrade: proTrade || trackingData?.workerTrade || 'Home Service Specialist'
                 }}
                 bookingId={booking?.id}
                 height="100%"
@@ -1663,7 +1663,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
             id: booking?.id || booking?.bookingReference,
             worker: {
               id: liveBooking?.assignedProfessional?.id || 'WRK-79932',
-              name: proName || 'Neal',
+              name: proName || 'Assigned Professional',
               trade: proTrade || 'AC & Appliance Repair',
               avatar: liveBooking?.assignedProfessional?.avatar || ''
             }

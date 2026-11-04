@@ -13,7 +13,9 @@ import {
   RotateCcw,
   Check,
   FileText,
-  MessageSquare
+  MessageSquare,
+  LogOut,
+  User
 } from 'lucide-react';
 import { getAvailableServiceDates, formatSlotDisplay } from '../utils/slotDates';
 import { RapidoChatDrawer } from './RapidoChatDrawer';
@@ -29,7 +31,8 @@ export function MyBookingsModal({
   onUpdateBookingSlot,
   onUpdateBookingAddress,
   onCancelBooking,
-  onDeleteBookingHistory
+  onDeleteBookingHistory,
+  onLogout
 }) {
   const [filter, setFilter] = useState('all'); // all, active, completed, cancelled
   const [chatBooking, setChatBooking] = useState(null);
@@ -137,6 +140,72 @@ export function MyBookingsModal({
             <X size={20} />
           </button>
         </div>
+
+        {/* Customer Account Header Card with Log Out */}
+        {currentUser && (
+          <div style={{
+            padding: '12px 20px',
+            background: '#F1F5F9',
+            borderBottom: '1px solid #E2E8F0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <div style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                background: '#6E42E5',
+                color: '#FFFFFF',
+                fontWeight: 700,
+                fontSize: 14,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                {(currentUser.name || currentUser.phone || 'U').charAt(0).toUpperCase()}
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentUser.name || 'Customer Account'}
+                </div>
+                <div style={{ fontSize: 11, color: '#64748B' }}>
+                  {currentUser.phone || currentUser.email || 'Verified Customer'}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                onClose();
+                onLogout?.();
+              }}
+              title="Log out of your customer account"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderRadius: 8,
+                border: '1px solid #FECACA',
+                background: '#FEF2F2',
+                color: '#DC2626',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                transition: 'all 0.15s ease',
+                flexShrink: 0
+              }}
+            >
+              <LogOut size={13} />
+              <span>Log Out</span>
+            </button>
+          </div>
+        )}
 
         {/* Filter Tabs */}
         <div style={{
@@ -535,30 +604,33 @@ export function MyBookingsModal({
                             </div>
                           )}
 
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (window.confirm('Delete this record from your booking history?')) {
-                                onDeleteBookingHistory(b.id);
-                              }
-                            }}
-                            style={{
-                              padding: '5px 10px',
-                              borderRadius: 6,
-                              background: '#FEE2E2',
-                              color: '#DC2626',
-                              fontSize: 11,
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              cursor: 'pointer',
-                              border: 'none'
-                            }}
-                          >
-                            <Trash2 size={12} />
-                            <span>Delete</span>
-                          </button>
+                          {isCancelled && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm('Delete this record from your booking history?')) {
+                                  onDeleteBookingHistory(b.id);
+                                }
+                              }}
+                              style={{
+                                padding: '5px 10px',
+                                borderRadius: 6,
+                                background: '#FEE2E2',
+                                color: '#DC2626',
+                                fontSize: 11,
+                                fontWeight: 700,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                cursor: 'pointer',
+                                border: 'none'
+                              }}
+                              title="Remove cancelled booking from history"
+                            >
+                              <Trash2 size={12} />
+                              <span>Delete</span>
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>

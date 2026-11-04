@@ -56,26 +56,27 @@ export function PartnersView({ onShowToast, onNavigate }) {
   const [newPartnerNote, setNewPartnerNote] = useState('');
 
   // New Partner Form State
-  const [newPartner, setNewPartner] = useState({
+  const initialNewPartner = {
     businessName: '',
     ownerName: '',
     contactName: '',
     phone: '',
     email: '',
     city: 'Mumbai',
-    coverageZones: 'Bandra West, Khar West, Santacruz',
+    coverageZones: '',
     category: 'ac-appliances',
     categoryName: 'AC & Appliance Care',
     businessType: 'LLP',
-    fleetSize: '10 Technicians',
-    techniciansCount: 10,
-    tier: 'Gold Franchise',
+    fleetSize: '',
+    techniciansCount: '',
+    tier: '',
     gstNumber: '',
     panNumber: '',
     cinNumber: '',
     commissionRate: '18%',
     settlementMode: 'ThroughBusiness'
-  });
+  };
+  const [newPartner, setNewPartner] = useState(initialNewPartner);
 
   const fetchPartnersList = () => {
     setLoading(true);
@@ -106,13 +107,27 @@ export function PartnersView({ onShowToast, onNavigate }) {
       return;
     }
 
+    const cleanDigits = (newPartner.phone || '').replace(/\D/g, '');
+    if (cleanDigits.length !== 10) {
+      onShowToast && onShowToast(`Mobile number must be exactly 10 digits (received ${cleanDigits.length}).`);
+      return;
+    }
+    if (!/^[6-9]/.test(cleanDigits)) {
+      onShowToast && onShowToast('Mobile number must start with 6, 7, 8, or 9.');
+      return;
+    }
+
+    const cleanEmail = (newPartner.email || '').trim().toLowerCase();
+
     const payload = {
       ...newPartner,
-      coverageZones: newPartner.coverageZones.split(',').map(s => s.trim()).filter(Boolean),
+      phone: `+91 ${cleanDigits}`,
+      email: cleanEmail,
+      coverageZones: newPartner.coverageZones ? newPartner.coverageZones.split(',').map(s => s.trim()).filter(Boolean) : [],
       contactPerson: {
         name: newPartner.contactName || newPartner.ownerName,
-        phone: newPartner.phone,
-        email: newPartner.email,
+        phone: `+91 ${cleanDigits}`,
+        email: cleanEmail,
         designation: 'Authorized Managing Partner'
       }
     };
@@ -121,6 +136,7 @@ export function PartnersView({ onShowToast, onNavigate }) {
       .then(res => {
         onShowToast && onShowToast(`✓ Agency Partner "${newPartner.businessName}" registered successfully!`);
         setIsCreateOpen(false);
+        setNewPartner(initialNewPartner);
         fetchPartnersList();
       })
       .catch(err => {
@@ -229,11 +245,11 @@ export function PartnersView({ onShowToast, onNavigate }) {
 
   function renderStatusBadge(status) {
     const s = (status || 'Active').toLowerCase();
-    let bg = '#F0FDF4'; let color = '#16A34A'; let border = '#BBF7D0';
+    let bg = '#F0FDF4'; let color = '#15803D'; let border = '#BBF7D0'; let dot = '#16A34A';
     if (s === 'pending review') {
-      bg = '#FFFBEB'; color = '#D97706'; border = '#FDE68A';
+      bg = '#FFFBEB'; color = '#B45309'; border = '#FDE68A'; dot = '#D97706';
     } else if (s === 'suspended' || s === 'rejected') {
-      bg = '#FEF2F2'; color = '#DC2626'; border = '#FECACA';
+      bg = '#FEF2F2'; color = '#B91C1C'; border = '#FECACA'; dot = '#DC2626';
     }
 
     return (
@@ -241,15 +257,17 @@ export function PartnersView({ onShowToast, onNavigate }) {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 5,
-        padding: '3px 8px',
-        borderRadius: 12,
-        fontSize: 12,
-        fontWeight: 600,
+        padding: '2px 8px',
+        borderRadius: 6,
+        fontSize: 11.5,
+        fontWeight: 700,
         backgroundColor: bg,
         color: color,
-        border: `1px solid ${border}`
+        border: `1px solid ${border}`,
+        lineHeight: 1.3,
+        whiteSpace: 'nowrap'
       }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: color }} />
+        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: dot, flexShrink: 0 }} />
         {status}
       </span>
     );

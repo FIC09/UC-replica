@@ -544,8 +544,9 @@ function App() {
           } catch {}
 
           if (serverBookings.length > 0) {
-            const active = serverBookings.find(b => b.status === 'Confirmed' || b.status === 'Assigned' || b.status === 'In Progress') || serverBookings[0];
+            const active = serverBookings.find(b => ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(b.status)) || null;
             if (active) setLatestLiveBooking(active);
+            else setLatestLiveBooking(null);
           } else {
             setLatestLiveBooking(null);
           }
@@ -1134,7 +1135,7 @@ function App() {
 
   useEffect(() => {
     if (user && customerBookings.length > 0) {
-      const active = customerBookings.find(b => b.status === 'Confirmed' || b.status === 'Assigned' || b.status === 'In Progress') || customerBookings[0] || null;
+      const active = customerBookings.find(b => ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(b.status)) || null;
       setLatestLiveBooking(active);
     } else {
       setLatestLiveBooking(null);
@@ -1611,7 +1612,7 @@ function App() {
       const saved = localStorage.getItem('uc_bookings');
       if (saved) {
         const list = JSON.parse(saved);
-        return list.find(b => b.status === 'Confirmed' || b.status === 'Assigned' || b.status === 'In Progress') || list[0] || null;
+        return list.find(b => ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(b.status)) || null;
       }
     } catch {}
     return null;
@@ -2570,6 +2571,7 @@ function App() {
         onUpdateBookingAddress={handleUpdateBookingAddress}
         onCancelBooking={handleCancelBooking}
         onDeleteBookingHistory={handleDeleteBookingHistory}
+        onLogout={handleLogout}
       />
 
       {/* Top-Level Rapido-Style Real-Time Customer Chat Drawer */}

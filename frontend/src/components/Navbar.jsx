@@ -318,6 +318,7 @@ export function Navbar({
           {activeBooking && onOpenChat && (
             <button
               type="button"
+              className="uc-nav-live-chat-btn"
               onClick={onOpenChat}
               style={{
                 display: 'flex',
@@ -332,12 +333,13 @@ export function Navbar({
                 fontWeight: 700,
                 cursor: 'pointer',
                 boxShadow: '0 2px 6px rgba(5, 150, 105, 0.15)',
-                transition: 'all 0.15s'
+                transition: 'all 0.15s',
+                flexShrink: 0
               }}
               title="Open Live Chat with assigned professional (Rapido Style)"
             >
               <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
-              <span>💬 Live Chat</span>
+              <span className="uc-live-chat-label">💬 Live Chat</span>
             </button>
           )}
 

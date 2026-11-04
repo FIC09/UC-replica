@@ -1,5 +1,6 @@
 import express from 'express';
 import { PartnerApplication } from '../models/PartnerApplication.js';
+import { validateIndianMobile, validateAndNormalizeEmail } from '../utils/validation.js';
 
 const router = express.Router();
 
@@ -21,22 +22,18 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Business name, owner name and phone are required' });
     }
 
-    if (!appData.id) {
-      appData.id = 'PTR-' + Math.floor(10000 + Math.random() * 90000);
+    const phoneCheck = validateIndianMobile(appData.phone);
+    if (!phoneCheck.isValid) {
+      return res.status(400).json({ success: false, message: phoneCheck.message });
     }
-    if (!appData.appliedAt) {
-      const now = new Date();
-      appData.appliedAt = now.toLocaleDateString('en-GB', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-      });
-    }
+    appData.phone = phoneCheck.formatted;
 
     if (appData.email) {
-      appData.email = appData.email.trim().toLowerCase();
+      const emailCheck = validateAndNormalizeEmail(appData.email);
+      if (!emailCheck.isValid) {
+        return res.status(400).json({ success: false, message: emailCheck.message });
+      }
+      appData.email = emailCheck.email;
     }
     if (appData.password) {
       appData.password = appData.password.trim();

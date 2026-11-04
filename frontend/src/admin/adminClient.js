@@ -51,6 +51,8 @@ async function ensureAdminLoggedIn() {
 }
 
 async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 8000);
   try {
     const url = `${API_BASE}${endpoint}`;
     let token = getAdminAuthToken();
@@ -64,6 +66,7 @@ async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
     let res = await fetch(url, {
       ...options,
       headers,
+      signal: options.signal || controller.signal
     });
 
     // Auto-authenticate with demo admin credentials if token is missing or expired
@@ -73,6 +76,7 @@ async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
         res = await fetch(url, {
           ...options,
           _retriedAuth: true,
+          signal: options.signal || controller.signal,
           headers: {
             ...options.headers,
             'Content-Type': 'application/json',
@@ -81,6 +85,8 @@ async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
         });
       }
     }
+
+    clearTimeout(timeoutId);
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
@@ -94,6 +100,7 @@ async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
     const data = await res.json().catch(() => null);
     return data !== null ? data : (emptyFallback !== null ? emptyFallback : {});
   } catch (err) {
+    clearTimeout(timeoutId);
     if (emptyFallback !== null) {
       return emptyFallback;
     }

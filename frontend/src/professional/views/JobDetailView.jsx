@@ -2003,12 +2003,12 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                     max="5"
                     value={extraWorkQty}
                     onChange={(e) => setExtraWorkQty(e.target.value)}
-                    style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, marginTop: 6, boxSizing: 'border-box' }}
+                    style={{ width: '100%', height: 42, padding: '0 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, marginTop: 6, boxSizing: 'border-box' }}
                   />
                 </div>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#334155' }}>PROPOSED AMOUNT</label>
-                  <div style={{ padding: '10px 12px', background: '#f1f5f9', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, fontWeight: 800, color: '#059669', marginTop: 6 }}>
+                  <div style={{ height: 42, padding: '0 12px', background: '#f1f5f9', borderRadius: 8, border: '1px solid #e2e8f0', fontSize: 14, fontWeight: 800, color: '#059669', marginTop: 6, display: 'flex', alignItems: 'center', boxSizing: 'border-box' }}>
                     ₹{((extraWorkCatalog.find(r => r.id === selectedRuleId || r.code === selectedRuleId)?.amount || 450) * extraWorkQty)}
                   </div>
                 </div>

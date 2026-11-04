@@ -237,7 +237,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
       `}</style>
 
       {/* Main Content Body */}
-      <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="admin-page-body">
 
       {/* Calculation Guide Banner (Explaining GBV vs Collected vs Revenue vs Pro Earnings) */}
       {showCalculationGuide && (
@@ -720,75 +720,77 @@ export function OverviewView({ onNavigate, onShowToast }) {
           </button>
         </div>
 
-        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
-          <thead>
-            <tr style={{ borderBottom: '1px solid #E2E8F0', backgroundColor: '#FFFFFF', color: '#64748B', fontSize: 11.5, fontWeight: 700 }}>
-              <th style={{ padding: '12px 18px' }}>Order ID & Service</th>
-              <th style={{ padding: '12px 18px' }}>Customer</th>
-              <th style={{ padding: '12px 18px' }}>Slot Time</th>
-              <th style={{ padding: '12px 18px' }}>Assigned Pro</th>
-              <th style={{ padding: '12px 18px' }}>Amount</th>
-              <th style={{ padding: '12px 18px' }}>Status</th>
-              <th style={{ padding: '12px 18px', textAlign: 'right' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {recentBookings.map(b => (
-              <tr key={b.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                <td style={{ padding: '12px 18px' }}>
-                  <div style={{ fontWeight: 800, color: '#0F172A' }}>{b.serviceName || 'Home Service'}</div>
-                  <div style={{ fontSize: 11.5, color: '#64748B', fontFamily: 'monospace' }}>{b.id}</div>
-                </td>
-                <td style={{ padding: '12px 18px' }}>
-                  <div style={{ fontWeight: 700, color: '#0F172A' }}>{b.customerName}</div>
-                  <div style={{ fontSize: 11.5, color: '#64748B' }}>{b.locality}, {b.city}</div>
-                </td>
-                <td style={{ padding: '12px 18px', color: '#475569', fontSize: 12.5 }}>
-                  {formatSlotDisplay(b.slot, b.scheduledDate, b.createdAt)}
-                </td>
-                <td style={{ padding: '12px 18px' }}>
-                  {b.assignedPartner ? (
-                    <span style={{ fontWeight: 700, color: '#0F172A' }}>{b.assignedPartner}</span>
-                  ) : (
-                    <span style={{ color: '#DC2626', fontWeight: 700, fontSize: 12 }}>Unassigned</span>
-                  )}
-                </td>
-                <td style={{ padding: '12px 18px', fontWeight: 800, color: '#0F172A' }}>
-                  ₹{b.totalAmount}
-                </td>
-                <td style={{ padding: '12px 18px' }}>
-                  <span style={{
-                    padding: '3px 8px',
-                    borderRadius: 12,
-                    fontSize: 11,
-                    fontWeight: 700,
-                    backgroundColor: b.status === 'Completed' ? '#DCFCE7' : b.status === 'In Progress' ? '#E0F2FE' : b.status === 'Cancelled' ? '#FEE2E2' : '#EDE9FE',
-                    color: b.status === 'Completed' ? '#15803D' : b.status === 'In Progress' ? '#0369A1' : b.status === 'Cancelled' ? '#DC2626' : '#6E42E5'
-                  }}>
-                    {b.status}
-                  </span>
-                </td>
-                <td style={{ padding: '12px 18px', textAlign: 'right' }}>
-                  <button
-                    onClick={() => onNavigate('/admin/bookings')}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 6,
-                      border: '1px solid #CBD5E1',
-                      backgroundColor: '#FFFFFF',
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: '#475569',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Inspect
-                  </button>
-                </td>
+        <div style={{ overflowX: 'auto', width: '100%' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13, minWidth: 680 }}>
+            <thead>
+              <tr style={{ borderBottom: '1px solid #E2E8F0', backgroundColor: '#FFFFFF', color: '#64748B', fontSize: 11.5, fontWeight: 700 }}>
+                <th style={{ padding: '12px 18px' }}>Order ID & Service</th>
+                <th style={{ padding: '12px 18px' }}>Customer</th>
+                <th style={{ padding: '12px 18px' }}>Slot Time</th>
+                <th style={{ padding: '12px 18px' }}>Assigned Pro</th>
+                <th style={{ padding: '12px 18px' }}>Amount</th>
+                <th style={{ padding: '12px 18px' }}>Status</th>
+                <th style={{ padding: '12px 18px', textAlign: 'right' }}>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {recentBookings.map(b => (
+                <tr key={b.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                  <td style={{ padding: '12px 18px' }}>
+                    <div style={{ fontWeight: 800, color: '#0F172A' }}>{b.serviceName || 'Home Service'}</div>
+                    <div style={{ fontSize: 11.5, color: '#64748B', fontFamily: 'monospace' }}>{b.id}</div>
+                  </td>
+                  <td style={{ padding: '12px 18px' }}>
+                    <div style={{ fontWeight: 700, color: '#0F172A' }}>{b.customerName}</div>
+                    <div style={{ fontSize: 11.5, color: '#64748B' }}>{b.locality}, {b.city}</div>
+                  </td>
+                  <td style={{ padding: '12px 18px', color: '#475569', fontSize: 12.5 }}>
+                    {formatSlotDisplay(b.slot, b.scheduledDate, b.createdAt)}
+                  </td>
+                  <td style={{ padding: '12px 18px' }}>
+                    {b.assignedPartner ? (
+                      <span style={{ fontWeight: 700, color: '#0F172A' }}>{b.assignedPartner}</span>
+                    ) : (
+                      <span style={{ color: '#DC2626', fontWeight: 700, fontSize: 12 }}>Unassigned</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '12px 18px', fontWeight: 800, color: '#0F172A' }}>
+                    ₹{b.totalAmount}
+                  </td>
+                  <td style={{ padding: '12px 18px' }}>
+                    <span style={{
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      backgroundColor: b.status === 'Completed' ? '#DCFCE7' : b.status === 'In Progress' ? '#E0F2FE' : b.status === 'Cancelled' ? '#FEE2E2' : '#EDE9FE',
+                      color: b.status === 'Completed' ? '#15803D' : b.status === 'In Progress' ? '#0369A1' : b.status === 'Cancelled' ? '#DC2626' : '#6E42E5'
+                    }}>
+                      {b.status}
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px 18px', textAlign: 'right' }}>
+                    <button
+                      onClick={() => onNavigate('/admin/bookings')}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: '1px solid #CBD5E1',
+                        backgroundColor: '#FFFFFF',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: '#475569',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Inspect
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* 8. Live Customer Reviews & Rating Stream */}

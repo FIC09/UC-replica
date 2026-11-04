@@ -102,7 +102,7 @@ export function ReportsView({ showToast, staff }) {
 
   function generateFallbackProtectedCsv() {
     const trend = reportData?.turnoverTrend || [];
-    let csv = '# Urban Company Business Partner Report\n';
+    let csv = '# Forge India Connect Business Partner Report\n';
     csv += '# Timezone: Asia/Kolkata\n';
     csv += '# Currency: INR\n';
     csv += '# Customer PII: Phone numbers and street addresses masked in compliance with Privacy Regulations\n\n';

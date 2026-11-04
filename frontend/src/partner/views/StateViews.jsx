@@ -129,7 +129,7 @@ export function PendingApprovalState({ partner, onNavigate, onRefresh, onLogout 
         lineHeight: 1.55
       }}>
         <strong style={{ display: 'block', marginBottom: 4 }}>🔒 Operational ERP Dashboard Access Restricted:</strong>
-        Per Urban Company enterprise security protocols, high-volume booking dispatches, live technician GPS tracking, enterprise team rosters, and corporate bank payout settlements remain locked until the Platform Administrator approves your partner application in the Admin Dashboard.
+        Per Forge India Connect enterprise security protocols, high-volume booking dispatches, live technician GPS tracking, enterprise team rosters, and corporate bank payout settlements remain locked until the Platform Administrator approves your partner application in the Admin Dashboard.
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -233,7 +233,7 @@ export function SuspendedState({ partner, onNavigate }) {
         Business Partner Account Suspended
       </h2>
       <p style={{ fontSize: 14.5, color: '#64748b', lineHeight: 1.6, marginBottom: 20 }}>
-        Doorstep operations and technician assignment privileges for <strong>{partner?.businessName || 'your agency'}</strong> have been placed on hold by Urban Company Compliance.
+        Doorstep operations and technician assignment privileges for <strong>{partner?.businessName || 'your agency'}</strong> have been placed on hold by Forge India Connect Compliance.
       </p>
       <div style={{
         background: '#fef2f2',

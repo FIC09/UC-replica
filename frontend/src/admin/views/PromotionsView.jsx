@@ -325,9 +325,11 @@ export function PromotionsView({ onShowToast }) {
                 </td>
 
                 <td style={{ padding: '14px 18px' }}>
-                  <div style={{ color: '#0F172A', fontWeight: 600 }}>{p.eligibleUsers}</div>
+                  <div style={{ color: '#0F172A', fontWeight: 600 }}>{p.eligibleUsers || 'All Users'}</div>
                   <div style={{ fontSize: 11.5, color: '#64748B' }}>
-                    {Array.isArray(p.eligibleCategories) ? p.eligibleCategories.join(', ') : p.eligibleCategories}
+                    {Array.isArray(p.eligibleCategories) && p.eligibleCategories.length > 0
+                      ? p.eligibleCategories.join(', ')
+                      : (p.eligibleCategories || 'All Services')}
                   </div>
                 </td>
 
@@ -480,8 +482,28 @@ export function PromotionsView({ onShowToast }) {
                       <option value="All Users">All Customers</option>
                       <option value="New Users Only">New Users Only (First Booking)</option>
                       <option value="UC Plus Members Only">UC Plus Members Only</option>
+                      <option value="Select Loyal Customers">Select Loyal Customers</option>
                     </select>
                   </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Category Scope</label>
+                    <select
+                      value={formData.eligibleCategories[0] || 'All Services'}
+                      onChange={e => setFormData({ ...formData, eligibleCategories: [e.target.value] })}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #D1D5DB', marginTop: 4, boxSizing: 'border-box' }}
+                    >
+                      <option value="All Services">All Services</option>
+                      <option value="AC & Appliance Repair">AC & Appliance Repair</option>
+                      <option value="Cleaning & Pest Control">Cleaning & Pest Control</option>
+                      <option value="Salon & Spa">Salon & Spa</option>
+                      <option value="Electrician, Plumber & Carpenter">Electrician, Plumber & Carpenter</option>
+                      <option value="Home Painting">Home Painting</option>
+                      <option value="Water Purifier (Native)">Water Purifier (Native)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div>
                     <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>Max Per Customer</label>
                     <input
@@ -490,6 +512,22 @@ export function PromotionsView({ onShowToast }) {
                       onChange={e => setFormData({ ...formData, usageLimitPerCustomer: e.target.value })}
                       style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #D1D5DB', marginTop: 4, boxSizing: 'border-box' }}
                     />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 12, fontWeight: 700, color: '#475569' }}>City / Regional Scope</label>
+                    <select
+                      value={formData.eligibleCities[0] || 'All Cities'}
+                      onChange={e => setFormData({ ...formData, eligibleCities: [e.target.value] })}
+                      style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #D1D5DB', marginTop: 4, boxSizing: 'border-box' }}
+                    >
+                      <option value="All Cities">All Cities (PAN India)</option>
+                      <option value="Mumbai">Mumbai</option>
+                      <option value="Bangalore">Bangalore</option>
+                      <option value="Delhi NCR">Delhi NCR</option>
+                      <option value="Krishnagiri">Krishnagiri</option>
+                      <option value="Hyderabad">Hyderabad</option>
+                      <option value="Chennai">Chennai</option>
+                    </select>
                   </div>
                 </div>
 

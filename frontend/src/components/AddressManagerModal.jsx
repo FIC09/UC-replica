@@ -79,9 +79,10 @@ export function AddressManagerModal({
       flat: flat.trim(),
       locality,
       city: 'Mumbai',
+      state: 'Maharashtra',
       pincode: pincode.trim(),
       landmark: landmark.trim(),
-      formatted: `${flat.trim()}, ${locality}, Mumbai - ${pincode.trim()}${landmark ? ` (Near ${landmark.trim()})` : ''}`
+      formatted: `${flat.trim()}, ${locality}, Mumbai, Maharashtra - ${pincode.trim()}${landmark ? ` (Near ${landmark.trim()})` : ''}`
     };
 
     if (editingId) {

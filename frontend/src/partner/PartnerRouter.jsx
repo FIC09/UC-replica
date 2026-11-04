@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { partnerClient } from './partnerClient';
 import { PartnerLayout } from './PartnerLayout';
+import { PartnerLogin } from './PartnerLogin';
 import { PartnerRegister } from './PartnerRegister';
 import { PartnerOnboarding } from './PartnerOnboarding';
 
@@ -37,7 +38,18 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
     return partnerClient.getStoredStaff();
   });
 
-  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    if (sessionStorage.getItem('uc_partner_token') || localStorage.getItem('uc_partner_token')) {
+      return true;
+    }
+    try {
+      const u = JSON.parse(localStorage.getItem('uc_user'));
+      if (u && (u.role === 'partner' || (u.email && u.email.includes('partner')))) {
+        return true;
+      }
+    } catch {}
+    return false;
+  });
 
   const [toastMessage, setToastMessage] = useState(null);
 
@@ -61,11 +73,9 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
   }, []);
 
   const handleNavigate = useCallback((path) => {
-    if (window.location.pathname !== path) {
-      window.history.pushState({}, '', path);
-      setCurrentPath(path);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
+    window.history.pushState({}, '', path);
+    setCurrentPath(path);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   const handleLoginSuccess = useCallback((partner, staff) => {
@@ -90,13 +100,27 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
   }, [handleNavigate, showToast]);
 
   const handleLogout = useCallback(() => {
-    partnerClient.logout();
-    localStorage.removeItem('uc_user');
-    localStorage.removeItem('uc_open_portal');
+    try {
+      partnerClient.logout();
+      localStorage.removeItem('uc_user');
+      localStorage.removeItem('uc_open_portal');
+      sessionStorage.removeItem('uc_partner_token');
+      localStorage.removeItem('uc_partner_token');
+      localStorage.removeItem('uc_partner_profile');
+      localStorage.removeItem('uc_partner_staff');
+      localStorage.removeItem('uc_partner_id');
+    } catch {}
     setIsAuthenticated(false);
     window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: null } }));
-    window.location.href = '/';
-  }, []);
+    if (onAppLogout) {
+      onAppLogout();
+    }
+    if (onExitToMarketplace) {
+      onExitToMarketplace();
+    }
+    window.history.pushState({ view: 'home' }, '', '/');
+    window.location.replace('/');
+  }, [onAppLogout, onExitToMarketplace]);
 
   const handleSwitchDemoRole = useCallback(async (account) => {
     try {
@@ -114,7 +138,27 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
     }
   }, [showToast]);
 
-  // Redirect /partner/login to portal overview
+  // Public unauthenticated routes
+  if (!isAuthenticated) {
+    if (currentPath === '/partner/register') {
+      return (
+        <PartnerRegister
+          onRegisterSuccess={handleRegisterSuccess}
+          onNavigate={handleNavigate}
+          onExitToMarketplace={onExitToMarketplace}
+        />
+      );
+    }
+    return (
+      <PartnerLogin
+        onLoginSuccess={handleLoginSuccess}
+        onNavigate={handleNavigate}
+        onExitToMarketplace={onExitToMarketplace}
+      />
+    );
+  }
+
+  // Redirect /partner/login to portal overview when authenticated
   if (currentPath === '/partner/login') {
     return (
       <OverviewView 
@@ -160,7 +204,7 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
         setPartnerUser(res.partner);
         localStorage.setItem('uc_partner_profile', JSON.stringify(res.partner));
         if (res.partner.status === 'Approved' || res.partner.status === 'Active') {
-          showToast(`🎉 Partner fleet APPROVED! Welcome to Urban Company Enterprise ERP.`);
+          showToast(`🎉 Partner fleet APPROVED! Welcome to Forge India Connect Enterprise ERP.`);
         } else {
           showToast(`Partner status: ${res.partner.status}. Awaiting Admin Approval.`);
         }

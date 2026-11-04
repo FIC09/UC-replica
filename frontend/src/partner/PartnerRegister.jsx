@@ -13,30 +13,85 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
     category: 'ac-appliances',
     categoryName: 'AC & Home Appliances',
     city: 'Mumbai',
-    coverageZones: 'Bandra West, Khar West, Santacruz West',
+    coverageZones: '',
     gstNumber: '',
     panNumber: '',
     cinNumber: '',
     registeredAddress: '',
-    bankName: 'HDFC Bank Ltd',
+    bankName: '',
     accountNumber: '',
     ifscCode: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  function validateStep1() {
+    const cleanEmail = (formData.email || '').trim().toLowerCase();
+    const cleanPhone = (formData.phone || '').trim().replace(/\D/g, '');
+
+    if (!formData.businessName.trim()) {
+      setError('Registered Business Name is required.');
+      return false;
+    }
+    if (!formData.ownerName.trim()) {
+      setError('Authorized Owner Name is required.');
+      return false;
+    }
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setError('Please provide a valid corporate email address.');
+      return false;
+    }
+    if (cleanPhone.length !== 10) {
+      setError(`Mobile number must be exactly 10 digits (received ${cleanPhone.length} digits).`);
+      return false;
+    }
+    if (!/^[6-9]/.test(cleanPhone)) {
+      setError('Mobile number must start with 6, 7, 8, or 9. Numbers starting with 1–5 are invalid.');
+      return false;
+    }
+    if (!formData.city.trim()) {
+      setError('Operating City is required.');
+      return false;
+    }
+    return true;
+  }
+
+  function handleNextStep(e) {
+    e.preventDefault();
+    setError('');
+    if (!validateStep1()) return;
+    setFormData(prev => ({
+      ...prev,
+      email: prev.email.trim().toLowerCase(),
+      phone: prev.phone.trim().replace(/\D/g, '')
+    }));
+    setStep(2);
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
+
+    if (!validateStep1()) {
+      setStep(1);
+      return;
+    }
+
     setLoading(true);
     try {
+      const cleanEmail = formData.email.trim().toLowerCase();
+      const cleanPhone = formData.phone.trim().replace(/\D/g, '');
       const payload = {
         ...formData,
-        coverageZones: formData.coverageZones.split(',').map(s => s.trim())
+        email: cleanEmail,
+        phone: cleanPhone,
+        coverageZones: formData.coverageZones ? formData.coverageZones.split(',').map(s => s.trim()).filter(Boolean) : []
       };
       const res = await partnerClient.register(payload);
       if (res && res.success) {
         onRegisterSuccess(res.partner, res.staff);
+      } else {
+        setError(res?.error || res?.message || 'Registration failed.');
       }
     } catch (err) {
       setError(err.message || 'Registration submission failed.');
@@ -100,7 +155,7 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
             </div>
           )}
 
-          <form onSubmit={step === 2 ? handleSubmit : (e) => { e.preventDefault(); setStep(2); }}>
+          <form onSubmit={step === 2 ? handleSubmit : handleNextStep}>
             {step === 1 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
@@ -162,7 +217,7 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
                       required
                       placeholder="contact@agency.in"
                       value={formData.email}
-                      onChange={e => setFormData({ ...formData, email: e.target.value })}
+                      onChange={e => setFormData({ ...formData, email: e.target.value.toLowerCase() })}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5 }}
                     />
                   </div>
@@ -190,6 +245,16 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
                       }}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5 }}
                     />
+                    {formData.phone && !/^[6-9]/.test(formData.phone) && (
+                      <div style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>
+                        Mobile number must start with 6, 7, 8, or 9.
+                      </div>
+                    )}
+                    {formData.phone && formData.phone.length > 0 && formData.phone.length < 10 && /^[6-9]/.test(formData.phone) && (
+                      <div style={{ color: '#d97706', fontSize: 12, marginTop: 4 }}>
+                        {10 - formData.phone.length} more digit{10 - formData.phone.length > 1 ? 's' : ''} required.
+                      </div>
+                    )}
                   </div>
                 </div>
 

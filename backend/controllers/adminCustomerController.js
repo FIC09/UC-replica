@@ -15,23 +15,25 @@ export async function getCustomers(req, res) {
     const { search = '', status = 'ALL', city = 'ALL', page = 1, limit = 10 } = req.query;
 
     let dbUsers = [];
-    try {
-      dbUsers = await User.find({
-        $or: [
-          { role: { $in: ['user', 'customer'] } },
-          { role: { $exists: false } },
-          { role: null }
-        ]
-      }).sort({ updatedAt: -1, createdAt: -1 }).select('-password').lean();
-    } catch (e) {
-      console.warn('User.find error in getCustomers:', e.message);
-    }
-
     let allAddresses = [];
-    try {
-      allAddresses = await Address.find().lean();
-    } catch (e) {
-      console.warn('Address.find in getCustomers error:', e.message);
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        dbUsers = await User.find({
+          $or: [
+            { role: { $in: ['user', 'customer'] } },
+            { role: { $exists: false } },
+            { role: null }
+          ]
+        }).sort({ updatedAt: -1, createdAt: -1 }).select('-password').lean();
+      } catch (e) {
+        console.warn('User.find error in getCustomers:', e.message);
+      }
+
+      try {
+        allAddresses = await Address.find().lean();
+      } catch (e) {
+        console.warn('Address.find in getCustomers error:', e.message);
+      }
     }
 
     const addressesByPhone = {};

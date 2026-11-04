@@ -509,6 +509,14 @@ export function AuthModal({
       return;
     }
 
+    if (signupPhone) {
+      const pDigits = signupPhone.replace(/\D/g, '');
+      if (pDigits.length !== 10 || !/^[6-9]/.test(pDigits)) {
+        setErrorMsg('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+        return;
+      }
+    }
+
     setIsSendingOtp(true);
     try {
       const res = await authApi.sendRegistrationOtp({
@@ -584,7 +592,11 @@ export function AuthModal({
     }
     const phoneDigits = cleanPhone.replace(/\D/g, '');
     if (!phoneDigits || phoneDigits.length !== 10) {
-      setErrorMsg('Please enter a valid 10-digit mobile number');
+      setErrorMsg('Please enter a valid 10-digit mobile number.');
+      return;
+    }
+    if (!/^[6-9]/.test(phoneDigits)) {
+      setErrorMsg('Mobile number must start with 6, 7, 8, or 9. Numbers starting with 1–5 are invalid.');
       return;
     }
     if (!isEmailVerified) {
@@ -1394,6 +1406,16 @@ export function AuthModal({
                       boxSizing: 'border-box'
                     }}
                   />
+                  {signupPhone && !/^[6-9]/.test(signupPhone) && (
+                    <div style={{ color: '#dc2626', fontSize: 11.5, marginTop: 4, fontWeight: 500 }}>
+                      Mobile number must start with 6, 7, 8, or 9.
+                    </div>
+                  )}
+                  {signupPhone && signupPhone.length > 0 && signupPhone.length < 10 && /^[6-9]/.test(signupPhone) && (
+                    <div style={{ color: '#d97706', fontSize: 11.5, marginTop: 4, fontWeight: 500 }}>
+                      {10 - signupPhone.length} more digit{10 - signupPhone.length > 1 ? 's' : ''} required (exactly 10 digits).
+                    </div>
+                  )}
                 </div>
 
                 {/* Email Address with Inline Verify Button in the same box */}

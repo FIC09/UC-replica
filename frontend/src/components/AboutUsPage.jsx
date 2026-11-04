@@ -17,9 +17,9 @@ export function AboutUsPage({
 }) {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    document.title = 'About Us | Urban Company';
+    document.title = 'About Us | Forge India Connect';
     return () => {
-      document.title = 'Urban Company - Expert Doorstep Home Services';
+      document.title = 'Forge India Connect - Expert Doorstep Home Services';
     };
   }, []);
 
@@ -61,7 +61,7 @@ export function AboutUsPage({
               cursor: 'pointer',
               userSelect: 'none'
             }}
-            title="Return to Urban Company Home"
+            title="Return to Forge India Connect Home"
           >
             <div
               style={{
@@ -224,7 +224,7 @@ export function AboutUsPage({
                 maxWidth: 520
               }}
             >
-              Urban Company is a technology-driven platform that connects you with trusted professionals for all your home and beauty needs — from cleaning and repairs to salon and spa services.
+              Forge India Connect is a technology-driven platform that connects you with trusted professionals for all your home and beauty needs — from cleaning and repairs to salon and spa services.
             </p>
 
             <p
@@ -433,7 +433,7 @@ export function AboutUsPage({
                     maxWidth: 460
                   }}
                 >
-                  Bringing Urban Company's promise of safe, reliable and dignified services to homes across UAE, Singapore and KSA.
+                  Bringing Forge India Connect's promise of safe, reliable and dignified services to homes across the nation.
                 </p>
               </div>
             </div>

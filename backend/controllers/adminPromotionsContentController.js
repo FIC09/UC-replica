@@ -62,6 +62,9 @@ export async function getPromotions(req, res) {
       validTill: '2026-12-31',
       status: c.isActive ? 'Active' : 'Inactive',
       description: c.description || c.desc || '',
+      eligibleUsers: c.eligibleUsers || 'All Users',
+      eligibleCategories: (Array.isArray(c.eligibleCategories) && c.eligibleCategories.length > 0) ? c.eligibleCategories : ['All Services'],
+      eligibleCities: (Array.isArray(c.eligibleCities) && c.eligibleCities.length > 0) ? c.eligibleCities : ['All Cities'],
       usedCount: 0,
       usageLimitTotal: 5000,
       usageLimitPerCustomer: 2
@@ -116,6 +119,9 @@ export async function createPromotion(req, res) {
         minOrder: parseFloat(minOrderValue) || 0,
         maxDiscount: parseFloat(maxDiscount) || 0,
         description: sanitizeHtml(description),
+        eligibleUsers: eligibleUsers || 'All Users',
+        eligibleCategories: Array.isArray(eligibleCategories) ? eligibleCategories : [eligibleCategories || 'All Services'],
+        eligibleCities: Array.isArray(eligibleCities) ? eligibleCities : [eligibleCities || 'All Cities'],
         isActive: true
       });
     } catch (dbErr) {

@@ -6,6 +6,7 @@ import { WorkerApplication } from '../models/WorkerApplication.js';
 import { PartnerApplication } from '../models/PartnerApplication.js';
 import { Admin } from '../models/Admin.js';
 import { sendRegistrationOtpEmail } from '../services/emailService.js';
+import { validateIndianMobile, validateAndNormalizeEmail } from '../utils/validation.js';
 
 const router = express.Router();
 
@@ -14,20 +15,21 @@ router.post('/send-registration-otp', async (req, res) => {
   try {
     const { email, name, phone, city, locality, purpose = 'customer' } = req.body;
 
-    if (!email || !email.trim()) {
-      return res.status(400).json({ success: false, message: 'Email address is required.' });
+    const emailCheck = validateAndNormalizeEmail(email);
+    if (!emailCheck.isValid) {
+      return res.status(400).json({ success: false, message: emailCheck.message });
     }
+    const cleanEmail = emailCheck.email;
 
-    const cleanEmail = email.trim().toLowerCase();
+    let cleanPhone = (phone && phone.trim()) || '';
+    if (cleanPhone) {
+      const phoneCheck = validateIndianMobile(cleanPhone);
+      if (!phoneCheck.isValid) {
+        return res.status(400).json({ success: false, message: phoneCheck.message });
+      }
+      cleanPhone = phoneCheck.formatted;
+    }
     const cleanName = (name && name.trim()) || 'New Applicant';
-    const cleanPhone = (phone && phone.trim()) || '';
-    const cleanDigits = cleanPhone.replace(/\D/g, '').slice(-10);
-
-    // Basic email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(cleanEmail)) {
-      return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
-    }
 
     // Role-specific duplication check
     if (purpose === 'worker') {
@@ -252,9 +254,16 @@ router.post('/verify-registration-otp', async (req, res) => {
 
     // Determine final registration parameters
     const finalName = (name && name.trim()) || otpRecord.name || 'New Customer';
-    const rawPhone = (phone && phone.trim()) || otpRecord.phone || '+91 99999 00000';
-    const cleanDigits = rawPhone.replace(/\D/g, '').slice(-10);
-    const finalPhone = rawPhone.startsWith('+91') ? rawPhone : `+91 ${cleanDigits}`;
+    let finalPhone = '+91 98201 44521';
+    const inputPhone = (phone && phone.trim()) || otpRecord.phone;
+    if (inputPhone) {
+      const phoneCheck = validateIndianMobile(inputPhone);
+      if (!phoneCheck.isValid) {
+        return res.status(400).json({ success: false, message: phoneCheck.message });
+      }
+      finalPhone = phoneCheck.formatted;
+    }
+    const cleanDigits = finalPhone.replace(/\D/g, '').slice(-10);
     const targetCity = (city && city.trim()) || otpRecord.city || 'Krishnagiri';
     const targetLocality = (locality && locality.trim()) || otpRecord.locality || 'Rayakottai Road';
 
@@ -605,12 +614,24 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Phone number is required' });
     }
 
-    let user = await User.findOne({ phone: phone.trim() });
+    const phoneCheck = validateIndianMobile(phone);
+    if (!phoneCheck.isValid) {
+      return res.status(400).json({ success: false, message: phoneCheck.message });
+    }
+
+    const cleanPhone = phoneCheck.formatted;
+    let user = await User.findOne({
+      $or: [
+        { phone: cleanPhone },
+        { phone: phoneCheck.digits },
+        { phone: phone.trim() }
+      ]
+    });
     if (!user) {
       user = await User.create({
-        name: name ? name.trim() : 'Rahul Sharma',
-        phone: phone.trim(),
-        role: phone.includes('9999999999') ? 'admin' : 'user',
+        name: name ? name.trim() : 'Customer',
+        phone: cleanPhone,
+        role: phoneCheck.digits === '9999999999' ? 'admin' : 'user',
       });
     }
 
@@ -628,9 +649,22 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Name and Phone are required' });
     }
 
-    const cleanEmail = email ? email.trim().toLowerCase() : '';
-    const cleanPhone = phone.trim();
-    const cleanDigits = cleanPhone.replace(/\D/g, '').slice(-10);
+    const phoneCheck = validateIndianMobile(phone);
+    if (!phoneCheck.isValid) {
+      return res.status(400).json({ success: false, message: phoneCheck.message });
+    }
+
+    let cleanEmail = '';
+    if (email && email.trim()) {
+      const emailCheck = validateAndNormalizeEmail(email);
+      if (!emailCheck.isValid) {
+        return res.status(400).json({ success: false, message: emailCheck.message });
+      }
+      cleanEmail = emailCheck.email;
+    }
+
+    const finalPhone = phoneCheck.formatted;
+    const cleanDigits = phoneCheck.digits;
     const targetCity = (city && city.trim()) ? city.trim() : 'Krishnagiri';
     const targetLocality = (locality && locality.trim()) ? locality.trim() : 'Rayakottai Road';
 
@@ -646,9 +680,9 @@ router.post('/register', async (req, res) => {
     // Check if customer already exists by phone or formatted phone
     let existing = await User.findOne({
       $or: [
-        { phone: cleanPhone },
-        { phone: `+91 ${cleanDigits}` },
+        { phone: finalPhone },
         { phone: cleanDigits },
+        { phone: phone.trim() },
         ...(cleanEmail ? [{ email: cleanEmail }] : [])
       ]
     });

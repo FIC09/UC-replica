@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { professionalClient } from './professionalClient';
+import { CITIES } from '../data/servicesData';
 
 const DRAFT_STORAGE_KEY = 'uc_pro_application_draft';
 
@@ -10,22 +11,22 @@ const INITIAL_FORM = {
   email: '',
   avatar: 'PRO',
   emergencyName: '',
-  emergencyRelation: 'Spouse',
+  emergencyRelation: '',
   emergencyPhone: '',
 
   // Step 2: Trade, Skills & Partner Association
-  trade: 'Master AC Specialist & Electrician',
-  categories: ['AC Repair', 'Electrical Repairs'],
-  experience: '5+ years',
-  skills: 'Inverter Split AC, Coil Jet Cleaning, Gas Leak Detection, PCB Diagnostics',
+  trade: '',
+  categories: [],
+  experience: '',
+  skills: '',
   employmentType: 'Direct Freelance',
   partnerAgencyId: '',
   partnerAgencyName: '',
 
   // Step 3: Service Areas & Working Preferences
-  city: 'Mumbai',
-  locality: 'Bandra West',
-  serviceAreas: ['Bandra West', 'Khar', 'Santacruz West'],
+  city: 'Krishnagiri',
+  locality: 'Rayakottai Road',
+  serviceAreas: [],
   workingType: 'Full-Time Shift',
   shiftStart: '08:00',
   shiftEnd: '20:00',
@@ -34,11 +35,11 @@ const INITIAL_FORM = {
   // Step 4: Certifications & Verification Documents
   aadhaarNumber: '',
   panNumber: '',
-  certificationName: 'Govt ITI HVAC Technician Diploma (NSDC Level 4)',
+  certificationName: '',
   hasPoliceClearance: false,
 
   // Step 5: Payout Information
-  bankName: 'HDFC Bank',
+  bankName: '',
   accountHolderName: '',
   accountNumber: '',
   ifscCode: '',
@@ -106,9 +107,17 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
         showToast('Please enter your full legal name.');
         return false;
       }
-      if (!formData.phone.trim() || formData.phone.length < 10) {
-        showToast('Please enter a valid 10-digit mobile number.');
+      const rawDigits = (formData.phone || '').replace(/\D/g, '');
+      if (!/^[6-9]\d{9}$/.test(rawDigits)) {
+        showToast('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
         return false;
+      }
+      if (formData.email) {
+        formData.email = formData.email.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+          showToast('Please enter a valid email address.');
+          return false;
+        }
       }
       return true;
     }
@@ -275,10 +284,11 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
             marginBottom: 24,
             border: '1px solid #e2e8f0'
           }}>
-            <div><strong>Registered Trade:</strong> {submittedApplication.trade}</div>
+            <div><strong>Registered Trade:</strong> {submittedApplication.trade || 'General Maintenance'}</div>
             <div style={{ marginTop: 4 }}><strong>Employment Type:</strong> {submittedApplication.employmentType}</div>
             <div style={{ marginTop: 4 }}><strong>Primary Hub:</strong> {submittedApplication.city} ({submittedApplication.locality})</div>
-            <div style={{ marginTop: 4 }}><strong>Current State:</strong> <span style={{ color: '#7c3aed', fontWeight: 700 }}>Under Review</span></div>
+            <div style={{ marginTop: 4 }}><strong>State:</strong> {CITIES.find(c => c.name.toLowerCase() === (submittedApplication.city || '').toLowerCase())?.state || 'Tamil Nadu'}</div>
+            <div style={{ marginTop: 4 }}><strong>Application Status:</strong> <span style={{ color: '#7c3aed', fontWeight: 700 }}>Under Review</span></div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

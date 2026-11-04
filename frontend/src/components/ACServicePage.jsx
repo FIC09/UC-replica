@@ -551,30 +551,24 @@ export function ACServicePage({
             <button
               type="button"
               onClick={onOpenLocationModal}
+              className="uc-dropdown-btn"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
                 border: '1px solid #E5E7EB',
                 borderRadius: 8,
-                padding: '7px 12px',
                 backgroundColor: '#FFFFFF',
                 fontSize: 13,
-                fontWeight: 500,
-                color: '#374151',
+                fontWeight: 600,
+                color: '#111827',
                 cursor: 'pointer',
-                maxWidth: 240,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
+                maxWidth: 240
               }}
               title="Change Delivery Location"
             >
-              <MapPin size={15} color="#111827" />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <MapPin size={15} color="#111827" style={{ flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, textAlign: 'left' }}>
                 {selectedLocality}, {selectedCity}
               </span>
-              <ChevronDown size={14} color="#6B7280" />
+              <ChevronDown size={14} color="#6B7280" style={{ flexShrink: 0, marginLeft: 6 }} />
             </button>
 
             {/* Search in AC */}

@@ -314,7 +314,9 @@ router.put('/support/reviews/:id/moderate', requireAdminAuth, requirePermission(
 // 13B. REVISITS & WARRANTY DISPUTES
 // ==========================================
 router.get('/revisits', requireAdminAuth, requirePermission('support', 'view'), getRevisits);
+router.get('/support/revisits', requireAdminAuth, requirePermission('support', 'view'), getRevisits);
 router.post('/revisits', requireAdminAuth, requirePermission('support', 'edit'), createRevisit);
+router.post('/support/revisits', requireAdminAuth, requirePermission('support', 'edit'), createRevisit);
 
 // ==========================================
 // 14. TRAINING & COMPLIANCE

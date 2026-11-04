@@ -2747,7 +2747,7 @@ async function getAllJobsForPro(proId, dbWorker = null) {
   if (dbWorker && requiredCompletedCount > completedDbJobs.length) {
     const missingCount = requiredCompletedCount - completedDbJobs.length;
     const workerTrade = dbWorker.tradeName || dbWorker.trade || 'AC & Appliance Repair';
-    const workerName = dbWorker.applicantName || dbWorker.name || 'violet';
+    const workerName = dbWorker.applicantName || dbWorker.name || 'Assigned Professional';
     const workerCity = dbWorker.city || 'Krishnagiri';
     const workerPayout = Number(dbWorker.walletBalance || 129);
 

@@ -4,6 +4,7 @@ import { PartnerApplication } from '../models/PartnerApplication.js';
 import { WorkerApplication } from '../models/WorkerApplication.js';
 import { Booking } from '../models/Booking.js';
 import { PARTNER_PERMISSIONS } from '../middleware/partnerAuth.js';
+import { validateIndianMobile, validateAndNormalizeEmail } from '../utils/validation.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'urban_company_jwt_secret_key_2026';
 
@@ -721,14 +722,27 @@ export async function registerPartner(req, res) {
       });
     }
 
+    const emailCheck = validateAndNormalizeEmail(email);
+    if (!emailCheck.isValid) {
+      return res.status(400).json({ success: false, error: emailCheck.message });
+    }
+
+    const phoneCheck = validateIndianMobile(phone);
+    if (!phoneCheck.isValid) {
+      return res.status(400).json({ success: false, error: phoneCheck.message });
+    }
+
+    const cleanEmail = emailCheck.email;
+    const cleanPhone = phoneCheck.formatted;
+
     const newPartnerId = 'PTR-' + Math.floor(10000 + Math.random() * 90000);
 
     const newPartner = {
       id: newPartnerId,
       businessName: businessName.trim(),
       ownerName: ownerName.trim(),
-      email: email.trim().toLowerCase(),
-      phone: phone.trim(),
+      email: cleanEmail,
+      phone: cleanPhone,
       passwordHash: 'Partner@2026',
       businessType: businessType || 'LLP',
       tier: 'Gold Franchise',
@@ -1403,11 +1417,18 @@ export async function getDashboardSummary(req, res) {
 
     const openDisputes = disputes.length;
 
-    // Average rating
+    // Average rating: authentic rating from customer reviews or aggregate of team ratings
     const ratingReviews = partnerReviews.filter(r => r.partnerId === partnerId);
-    const avgRating = ratingReviews.length > 0
+    let avgRating = ratingReviews.length > 0
       ? (ratingReviews.reduce((sum, r) => sum + r.rating, 0) / ratingReviews.length).toFixed(2)
       : (business?.metrics?.rating || 0);
+
+    if ((!Number(avgRating) || Number(avgRating) === 0) && team && team.length > 0) {
+      const ratedPros = team.filter(t => t.rating && Number(t.rating) > 0);
+      if (ratedPros.length > 0) {
+        avgRating = (ratedPros.reduce((sum, t) => sum + Number(t.rating), 0) / ratedPros.length).toFixed(2);
+      }
+    }
 
     // Safe zero-denominator growth calculations
     const prevGross = 0; // Baseline
@@ -1441,8 +1462,14 @@ export async function getDashboardSummary(req, res) {
       takeHomeRatio: grossBookingValue > 0 ? `${Math.round((netBusinessEarnings / grossBookingValue) * 100)}%` : '0%'
     };
 
+    const assignedOrCompletedProIds = new Set(
+      allBookings
+        .filter(b => ['In Progress', 'Assigned', 'Completed'].includes(b.status) && (b.assignedProfessional?.id || b.professionalId))
+        .map(b => b.assignedProfessional?.id || b.professionalId)
+    );
+    const utilisedProsCount = team.filter(t => (t.completedJobs > 0 || (t.assignedJobs && t.assignedJobs > 0) || assignedOrCompletedProIds.has(t.id))).length;
     const teamUtilisation = activeProfessionals > 0
-      ? `${Math.round(((activeProfessionals - professionalsAvailableToday) / activeProfessionals) * 100)}%`
+      ? `${Math.min(100, Math.max(0, Math.round((utilisedProsCount / activeProfessionals) * 100)))}%`
       : '0%';
 
     // Queues and alerts linked to real stored records:

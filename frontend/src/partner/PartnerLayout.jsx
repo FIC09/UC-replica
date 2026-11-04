@@ -59,20 +59,39 @@ export function PartnerLayout({
       background: '#f8fafc',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
     }}>
-      {/* Sidebar for Desktop */}
-      <aside style={{
-        width: sidebarCollapsed ? 76 : 260,
-        background: '#ffffff',
-        borderRight: '1px solid #e2e8f0',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'sticky',
-        top: 0,
-        height: '100vh',
-        zIndex: 50,
-        transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        overflowY: 'auto'
-      }}>
+      {/* Sidebar for Desktop & Mobile Off-Canvas Drawer */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(3px)',
+            zIndex: 998
+          }}
+        />
+      )}
+
+      <aside
+        className={`partner-sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}
+        style={{
+          width: sidebarCollapsed ? 76 : 260,
+          background: '#ffffff',
+          borderRight: '1px solid #e2e8f0',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'sticky',
+          top: 0,
+          height: '100vh',
+          zIndex: 50,
+          transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          overflowY: 'auto'
+        }}
+      >
         {/* Brand Header */}
         <div style={{
           padding: sidebarCollapsed ? '16px 12px' : '18px 18px',
@@ -95,19 +114,19 @@ export function PartnerLayout({
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontWeight: 800,
-                fontSize: 15,
+                fontSize: 13,
                 letterSpacing: 0.5,
                 boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)',
                 flexShrink: 0
               }}>
-                UC
+                FIC
               </div>
               <div>
-                <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0f172a', letterSpacing: 0.5, textTransform: 'uppercase', display: 'block', lineHeight: 1.2 }}>
-                  Business Partner
+                <span style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', letterSpacing: 0.5, textTransform: 'uppercase', display: 'block', lineHeight: 1.2 }}>
+                  Forge Partner
                 </span>
                 <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 600, letterSpacing: 0.2 }}>
-                  Franchise Portal
+                  Enterprise Portal
                 </span>
               </div>
             </div>
@@ -122,15 +141,16 @@ export function PartnerLayout({
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 800,
-              fontSize: 15,
+              fontSize: 13,
               margin: '0 auto',
               boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)'
             }}>
-              UC
+              FIC
             </div>
           )}
 
           <button
+            type="button"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
             style={{
               background: '#f8fafc',
@@ -169,7 +189,11 @@ export function PartnerLayout({
                   return (
                     <button
                       key={item.path}
-                      onClick={() => onNavigate(item.path)}
+                      type="button"
+                      onClick={() => {
+                        onNavigate(item.path);
+                        setMobileMenuOpen(false);
+                      }}
                       title={sidebarCollapsed ? item.label : undefined}
                       style={{
                         position: 'relative',
@@ -184,7 +208,9 @@ export function PartnerLayout({
                         fontWeight: isActive ? 700 : 500,
                         fontSize: 13,
                         cursor: 'pointer',
-                        transition: 'all 0.12s ease'
+                        transition: 'all 0.12s ease',
+                        width: '100%',
+                        textAlign: 'left'
                       }}
                       onMouseEnter={e => {
                         if (!isActive) {
@@ -320,7 +346,7 @@ export function PartnerLayout({
           borderBottom: '1px solid #e2e8f0',
           display: 'flex',
           alignItems: 'center',
-          padding: '0 28px',
+          padding: '0 20px',
           position: 'sticky',
           top: 0,
           zIndex: 40,
@@ -332,35 +358,127 @@ export function PartnerLayout({
             width: '100%',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            gap: 12
           }}>
-            {/* Breadcrumb / Path Title */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Building2 size={15} color="#7c3aed" /> Partner Portal
-              </span>
-              <span style={{ fontSize: 13, color: '#cbd5e1' }}>/</span>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>
-                {(() => {
-                  for (const group of navGroups) {
-                    const match = group.items.find(i => i.path === currentPath);
-                    if (match) return match.label;
-                  }
-                  if (currentPath === '/partner') return 'Overview';
-                  return currentPath.replace('/partner/', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-                })()}
-              </span>
+            {/* Left: Mobile Hamburger & Breadcrumb */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button
+                type="button"
+                className="partner-hamburger-btn"
+                onClick={() => setMobileMenuOpen(prev => !prev)}
+                aria-label="Toggle Navigation Menu"
+                style={{
+                  display: 'none',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  border: '1px solid #e2e8f0',
+                  background: '#f8fafc',
+                  color: '#0f172a',
+                  cursor: 'pointer'
+                }}
+              >
+                {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
+              </button>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <Building2 size={15} color="#7c3aed" /> Partner Portal
+                </span>
+                <span style={{ fontSize: 13, color: '#cbd5e1' }}>/</span>
+                <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>
+                  {(() => {
+                    for (const group of navGroups) {
+                      const match = group.items.find(i => i.path === currentPath);
+                      if (match) return match.label;
+                    }
+                    if (currentPath === '/partner') return 'Overview';
+                    return currentPath.replace('/partner/', '').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                  })()}
+                </span>
+              </div>
+            </div>
+
+            {/* Right: User info & Direct Header Log Out */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {staff?.name && (
+                <div className="partner-header-staff" style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#475569', fontWeight: 600 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
+                  <span>{staff.name}</span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={onLogout}
+                title="Log out of partner portal session"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '7px 12px',
+                  borderRadius: 7,
+                  border: '1px solid #fee2e2',
+                  background: '#fef2f2',
+                  color: '#dc2626',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#fee2e2';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#fef2f2';
+                }}
+              >
+                <LogOut size={14} />
+                <span>Log Out</span>
+              </button>
             </div>
           </div>
         </header>
 
         {/* View Content Container */}
-        <main style={{ flex: 1, padding: '24px 28px', overflowY: 'auto' }}>
+        <main style={{ flex: 1, padding: '24px 20px', overflowY: 'auto', maxWidth: '100vw', boxSizing: 'border-box' }}>
           <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%' }}>
             {children}
           </div>
         </main>
       </div>
+
+      <style>{`
+        @media (max-width: 899px) {
+          .partner-sidebar {
+            position: fixed !important;
+            top: 0 !important;
+            left: -280px !important;
+            bottom: 0 !important;
+            height: 100vh !important;
+            z-index: 999 !important;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.2) !important;
+            transition: left 0.25s ease-in-out !important;
+            width: 260px !important;
+          }
+          .partner-sidebar.mobile-open {
+            left: 0 !important;
+          }
+          .partner-hamburger-btn {
+            display: flex !important;
+          }
+          .partner-header-staff {
+            display: none !important;
+          }
+        }
+        @media (min-width: 900px) {
+          .partner-hamburger-btn {
+            display: none !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

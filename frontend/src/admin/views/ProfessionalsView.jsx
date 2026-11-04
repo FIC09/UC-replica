@@ -400,7 +400,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
     let label = status || 'Pending';
 
     if (s === 'approved' || s === 'active') {
-      bg = '#F0FDF4'; color = '#16A34A'; border = '#BBF7D0'; label = 'Approved';
+      bg = '#F0FDF4'; color = '#16A34A'; border = '#BBF7D0'; label = 'Active';
     } else if (s === 'pending review') {
       bg = '#FFFBEB'; color = '#D97706'; border = '#FDE68A'; label = 'Newly Applied';
     } else if (s === 'under verification') {
@@ -414,13 +414,14 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
         display: 'inline-flex',
         alignItems: 'center',
         gap: 5,
-        padding: '3px 8px',
-        borderRadius: 12,
-        fontSize: 12,
-        fontWeight: 600,
+        padding: '2px 8px',
+        borderRadius: 6,
+        fontSize: 11.5,
+        fontWeight: 700,
         backgroundColor: bg,
         color: color,
-        border: `1px solid ${border}`
+        border: `1px solid ${border}`,
+        whiteSpace: 'nowrap'
       }}>
         <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: color }} />
         {label}

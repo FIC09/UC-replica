@@ -1,5 +1,6 @@
 import { PartnerApplication } from '../models/PartnerApplication.js';
 import { WorkerApplication } from '../models/WorkerApplication.js';
+import { validateIndianMobile, validateAndNormalizeEmail } from '../utils/validation.js';
 
 // =========================================================================
 // AUTHORITATIVE BUSINESS PARTNERS CONTROLLER (100% REAL-TIME DATABASE OPERATIONS)
@@ -163,8 +164,30 @@ export async function createPartner(req, res) {
       return res.status(400).json({ success: false, error: 'Primary contact phone is required' });
     }
 
-    const cleanPhone = phone.trim();
-    const existing = await PartnerApplication.findOne({ phone: cleanPhone });
+    const phoneCheck = validateIndianMobile(phone);
+    if (!phoneCheck.isValid) {
+      return res.status(400).json({ success: false, error: phoneCheck.message });
+    }
+    const cleanPhone = phoneCheck.formatted;
+
+    let cleanEmail = '';
+    if (email && email.trim()) {
+      const emailCheck = validateAndNormalizeEmail(email);
+      if (!emailCheck.isValid) {
+        return res.status(400).json({ success: false, error: emailCheck.message });
+      }
+      cleanEmail = emailCheck.email;
+    } else {
+      cleanEmail = `${businessName.trim().toLowerCase().replace(/\s+/g, '.')}@partner.urbancompany.com`;
+    }
+
+    const existing = await PartnerApplication.findOne({
+      $or: [
+        { phone: cleanPhone },
+        { phone: phoneCheck.digits },
+        { phone: phone.trim() }
+      ]
+    });
     if (existing) {
       return res.status(409).json({ success: false, error: `Partner with phone ${cleanPhone} already exists` });
     }
@@ -179,10 +202,10 @@ export async function createPartner(req, res) {
       contactPerson: contactPerson || {
         name: ownerName.trim(),
         phone: cleanPhone,
-        email: email?.trim() || ''
+        email: cleanEmail
       },
       phone: cleanPhone,
-      email: email?.trim() || `${businessName.trim().toLowerCase().replace(/\s+/g, '.')}@partner.urbancompany.com`,
+      email: cleanEmail,
       businessType: businessType || 'LLP',
       tier: tier || 'Gold Franchise',
       category: category || 'general',

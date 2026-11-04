@@ -1,6 +1,7 @@
 import { Booking } from '../models/Booking.js';
 import { WorkerApplication } from '../models/WorkerApplication.js';
 import { PartnerApplication } from '../models/PartnerApplication.js';
+import { inMemoryBookings } from '../routes/bookingRoutes.js';
 
 // =========================================================================
 // AUTHORITATIVE PAYMENTS & LEDGER CONTROLLER (100% REAL-TIME DATABASE OPERATIONS)
@@ -20,7 +21,18 @@ export async function getTransactions(req, res) {
       console.warn('Booking.find in getTransactions error:', e.message);
     }
 
-    const realTransactions = dbBookings.map(b => {
+    // Merge in-memory active and completed bookings so ledger matches overview exactly
+    const allBookings = [...dbBookings];
+    if (inMemoryBookings) {
+      for (const [key, b] of inMemoryBookings.entries()) {
+        const bRef = b.id || b.bookingReference;
+        if (!allBookings.some(x => (x.id || x.bookingReference) === bRef)) {
+          allBookings.unshift(b);
+        }
+      }
+    }
+
+    const realTransactions = allBookings.map(b => {
       const amount = b.totalAmount || 0;
       const commissionRate = 0.20;
       const commissionRupees = Math.round(amount * commissionRate);
@@ -29,9 +41,9 @@ export async function getTransactions(req, res) {
       const isFailed = b.status === 'Cancelled' && !isRefunded;
 
       return {
-        id: `TXN-${(b.id || b.bookingReference || b._id.toString()).replace(/[^a-zA-Z0-9]/g, '')}`,
+        id: `TXN-${(b.id || b.bookingReference || b._id?.toString() || 'REF').replace(/[^a-zA-Z0-9]/g, '')}`,
         bookingId: b.id || b.bookingReference,
-        customerName: b.userName || 'Customer',
+        customerName: b.userName || b.customerName || 'Customer',
         amountPaise: amount * 100,
         amountRupees: amount,
         currency: 'INR',
@@ -44,7 +56,7 @@ export async function getTransactions(req, res) {
         taxPaise: Math.round(amount * 0.18 * 100),
         discountPaise: 0,
         netSettlementPaise: proShareRupees * 100,
-        idempotencyKey: `idem_${b.id || b._id}_pay`,
+        idempotencyKey: `idem_${b.id || b._id || 'txn'}_pay`,
         paidAt: b.createdAt || new Date(),
         invoiceNumber: b.invoiceNumber || `INV-2026-${(b.id || '').replace(/\D/g, '')}`
       };
@@ -85,6 +97,17 @@ export async function getPayoutStatements(req, res) {
     try {
       completedBookings = await Booking.find({ status: 'Completed' }).lean();
     } catch {}
+
+    if (inMemoryBookings) {
+      for (const [key, b] of inMemoryBookings.entries()) {
+        if (b.status === 'Completed') {
+          const bRef = b.id || b.bookingReference;
+          if (!completedBookings.some(x => (x.id || x.bookingReference) === bRef)) {
+            completedBookings.push(b);
+          }
+        }
+      }
+    }
 
     // Group completed orders by technician/partner
     const byBeneficiary = {};

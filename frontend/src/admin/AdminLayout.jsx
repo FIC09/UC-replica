@@ -176,10 +176,10 @@ export function AdminLayout({
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
           {/* Brand Header */}
           <div style={{
-            height: 64,
+            height: 56,
             boxSizing: 'border-box',
             flexShrink: 0,
-            padding: sidebarCollapsed ? '0 12px' : '0 14px 0 18px',
+            padding: sidebarCollapsed ? '0 10px' : '0 12px 0 16px',
             borderBottom: '1px solid #E2E8F0',
             display: 'flex',
             alignItems: 'center',
@@ -191,31 +191,31 @@ export function AdminLayout({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
+                gap: 9,
                 cursor: 'pointer',
                 minWidth: 0
               }}
             >
               <div style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
+                width: 32,
+                height: 32,
+                borderRadius: 8,
                 backgroundColor: '#6E42E5',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(110, 66, 229, 0.3)',
+                boxShadow: '0 4px 10px rgba(110, 66, 229, 0.25)',
                 flexShrink: 0
               }}>
-                <ShieldCheck size={20} />
+                <ShieldCheck size={18} />
               </div>
               {!sidebarCollapsed && (
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
                     Forge India Connect
                   </div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: '#6E42E5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 700, color: '#6E42E5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Admin Operations
                   </div>
                 </div>
@@ -227,8 +227,8 @@ export function AdminLayout({
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               title={sidebarCollapsed ? "Expand sidebar navigation" : "Collapse sidebar navigation"}
               style={{
-                width: 26,
-                height: 26,
+                width: 24,
+                height: 24,
                 borderRadius: 6,
                 border: '1px solid #E2E8F0',
                 backgroundColor: '#F8FAFC',
@@ -249,7 +249,7 @@ export function AdminLayout({
                 e.currentTarget.style.color = '#64748B';
               }}
             >
-              <ChevronLeft size={14} />
+              <ChevronLeft size={13} />
             </button>
           </div>
 
@@ -257,21 +257,21 @@ export function AdminLayout({
           <nav style={{
             flex: 1,
             overflowY: 'auto',
-            padding: sidebarCollapsed ? '12px 8px' : '12px 14px',
+            padding: sidebarCollapsed ? '8px 6px' : '8px 10px',
             display: 'flex',
             flexDirection: 'column',
-            gap: 16
+            gap: 10
           }}>
             {NAV_SECTIONS.map((section, sIdx) => (
               <div key={section.title || sIdx}>
                 {!sidebarCollapsed && (
                   <div style={{
-                    fontSize: 10,
+                    fontSize: 9.5,
                     fontWeight: 800,
                     color: '#94A3B8',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
-                    padding: '0 8px 6px',
+                    padding: '0 8px 4px',
                     userSelect: 'none'
                   }}>
                     {section.title}
@@ -290,15 +290,15 @@ export function AdminLayout({
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: 12,
+                          gap: 10,
                           width: '100%',
-                          padding: sidebarCollapsed ? '10px 0' : '9px 12px',
+                          padding: sidebarCollapsed ? '7px 0' : '6.5px 10px',
                           justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
-                          borderRadius: 8,
+                          borderRadius: 6,
                           border: 'none',
                           backgroundColor: isActive ? '#F5F3FF' : 'transparent',
                           color: isActive ? '#6E42E5' : '#475569',
-                          fontSize: 13,
+                          fontSize: 12.5,
                           fontWeight: isActive ? 700 : 500,
                           cursor: 'pointer',
                           transition: 'all 0.12s ease',

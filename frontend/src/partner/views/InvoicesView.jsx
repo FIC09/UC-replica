@@ -55,7 +55,7 @@ export function InvoicesView({ showToast }) {
             GST Tax Invoices & Billing Statements
           </h1>
           <p style={{ fontSize: 13.5, color: '#64748b', margin: '4px 0 0 0' }}>
-            Monthly B2B commission invoices issued by Urban Company Technologies India Pvt Ltd for input tax credit (ITC)
+            Monthly B2B commission invoices issued by Forge India Connect Technologies India Pvt Ltd for input tax credit (ITC)
           </p>
         </div>
 
@@ -190,7 +190,7 @@ export function InvoicesView({ showToast }) {
 
             <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 16, fontSize: 13.5 }}>
               <div style={{ background: '#f8fafc', padding: 14, borderRadius: 8, border: '1px solid #e2e8f0', lineHeight: 1.6 }}>
-                <div><strong>Issuer:</strong> Urban Company Technologies India Pvt Ltd (GSTIN: {selectedInvoice.gstinSupplier})</div>
+                <div><strong>Issuer:</strong> Forge India Connect Technologies India Pvt Ltd (GSTIN: {selectedInvoice.gstinSupplier})</div>
                 <div><strong>Recipient:</strong> {selectedInvoice.partnerName || 'Business Partner'} (GSTIN: {selectedInvoice.gstinPartner || 'N/A'})</div>
               </div>
 

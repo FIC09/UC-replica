@@ -264,7 +264,7 @@ export function LiveMapTracker({
     if (!map) return;
 
     const isCompleted = session?.status === 'completed';
-    const workerName = session?.workerName || 'Neal';
+    const workerName = session?.workerName || 'Assigned Specialist';
     const workerSpeed = isCompleted ? 0 : (session?.speed || (localWaypointIndex === waypoints.length - 1 ? 0 : 26));
 
     const workerIcon = L.divIcon({
@@ -545,7 +545,7 @@ export function LiveMapTracker({
                     : 'Direct Dispatch: Heading via Rayakottai Main Road towards Customer Address'}
             </div>
             <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span>{isCompleted ? `Delivered by ${session?.workerName || 'Neal'}` : `Direct Visit by ${session?.workerName || 'Assigned Specialist'}`}</span>
+              <span>{isCompleted ? `Delivered by ${session?.workerName || 'Assigned Specialist'}` : `Direct Visit by ${session?.workerName || 'Assigned Specialist'}`}</span>
               <span>•</span>
               {isCompleted ? (
                 <span style={{ color: '#34D399', fontWeight: 700 }}>✅ Quality Verified & Sanitized</span>

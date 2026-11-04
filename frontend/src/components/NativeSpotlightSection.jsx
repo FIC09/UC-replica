@@ -18,12 +18,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
           position: 'relative',
           overflow: 'hidden'
         }}>
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '1.35fr 1fr',
-            gap: 28,
-            alignItems: 'center'
-          }}>
+          <div className="native-spotlight-grid">
             {/* Left Content */}
             <div>
               {/* Award Pill */}
@@ -232,7 +227,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                   padding: '3px 8px',
                   borderRadius: 6
                 }}>
-                  In Stock in Mumbai
+                  In Stock in {localStorage.getItem('uc_selected_city') || 'Krishnagiri'}
                 </span>
               </div>
             </div>

@@ -293,12 +293,14 @@ export function UrbanCheckoutPage({
             ? (flatPart.toLowerCase().includes(localityPart.toLowerCase()) ? `${flatPart}, ${city} - ${postcode}` : `${flatPart}, ${localityPart}, ${city} - ${postcode}`)
             : `${localityPart}, ${city} - ${postcode}`;
 
+          const resolvedCityState = resolvedAddress.state || CITIES.find(c => c.name.toLowerCase() === (city || '').toLowerCase())?.state || 'Tamil Nadu';
           const newGpsAddr = {
             id: 'gps-' + Date.now(),
             label: 'Current GPS Location',
             flat: flatPart,
             locality: localityPart,
             city: city,
+            state: resolvedCityState,
             pincode: postcode,
             landmark: landmarkPart,
             isDefault: true,
@@ -428,16 +430,18 @@ export function UrbanCheckoutPage({
     }
 
     if (onAddAddress) {
+      const matchedState = CITIES.find(c => c.name.toLowerCase() === formCity.toLowerCase())?.state || 'Tamil Nadu';
       const newAddr = {
         id: 'ADDR-' + Date.now(),
         label: formLabel,
         flat: formFlat.trim(),
         locality: resolvedLocality,
         city: formCity,
+        state: matchedState,
         pincode: formPincode.trim(),
         landmark: formLandmark.trim(),
         isDefault: true,
-        formatted: `${formFlat.trim()}, ${resolvedLocality}, ${formCity}${formPincode.trim() ? ' - ' + formPincode.trim() : ''}${formLandmark.trim() ? ` (${formLandmark.trim()})` : ''}`
+        formatted: `${formFlat.trim()}, ${resolvedLocality}, ${formCity}, ${matchedState}${formPincode.trim() ? ' - ' + formPincode.trim() : ''}${formLandmark.trim() ? ` (${formLandmark.trim()})` : ''}`
       };
       onAddAddress(newAddr);
     }
@@ -766,6 +770,7 @@ export function UrbanCheckoutPage({
         flat: flatNumber,
         locality: locality || selectedLocality || 'Rayakottai Road',
         city: currentCity || selectedCity || 'Krishnagiri',
+        state: CITIES.find(c => c.name.toLowerCase() === (currentCity || selectedCity || 'Krishnagiri').toLowerCase())?.state || 'Tamil Nadu',
         pincode: pincode || '',
         landmark: landmark || '',
         contactPhone: formattedPhone
@@ -1306,6 +1311,7 @@ export function UrbanCheckoutPage({
                         {flatNumber ? `${flatNumber}` : ''}
                         {locality && (!flatNumber || !flatNumber.toLowerCase().includes(locality.toLowerCase())) ? `, ${locality}` : ''}
                         {`, ${/chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(currentCity || selectedCity) ? 'Krishnagiri' : (currentCity || selectedCity)}`}
+                        {`, ${CITIES.find(c => c.name.toLowerCase() === (/chennai|poonamalle|adayalampattu|ambattur|maduravoyal|nerkundram|porur|tiruvallur|kancheepuram|vanagaram|avadi|600095|600056/i.test(currentCity || selectedCity) ? 'krishnagiri' : (currentCity || selectedCity || 'krishnagiri')).toLowerCase())?.state || 'Tamil Nadu'}`}
                         {pincode ? ` - ${pincode}` : ''}
                       </div>
                       {landmark && (

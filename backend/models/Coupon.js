@@ -39,6 +39,18 @@ const couponSchema = new mongoose.Schema({
     type: String,
     default: 'all',
   },
+  eligibleUsers: {
+    type: String,
+    default: 'All Users',
+  },
+  eligibleCategories: {
+    type: [String],
+    default: ['All Services'],
+  },
+  eligibleCities: {
+    type: [String],
+    default: ['All Cities'],
+  },
   isActive: {
     type: Boolean,
     default: true,

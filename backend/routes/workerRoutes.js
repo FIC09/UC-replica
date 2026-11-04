@@ -1,5 +1,6 @@
 import express from 'express';
 import { WorkerApplication } from '../models/WorkerApplication.js';
+import { validateIndianMobile, validateAndNormalizeEmail } from '../utils/validation.js';
 
 const router = express.Router();
 
@@ -19,6 +20,20 @@ router.post('/', async (req, res) => {
     const appData = req.body;
     if (!appData.applicantName || !appData.phone || !appData.trade) {
       return res.status(400).json({ success: false, message: 'Applicant name, phone and trade are required' });
+    }
+
+    const phoneCheck = validateIndianMobile(appData.phone);
+    if (!phoneCheck.isValid) {
+      return res.status(400).json({ success: false, message: phoneCheck.message });
+    }
+    appData.phone = phoneCheck.formatted;
+
+    if (appData.email) {
+      const emailCheck = validateAndNormalizeEmail(appData.email);
+      if (!emailCheck.isValid) {
+        return res.status(400).json({ success: false, message: emailCheck.message });
+      }
+      appData.email = emailCheck.email;
     }
 
     if (!appData.id) {

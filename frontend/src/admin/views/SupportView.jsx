@@ -19,7 +19,8 @@ import {
   Building2,
   HardHat,
   ChevronRight,
-  Plus
+  Plus,
+  RefreshCw
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
 
@@ -29,6 +30,7 @@ export function SupportView({ onShowToast }) {
   const [revisits, setRevisits] = useState([]);
 
   // Ticket filters
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [priorityFilter, setPriorityFilter] = useState('ALL');
@@ -88,13 +90,16 @@ export function SupportView({ onShowToast }) {
       .then(res => {
         const list = res.tickets || [];
         setTickets(list);
+        setLoading(false);
         setSelectedTicket(prev => {
           if (!prev) return null;
           const updated = list.find(t => (t.id && t.id === prev.id) || (t.referenceNumber && t.referenceNumber === prev.referenceNumber));
           return updated || prev;
         });
       })
-      .catch(() => {});
+      .catch(() => {
+        setLoading(false);
+      });
   }
 
   function loadRevisits() {
@@ -515,7 +520,16 @@ export function SupportView({ onShowToast }) {
                 </tr>
               </thead>
               <tbody>
-                {filteredTickets.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#64748B' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                        <RefreshCw size={16} className="animate-spin" />
+                        <span>Loading support tickets...</span>
+                      </div>
+                    </td>
+                  </tr>
+                ) : filteredTickets.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ padding: '36px', textAlign: 'center', color: '#64748B' }}>
                       No tickets match the selected filters.

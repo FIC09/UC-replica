@@ -179,6 +179,14 @@ export function BookingsView({ onShowToast, onNavigate }) {
   };
 
   // Fetch bookings with current filters (supports silent background refresh)
+  useEffect(() => {
+    if (!loading) return;
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+    }, 4500);
+    return () => clearTimeout(safetyTimer);
+  }, [loading]);
+
   const fetchBookingsList = (showLoadingSpinner = true) => {
     if (showLoadingSpinner) {
       setLoading(true);
@@ -1393,7 +1401,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
           gap: 10
         }}>
           {/* Search & Main Row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'space-between' }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -1402,8 +1410,10 @@ export function BookingsView({ onShowToast, onNavigate }) {
               border: '1px solid #CBD5E1',
               borderRadius: 6,
               padding: '6px 12px',
-              flex: '1 1 240px',
-              minWidth: 200
+              flex: '1 1 200px',
+              minWidth: 180,
+              height: 36,
+              boxSizing: 'border-box'
             }}>
               <Search size={15} color="#64748B" />
               <input
@@ -1430,6 +1440,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
               value={statusFilter}
               onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
               style={{
+                height: 36,
                 padding: '6px 10px',
                 borderRadius: 6,
                 border: '1px solid #CBD5E1',
@@ -1454,6 +1465,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
               value={paymentFilter}
               onChange={e => { setPaymentFilter(e.target.value); setPage(1); }}
               style={{
+                height: 36,
                 padding: '6px 10px',
                 borderRadius: 6,
                 border: '1px solid #CBD5E1',
@@ -1475,6 +1487,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
               value={cityFilter}
               onChange={e => { setCityFilter(e.target.value); setPage(1); }}
               style={{
+                height: 36,
                 padding: '6px 10px',
                 borderRadius: 6,
                 border: '1px solid #CBD5E1',
@@ -1496,6 +1509,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
               value={assignedFilter}
               onChange={e => { setAssignedFilter(e.target.value); setPage(1); }}
               style={{
+                height: 36,
                 padding: '6px 10px',
                 borderRadius: 6,
                 border: assignedFilter !== 'ALL' ? '1.5px solid #F59E0B' : '1px solid #CBD5E1',
@@ -1515,6 +1529,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
               value={partnerFilter}
               onChange={e => { setPartnerFilter(e.target.value); setPage(1); }}
               style={{
+                height: 36,
                 padding: '6px 10px',
                 borderRadius: 6,
                 border: '1px solid #CBD5E1',
@@ -1532,7 +1547,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
             </select>
 
             {/* Live Count Indicator & Reset */}
-            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span style={{
                 fontSize: 12,
                 fontWeight: 700,
@@ -1540,7 +1555,11 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 backgroundColor: '#F5F3FF',
                 border: '1px solid #DDD6FE',
                 padding: '4px 9px',
-                borderRadius: 6
+                borderRadius: 6,
+                height: 36,
+                display: 'inline-flex',
+                alignItems: 'center',
+                boxSizing: 'border-box'
               }}>
                 {bookings.length} {bookings.length === 1 ? 'booking' : 'bookings'}
               </span>
@@ -1668,7 +1687,26 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       {/* Customer */}
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ fontWeight: 600, color: '#0F172A' }}>{b.userName || b.customerName}</div>
-                        <div style={{ fontSize: 12, color: '#64748B' }}>{b.userPhone}</div>
+                        <div style={{ fontSize: 12, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                          {b.customerId && (
+                            <span
+                              title={`Customer ID: ${b.customerId}`}
+                              style={{
+                                fontFamily: 'monospace',
+                                fontSize: 10.5,
+                                fontWeight: 700,
+                                color: '#475569',
+                                background: '#F1F5F9',
+                                padding: '1px 5px',
+                                borderRadius: 4,
+                                border: '1px solid #E2E8F0'
+                              }}
+                            >
+                              CUST-{String(b.customerId).slice(-6).toUpperCase()}
+                            </span>
+                          )}
+                          <span>{b.userPhone}</span>
+                        </div>
                       </td>
 
                       {/* Service & Category */}
@@ -2320,6 +2358,25 @@ export function BookingsView({ onShowToast, onNavigate }) {
                     <div style={{ fontSize: 13, fontWeight: 600, color: '#0F172A' }}>
                       {selectedBooking.userName || selectedBooking.customerName}
                     </div>
+                    {selectedBooking.customerId && (
+                      <div style={{ marginTop: 2 }}>
+                        <span
+                          title={`Full ID: ${selectedBooking.customerId}`}
+                          style={{
+                            fontFamily: 'monospace',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            color: '#475569',
+                            background: '#F1F5F9',
+                            padding: '1px 6px',
+                            borderRadius: 4,
+                            border: '1px solid #E2E8F0'
+                          }}
+                        >
+                          CUST-{String(selectedBooking.customerId).slice(-6).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
                     <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>{selectedBooking.userPhone}</div>
                     <div style={{ fontSize: 12, color: '#64748B' }}>{selectedBooking.userEmail}</div>
                   </div>
