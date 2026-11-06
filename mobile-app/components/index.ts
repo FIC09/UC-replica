@@ -25,4 +25,5 @@ export * from './ApplianceRepairModal';
 export * from './ElectricianPlumberCarpenterModal';
 export * from './BathroomKitchenCleaningModal';
 export * from './CleaningModal';
+export * from './BeautyDoorstepSection';
 

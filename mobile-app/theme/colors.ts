@@ -1,29 +1,36 @@
 export const Colors = {
-  // Brand Primary: Forge Deep Royal Purple & Modern Indigo
-  primary: '#2B0957',
-  primaryDark: '#1E063D',
-  primaryLight: '#4F46E5',
-  primaryLighter: '#EEF2FF',
-  primarySurface: '#F5F3FF',
+  // 60% Dominant: Fiery Orange #F04400
+  primary: '#F04400',
+  primaryDark: '#D03800',
+  primaryLight: '#FF6426',
+  primaryLighter: '#FFF3ED',
+  primarySurface: '#FFF8F4',
 
-  // Secondary: Premium Dark Slate / Charcoal for crisp readability
-  secondary: '#0F172A',
-  secondaryMuted: '#334155',
+  // 30% Secondary: Sunshine Yellow #FFD91A
+  secondary: '#FFD91A',
+  secondaryMuted: '#D4B000',
+  secondaryLight: '#FFF8D1',
+  secondaryDark: '#B39200',
 
-  // Accent Colors:
-  // Native Green for trust, savings, and confirmed statuses
-  emerald: '#059669',
-  emeraldLight: '#ECFDF5',
-  emeraldDark: '#047857',
+  // 10% Accent: JetBlack #000000 + Neon Lime Green #D0F030
+  black: '#000000',
+  neonLime: '#D0F030',
+  neonLimeDark: '#A8C914',
+  neonLimeLight: '#F6FDE0',
 
-  // Amber / Festive Gold for special offers & ratings
-  amber: '#D97706',
-  amberLight: '#FEF3C7',
-  amberDark: '#B45309',
+  // Accent mapping for statuses & trust badges
+  emerald: '#D0F030',
+  emeraldLight: '#F6FDE0',
+  emeraldDark: '#A8C914',
 
-  // Purple / Luxe badge
-  purple: '#7E22CE',
-  purpleLight: '#F3E8FF',
+  // Amber / Warm Yellow mapping
+  amber: '#FFD91A',
+  amberLight: '#FFF8D1',
+  amberDark: '#E6C000',
+
+  // Purple replacement to Primary Brand
+  purple: '#F04400',
+  purpleLight: '#FFF3ED',
 
   // Neutral Scales
   background: '#FFFFFF',
@@ -34,27 +41,27 @@ export const Colors = {
   // Borders & Dividers
   border: '#E2E8F0',
   borderLight: '#F1F5F9',
-  borderFocus: '#6366F1',
+  borderFocus: '#F04400',
 
   // Typography Colors
-  textPrimary: '#0F172A',
+  textPrimary: '#000000',
   textSecondary: '#475569',
   textMuted: '#94A3B8',
   textDisabled: '#CBD5E1',
   textInverse: '#FFFFFF',
 
   // Feedback Colors
-  success: '#10B981',
-  successLight: '#D1FAE5',
+  success: '#D0F030',
+  successLight: '#F6FDE0',
   error: '#EF4444',
   errorLight: '#FEE2E2',
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
+  warning: '#FFD91A',
+  warningLight: '#FFF8D1',
   info: '#3B82F6',
   infoLight: '#DBEAFE',
 
   // Overlay
-  overlay: 'rgba(15, 23, 42, 0.55)',
+  overlay: 'rgba(0, 0, 0, 0.65)',
   shimmer: '#E2E8F0',
 };
 

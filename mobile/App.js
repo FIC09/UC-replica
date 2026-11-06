@@ -5,8 +5,8 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   TextInput,
-  SafeAreaView,
   StatusBar,
   Dimensions,
   Platform,
@@ -14,6 +14,7 @@ import {
   Modal,
   Alert
 } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { mobileApi } from './src/services/apiClient';
 import { SERVICES as WEB_APP_SERVICES } from './src/data/servicesData';
@@ -134,20 +135,239 @@ const IMAGES = {
   iconTabRewards: require('./assets/images/icon_tab_rewards.png'),
 };
 
-// Safe Image component with graceful fallback
-const SafeImage = ({ source, style, fallbackIcon = '✨' }) => {
+// Role-specific Unique Catalog & Service Assets (assigned to reliable, pre-indexed assets)
+IMAGES.shelfInstall = IMAGES.cupboardDrawerTable;
+IMAGES.doorLockMortise = IMAGES.doorRepairWood;
+IMAGES.drainBlockage = IMAGES.washBasin;
+IMAGES.flushTank = IMAGES.homeBathroom;
+IMAGES.connectionHose = IMAGES.washBasin;
+IMAGES.tubelight = IMAGES.homeElectrician;
+IMAGES.bulbInstall = IMAGES.homeElectrician;
+IMAGES.cleaningBedroomBucket = IMAGES.livingBedroomClean;
+IMAGES.laptopRepairBoard = IMAGES.laptopRepair;
+IMAGES.microwaveCleanOven = IMAGES.applianceMicrowave;
+IMAGES.tvCheckupItem = IMAGES.applianceTv;
+IMAGES.geyserServiceTank = IMAGES.applianceWaterPurifier;
+IMAGES.chimneyServiceClean = IMAGES.applianceChimney;
+IMAGES.refrigeratorCheckupItem = IMAGES.applianceFridge;
+IMAGES.washingMachineCheckupItem = IMAGES.washerServiceItem;
+IMAGES.nativeM1Purifier = IMAGES.nativePurifier;
+IMAGES.nativeSmartLock = IMAGES.nativeTileLocks;
+IMAGES.salonBrazilianWax = IMAGES.salonRollonWaxing;
+IMAGES.matchaDetoxRitual = IMAGES.beautyJapaneseRitual;
+IMAGES.salonAquaGelWax = IMAGES.salonRollonWaxing;
+IMAGES.cherryBlossomRitual = IMAGES.beautyJapaneseRitual;
+IMAGES.salonBleachPhoto = IMAGES.salonRollonWaxing;
+IMAGES.heroSalon = IMAGES.salonRollonWaxing;
+IMAGES.beautyPotliMassage = IMAGES.heroMassage;
+
+// Unique Image Resolver based on Service Name, Designation Role & Category
+const resolveServiceImage = (item) => {
+  if (!item) return IMAGES.acCard;
+
+  // If already a local require() number, use it
+  if (typeof item === 'number') return item;
+  if (typeof item.image === 'number') return item.image;
+
+  // Extract strings for title, category, subcategory, and description
+  const title = (item.title || item.name || '').toLowerCase();
+  const cat = (item.category || item.categoryName || '').toLowerCase();
+  const sub = (item.subcategory || '').toLowerCase();
+  const desc = (item.description || '').toLowerCase();
+  const role = `${title} ${cat} ${sub} ${desc}`;
+
+  // 1. CARPENTER & FURNITURE ASSEMBLY
+  if (title.includes('floating shelf') || title.includes('shelf install') || title.includes('cabinet install')) {
+    return IMAGES.shelfInstall;
+  }
+  if (title.includes('bed') || title.includes('wardrobe') || title.includes('assembly') || title.includes('cupboard') || title.includes('drawer')) {
+    return IMAGES.cupboardDrawerTable;
+  }
+  if (title.includes('door lock') || title.includes('mortise')) {
+    return IMAGES.doorLockMortise;
+  }
+  if (title.includes('door repair') || title.includes('door trim') || title.includes('hinge') || title.includes('drill') || title.includes('curtain rod')) {
+    return IMAGES.doorRepairWood;
+  }
+  if (title.includes('wall decor') || title.includes('frame install') || title.includes('mirror hang')) {
+    return IMAGES.decorAbstractFrame;
+  }
+
+  // 2. PLUMBING & PIPE LINE SERVICES
+  if (title.includes('pipe') || title.includes('pipeline') || title.includes('drain') || title.includes('blockage') || title.includes('water tank')) {
+    return IMAGES.drainBlockage;
+  }
+  if (title.includes('tap') || title.includes('mixer') || title.includes('wash basin') || title.includes('shower')) {
+    return IMAGES.washBasin;
+  }
+  if (title.includes('flush') || title.includes('toilet') || title.includes('commode')) {
+    return IMAGES.flushTank;
+  }
+  if (title.includes('hose') || title.includes('valve') || title.includes('connection')) {
+    return IMAGES.connectionHose;
+  }
+
+  // 3. AC & AIR CONDITIONING SERVICES
+  if (title.includes('powerjet') || title.includes('all in all ac') || title.includes('ac service') || title.includes('servicing') || (cat === 'ac-appliances' && title.includes('ac'))) {
+    return IMAGES.acCard;
+  }
+  if (title.includes('gas leak') || title.includes('ac repair') || title.includes('cooling check') || title.includes('split / window')) {
+    return IMAGES.acService;
+  }
+
+  // 4. HOME APPLIANCES (Individual Unique Role Images)
+  if (role.includes('washing machine') || role.includes('washer')) {
+    return IMAGES.washingMachineCheckupItem;
+  }
+  if (role.includes('refrigerator') || role.includes('fridge')) {
+    return IMAGES.refrigeratorCheckupItem;
+  }
+  if (role.includes('chimney')) {
+    return IMAGES.chimneyServiceClean;
+  }
+  if (role.includes('geyser') || role.includes('water heater')) {
+    return IMAGES.geyserServiceTank;
+  }
+  if (role.includes('laptop') || role.includes('computer')) {
+    return IMAGES.laptopRepairBoard;
+  }
+  if (role.includes('microwave') || role.includes('oven')) {
+    return IMAGES.microwaveCleanOven;
+  }
+  if (role.includes('tv') || role.includes('television') || role.includes('led')) {
+    return IMAGES.tvCheckupItem;
+  }
+
+  // 5. ELECTRICIAN SERVICES
+  if (title.includes('tubelight') || title.includes('batten')) {
+    return IMAGES.tubelight;
+  }
+  if (title.includes('bulb') || title.includes('spot light')) {
+    return IMAGES.bulbInstall;
+  }
+  if (title.includes('ceiling fan') || title.includes('exhaust fan') || title.includes('fan install')) {
+    return IMAGES.ceilingFanInstall;
+  }
+  if (title.includes('fan repair')) {
+    return IMAGES.fanRepair;
+  }
+  if (title.includes('switchboard') || title.includes('socket')) {
+    return IMAGES.homeElectrician;
+  }
+  if (title.includes('wiring') || title.includes('mcb') || title.includes('fuse') || title.includes('inverter') || title.includes('tripping')) {
+    return IMAGES.internalWiring;
+  }
+
+  // 6. CLEANING & PEST CONTROL
+  if (title.includes('cockroach') || title.includes('pest') || title.includes('ant') || title.includes('termite')) {
+    return IMAGES.cockroachSpray;
+  }
+  if (title.includes('sofa') || title.includes('couch')) {
+    return IMAGES.homeSofaClean;
+  }
+  if (title.includes('bathroom') || title.includes('toilet cleaning')) {
+    return IMAGES.homeBathroom;
+  }
+  if (title.includes('kitchen') || title.includes('stove')) {
+    return IMAGES.kitchenStoveClean;
+  }
+  if (title.includes('full home') || title.includes('room cleaning') || title.includes('house clean')) {
+    return IMAGES.cleaningBedroomBucket;
+  }
+  if (title.includes('painting') || title.includes('waterproofing') || title.includes('dampness')) {
+    return IMAGES.homePainter;
+  }
+
+  // 7. NATIVE SMART LIVING
+  if (title.includes('m1')) return IMAGES.nativeM1Purifier;
+  if (title.includes('m2')) return IMAGES.nativeM2ProLtd;
+  if (title.includes('m3')) return IMAGES.nativeM3Pro;
+  if (title.includes('purifier') || title.includes('water filter') || title.includes('ro service')) {
+    return IMAGES.applianceWaterPurifier;
+  }
+  if (title.includes('lock ultra') || title.includes('face recognition')) {
+    return IMAGES.nativeLockUltra;
+  }
+  if (title.includes('lock pro')) {
+    return IMAGES.nativeLockPro;
+  }
+  if (title.includes('smart lock') || title.includes('door lock') || title.includes('l1')) {
+    return IMAGES.nativeSmartLock;
+  }
+
+  // 8. BEAUTY & SALON (Role-based)
+  if (title.includes('brazilian')) return IMAGES.salonBrazilianWax;
+  if (title.includes('matcha')) return IMAGES.matchaDetoxRitual;
+  if (title.includes('aqua gel')) return IMAGES.salonAquaGelWax;
+  if (title.includes('cherry blossom') || title.includes('sakura')) return IMAGES.cherryBlossomRitual;
+  if (title.includes('bleach')) return IMAGES.salonBleachPhoto;
+  if (title.includes('waxing') || title.includes('roll-on') || title.includes('rica')) {
+    return IMAGES.salonRollonWaxing;
+  }
+  if (title.includes('bridal') || title.includes('facial') || title.includes('glow')) {
+    return IMAGES.beautyKoreanGlowFacial;
+  }
+  if (title.includes('manicure') || title.includes('pedicure')) {
+    return IMAGES.beautyPedicure;
+  }
+  if (title.includes('beard') || title.includes('shave')) {
+    return IMAGES.menCleanShave;
+  }
+  if (title.includes('haircut') || title.includes('men') || title.includes('grooming')) {
+    return IMAGES.menHaircutPro;
+  }
+  if (title.includes('hair') || title.includes('spa') || title.includes('conditioning')) {
+    return IMAGES.hairCurlsWaves;
+  }
+
+  // 9. Remote URL fallback if valid
+  if (typeof item.image === 'string' && item.image.startsWith('http')) {
+    return { uri: item.image };
+  }
+
+  // Role Category Default Fallbacks
+  if (cat.includes('repair') || sub.includes('carpenter')) return IMAGES.doorRepairWood;
+  if (cat.includes('plumb') || sub.includes('plumber')) return IMAGES.drainBlockage;
+  if (cat.includes('elect') || sub.includes('electrician')) return IMAGES.homeElectrician;
+  if (cat.includes('clean')) return IMAGES.homeBathroom;
+  if (cat.includes('beauty') || cat.includes('salon')) return IMAGES.menHaircutPro;
+
+  return IMAGES.acCard;
+};
+
+// Safe Image component with graceful fallback and role resolver
+const SafeImage = ({ source, item, style, fallbackIcon = '✨', resizeMode = 'cover' }) => {
   const [hasError, setHasError] = useState(false);
-  if (hasError || !source) {
+
+  let resolvedSource = source;
+  if (!resolvedSource && item) {
+    resolvedSource = resolveServiceImage(item);
+  } else if (typeof resolvedSource === 'string') {
+    if (resolvedSource.startsWith('/images/') || resolvedSource.startsWith('images/')) {
+      const filename = resolvedSource.split('/').pop();
+      resolvedSource = resolveServiceImage({ title: filename, image: resolvedSource });
+    } else if (resolvedSource.startsWith('http')) {
+      resolvedSource = { uri: resolvedSource };
+    }
+  }
+
+  if (hasError || !resolvedSource) {
+    if (item) {
+      const fallback = resolveServiceImage(item);
+      if (fallback) return <Image source={fallback} style={style} resizeMode={resizeMode} />;
+    }
     return (
       <View style={[style, { alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8FAFC' }]}>
         <Text style={{ fontSize: 22 }}>{fallbackIcon}</Text>
       </View>
     );
   }
+
   return (
     <Image
-      source={source}
+      source={resolvedSource}
       style={style}
+      resizeMode={resizeMode}
       onError={() => setHasError(true)}
     />
   );
@@ -160,28 +380,28 @@ const FESTIVE_CARDS = [
     title: 'InstaHelp by UC',
     tag: null,
     image: IMAGES.catInstahelp,
-    bgColor: '#3B0764',
+    bgColor: '#F04400',
   },
   {
     id: 'festive-2',
     title: 'Deep cleaning',
     tag: 'Up to 20% off',
     image: IMAGES.homeSofaClean,
-    bgColor: '#4C1D95',
+    bgColor: '#D03800',
   },
   {
     id: 'festive-3',
     title: 'Festive ready',
     tag: '25% off',
     image: IMAGES.salonFestive,
-    bgColor: '#581C87',
+    bgColor: '#FFD91A',
   },
   {
     id: 'festive-4',
     title: 'Diwali lights & decor',
     tag: null,
     image: IMAGES.decorAbstractFrame,
-    bgColor: '#311042',
+    bgColor: '#000000',
   },
 ];
 
@@ -794,7 +1014,63 @@ const NATIVE_LOOKING_FOR_TILES = [
   },
 ];
 
-// Beauty Tab: Web Categories (Matches Screenshot 3)
+// Appliance Repair & Service Modal 9 Items (Matches screenshot)
+const APPLIANCE_REPAIR_ITEMS = [
+  { id: 'ac', name: 'AC', image: require('./assets/images/appliance_ac.jpg'), query: 'AC' },
+  { id: 'chimney', name: 'Chimney Repair', image: require('./assets/images/appliance_chimney.jpg'), query: 'Chimney' },
+  { id: 'geyser', name: 'Geyser Service & Repair', image: require('./assets/images/appliance_geyser.jpg'), query: 'Geyser' },
+  { id: 'laptop', name: 'Laptop Repair', image: require('./assets/images/laptop_dell_xps.jpg'), query: 'Laptop' },
+  { id: 'refrigerator', name: 'Refrigerator', image: require('./assets/images/appliance_fridge.jpg'), query: 'Refrigerator' },
+  { id: 'washing-machine', name: 'Washing Machine Repair', image: require('./assets/images/appliance_washer.jpg'), query: 'Washing Machine' },
+  { id: 'microwave', name: 'Microwave', image: require('./assets/images/appliance_microwave.jpg'), query: 'Microwave' },
+  { id: 'television', name: 'Television Repair', image: require('./assets/images/appliance_tv.jpg'), query: 'Television' },
+  { id: 'water-purifier', name: 'Water Purifier Service & Installation', image: require('./assets/images/appliance_water_purifier.jpg'), query: 'Water Purifier' },
+];
+
+// Electrician, Plumber & Carpenters Items (Matches screenshot)
+const EPC_ITEMS = [
+  { id: 'electrician', name: 'Electrician', badge: '71 mins', image: require('./assets/images/bulb_install.jpg'), query: 'Electrician' },
+  { id: 'plumber', name: 'Plumber', badge: null, image: require('./assets/images/wash_basin.jpg'), query: 'Plumber' },
+  { id: 'carpenter', name: 'Carpenter', badge: '76 mins', image: require('./assets/images/door_repair_wood.jpg'), query: 'Carpenter' },
+];
+
+// Bathroom & Kitchen Cleaning Options (Matches screenshot)
+const BATHROOM_KITCHEN_OPTIONS = [
+  {
+    id: 'single-bathroom',
+    title: 'Single Bathroom Visit',
+    subtitle: 'One-time deep cleaning',
+    price: 'Starts at ₹419/service',
+    image: require('./assets/images/home_bathroom.jpg'),
+    query: 'Bathroom Cleaning',
+  },
+  {
+    id: 'kitchen-cleaning',
+    title: 'Kitchen cleaning',
+    subtitle: 'For one time kitchen deep cleaning needs',
+    price: 'Starting at ₹799',
+    image: require('./assets/images/kitchen_stove_clean.jpg'),
+    query: 'Kitchen Cleaning',
+  },
+];
+
+// Cleaning Options (Matches screenshot)
+const CLEANING_OPTIONS = [
+  {
+    id: 'full-home',
+    name: 'Full Home/ By Room Cleaning',
+    image: require('./assets/images/cleaning_bedroom_bucket.jpg'),
+    query: 'Full Home Cleaning',
+  },
+  {
+    id: 'cockroach-control',
+    name: 'Cockroach Control',
+    image: require('./assets/images/cockroach_spray_can.jpg'),
+    query: 'Cockroach Control',
+  },
+];
+
+// Beauty Tab: Web Categories (Matches Screenshot with 5 tiles)
 const BEAUTY_WEB_TILES = [
   {
     id: 'b-tile-salon-prime',
@@ -816,11 +1092,306 @@ const BEAUTY_WEB_TILES = [
     badge: null,
   },
   {
+    id: 'b-tile-beard-hair',
+    title: 'Beard & Hair\nGrooming',
+    icon: IMAGES.beautyMenAvatar,
+    badge: '30 mins',
+    badgeType: 'green',
+  },
+  {
     id: 'b-tile-all',
     title: 'All services',
     isIcon: true,
     badge: null,
   },
+];
+
+// Salon Prime Categories matching Left Sidebar ("Select a service") from Web App
+const SALON_PRIME_CATEGORIES = [
+  { id: 'all', label: 'All Services', icon: '★' },
+  { id: 'festive', label: 'Festive ready', icon: '%', badge: null },
+  { id: 'super-saver', label: 'Super saver packages', icon: '🏷️', discount: 'Upto 20% OFF' },
+  { id: 'waxing', label: 'Waxing & threading', image: IMAGES.spotlightWaxing },
+  { id: 'rituals', label: 'Japanese & Korean rituals', image: IMAGES.spotlightGlow, badge: 'New' },
+  { id: 'facial', label: 'Signature facial & cleanup', image: IMAGES.heroSalon },
+  { id: 'pedi-mani', label: 'Pedicure & manicure', image: IMAGES.beautyPedicure },
+  { id: 'detan', label: 'Bleach, detan & massages', image: IMAGES.salonBleachPhoto }
+];
+
+// Salon Prime Hero Carousel Slides
+const SALON_PRIME_HERO_SLIDES = [
+  {
+    id: 'slide-brazilian',
+    badge: 'Price drop',
+    badgeColor: '#15803D',
+    title: 'Brazilian stripless wax',
+    subtitle: 'Starting at ₹1,299 • Special intimate care',
+    bgColor: '#1E293B',
+    image: IMAGES.salonBrazilianWax,
+    section: 'waxing'
+  },
+  {
+    id: 'slide-matcha',
+    badge: 'New launch',
+    badgeColor: '#831843',
+    title: 'Japanese & Korean Rituals',
+    subtitle: 'A deep Matcha detox for your skin',
+    bgColor: '#16382C',
+    image: IMAGES.matchaDetoxRitual,
+    section: 'rituals'
+  },
+  {
+    id: 'slide-aqua',
+    badge: 'New launch',
+    badgeColor: '#094752',
+    title: 'Introducing Aqua gel wax',
+    subtitle: 'Aqua gel wax with less heat & less pain',
+    bgColor: '#0F2B33',
+    image: IMAGES.salonAquaGelWax,
+    section: 'waxing'
+  },
+  {
+    id: 'slide-cherry',
+    badge: 'Ancient Tradition',
+    badgeColor: '#9D174D',
+    title: 'Cherry blossom glow ritual',
+    subtitle: 'Authentic sakura botanical skin barrier infusion',
+    bgColor: '#3A1439',
+    image: IMAGES.cherryBlossomRitual,
+    section: 'rituals'
+  }
+];
+
+// Full Sections Catalogue matching Web App
+const SALON_PRIME_SECTIONS = [
+  {
+    id: 'festive',
+    title: 'Festive ready',
+    services: [
+      {
+        id: 'essential-mani-pedi',
+        title: 'Essential Mani-Pedi Combo',
+        rating: 4.81,
+        reviewsCount: '26K reviews',
+        price: '₹1,399',
+        originalPrice: '₹1,699',
+        inclusions: [
+          'Essential manicure, pedicure combo for effective hand & feet maintenance',
+          'Enriched with Kojic acid for brightening & skin restoration'
+        ]
+      },
+      {
+        id: 'festive-glow-pkg',
+        title: 'Festive glow package',
+        rating: 4.87,
+        reviewsCount: '42K reviews',
+        price: '₹2,499',
+        originalPrice: '₹3,199',
+        inclusions: [
+          'Full arms & legs waxing + O3+ bridal glow facial + classic pedicure',
+          'Single-use mono-dose sealed kits for 100% hygienic execution'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'super-saver',
+    title: 'Super saver packages',
+    services: [
+      {
+        id: 'make-your-own-pkg',
+        title: 'Make your own package',
+        rating: 4.89,
+        reviewsCount: '150K reviews',
+        price: '₹1,599',
+        originalPrice: '₹2,299',
+        inclusions: [
+          'Custom combination of waxing, cleanup & mani-pedi',
+          'Save flat 20% compared to standalone services'
+        ]
+      },
+      {
+        id: 'wax-and-glow',
+        title: 'Wax & glow',
+        rating: 4.85,
+        reviewsCount: '88K reviews',
+        price: '₹1,899',
+        originalPrice: '₹2,599',
+        inclusions: [
+          'Rica roll-on full arms & legs waxing + Sara fruit cleanup',
+          'Free eyebrow & upper lip threading included'
+        ]
+      },
+      {
+        id: 'monthly-maintenance',
+        title: 'Monthly maintenance package',
+        rating: 4.88,
+        reviewsCount: '92K reviews',
+        price: '₹1,299',
+        originalPrice: '₹1,799',
+        inclusions: [
+          'Honey waxing + express cleanup + threading',
+          'Regular monthly hygiene maintenance routine'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'waxing',
+    title: 'Waxing & threading',
+    services: [
+      {
+        id: 'brazilian-wax',
+        title: 'Brazilian stripless bikini waxing',
+        rating: 4.88,
+        reviewsCount: '62K reviews',
+        price: '₹1,299',
+        originalPrice: '₹1,699',
+        inclusions: [
+          'Specialized peel-off stripless wax for intimate sensitive skin',
+          'Pre-wax soothing oil and post-wax tea tree calming lotion'
+        ]
+      },
+      {
+        id: 'rollon-waxing',
+        title: 'Roll-on waxing (Full arms, legs & underarms)',
+        rating: 4.86,
+        reviewsCount: '284K reviews',
+        price: '₹899',
+        originalPrice: '₹1,199',
+        inclusions: [
+          'Mess-free cartridge roll-on waxing with uniform temperature',
+          '100% disposable cartridge rollers and sanitised hygiene strips'
+        ]
+      },
+      {
+        id: 'full-body-waxing',
+        title: 'Full body waxing',
+        rating: 4.89,
+        reviewsCount: '45K reviews',
+        price: '₹2,199',
+        originalPrice: '₹2,899',
+        inclusions: [
+          'Full arms, full legs, underarms, back and stomach waxing',
+          'Includes aloe-vera soothing gel finish'
+        ]
+      },
+      {
+        id: 'threading-duo',
+        title: 'Threading (Eyebrows + Upper lip)',
+        rating: 4.82,
+        reviewsCount: '120K reviews',
+        price: '₹99',
+        originalPrice: '₹149',
+        inclusions: [
+          'Organic anti-bacterial cotton thread with soothing astringent',
+          'Precise arch shaping matching facial symmetry'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'rituals',
+    title: 'Japanese & Korean rituals',
+    services: [
+      {
+        id: 'matcha-detox',
+        title: 'Matcha Deep Detox Facial Ritual',
+        rating: 4.92,
+        reviewsCount: '18K reviews',
+        price: '₹1,799',
+        originalPrice: '₹2,399',
+        inclusions: [
+          'Ceremonial Japanese Uji green tea antioxidant skin infusion',
+          'Lymphatic jade-roller drainage massage & pore purifying peel'
+        ]
+      },
+      {
+        id: 'cherry-blossom',
+        title: 'Cherry Blossom Glow Skin Infusion',
+        rating: 4.90,
+        reviewsCount: '24K reviews',
+        price: '₹1,999',
+        originalPrice: '₹2,599',
+        inclusions: [
+          'Sakura botanical extract with micro-droplet hydration mist',
+          'Ultra-hydrating gel mask with icy globe tightening therapy'
+        ]
+      },
+      {
+        id: 'korean-glass-skin',
+        title: 'Korean Glass Skin Hydration Facial',
+        rating: 4.94,
+        reviewsCount: '32K reviews',
+        price: '₹2,299',
+        originalPrice: '₹2,999',
+        inclusions: [
+          '7-step Korean glass hydration protocol with snail mucin & hyaluronic acid',
+          'Deep radiance glow and ceramic-smooth dewy complexion'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'facial',
+    title: 'Signature facial & cleanup',
+    services: [
+      {
+        id: 'o3-bridal-glow',
+        title: 'O3+ Bridal Glow & Brightening Facial',
+        rating: 4.88,
+        reviewsCount: '140K reviews',
+        price: '₹1,899',
+        originalPrice: '₹2,499',
+        inclusions: [
+          'Original O3+ whitening ampoule and seaweed rubber peel-off mask',
+          'Removes stubborn tan and revitalizes dull sun-damaged skin'
+        ]
+      },
+      {
+        id: 'dtan-cleanup',
+        title: 'D-Tan & Deep Pore Cleanup',
+        rating: 4.84,
+        reviewsCount: '95K reviews',
+        price: '₹799',
+        originalPrice: '₹1,099',
+        inclusions: [
+          'Gentle glycolic lactic exfoliation with blackhead removal',
+          'Cooling mint mask and tea tree soothing toner'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'pedi-mani',
+    title: 'Pedicure & manicure',
+    services: [
+      {
+        id: 'lavender-mani-pedi',
+        title: 'Lavender Relax Manicure & Pedicure Duo',
+        rating: 4.87,
+        reviewsCount: '75K reviews',
+        price: '₹1,499',
+        originalPrice: '₹1,999',
+        inclusions: [
+          'Warm lavender bath soak with Himalayan dead sea salt scrub',
+          'Cuticle trimming, heel callus filing and soothing massage cream'
+        ]
+      },
+      {
+        id: 'express-pedi',
+        title: 'Express Pedicure with Foot Soak',
+        rating: 4.81,
+        reviewsCount: '50K reviews',
+        price: '₹699',
+        originalPrice: '₹899',
+        inclusions: [
+          'Cleansing foot soak, toenail shaping, buffing and moisture lock',
+          'Quick 30-minute grooming touchup'
+        ]
+      }
+    ]
+  }
 ];
 
 // Native Tab: Quick Categories (Screenshot 1)
@@ -1367,7 +1938,7 @@ const findFullProductDetails = (item, dbServices = []) => {
     duration: (matched && matched.duration) || item.duration || '45 mins',
     badge: (matched && matched.badge) || item.badge || 'VERIFIED',
     tag: (matched && matched.tag) || item.tag || null,
-    image: item.image || (matched && matched.image ? { uri: matched.image } : IMAGES.acService),
+    image: resolveServiceImage(item.image ? item : (matched || item)),
     description:
       (matched && matched.description) ||
       item.description ||
@@ -1391,6 +1962,16 @@ export default function App() {
   const [coinsBalance, setCoinsBalance] = useState(350);
   const [scratchedCardId, setScratchedCardId] = useState(null);
   const [dbServices, setDbServices] = useState([]);
+
+  // Modals for the 4 categories
+  const [showApplianceModal, setShowApplianceModal] = useState(false);
+  const [showEPCModal, setShowEPCModal] = useState(false);
+  const [showBathroomKitchenModal, setShowBathroomKitchenModal] = useState(false);
+  const [showCleaningModal, setShowCleaningModal] = useState(false);
+  const [currentScreen, setCurrentScreen] = useState('home'); // 'home' | 'native-purifier' | 'native-locks' | 'salon-prime'
+  const [salonCategoryTab, setSalonCategoryTab] = useState('all');
+  const [salonSlideIndex, setSalonSlideIndex] = useState(0);
+  const [salonSearch, setSalonSearch] = useState('');
 
   // Auto connect to backend and sync all live web app products
   useEffect(() => {
@@ -1422,15 +2003,66 @@ export default function App() {
 
   // 0. SEARCH RESULTS VIEW (Searching across all Web App Products & Live DB Services)
   const renderSearchResultsView = () => {
-    const allServices = [...(dbServices || []), ...(WEB_APP_SERVICES || [])];
+    // Deduplicate between live dbServices and fallback WEB_APP_SERVICES by unique ID / title
+    const seenIds = new Set();
+    const allServices = [];
+    [...(dbServices || []), ...(WEB_APP_SERVICES || [])].forEach((s) => {
+      const key = (s.id || s._id || s.title || '').trim().toLowerCase();
+      if (key && !seenIds.has(key)) {
+        seenIds.add(key);
+        allServices.push(s);
+      } else if (!key) {
+        allServices.push(s);
+      }
+    });
+
     const q = searchQuery.toLowerCase().trim();
-    const results = allServices.filter(
-      (s) =>
-        (s.title && s.title.toLowerCase().includes(q)) ||
-        (s.category && s.category.toLowerCase().includes(q)) ||
-        (s.subcategory && s.subcategory.toLowerCase().includes(q)) ||
-        (s.description && s.description.toLowerCase().includes(q))
-    );
+
+    // Word boundary regex for short acronyms like 'ac', 'ro', 'tv', etc.
+    const isShortQuery = q.length <= 3;
+    const wordRegex = isShortQuery ? new RegExp(`(^|[^a-z0-9])${q}([^a-z0-9]|$)`, 'i') : null;
+
+    const results = allServices.filter((s) => {
+      const title = (s.title || s.name || '').toLowerCase();
+      const cat = (s.category || s.categoryName || '').toLowerCase();
+      const sub = (s.subcategory || '').toLowerCase();
+      const desc = (s.description || '').toLowerCase();
+
+      if (isShortQuery) {
+        if (q === 'ac') {
+          return (
+            wordRegex.test(title) ||
+            title.includes('air condition') ||
+            cat === 'ac-appliances' ||
+            sub.toLowerCase().includes('ac') ||
+            wordRegex.test(desc)
+          );
+        }
+        if (q === 'ro') {
+          return (
+            wordRegex.test(title) ||
+            title.includes('purifier') ||
+            title.includes('water') ||
+            cat.includes('purifier')
+          );
+        }
+        if (q === 'tv') {
+          return (
+            wordRegex.test(title) ||
+            title.includes('television') ||
+            wordRegex.test(desc)
+          );
+        }
+        return wordRegex.test(title) || wordRegex.test(cat) || wordRegex.test(sub);
+      }
+
+      return (
+        title.includes(q) ||
+        cat.includes(q) ||
+        sub.includes(q) ||
+        desc.includes(q)
+      );
+    });
 
     return (
       <ScrollView
@@ -1460,22 +2092,18 @@ export default function App() {
         ) : (
           results.map((item, idx) => (
             <TouchableOpacity
-              key={item.id || item._id || idx}
+              key={`search-card-${item.id || item._id || 'srv'}-${idx}`}
               style={styles.searchResultCard}
               activeOpacity={0.85}
               onPress={() => handleAddService(item)}
             >
               <View style={styles.searchResultMedia}>
-                {item.image ? (
-                  <SafeImage
-                    source={typeof item.image === 'string' ? { uri: item.image } : item.image}
-                    style={styles.searchResultImg}
-                  />
-                ) : (
-                  <View style={styles.searchResultImgPlaceholder}>
-                    <Text style={{ fontSize: 24 }}>✨</Text>
-                  </View>
-                )}
+                <SafeImage
+                  source={resolveServiceImage(item)}
+                  item={item}
+                  style={styles.searchResultImg}
+                  resizeMode="cover"
+                />
                 {item.badge && (
                   <View style={styles.searchResultBadge}>
                     <Text style={styles.searchResultBadgeText}>{item.badge}</Text>
@@ -1703,7 +2331,9 @@ export default function App() {
                 style={styles.beautyWebItem}
                 activeOpacity={0.8}
                 onPress={() => {
-                  if (cat.isIcon) {
+                  if (cat.id === 'b-tile-salon-prime' || cat.title.includes('Salon Prime')) {
+                    setCurrentScreen('salon-prime');
+                  } else if (cat.isIcon) {
                     setShowAllServicesModal(true);
                   } else {
                     handleAddService({ title: cat.title.replace('\n', ' '), price: '₹499', image: cat.icon });
@@ -1750,13 +2380,23 @@ export default function App() {
           </View>
         </View>
 
-        {/* 2-Photo Mosaic Collage (Screenshot 3) */}
-        <View style={styles.beautyMosaicRow}>
-          <View style={styles.beautyMosaicCard}>
-            <SafeImage source={IMAGES.beautyArmTreatment} style={styles.beautyMosaicImg} />
+        {/* 4-Photo Mosaic Collage (Matches Screenshot 1) */}
+        <View style={styles.beautyMosaicGrid2x2}>
+          <View style={styles.beautyMosaicRow}>
+            <View style={styles.beautyMosaicCard}>
+              <SafeImage source={IMAGES.beautyArmTreatment} style={styles.beautyMosaicImg} />
+            </View>
+            <View style={styles.beautyMosaicCard}>
+              <SafeImage source={IMAGES.beautyPotliMassage || IMAGES.heroMassage} style={styles.beautyMosaicImg} />
+            </View>
           </View>
-          <View style={styles.beautyMosaicCard}>
-            <SafeImage source={IMAGES.beautyHeroTrimmed} style={styles.beautyMosaicImg} />
+          <View style={[styles.beautyMosaicRow, { marginTop: 0 }]}>
+            <View style={styles.beautyMosaicCard}>
+              <SafeImage source={IMAGES.menHaircutPro} style={styles.beautyMosaicImg} />
+            </View>
+            <View style={styles.beautyMosaicCard}>
+              <SafeImage source={IMAGES.beautySkinHydrating || IMAGES.heroSalon} style={styles.beautyMosaicImg} />
+            </View>
           </View>
         </View>
 
@@ -1825,7 +2465,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {BEAUTY_MOST_BOOKED.map((item, idx) => (
-          <View key={item.id} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === BEAUTY_MOST_BOOKED.length - 1 && { marginRight: 16 }]}>
+          <View key={`${item.id}-${idx}`} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === BEAUTY_MOST_BOOKED.length - 1 && { marginRight: 16 }]}>
             <View style={styles.serviceImageWrapper}>
               <SafeImage source={item.image} style={styles.serviceImage} />
               <View style={styles.beautyAddWrapper}>
@@ -1855,7 +2495,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {BEAUTY_SALON_WOMEN.map((item, idx) => (
-          <View key={item.id} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === BEAUTY_SALON_WOMEN.length - 1 && { marginRight: 16 }]}>
+          <View key={`${item.id}-${idx}`} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === BEAUTY_SALON_WOMEN.length - 1 && { marginRight: 16 }]}>
             <View style={styles.serviceImageWrapper}>
               <SafeImage source={item.image} style={styles.serviceImage} />
               <View style={styles.beautyAddWrapper}>
@@ -1885,7 +2525,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {BEAUTY_HAIR_STUDIO.map((item, idx) => (
-          <View key={item.id} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === BEAUTY_HAIR_STUDIO.length - 1 && { marginRight: 16 }]}>
+          <View key={`${item.id}-${idx}`} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === BEAUTY_HAIR_STUDIO.length - 1 && { marginRight: 16 }]}>
             <View style={styles.serviceImageWrapper}>
               <SafeImage source={item.image} style={styles.serviceImage} />
               <View style={styles.beautyAddWrapper}>
@@ -1924,7 +2564,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {BEAUTY_SALON_MEN.map((item, idx) => (
-          <View key={item.id} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === BEAUTY_SALON_MEN.length - 1 && { marginRight: 16 }]}>
+          <View key={`${item.id}-${idx}`} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === BEAUTY_SALON_MEN.length - 1 && { marginRight: 16 }]}>
             <View style={styles.serviceImageWrapper}>
               <SafeImage source={item.image} style={styles.serviceImage} />
               <View style={styles.beautyAddWrapper}>
@@ -1963,7 +2603,7 @@ export default function App() {
         <TouchableOpacity
           style={styles.nativeShowcaseCard}
           activeOpacity={0.92}
-          onPress={() => setSelectedService(NATIVE_WATER_PURIFIERS[0])}
+          onPress={() => setCurrentScreen('native-purifier')}
         >
           <View style={styles.nativeShowcaseBadge}>
             <Text style={styles.nativeShowcaseBadgeText}>% ₹4,800 off</Text>
@@ -1984,7 +2624,7 @@ export default function App() {
         <TouchableOpacity
           style={styles.nativeShowcaseCard}
           activeOpacity={0.92}
-          onPress={() => setSelectedService(NATIVE_SMART_LOCKS[0])}
+          onPress={() => setCurrentScreen('native-locks')}
         >
           <View style={styles.nativeShowcaseBadge}>
             <Text style={styles.nativeShowcaseBadgeText}>% ₹4,500 off</Text>
@@ -2011,7 +2651,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {NATIVE_NEWLY_LAUNCHED.map((item, idx) => (
-          <View key={item.id} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === NATIVE_NEWLY_LAUNCHED.length - 1 && { marginRight: 16 }]}>
+          <View key={`${item.id}-${idx}`} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === NATIVE_NEWLY_LAUNCHED.length - 1 && { marginRight: 16 }]}>
             <View style={styles.serviceImageWrapper}>
               <SafeImage source={item.image} style={styles.serviceImage} />
               {item.badge && (
@@ -2063,7 +2703,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {NATIVE_WATER_PURIFIERS.map((item, idx) => (
-          <View key={item.id} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === NATIVE_WATER_PURIFIERS.length - 1 && { marginRight: 16 }]}>
+          <View key={`${item.id}-${idx}`} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === NATIVE_WATER_PURIFIERS.length - 1 && { marginRight: 16 }]}>
             <View style={styles.serviceImageWrapper}>
               <SafeImage source={item.image} style={styles.serviceImage} />
               {item.badge && (
@@ -2113,7 +2753,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {NATIVE_SMART_LOCKS.map((item, idx) => (
-          <View key={item.id} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === NATIVE_SMART_LOCKS.length - 1 && { marginRight: 16 }]}>
+          <View key={`${item.id}-${idx}`} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === NATIVE_SMART_LOCKS.length - 1 && { marginRight: 16 }]}>
             <View style={styles.serviceImageWrapper}>
               <SafeImage source={item.image} style={styles.serviceImage} />
               {item.badge && (
@@ -2150,7 +2790,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {NATIVE_EXCLUSIVE_CARDS.map((card, idx) => (
-          <View key={card.id} style={[styles.nativeExclusiveCardWrapper, idx === 0 && { marginLeft: 16 }, idx === NATIVE_EXCLUSIVE_CARDS.length - 1 && { marginRight: 16 }]}>
+          <View key={`${card.id}-${idx}`} style={[styles.nativeExclusiveCardWrapper, idx === 0 && { marginLeft: 16 }, idx === NATIVE_EXCLUSIVE_CARDS.length - 1 && { marginRight: 16 }]}>
             <SafeImage source={card.image} style={styles.nativeExclusiveCardImg} />
           </View>
         ))}
@@ -2165,7 +2805,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {NATIVE_ADVANTAGE_CARDS.map((card, idx) => (
-          <View key={card.id} style={[styles.nativeAdvantageCardWrapper, idx === 0 && { marginLeft: 16 }, idx === NATIVE_ADVANTAGE_CARDS.length - 1 && { marginRight: 16 }]}>
+          <View key={`${card.id}-${idx}`} style={[styles.nativeAdvantageCardWrapper, idx === 0 && { marginLeft: 16 }, idx === NATIVE_ADVANTAGE_CARDS.length - 1 && { marginRight: 16 }]}>
             <SafeImage source={card.image} style={styles.nativeAdvantageCardImg} />
           </View>
         ))}
@@ -2241,7 +2881,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {CLEANING_ESSENTIALS.map((item, idx) => (
-          <View key={item.id} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === CLEANING_ESSENTIALS.length - 1 && { marginRight: 16 }]}>
+          <View key={`clean-1-${item.id}-${idx}`} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === CLEANING_ESSENTIALS.length - 1 && { marginRight: 16 }]}>
             <View style={styles.serviceImageWrapper}>
               <SafeImage source={item.image} style={styles.serviceImage} />
               <TouchableOpacity style={styles.addButton} onPress={() => handleAddService(item)}>
@@ -2262,7 +2902,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {APPLIANCE_SERVICES.map((item, idx) => (
-          <View key={item.id} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === APPLIANCE_SERVICES.length - 1 && { marginRight: 16 }]}>
+          <View key={`app-1-${item.id}-${idx}`} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === APPLIANCE_SERVICES.length - 1 && { marginRight: 16 }]}>
             <View style={styles.serviceImageWrapper}>
               <SafeImage source={item.image} style={styles.serviceImage} />
               <TouchableOpacity style={styles.addButton} onPress={() => handleAddService(item)}>
@@ -2283,7 +2923,7 @@ export default function App() {
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
         {HOME_REPAIR_SERVICES.map((item, idx) => (
-          <View key={item.id} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === HOME_REPAIR_SERVICES.length - 1 && { marginRight: 16 }]}>
+          <View key={`repair-1-${item.id}-${idx}`} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === HOME_REPAIR_SERVICES.length - 1 && { marginRight: 16 }]}>
             <View style={styles.serviceImageWrapper}>
               <SafeImage source={item.image} style={styles.serviceImage} />
               <TouchableOpacity style={styles.addButton} onPress={() => handleAddService(item)}>
@@ -2327,13 +2967,17 @@ export default function App() {
                 activeOpacity={0.8}
                 onPress={() => {
                   if (tile.id === 'native-ro') {
-                    setSelectedService(NATIVE_WATER_PURIFIERS[0]);
+                    setCurrentScreen('native-purifier');
                   } else if (tile.id === 'native-smart-locks') {
-                    setSelectedService(NATIVE_SMART_LOCKS[0]);
+                    setCurrentScreen('native-locks');
                   } else if (tile.id === 'ac-appliances') {
-                    setSelectedService(APPLIANCE_SERVICES[0]);
+                    setShowApplianceModal(true);
                   } else if (tile.id === 'quick-repairs') {
-                    setSelectedService(HOME_REPAIR_SERVICES[0]);
+                    setShowEPCModal(true);
+                  } else if (tile.id === 'bathroom-kitchen-cleaning') {
+                    setShowBathroomKitchenModal(true);
+                  } else if (tile.id === 'cleaning') {
+                    setShowCleaningModal(true);
                   } else {
                     setSelectedService(CLEANING_ESSENTIALS[0]);
                   }
@@ -2442,6 +3086,12 @@ export default function App() {
             onPress={() => {
               if (cat.name === 'All services' || cat.isIcon) {
                 setShowAllServicesModal(true);
+              } else if (cat.id === 'cat-6' || cat.name.includes('Appliance') || cat.name.includes('AC')) {
+                setShowApplianceModal(true);
+              } else if (cat.id === 'cat-7' || cat.name.includes('Electrician') || cat.name.includes('Carpenter') || cat.name.includes('Plumber')) {
+                setShowEPCModal(true);
+              } else if (cat.id === 'cat-4' || cat.name.includes('Cleaning')) {
+                setShowBathroomKitchenModal(true);
               } else {
                 handleAddService({ title: cat.name, price: '₹499' });
               }
@@ -2541,7 +3191,7 @@ export default function App() {
       >
         {SPOTLIGHT_ITEMS.map((item, idx) => (
           <TouchableOpacity
-            key={item.id}
+            key={`spotlight-${item.id}-${idx}`}
             activeOpacity={0.92}
             style={[
               styles.spotlightCard,
@@ -2582,9 +3232,9 @@ export default function App() {
       </View>
 
       <View style={styles.noteworthyGrid}>
-        {NOTEWORTHY_ITEMS.map((item) => (
+        {NOTEWORTHY_ITEMS.map((item, idx) => (
           <TouchableOpacity
-            key={item.id}
+            key={`noteworthy-${item.id}-${idx}`}
             style={styles.noteworthyItem}
             activeOpacity={0.75}
             onPress={() => handleAddService(item)}
@@ -2625,7 +3275,7 @@ export default function App() {
       >
         {MOST_BOOKED_ITEMS.map((item, idx) => (
           <View
-            key={item.id}
+            key={`mostbooked-${item.id}-${idx}`}
             style={[
               styles.serviceProductCard,
               idx === 0 && { marginLeft: 16 },
@@ -2678,7 +3328,7 @@ export default function App() {
       >
         {CURATIONS_ITEMS.map((item, idx) => (
           <TouchableOpacity
-            key={item.id}
+            key={`curation-${item.id}-${idx}`}
             activeOpacity={0.9}
             style={[
               styles.curationCard,
@@ -2749,7 +3399,7 @@ export default function App() {
       >
         {CLEANING_ESSENTIALS.map((item, idx) => (
           <View
-            key={item.id}
+            key={`clean-2-${item.id}-${idx}`}
             style={[
               styles.serviceProductCard,
               idx === 0 && { marginLeft: 16 },
@@ -2802,7 +3452,7 @@ export default function App() {
       >
         {SALON_WOMEN.map((item, idx) => (
           <View
-            key={item.id}
+            key={`salonw-${item.id}-${idx}`}
             style={[
               styles.serviceProductCard,
               idx === 0 && { marginLeft: 16 },
@@ -2905,7 +3555,7 @@ export default function App() {
       >
         {APPLIANCE_SERVICES.map((item, idx) => (
           <View
-            key={item.id}
+            key={`app-2-${item.id}-${idx}`}
             style={[
               styles.serviceProductCard,
               idx === 0 && { marginLeft: 16 },
@@ -2950,7 +3600,7 @@ export default function App() {
       >
         {HOME_REPAIR_SERVICES.map((item, idx) => (
           <View
-            key={item.id}
+            key={`repair-2-${item.id}-${idx}`}
             style={[
               styles.serviceProductCard,
               idx === 0 && { marginLeft: 16 },
@@ -3048,7 +3698,7 @@ export default function App() {
       >
         {SALON_MEN.map((item, idx) => (
           <View
-            key={item.id}
+            key={`salonm-${item.id}-${idx}`}
             style={[
               styles.serviceProductCard,
               idx === 0 && { marginLeft: 16 },
@@ -3110,38 +3760,518 @@ export default function App() {
     </ScrollView>
   );
 
+  const renderNativePurifierScreen = () => (
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      {/* Header Bar */}
+      <View style={styles.detailHeaderBar}>
+        <TouchableOpacity
+          onPress={() => setCurrentScreen('home')}
+          style={styles.detailHeaderBackBtn}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.detailHeaderBackArrow}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.detailHeaderTitle} numberOfLines={1}>
+          Native Water Purifier
+        </Text>
+        <View style={styles.cartIconWrapper}>
+          <Text style={styles.cartIconText}>🛒</Text>
+          <View style={styles.cartCountBadge}>
+            <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
+          </View>
+        </View>
+      </View>
+
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        {/* Title Banner */}
+        <View style={styles.npBannerSection}>
+          <Text style={styles.npMainTitle}>Native Water Purifier</Text>
+          <Text style={styles.npSubtitleRating}>★ 4.84 (321K bookings)</Text>
+          <TouchableOpacity
+            style={styles.npViewServicesBtn}
+            onPress={() => setSearchQuery('Purifier')}
+          >
+            <Text style={styles.npViewServicesText}>View Services</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Models List */}
+        <View style={styles.npModelsContainer}>
+          <Text style={styles.npModelsHeading}>Models</Text>
+
+          {/* Model 1: Native M1 */}
+          <View style={styles.npModelCard}>
+            <View style={styles.npModelDetails}>
+              <Text style={styles.npModelName}>Native M1</Text>
+              <Text style={styles.npModelRating}>★ 4.86 (162K reviews)</Text>
+              <Text style={styles.npModelPrice}>Starts at ₹13,499</Text>
+              <Text style={styles.npModelLink}>View details →</Text>
+            </View>
+            <View style={styles.npModelImgCol}>
+              <View style={styles.npOfferTag}>
+                <Text style={styles.npOfferTagText}>% Get it at ₹11,799</Text>
+              </View>
+              <Image source={require('./assets/images/native_m1_purifier.jpg')} style={styles.npModelImg} />
+              <TouchableOpacity
+                style={styles.npAddBtn}
+                onPress={() => {
+                  setCartCount((prev) => prev + 1);
+                  Alert.alert('Added to Cart', 'Native M1 added to cart successfully!');
+                }}
+              >
+                <Text style={styles.npAddBtnText}>Add</Text>
+                <Text style={styles.npAddSubtext}>2 options</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Model 2: Native M0 */}
+          <View style={styles.npModelCard}>
+            <View style={styles.npModelDetails}>
+              <Text style={styles.npModelName}>Native M0</Text>
+              <Text style={styles.npModelRating}>★ 4.85 (12K reviews)</Text>
+              <Text style={styles.npModelPrice}>Starts at ₹11,799</Text>
+              <Text style={styles.npModelLink}>View details →</Text>
+            </View>
+            <View style={styles.npModelImgCol}>
+              <View style={styles.npOfferTag}>
+                <Text style={styles.npOfferTagText}>% Get it at ₹10,269</Text>
+              </View>
+              <Image source={require('./assets/images/native_purifier.jpg')} style={styles.npModelImg} />
+              <TouchableOpacity
+                style={styles.npAddBtn}
+                onPress={() => {
+                  setCartCount((prev) => prev + 1);
+                  Alert.alert('Added to Cart', 'Native M0 added to cart successfully!');
+                }}
+              >
+                <Text style={styles.npAddBtnText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* UC Promise Box */}
+        <View style={styles.npPromiseCard}>
+          <Text style={styles.npPromiseTitle}>UC Promise  ✓ ASSURED</Text>
+          <Text style={styles.npPromiseLine}>✓  Verified Professionals</Text>
+          <Text style={styles.npPromiseLine}>✓  Hassle Free Booking</Text>
+          <Text style={styles.npPromiseLine}>✓  Transparent Pricing</Text>
+        </View>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+
+      {/* Sticky Bottom Cart Bar */}
+      <View style={styles.npStickyCartBar}>
+        <View>
+          <Text style={styles.npStickyCartItems}>Cart ({cartCount || 1} items)</Text>
+          <Text style={styles.npStickyCartPrice}>₹1,199</Text>
+        </View>
+        <TouchableOpacity
+          style={styles.npCheckoutBtn}
+          onPress={() => {
+            Alert.alert('Checkout', 'Proceeding to checkout with item (₹1,199)...');
+          }}
+        >
+          <Text style={styles.npCheckoutBtnText}>Proceed to Checkout →</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const renderNativeLocksScreen = () => (
+    <View style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <View style={styles.detailHeaderBar}>
+        <TouchableOpacity
+          onPress={() => setCurrentScreen('home')}
+          style={styles.detailHeaderBackBtn}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.detailHeaderBackArrow}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.detailHeaderTitle} numberOfLines={1}>
+          Native Smart Locks
+        </Text>
+        <View style={styles.cartIconWrapper}>
+          <Text style={styles.cartIconText}>🛒</Text>
+          <View style={styles.cartCountBadge}>
+            <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
+          </View>
+        </View>
+      </View>
+
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        {/* Locks Title Banner */}
+        <View style={styles.npBannerSection}>
+          <Text style={styles.npMainTitle}>Native Smart Locks</Text>
+          <Text style={styles.npSubtitleRating}>★ 4.77 (28K bookings)</Text>
+          <TouchableOpacity
+            style={styles.npViewServicesBtn}
+            onPress={() => setSearchQuery('Smart Lock')}
+          >
+            <Text style={styles.npViewServicesText}>View Services</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Video Showcase Card with Play Icon */}
+        <View style={styles.locksVideoCard}>
+          <Image
+            source={require('./assets/images/native_smart_lock.jpg')}
+            style={styles.locksVideoImg}
+            resizeMode="cover"
+          />
+          <View style={styles.locksPlayButton}>
+            <Text style={styles.locksPlayIcon}>▶</Text>
+          </View>
+        </View>
+
+        {/* Featured Lock Models */}
+        <View style={styles.npModelsContainer}>
+          <Text style={styles.npModelsHeading}>Feature lock</Text>
+
+          <View style={styles.npModelCard}>
+            <View style={styles.npModelDetails}>
+              <Text style={styles.npModelName}>Native Lock Pro</Text>
+              <Text style={styles.npModelRating}>★ 4.88 (14K reviews)</Text>
+              <Text style={styles.npModelPrice}>Starts at ₹11,999</Text>
+              <Text style={styles.npModelLink}>View details →</Text>
+            </View>
+            <View style={styles.npModelImgCol}>
+              <Image source={require('./assets/images/native_lock_pro.jpg')} style={styles.npModelImg} />
+              <TouchableOpacity
+                style={styles.npAddBtn}
+                onPress={() => {
+                  setCartCount((prev) => prev + 1);
+                  Alert.alert('Added to Cart', 'Native Lock Pro added to cart!');
+                }}
+              >
+                <Text style={styles.npAddBtnText}>Add</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        <View style={{ height: 100 }} />
+      </ScrollView>
+    </View>
+  );
+
+  // 24. SALON PRIME DEDICATED SCREEN (Direct replica of Web App / Screenshot 2)
+  const renderSalonPrimeScreen = () => {
+    const currentSlide = SALON_PRIME_HERO_SLIDES[salonSlideIndex] || SALON_PRIME_HERO_SLIDES[0];
+
+    // Filter catalogue sections by active category tab and search query
+    const filteredSections = SALON_PRIME_SECTIONS.filter((section) => {
+      if (salonCategoryTab !== 'all' && section.id !== salonCategoryTab) {
+        return false;
+      }
+      return true;
+    }).map((section) => {
+      if (!salonSearch.trim()) return section;
+      const q = salonSearch.toLowerCase().trim();
+      return {
+        ...section,
+        services: section.services.filter((s) =>
+          s.title.toLowerCase().includes(q) ||
+          s.inclusions.some((inc) => inc.toLowerCase().includes(q))
+        )
+      };
+    }).filter((section) => section.services.length > 0);
+
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+        {/* Header Bar matching Screenshot 2 */}
+        <View style={styles.salonPrimeHeader}>
+          <View style={styles.salonPrimeHeaderTop}>
+            <TouchableOpacity
+              onPress={() => setCurrentScreen('home')}
+              style={styles.detailHeaderBackBtn}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.detailHeaderBackArrow}>←</Text>
+            </TouchableOpacity>
+
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.salonPrimeTitle}>Salon Prime</Text>
+              <Text style={styles.salonPrimeRatingSub}>★ 4.85 (18.8 M bookings)</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.cartIconWrapper}
+              onPress={() => Alert.alert('Cart', `${cartCount || 1} item in cart. Total: ₹1,199`)}
+            >
+              <Text style={styles.cartIconText}>🛒</Text>
+              <View style={styles.cartCountBadge}>
+                <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Location & Search row */}
+          <View style={styles.salonPrimeSearchRow}>
+            <View style={styles.salonPrimeLocationChip}>
+              <Text style={styles.salonPrimeLocationText} numberOfLines={1}>📍 4744+HMQ, Rayakottai Road ▾</Text>
+            </View>
+            <View style={styles.salonPrimeSearchInputBox}>
+              <Text style={{ fontSize: 13, marginRight: 6 }}>🔍</Text>
+              <TextInput
+                style={styles.salonPrimeSearchInput}
+                placeholder="Search in Salon Prime"
+                placeholderTextColor="#94A3B8"
+                value={salonSearch}
+                onChangeText={setSalonSearch}
+              />
+              {salonSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setSalonSearch('')}>
+                  <Text style={{ fontSize: 14, color: '#94A3B8' }}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+          {/* Select a service Categories Horizontal Tabs */}
+          <View style={styles.salonSelectSection}>
+            <Text style={styles.salonSelectHeading}>Select a service</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.salonCatScroll}>
+              {SALON_PRIME_CATEGORIES.map((cat) => {
+                const isActive = salonCategoryTab === cat.id;
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[styles.salonCatTabCard, isActive && styles.salonCatTabCardActive]}
+                    activeOpacity={0.8}
+                    onPress={() => setSalonCategoryTab(cat.id)}
+                  >
+                    <View style={styles.salonCatIconBox}>
+                      {cat.image ? (
+                        <Image source={cat.image} style={styles.salonCatTabImg} resizeMode="cover" />
+                      ) : cat.discount ? (
+                        <View style={styles.salonDiscountPillBox}>
+                          <Text style={styles.salonDiscountPillText}>{cat.discount}</Text>
+                        </View>
+                      ) : (
+                        <Text style={[styles.salonCatStarIcon, isActive && { color: '#F04400' }]}>{cat.icon || '★'}</Text>
+                      )}
+                      {cat.badge && (
+                        <View style={styles.salonCatNewBadge}>
+                          <Text style={styles.salonCatNewBadgeText}>{cat.badge}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={[styles.salonCatTabLabel, isActive && styles.salonCatTabLabelActive]} numberOfLines={2}>
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
+          {/* Hero Carousel Banner matching Screenshot 2 */}
+          <View style={[styles.salonHeroBannerCard, { backgroundColor: currentSlide.bgColor }]}>
+            <View style={styles.salonHeroBannerLeft}>
+              <View style={[styles.salonHeroBadgePill, { backgroundColor: currentSlide.badgeColor }]}>
+                <Text style={styles.salonHeroBadgeText}>{currentSlide.badge}</Text>
+              </View>
+              <Text style={styles.salonHeroBannerTitle}>{currentSlide.title}</Text>
+              <Text style={styles.salonHeroBannerSubtitle}>{currentSlide.subtitle}</Text>
+
+              {/* Slider Arrows */}
+              <View style={styles.salonHeroArrowsRow}>
+                <TouchableOpacity
+                  style={styles.salonHeroArrowBtn}
+                  onPress={() => setSalonSlideIndex((prev) => (prev === 0 ? SALON_PRIME_HERO_SLIDES.length - 1 : prev - 1))}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.salonHeroArrowText}>‹</Text>
+                </TouchableOpacity>
+                <Text style={styles.salonHeroPaginationText}>{salonSlideIndex + 1} / {SALON_PRIME_HERO_SLIDES.length}</Text>
+                <TouchableOpacity
+                  style={styles.salonHeroArrowBtn}
+                  onPress={() => setSalonSlideIndex((prev) => (prev === SALON_PRIME_HERO_SLIDES.length - 1 ? 0 : prev + 1))}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.salonHeroArrowText}>›</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.salonHeroBannerRight}>
+              <Image source={currentSlide.image} style={styles.salonHeroBannerImg} resizeMode="cover" />
+            </View>
+          </View>
+
+          {/* Promo Row: 25% Off + UC Promise */}
+          <View style={styles.salonPromoRow}>
+            {/* 25% Off Promo Card */}
+            <View style={styles.salonOfferCard}>
+              <View style={styles.salonOfferBadgeRow}>
+                <Text style={styles.salonOfferPercentIcon}>%</Text>
+                <Text style={styles.salonOfferTitle}>Get 25% off upto 200</Text>
+              </View>
+              <Text style={styles.salonOfferSub}>For new salon users • 1/2</Text>
+            </View>
+
+            {/* UC Promise Card */}
+            <View style={styles.salonPromiseCard}>
+              <View style={styles.salonPromiseHeader}>
+                <Text style={styles.salonPromiseTitle}>UC Promise</Text>
+                <View style={styles.salonQualityPill}>
+                  <Text style={styles.salonQualityPillText}>QUALITY ASSURED</Text>
+                </View>
+              </View>
+              <Text style={styles.salonPromiseItem}>✓ 4.5+ Rated Beauticians</Text>
+              <Text style={styles.salonPromiseItem}>✓ Luxury Salon Experience</Text>
+              <Text style={styles.salonPromiseItem}>✓ Premium Branded Products</Text>
+            </View>
+          </View>
+
+          {/* Services Catalogue Sections */}
+          <View style={styles.salonCatalogueContainer}>
+            {filteredSections.map((sec, secIdx) => (
+              <View key={`sec-${sec.id}-${secIdx}`} style={styles.salonSectionBlock}>
+                <View style={styles.salonSectionHeaderRow}>
+                  <Text style={styles.salonSectionHeading}>{sec.title}</Text>
+                  <Text style={styles.salonSectionCount}>{sec.services.length} services</Text>
+                </View>
+
+                {sec.services.map((srv, srvIdx) => (
+                  <View key={`srv-${srv.id}-${srvIdx}`} style={styles.salonItemCard}>
+                    <View style={styles.salonItemInfo}>
+                      <Text style={styles.salonItemTitle}>{srv.title}</Text>
+                      <View style={styles.salonItemRatingRow}>
+                        <Text style={styles.salonItemStar}>★ {srv.rating}</Text>
+                        <Text style={styles.salonItemReviews}>({srv.reviewsCount})</Text>
+                      </View>
+                      <View style={styles.salonItemPriceRow}>
+                        <Text style={styles.salonItemPrice}>{srv.price}</Text>
+                        <Text style={styles.salonItemOrigPrice}>{srv.originalPrice}</Text>
+                      </View>
+                      <View style={styles.salonItemInclusions}>
+                        {srv.inclusions.map((inc, i) => (
+                          <Text key={i} style={styles.salonInclusionText}>• {inc}</Text>
+                        ))}
+                      </View>
+                    </View>
+
+                    <View style={styles.salonItemActionCol}>
+                      <TouchableOpacity
+                        style={styles.salonItemAddBtn}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          setCartCount((prev) => prev + 1);
+                          Alert.alert('Added to Cart 🎉', `"${srv.title}" added to your salon booking!`);
+                        }}
+                      >
+                        <Text style={styles.salonItemAddBtnText}>Add +</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            ))}
+          </View>
+
+          <View style={{ height: 110 }} />
+        </ScrollView>
+
+        {/* Sticky Floating View Cart Bottom Bar matching Screenshot 2 */}
+        <View style={styles.salonStickyCartBar}>
+          <View>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+              <Text style={styles.salonCartPriceMain}>₹1,199</Text>
+              <Text style={styles.salonCartPriceOrig}>₹1,379</Text>
+            </View>
+            <Text style={styles.salonCartItemsLabel}>{cartCount || 1} service in cart</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.salonViewCartBtn}
+            activeOpacity={0.85}
+            onPress={() => Alert.alert('Cart & Checkout', 'Proceeding to Salon Prime Checkout with 25% First-Booking discount applied!')}
+          >
+            <Text style={styles.salonViewCartBtnText}>View Cart  ›</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
-    <SafeAreaView style={[styles.safeArea, (activeTab === 'beauty' || activeTab === 'native') && { backgroundColor: '#FFFFFF' }]}>
+    <SafeAreaProvider style={{ flex: 1, backgroundColor: (activeTab === 'beauty' || activeTab === 'native') ? '#FFFFFF' : '#F04400' }}>
+      <SafeAreaView style={[styles.safeArea, (activeTab === 'beauty' || activeTab === 'native') && { backgroundColor: '#FFFFFF' }]}>
       <ExpoStatusBar style={(activeTab === 'beauty' || activeTab === 'native') ? 'dark' : 'light'} />
       <StatusBar
         barStyle={(activeTab === 'beauty' || activeTab === 'native') ? 'dark-content' : 'light-content'}
         backgroundColor={(activeTab === 'beauty' || activeTab === 'native') ? '#FFFFFF' : '#2B0957'}
       />
 
-      {/* 1. TOP HEADER: Clean white Personal grooming header on Beauty tab; Native header on Native tab; Deep Purple header on others */}
-      {activeTab === 'beauty' ? (
-        <View style={styles.beautyTopHeader}>
-          <View style={styles.beautyHeaderTitleRow}>
-            <Text style={styles.beautyHeaderIcon}>🪞</Text>
-            <Text style={styles.beautyHeaderTitleBold}>Personal </Text>
-            <Text style={styles.beautyHeaderTitleLight}>grooming</Text>
+      {/* 1. TOP HEADER: Clean brand header matching Screenshot 1 on Beauty tab */}
+      {currentScreen !== 'home' ? null : activeTab === 'beauty' ? (
+        <View style={styles.beautyTopHeaderClean}>
+          {/* Top Brand Logo & Segmented Tabs Bar */}
+          <View style={styles.beautyBrandTabsRow}>
+            <View style={styles.beautyBrandLogoRow}>
+              <View style={styles.beautyBrandBadge}>
+                <Text style={styles.beautyBrandBadgeText}>FIC</Text>
+              </View>
+              <Text style={styles.beautyBrandName}>Forge India Connect</Text>
+            </View>
+
+            {/* Segmented Tabs (Homes | Native | Beauty) */}
+            <View style={styles.beautyHeaderTabs}>
+              <TouchableOpacity onPress={() => setActiveTab('homes')} style={styles.beautyHeaderTab}>
+                <Text style={styles.beautyHeaderTabText}>Homes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setActiveTab('native')} style={styles.beautyHeaderTab}>
+                <Text style={styles.beautyHeaderTabText}>Native</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setActiveTab('beauty')} style={[styles.beautyHeaderTab, styles.beautyHeaderTabActive]}>
+                <Text style={styles.beautyHeaderTabActiveText}>Beauty</Text>
+                <View style={styles.beautyHeaderActiveUnderline} />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          <View style={styles.beautySearchBarContainer}>
-            <Text style={styles.searchIcon}>🔍</Text>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search for a service"
-              placeholderTextColor="#94A3B8"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              clearButtonMode="while-editing"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Text style={styles.clearIcon}>✕</Text>
-              </TouchableOpacity>
-            )}
+          {/* Location, Search & Actions Row matching Screenshot 1 */}
+          <View style={styles.beautyHeaderActionRow}>
+            <View style={styles.beautyLocationChip}>
+              <Text style={styles.beautyLocationChipText} numberOfLines={1}>📍 4744+HMQ, Rayakottai ... ▾</Text>
+            </View>
+
+            <View style={styles.beautySearchBarBox}>
+              <Text style={{ fontSize: 13, marginRight: 6 }}>🔍</Text>
+              <TextInput
+                style={styles.beautySearchInput}
+                placeholder="Search for 'Ayurvedic massage'"
+                placeholderTextColor="#94A3B8"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                clearButtonMode="while-editing"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Text style={styles.clearIcon}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <TouchableOpacity
+              style={styles.cartIconWrapper}
+              onPress={() => Alert.alert('Cart', `${cartCount || 1} item in cart.`)}
+            >
+              <Text style={styles.cartIconText}>🛒</Text>
+              <View style={styles.cartCountBadge}>
+                <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={styles.beautyAvatarCircle}>
+              <Text style={styles.beautyAvatarText}>S</Text>
+            </View>
           </View>
         </View>
       ) : activeTab === 'native' ? (
@@ -3197,7 +4327,13 @@ export default function App() {
 
       {/* DYNAMIC CONTENT SWITCHER: SEARCH RESULTS OR ACTIVE BOTTOM TAB */}
       <View style={styles.tabContentWrapper}>
-        {searchQuery.trim().length > 0 ? (
+        {currentScreen === 'native-purifier' ? (
+          renderNativePurifierScreen()
+        ) : currentScreen === 'native-locks' ? (
+          renderNativeLocksScreen()
+        ) : currentScreen === 'salon-prime' ? (
+          renderSalonPrimeScreen()
+        ) : searchQuery.trim().length > 0 ? (
           renderSearchResultsView()
         ) : (
           <>
@@ -3209,7 +4345,8 @@ export default function App() {
       </View>
 
       {/* 21. BOTTOM NAVIGATION BAR (3 SECTIONS: HOMES, NATIVE, BEAUTY) */}
-      <View style={styles.bottomNavContainer}>
+      {currentScreen === 'home' && (
+        <View style={styles.bottomNavContainer}>
         {/* Tab 1: Homes */}
         <TouchableOpacity
           style={styles.navSectionTab}
@@ -3276,6 +4413,7 @@ export default function App() {
           />
         </TouchableOpacity>
       </View>
+      )}
 
       {/* 22. RICH SERVICE & PRODUCT DETAIL MODAL (Direct Web App Specifications) */}
       {selectedService && (
@@ -3289,13 +4427,12 @@ export default function App() {
             <View style={styles.richModalCard}>
               {/* Media Top Container */}
               <View style={styles.richModalMedia}>
-                {selectedService.image ? (
-                  <SafeImage source={selectedService.image} style={styles.richModalImage} />
-                ) : (
-                  <View style={styles.richModalImagePlaceholder}>
-                    <Text style={{ fontSize: 40 }}>✨</Text>
-                  </View>
-                )}
+                <SafeImage
+                  source={resolveServiceImage(selectedService)}
+                  item={selectedService}
+                  style={styles.richModalImage}
+                  resizeMode="cover"
+                />
 
                 {/* Floating Close Button */}
                 <TouchableOpacity
@@ -3486,14 +4623,14 @@ export default function App() {
               contentContainerStyle={styles.allServicesScrollContent}
               showsVerticalScrollIndicator={false}
             >
-              {ALL_SERVICES_GROUPS.map((group) => (
-                <View key={group.id} style={styles.allServicesGroup}>
+              {ALL_SERVICES_GROUPS.map((group, grpIdx) => (
+                <View key={`grp-${group.id}-${grpIdx}`} style={styles.allServicesGroup}>
                   <Text style={styles.allServicesGroupTitle}>{group.title}</Text>
 
                   <View style={styles.allServicesItemsGrid}>
-                    {group.items.map((item) => (
+                    {group.items.map((item, itmIdx) => (
                       <TouchableOpacity
-                        key={item.id}
+                        key={`grpitem-${item.id}-${itmIdx}`}
                         style={styles.allServicesGridItem}
                         activeOpacity={0.78}
                         onPress={() => {
@@ -3537,7 +4674,217 @@ export default function App() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+
+      {/* 24. APPLIANCE REPAIR & SERVICE MODAL (Matches user screenshot 1) */}
+      <Modal
+        visible={showApplianceModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowApplianceModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.applianceModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowApplianceModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={styles.applianceModalCard}>
+              <View style={styles.applianceModalHeader}>
+                <Text style={styles.applianceModalTitle}>Appliance Repair & Service</Text>
+                <TouchableOpacity
+                  style={styles.applianceModalCloseBtn}
+                  onPress={() => setShowApplianceModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.applianceModalCloseX}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.applianceGrid3x3}>
+                {APPLIANCE_REPAIR_ITEMS.map((item, idx) => (
+                  <TouchableOpacity
+                    key={`app-tile-${item.id}-${idx}`}
+                    style={styles.applianceTile}
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      setShowApplianceModal(false);
+                      setSearchQuery(item.query);
+                    }}
+                  >
+                    <View style={styles.applianceTileBox}>
+                      <Image source={item.image} style={styles.applianceTileImg} resizeMode="contain" />
+                    </View>
+                    <Text style={styles.applianceTileName} numberOfLines={2}>
+                      {item.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* 25. ELECTRICIAN, PLUMBER & CARPENTERS MODAL (Matches user screenshot 2) */}
+      <Modal
+        visible={showEPCModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowEPCModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.applianceModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowEPCModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={styles.epcModalCard}>
+              <View style={styles.applianceModalHeader}>
+                <Text style={styles.applianceModalTitle}>Electrician, Plumber & Carpenters</Text>
+                <TouchableOpacity
+                  style={styles.applianceModalCloseBtn}
+                  onPress={() => setShowEPCModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.applianceModalCloseX}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.epcRow}>
+                {EPC_ITEMS.map((item, idx) => (
+                  <TouchableOpacity
+                    key={`epc-tile-${item.id}-${idx}`}
+                    style={styles.epcItem}
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      setShowEPCModal(false);
+                      setSearchQuery(item.query);
+                    }}
+                  >
+                    <View style={styles.epcIconBox}>
+                      <Image source={item.image} style={styles.epcIconImg} resizeMode="contain" />
+                      {item.badge && (
+                        <View style={styles.epcArrivalBadge}>
+                          <Text style={styles.epcArrivalBadgeText}>{item.badge}</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={styles.epcLabel}>{item.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Guarantee Banner */}
+              <View style={styles.ucGuaranteeBanner}>
+                <Text style={styles.ucGuaranteeShield}>🛡️</Text>
+                <Text style={styles.ucGuaranteeText}>
+                  <Text style={{ fontWeight: '700' }}>Urban Company Guarantee:</Text> 30-day service warranty, verified background-checked pros & upfront transparent pricing.
+                </Text>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* 26. BATHROOM & KITCHEN CLEANING MODAL (Matches user screenshot 3) */}
+      <Modal
+        visible={showBathroomKitchenModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowBathroomKitchenModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.applianceModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowBathroomKitchenModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={styles.bkModalCard}>
+              <View style={styles.bkModalHeader}>
+                <Text style={styles.bkModalTitle}>Bathroom & Kitchen cleaning</Text>
+                <TouchableOpacity
+                  style={styles.applianceModalCloseBtn}
+                  onPress={() => setShowBathroomKitchenModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.applianceModalCloseX}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {BATHROOM_KITCHEN_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.id}
+                  style={styles.bkOptionCard}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setShowBathroomKitchenModal(false);
+                    setSearchQuery(opt.query);
+                  }}
+                >
+                  <Image source={opt.image} style={styles.bkOptionImg} resizeMode="cover" />
+                  <View style={styles.bkOptionTextCol}>
+                    <Text style={styles.bkOptionTitle}>{opt.title}</Text>
+                    <Text style={styles.bkOptionSub}>{opt.subtitle}</Text>
+                    <Text style={styles.bkOptionPrice}>{opt.price}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* 27. CLEANING MODAL (Matches user screenshot 4) */}
+      <Modal
+        visible={showCleaningModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowCleaningModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.applianceModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowCleaningModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={styles.bkModalCard}>
+              <View style={styles.bkModalHeader}>
+                <Text style={styles.bkModalTitle}>Cleaning</Text>
+                <TouchableOpacity
+                  style={styles.applianceModalCloseBtn}
+                  onPress={() => setShowCleaningModal(false)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.applianceModalCloseX}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.cleaningGridRow}>
+                {CLEANING_OPTIONS.map((opt, idx) => (
+                  <TouchableOpacity
+                    key={`clean-opt-${opt.id}-${idx}`}
+                    style={styles.cleaningGridItem}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      setShowCleaningModal(false);
+                      setSearchQuery(opt.query);
+                    }}
+                  >
+                    <View style={styles.cleaningIconBox}>
+                      <Image source={opt.image} style={styles.cleaningIconImg} resizeMode="contain" />
+                    </View>
+                    <Text style={styles.cleaningGridTitle} numberOfLines={2}>
+                      {opt.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
@@ -3546,7 +4893,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: Platform.OS === 'web' ? '100vh' : '100%',
     maxHeight: Platform.OS === 'web' ? '100vh' : undefined,
-    backgroundColor: '#2B0957',
+    backgroundColor: '#F04400',
     maxWidth: Platform.OS === 'web' ? 440 : undefined,
     width: '100%',
     alignSelf: 'center',
@@ -3567,9 +4914,9 @@ const styles = StyleSheet.create({
     paddingBottom: 90,
   },
 
-  // 1. TOP PURPLE BANNER HEADER
+  // 1. TOP PURPLE BANNER HEADER (Now 60% Fiery Orange #F04400)
   topPurpleHeader: {
-    backgroundColor: '#2B0957',
+    backgroundColor: '#F04400',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'android' ? 36 : 10,
     paddingBottom: 14,
@@ -3596,12 +4943,12 @@ const styles = StyleSheet.create({
   },
   locationName: {
     fontSize: 13,
-    color: '#E9D5FF',
-    fontWeight: '500',
+    color: '#FFD91A',
+    fontWeight: '600',
   },
   dropdownArrow: {
     fontSize: 12,
-    color: '#E9D5FF',
+    color: '#FFD91A',
   },
   profileAvatarButton: {
     padding: 2,
@@ -3610,9 +4957,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderWidth: 1.5,
-    borderColor: '#FFFFFF',
+    borderColor: '#FFD91A',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -3636,12 +4983,12 @@ const styles = StyleSheet.create({
   searchIcon: {
     fontSize: 16,
     marginRight: 10,
-    color: '#64748B',
+    color: '#F04400',
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: '#0F172A',
+    color: '#000000',
     paddingVertical: 0,
   },
   clearIcon: {
@@ -3650,9 +4997,9 @@ const styles = StyleSheet.create({
     padding: 6,
   },
 
-  // 2. FESTIVE CAROUSEL BANNER
+  // 2. FESTIVE CAROUSEL BANNER (60% Fiery Orange + 30% Sunshine Yellow)
   festiveContainer: {
-    backgroundColor: '#240649',
+    backgroundColor: '#D03800',
     paddingTop: 12,
     paddingBottom: 16,
   },
@@ -3673,7 +5020,7 @@ const styles = StyleSheet.create({
   festiveTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#FDE047',
+    color: '#FFD91A',
     letterSpacing: 2.5,
     fontFamily: Platform.OS === 'ios' ? 'Courier-Bold' : 'monospace',
   },
@@ -3683,12 +5030,12 @@ const styles = StyleSheet.create({
   festiveCard: {
     width: 130,
     height: 150,
-    backgroundColor: '#3B0764',
+    backgroundColor: '#F04400',
     borderRadius: 10,
     marginRight: 10,
     overflow: 'hidden',
     borderWidth: 1.5,
-    borderColor: '#EAB308',
+    borderColor: '#FFD91A',
     position: 'relative',
   },
   festiveTag: {
@@ -3696,7 +5043,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#EAB308',
+    backgroundColor: '#FFD91A',
     paddingVertical: 2,
     zIndex: 10,
     alignItems: 'center',
@@ -3713,13 +5060,13 @@ const styles = StyleSheet.create({
   },
   festiveCardFooter: {
     height: 35,
-    backgroundColor: '#BE185D',
+    backgroundColor: '#000000',
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 4,
   },
   festiveCardTitle: {
-    color: '#FFFFFF',
+    color: '#FFD91A',
     fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',
@@ -3796,37 +5143,37 @@ const styles = StyleSheet.create({
   priceDropPill: {
     position: 'absolute',
     top: 3,
-    backgroundColor: '#ECFDF5',
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-    borderRadius: 4,
-    borderWidth: 0.5,
-    borderColor: '#10B981',
-    zIndex: 10,
-  },
-  priceDropPillText: {
-    color: '#059669',
-    fontSize: 8,
-    fontWeight: '800',
-  },
-  bottomPillBadge: {
-    position: 'absolute',
-    bottom: 3,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#D0F030',
     paddingHorizontal: 5,
     paddingVertical: 1,
     borderRadius: 4,
     borderWidth: 0.5,
-    borderColor: '#CBD5E1',
+    borderColor: '#000000',
+    zIndex: 10,
+  },
+  priceDropPillText: {
+    color: '#000000',
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  bottomPillBadge: {
+    position: 'absolute',
+    bottom: 3,
+    backgroundColor: '#FFD91A',
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    borderRadius: 4,
+    borderWidth: 0.5,
+    borderColor: '#000000',
     shadowColor: '#000',
-    shadowOpacity: 0.05,
+    shadowOpacity: 0.08,
     shadowRadius: 1,
     elevation: 1,
   },
   bottomPillBadgeText: {
-    color: '#059669',
+    color: '#000000',
     fontSize: 8.5,
-    fontWeight: '700',
+    fontWeight: '800',
   },
   allServicesIconBox: {
     width: '60%',
@@ -3942,7 +5289,7 @@ const styles = StyleSheet.create({
   seeAllLink: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#6D28D9',
+    color: '#F04400',
   },
   sectionDivider: {
     height: 8,
@@ -4187,21 +5534,21 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 8,
     right: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#D0F030',
     borderWidth: 1.2,
-    borderColor: '#6D28D9',
+    borderColor: '#000000',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 5,
     shadowColor: '#000',
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
   addButtonText: {
-    color: '#6D28D9',
+    color: '#000000',
     fontSize: 12.5,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   btnSubtext: {
     position: 'absolute',
@@ -4215,29 +5562,29 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: '#CA8A04',
+    backgroundColor: '#FFD91A',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 4,
   },
   luxeBadgeText: {
-    color: '#FFFFFF',
+    color: '#000000',
     fontSize: 10,
     fontWeight: '800',
   },
   serviceCardTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#000000',
     marginTop: 8,
     lineHeight: 17,
     minHeight: 34,
   },
   serviceRating: {
     fontSize: 10.5,
-    color: '#64748B',
+    color: '#475569',
     marginTop: 4,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   priceRow: {
     flexDirection: 'row',
@@ -4246,8 +5593,8 @@ const styles = StyleSheet.create({
   },
   servicePrice: {
     fontSize: 13.5,
-    fontWeight: '800',
-    color: '#0F172A',
+    fontWeight: '900',
+    color: '#F04400',
   },
   serviceOldPrice: {
     fontSize: 11.5,
@@ -4358,11 +5705,11 @@ const styles = StyleSheet.create({
   nativeFestiveBanner: {
     width: '100%',
     minHeight: 330,
-    backgroundColor: '#4C1D95',
+    backgroundColor: '#F04400',
     borderRadius: 14,
     padding: 18,
     borderWidth: 1.5,
-    borderColor: '#FDE68A',
+    borderColor: '#FFD91A',
     position: 'relative',
   },
   nativeFestivePill: {
@@ -4523,7 +5870,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: '#EDE9FE',
+    borderColor: '#FFD91A',
   },
   referralTextSection: {
     flex: 1,
@@ -4541,7 +5888,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   copyCodeBtn: {
-    backgroundColor: '#6D28D9',
+    backgroundColor: '#F04400',
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 6,
@@ -4573,13 +5920,13 @@ const styles = StyleSheet.create({
 
   // REWARDS VIEW STYLING
   rewardsHeaderBanner: {
-    backgroundColor: '#3B0764',
+    backgroundColor: '#F04400',
     padding: 22,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
   },
   rewardsHeaderSuper: {
-    color: '#FDE047',
+    color: '#FFD91A',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1.5,
@@ -4721,10 +6068,10 @@ const styles = StyleSheet.create({
   scratchCard: {
     width: 140,
     height: 140,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: '#FFF8D1',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: '#C084FC',
+    borderColor: '#FFD91A',
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
@@ -4738,12 +6085,12 @@ const styles = StyleSheet.create({
   scratchCardTitle: {
     fontSize: 12.5,
     fontWeight: '800',
-    color: '#6B21A8',
+    color: '#F04400',
     textAlign: 'center',
   },
   scratchCardSub: {
     fontSize: 10,
-    color: '#7E22CE',
+    color: '#8A6D00',
     textAlign: 'center',
     marginTop: 4,
     fontWeight: '600',
@@ -4940,9 +6287,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   beautyAddBtn: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#D0F030',
     borderWidth: 1.2,
-    borderColor: '#6D28D9',
+    borderColor: '#000000',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 5,
@@ -4952,7 +6299,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   beautyAddBtnText: {
-    color: '#6D28D9',
+    color: '#000000',
     fontSize: 12.5,
     fontWeight: '800',
   },
@@ -5138,27 +6485,27 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: '#059669',
+    backgroundColor: '#D0F030',
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 1.5,
     zIndex: 10,
   },
   nativeLookingForSaleText: {
-    color: '#FFFFFF',
+    color: '#000000',
     fontSize: 9,
     fontWeight: '800',
     letterSpacing: 0.2,
   },
   nativeLookingForArrivalBadge: {
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#FFD91A',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 10,
     marginTop: 5,
   },
   nativeLookingForArrivalText: {
-    color: '#059669',
+    color: '#000000',
     fontSize: 10,
     fontWeight: '700',
   },
@@ -5193,14 +6540,14 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   nativeTileBadge: {
-    backgroundColor: '#047857',
+    backgroundColor: '#D0F030',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
     marginBottom: 8,
   },
   nativeTileBadgeText: {
-    color: '#FFFFFF',
+    color: '#000000',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -5244,7 +6591,7 @@ const styles = StyleSheet.create({
     color: '#78350F',
   },
   nativeBadgePurple: {
-    backgroundColor: '#4C1D95',
+    backgroundColor: '#F04400',
   },
   nativeBadgePurpleText: {
     color: '#FFFFFF',
@@ -5510,7 +6857,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#6D28D9',
+    backgroundColor: '#F04400',
   },
   rewardsBadgeDot: {
     position: 'absolute',
@@ -5782,7 +7129,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 12,
     left: 14,
-    backgroundColor: '#6D28D9',
+    backgroundColor: '#F04400',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
@@ -5866,7 +7213,7 @@ const styles = StyleSheet.create({
   richModalTagline: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: '#6D28D9',
+    color: '#F04400',
     marginBottom: 8,
   },
   richModalDesc: {
@@ -5902,32 +7249,32 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   richDiscountPill: {
-    backgroundColor: '#DCFCE7',
+    backgroundColor: '#D0F030',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   richDiscountText: {
-    color: '#166534',
+    color: '#000000',
     fontSize: 10.5,
     fontWeight: '800',
   },
   richPriceInclusiveText: {
     fontSize: 11,
-    color: '#059669',
+    color: '#64748B',
     fontWeight: '600',
     marginTop: 3,
   },
   richCoinRewardPill: {
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FFD91A',
     paddingHorizontal: 9,
     paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#FDE68A',
+    borderColor: '#FFD91A',
   },
   richCoinRewardText: {
-    color: '#92400E',
+    color: '#000000',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -5950,13 +7297,13 @@ const styles = StyleSheet.create({
     width: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: '#ECFDF5',
+    backgroundColor: '#D0F030',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 2,
   },
   richCheckIcon: {
-    color: '#059669',
+    color: '#000000',
     fontSize: 11,
     fontWeight: '900',
   },
@@ -6002,13 +7349,13 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: '#F3E8FF',
+    backgroundColor: '#FFD91A',
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: 1,
   },
   richStepNumberText: {
-    color: '#6D28D9',
+    color: '#000000',
     fontSize: 11,
     fontWeight: '900',
   },
@@ -6022,9 +7369,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#FFF8D1',
     borderWidth: 1,
-    borderColor: '#DDD6FE',
+    borderColor: '#FFD91A',
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
@@ -6035,12 +7382,12 @@ const styles = StyleSheet.create({
   richAssuranceTitle: {
     fontSize: 13.5,
     fontWeight: '800',
-    color: '#4C1D95',
+    color: '#F04400',
     marginBottom: 2,
   },
   richAssuranceBody: {
     fontSize: 12,
-    color: '#5B21B6',
+    color: '#8A6D00',
     lineHeight: 16,
   },
   richModalBottomBar: {
@@ -6064,7 +7411,7 @@ const styles = StyleSheet.create({
     color: '#0F172A',
   },
   richModalBookBtn: {
-    backgroundColor: '#6D28D9',
+    backgroundColor: '#F04400',
     paddingHorizontal: 24,
     paddingVertical: 13,
     borderRadius: 10,
@@ -6094,7 +7441,7 @@ const styles = StyleSheet.create({
   clearSearchLink: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#6D28D9',
+    color: '#F04400',
   },
   noResultsBox: {
     alignItems: 'center',
@@ -6208,7 +7555,7 @@ const styles = StyleSheet.create({
   searchResultPrice: {
     fontSize: 15,
     fontWeight: '900',
-    color: '#0F172A',
+    color: '#F04400',
   },
   searchResultOrigPrice: {
     fontSize: 11.5,
@@ -6216,17 +7563,17 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
   },
   searchResultAddBtn: {
-    backgroundColor: '#F5F3FF',
-    borderWidth: 1,
-    borderColor: '#DDD6FE',
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 6,
+    backgroundColor: '#D0F030',
+    borderWidth: 1.2,
+    borderColor: '#000000',
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   searchResultAddBtnText: {
-    color: '#6D28D9',
+    color: '#000000',
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '900',
   },
 
   // ==========================================
@@ -6322,14 +7669,14 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   beautyArrivalBadge: {
-    backgroundColor: '#F3E8FF',
+    backgroundColor: '#FFD91A',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 10,
     marginTop: 5,
   },
   beautyArrivalBadgeText: {
-    color: '#7E22CE',
+    color: '#000000',
     fontSize: 9.5,
     fontWeight: '700',
   },
@@ -6495,5 +7842,1068 @@ const styles = StyleSheet.create({
     color: '#0F172A',
     fontSize: 14,
     fontWeight: '700',
+  },
+
+  // ------------------------------------------
+  // Category Modals (Appliance, EPC, Cleaning)
+  // ------------------------------------------
+  applianceModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  applianceModalCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  applianceModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  applianceModalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0F172A',
+    flex: 1,
+  },
+  applianceModalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  applianceModalCloseX: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  applianceGrid3x3: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  applianceTile: {
+    width: '31%',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  applianceTileBox: {
+    width: '100%',
+    height: 76,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 6,
+    marginBottom: 6,
+  },
+  applianceTileImg: {
+    width: '85%',
+    height: '85%',
+  },
+  applianceTileName: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1E293B',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+
+  // EPC Modal
+  epcModalCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+  },
+  epcRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  epcItem: {
+    width: '31%',
+    alignItems: 'center',
+  },
+  epcIconBox: {
+    width: '100%',
+    height: 80,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    marginBottom: 6,
+  },
+  epcIconImg: {
+    width: 44,
+    height: 44,
+  },
+  epcArrivalBadge: {
+    position: 'absolute',
+    bottom: -6,
+    backgroundColor: '#FFD91A',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  epcArrivalBadgeText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#000000',
+  },
+  epcLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  ucGuaranteeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+  },
+  ucGuaranteeShield: {
+    fontSize: 18,
+  },
+  ucGuaranteeText: {
+    fontSize: 11.5,
+    color: '#475569',
+    lineHeight: 16,
+    flex: 1,
+  },
+
+  // Bathroom & Kitchen Modal
+  bkModalCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 20,
+  },
+  bkModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  bkModalTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    color: '#0F172A',
+    flex: 1,
+  },
+  bkOptionCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+    gap: 12,
+  },
+  bkOptionImg: {
+    width: 68,
+    height: 68,
+    borderRadius: 12,
+  },
+  bkOptionTextCol: {
+    flex: 1,
+  },
+  bkOptionTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  bkOptionSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginBottom: 6,
+  },
+  bkOptionPrice: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+
+  // Cleaning Modal
+  cleaningGridRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  cleaningGridItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  cleaningIconBox: {
+    width: '100%',
+    height: 90,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  cleaningIconImg: {
+    width: 48,
+    height: 48,
+  },
+  cleaningGridTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E293B',
+    textAlign: 'center',
+    lineHeight: 16,
+  },
+
+  // ------------------------------------------
+  // Native Purifier & Locks Dedicated Screens
+  // ------------------------------------------
+  detailHeaderBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
+  },
+  detailHeaderBackBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  detailHeaderBackArrow: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  detailHeaderTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  cartIconWrapper: {
+    position: 'relative',
+    padding: 4,
+  },
+  cartIconText: {
+    fontSize: 20,
+  },
+  cartCountBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#D0F030',
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cartCountBadgeText: {
+    color: '#000000',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  npBannerSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+  },
+  npMainTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  npSubtitleRating: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F04400',
+    marginBottom: 12,
+  },
+  npViewServicesBtn: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#F04400',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  npViewServicesText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  npModelsContainer: {
+    padding: 16,
+  },
+  npModelsHeading: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 12,
+  },
+  npModelCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+    justifyContent: 'space-between',
+  },
+  npModelDetails: {
+    flex: 1,
+    marginRight: 10,
+  },
+  npModelName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  npModelRating: {
+    fontSize: 12,
+    color: '#475569',
+    marginBottom: 6,
+  },
+  npModelPrice: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  npModelLink: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#F04400',
+  },
+  npModelImgCol: {
+    alignItems: 'center',
+    width: 110,
+  },
+  npOfferTag: {
+    backgroundColor: '#FFD91A',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  npOfferTagText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  npModelImg: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  npAddBtn: {
+    width: '100%',
+    paddingVertical: 6,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    alignItems: 'center',
+    backgroundColor: '#D0F030',
+  },
+  npAddBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  npAddSubtext: {
+    fontSize: 9,
+    color: '#64748B',
+  },
+  npPromiseCard: {
+    marginHorizontal: 16,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 20,
+    gap: 6,
+  },
+  npPromiseTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  npPromiseLine: {
+    fontSize: 12,
+    color: '#334155',
+    fontWeight: '500',
+  },
+  npStickyCartBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  npStickyCartItems: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  npStickyCartPrice: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  npCheckoutBtn: {
+    backgroundColor: '#F04400',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  npCheckoutBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  locksVideoCard: {
+    marginHorizontal: 16,
+    height: 200,
+    borderRadius: 18,
+    overflow: 'hidden',
+    position: 'relative',
+    backgroundColor: '#0F172A',
+    marginBottom: 16,
+  },
+  locksVideoImg: {
+    width: '100%',
+    height: '100%',
+  },
+  locksPlayButton: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -24 }, { translateY: -24 }],
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  locksPlayIcon: {
+    fontSize: 18,
+    color: '#0F172A',
+    marginLeft: 3,
+  },
+
+  // Beauty Clean Top Header Styles matching Screenshot 1
+  beautyTopHeaderClean: {
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 10,
+  },
+  beautyBrandTabsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  beautyBrandLogoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  beautyBrandBadge: {
+    backgroundColor: '#000000',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+  },
+  beautyBrandBadgeText: {
+    color: '#D0F030',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  beautyBrandName: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  beautyHeaderTabs: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  beautyHeaderTab: {
+    paddingVertical: 4,
+    position: 'relative',
+  },
+  beautyHeaderTabActive: {},
+  beautyHeaderTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  beautyHeaderTabActiveText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  beautyHeaderActiveUnderline: {
+    position: 'absolute',
+    bottom: -2,
+    left: 0,
+    right: 0,
+    height: 2.5,
+    backgroundColor: '#F04400',
+    borderRadius: 2,
+  },
+  beautyHeaderActionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  beautyLocationChip: {
+    backgroundColor: '#FFF8D1',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    maxWidth: '38%',
+  },
+  beautyLocationChipText: {
+    fontSize: 11,
+    color: '#8A6D00',
+    fontWeight: '700',
+  },
+  beautySearchBarBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    height: 36,
+  },
+  beautySearchInput: {
+    flex: 1,
+    fontSize: 11.5,
+    color: '#0F172A',
+    paddingVertical: 0,
+  },
+  beautyAvatarCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F04400',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  beautyAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  beautyMosaicGrid2x2: {
+    marginBottom: 8,
+  },
+
+  // Salon Prime Screen Styles matching Screenshot 2
+  salonPrimeHeader: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  salonPrimeHeaderTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  salonPrimeTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  salonPrimeRatingSub: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  salonPrimeSearchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  salonPrimeLocationChip: {
+    backgroundColor: '#FFF8D1',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    maxWidth: '45%',
+  },
+  salonPrimeLocationText: {
+    fontSize: 11,
+    color: '#8A6D00',
+    fontWeight: '700',
+  },
+  salonPrimeSearchInputBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    height: 36,
+  },
+  salonPrimeSearchInput: {
+    flex: 1,
+    fontSize: 12,
+    color: '#0F172A',
+    paddingVertical: 0,
+  },
+
+  // Select a service Horizontal Tabs
+  salonSelectSection: {
+    backgroundColor: '#FFFFFF',
+    paddingTop: 14,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  salonSelectHeading: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#334155',
+    marginLeft: 16,
+    marginBottom: 10,
+  },
+  salonCatScroll: {
+    paddingHorizontal: 12,
+    gap: 10,
+  },
+  salonCatTabCard: {
+    width: 92,
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  salonCatTabCardActive: {
+    borderColor: '#F04400',
+    backgroundColor: '#FFF8D1',
+  },
+  salonCatIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 6,
+    position: 'relative',
+  },
+  salonCatTabImg: {
+    width: 48,
+    height: 48,
+    borderRadius: 8,
+  },
+  salonCatStarIcon: {
+    fontSize: 26,
+    color: '#FFD91A',
+  },
+  salonDiscountPillBox: {
+    backgroundColor: '#FFF8D1',
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  salonDiscountPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#B45309',
+    textAlign: 'center',
+  },
+  salonCatNewBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#D0F030',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  salonCatNewBadgeText: {
+    color: '#000000',
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  salonCatTabLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 14,
+  },
+  salonCatTabLabelActive: {
+    color: '#F04400',
+    fontWeight: '800',
+  },
+
+  // Hero Carousel Card
+  salonHeroBannerCard: {
+    margin: 16,
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  salonHeroBannerLeft: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  salonHeroBadgePill: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  salonHeroBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  salonHeroBannerTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  salonHeroBannerSubtitle: {
+    fontSize: 12,
+    color: '#E2E8F0',
+    lineHeight: 16,
+    marginBottom: 12,
+  },
+  salonHeroArrowsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  salonHeroArrowBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  salonHeroArrowText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
+    lineHeight: 20,
+  },
+  salonHeroPaginationText: {
+    color: '#E2E8F0',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  salonHeroBannerRight: {
+    width: 115,
+    height: 115,
+    borderRadius: 14,
+    overflow: 'hidden',
+  },
+  salonHeroBannerImg: {
+    width: '100%',
+    height: '100%',
+  },
+
+  // Promo Row
+  salonPromoRow: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    gap: 10,
+  },
+  salonOfferCard: {
+    backgroundColor: '#FFFDEB',
+    borderWidth: 1,
+    borderColor: '#FFD91A',
+    borderRadius: 12,
+    padding: 12,
+  },
+  salonOfferBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 2,
+  },
+  salonOfferPercentIcon: {
+    backgroundColor: '#FFD91A',
+    color: '#000000',
+    fontWeight: '800',
+    fontSize: 11,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  salonOfferTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#8A6D00',
+  },
+  salonOfferSub: {
+    fontSize: 11,
+    color: '#A16207',
+    marginLeft: 24,
+  },
+
+  // Promise Card
+  salonPromiseCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    padding: 14,
+  },
+  salonPromiseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  salonPromiseTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  salonQualityPill: {
+    backgroundColor: '#D0F030',
+    borderWidth: 1,
+    borderColor: '#000000',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  salonQualityPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#000000',
+  },
+  salonPromiseItem: {
+    fontSize: 12,
+    color: '#334155',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+
+  // Services Catalogue
+  salonCatalogueContainer: {
+    paddingHorizontal: 16,
+  },
+  salonSectionBlock: {
+    marginBottom: 20,
+  },
+  salonSectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 10,
+  },
+  salonSectionHeading: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  salonSectionCount: {
+    fontSize: 12,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  salonItemCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  salonItemInfo: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  salonItemTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  salonItemRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 6,
+  },
+  salonItemStar: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFD91A',
+  },
+  salonItemReviews: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  salonItemPriceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: 6,
+  },
+  salonItemPrice: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#F04400',
+  },
+  salonItemOrigPrice: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+  },
+  salonItemInclusions: {
+    marginTop: 4,
+    gap: 2,
+  },
+  salonInclusionText: {
+    fontSize: 11,
+    color: '#475569',
+    lineHeight: 15,
+  },
+  salonItemActionCol: {
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+  },
+  salonItemAddBtn: {
+    backgroundColor: '#D0F030',
+    borderWidth: 1.5,
+    borderColor: '#000000',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  salonItemAddBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#000000',
+  },
+
+  // Sticky Cart Bottom Bar
+  salonStickyCartBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 10,
+  },
+  salonCartPriceMain: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  salonCartPriceOrig: {
+    fontSize: 12,
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+  },
+  salonCartItemsLabel: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  salonViewCartBtn: {
+    backgroundColor: '#F04400',
+    borderRadius: 10,
+    paddingHorizontal: 22,
+    paddingVertical: 10,
+  },
+  salonViewCartBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '800',
   },
 });

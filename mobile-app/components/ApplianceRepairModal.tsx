@@ -80,7 +80,7 @@ export const APPLIANCE_ITEMS: ApplianceItem[] = [
   },
   {
     id: 'water-purifier',
-    name: 'Water Purifier Service & Repair',
+    name: 'Water Purifier Service & Installation',
     image: require('../assets/images/appliance_water_purifier.jpg'),
     category: 'native-purifier',
     searchQuery: 'Water Purifier',

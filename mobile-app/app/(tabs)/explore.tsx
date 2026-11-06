@@ -119,6 +119,17 @@ export default function ExploreScreen() {
     }
 
     if (
+      category.slug === 'womens-salon' ||
+      category.slug === 'mens-salon' ||
+      category.slug === 'beauty' ||
+      category.name.toLowerCase().includes('salon') ||
+      category.name.toLowerCase().includes('beauty')
+    ) {
+      router.push('/(tabs)?tab=beauty');
+      return;
+    }
+
+    if (
       category.slug === 'native-purifier' ||
       category.slug === 'purifiers' ||
       category.name.toLowerCase().includes('water purifier') ||
@@ -135,6 +146,17 @@ export default function ExploreScreen() {
       category.name.toLowerCase().includes('lock')
     ) {
       router.push('/services/native-smart-locks');
+      return;
+    }
+
+    if (
+      category.slug === 'womens-salon' ||
+      category.slug === 'mens-salon' ||
+      category.slug === 'beauty' ||
+      category.name.toLowerCase().includes('salon') ||
+      category.name.toLowerCase().includes('beauty')
+    ) {
+      router.push('/(tabs)?tab=beauty');
       return;
     }
 

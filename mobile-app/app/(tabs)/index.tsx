@@ -12,7 +12,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../theme/colors';
 import { Spacing, BorderRadius } from '../../theme/spacing';
@@ -38,6 +38,7 @@ import {
   CleaningOptionItem,
   CleaningModal,
   CleaningItem,
+  BeautyDoorstepSection,
 } from '../../components';
 import {
   DEMO_CATEGORIES,
@@ -58,6 +59,16 @@ const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: string }>();
+
+  // Top Nav Switcher: Homes | Native | Beauty
+  const [activeNavTab, setActiveNavTab] = useState<'homes' | 'native' | 'beauty'>('homes');
+
+  useEffect(() => {
+    if (params.tab === 'beauty' || params.tab === 'native' || params.tab === 'homes') {
+      setActiveNavTab(params.tab as 'homes' | 'native' | 'beauty');
+    }
+  }, [params.tab]);
 
   // 1. Header & Location State
   const [selectedAddress, setSelectedAddress] = useState<Address>(AVAILABLE_ADDRESSES[0]);
@@ -223,25 +234,15 @@ export default function HomeScreen() {
       return;
     }
 
-    // If Native Water Purifier is clicked, navigate directly to /services/native-purifier
+    // If Beauty, Women's Salon or Men's Salon is clicked, switch to Beauty tab
     if (
-      category.slug === 'native-purifier' ||
-      category.slug === 'purifiers' ||
-      category.name.toLowerCase().includes('water purifier') ||
-      category.name.toLowerCase().includes('purifier')
+      category.slug === 'womens-salon' ||
+      category.slug === 'mens-salon' ||
+      category.slug === 'beauty' ||
+      category.name.toLowerCase().includes('salon') ||
+      category.name.toLowerCase().includes('beauty')
     ) {
-      router.push('/services/native-purifier');
-      return;
-    }
-
-    // If Native Smart Locks is clicked, navigate directly to /services/native-smart-locks
-    if (
-      category.slug === 'smart-locks' ||
-      category.slug === 'native-smart-locks' ||
-      category.name.toLowerCase().includes('smart lock') ||
-      category.name.toLowerCase().includes('lock')
-    ) {
-      router.push('/services/native-smart-locks');
+      setActiveNavTab('beauty');
       return;
     }
 
@@ -311,12 +312,130 @@ export default function HomeScreen() {
         onProfilePress={() => router.push('/(tabs)/profile')}
       />
 
+      {/* ============================================================ */}
+      {/* TOP NAVIGATION TABS: Homes | Native | Beauty                */}
+      {/* ============================================================ */}
+      <View style={styles.topTabBar}>
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setActiveNavTab('homes')}
+          style={[styles.topTabButton, activeNavTab === 'homes' && styles.topTabButtonActive]}
+        >
+          <Text style={[styles.topTabText, activeNavTab === 'homes' && styles.topTabTextActive]}>
+            Homes
+          </Text>
+          {activeNavTab === 'homes' && <View style={styles.topTabIndicator} />}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setActiveNavTab('native')}
+          style={[styles.topTabButton, activeNavTab === 'native' && styles.topTabButtonActive]}
+        >
+          <Text style={[styles.topTabText, activeNavTab === 'native' && styles.topTabTextActive]}>
+            Native
+          </Text>
+          {activeNavTab === 'native' && <View style={styles.topTabIndicator} />}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setActiveNavTab('beauty')}
+          style={[styles.topTabButton, activeNavTab === 'beauty' && styles.topTabButtonActive]}
+        >
+          <Text style={[styles.topTabText, activeNavTab === 'beauty' && styles.topTabTextActive]}>
+            Beauty
+          </Text>
+          {activeNavTab === 'beauty' && <View style={styles.topTabIndicator} />}
+        </TouchableOpacity>
+      </View>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
+        {activeNavTab === 'beauty' ? (
+          <BeautyDoorstepSection
+            onSelectTile={(tile) => {
+              router.push({
+                pathname: '/explore/search',
+                params: { q: tile.searchQuery },
+              });
+            }}
+            onSelectService={handleOpenService}
+            onToggleCart={handleToggleCart}
+            cartServiceIds={cartServiceIds}
+            onSwitchToHomes={() => setActiveNavTab('homes')}
+          />
+        ) : activeNavTab === 'native' ? (
+          <View style={styles.nativeContainer}>
+            <View style={styles.nativeHeroBanner}>
+              <View style={styles.nativeBadgePill}>
+                <Ionicons name="sparkles" size={12} color="#9333EA" />
+                <Text style={styles.nativeBadgePillText}>Smart Living by Urban Company</Text>
+              </View>
+              <Text style={styles.nativeHeroTitle}>Native Devices</Text>
+              <Text style={styles.nativeHeroSub}>
+                Engineered appliances with zero maintenance and smart connected security.
+              </Text>
+            </View>
+
+            {/* Purifier Card */}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => router.push('/services/native-purifier')}
+              style={[styles.nativeHeroCard, Shadows.elevated]}
+            >
+              <Image
+                source={require('../../assets/images/native_purifier.jpg')}
+                style={styles.nativeCardImage}
+                resizeMode="cover"
+              />
+              <View style={styles.nativeCardContent}>
+                <View style={styles.nativeTagBadge}>
+                  <Text style={styles.nativeTagText}>2-YEAR ZERO SERVICE</Text>
+                </View>
+                <Text style={styles.nativeCardHeading}>Native Water Purifier M1 & M2</Text>
+                <Text style={styles.nativeCardDescription}>
+                  Needs no filter service for 2 full years. RO + UV + Alkaline Copper.
+                </Text>
+                <View style={styles.nativePriceRow}>
+                  <Text style={styles.nativePriceText}>Starts at ₹13,499</Text>
+                  <Text style={styles.nativeActionLink}>View Models →</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Smart Locks Card */}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => router.push('/services/native-smart-locks')}
+              style={[styles.nativeHeroCard, Shadows.elevated]}
+            >
+              <Image
+                source={require('../../assets/images/native_smart_lock.jpg')}
+                style={styles.nativeCardImage}
+                resizeMode="cover"
+              />
+              <View style={styles.nativeCardContent}>
+                <View style={[styles.nativeTagBadge, { backgroundColor: '#FEF3C7' }]}>
+                  <Text style={[styles.nativeTagText, { color: '#B45309' }]}>6-IN-1 SMART UNLOCK</Text>
+                </View>
+                <Text style={styles.nativeCardHeading}>Native Smart Door Locks</Text>
+                <Text style={styles.nativeCardDescription}>
+                  Fingerprint, passcode, RFID card & built-in video camera chime.
+                </Text>
+                <View style={styles.nativePriceRow}>
+                  <Text style={styles.nativePriceText}>Starts at ₹7,999</Text>
+                  <Text style={styles.nativeActionLink}>View Models →</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
         {/* ============================================================ */}
         {/* SECTION 2: WELCOME SECTION (Personalized Greeting)          */}
         {/* ============================================================ */}
@@ -743,6 +862,8 @@ export default function HomeScreen() {
 
         {/* Global Bottom Padding */}
         <View style={{ height: Spacing.xxl }} />
+        </>
+        )}
       </ScrollView>
 
       {/* ============================================================ */}
@@ -1005,6 +1126,139 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: Spacing.xxxl,
+  },
+
+  // Top Segmented Tab Switcher (Homes | Native | Beauty)
+  topTabBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+    paddingHorizontal: Spacing.lg,
+  },
+  topTabButton: {
+    paddingVertical: 12,
+    marginRight: 24,
+    position: 'relative',
+    alignItems: 'center',
+  },
+  topTabButtonActive: {},
+  topTabText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  topTabTextActive: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  topTabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    backgroundColor: '#0F172A',
+    borderRadius: 2,
+  },
+
+  // Native Showcase Section
+  nativeContainer: {
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
+  },
+  nativeHeroBanner: {
+    marginBottom: Spacing.lg,
+  },
+  nativeBadgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  nativeBadgePillText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#7E22CE',
+  },
+  nativeHeroTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.5,
+  },
+  nativeHeroSub: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  nativeHeroCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+  },
+  nativeCardImage: {
+    width: '100%',
+    height: 180,
+  },
+  nativeCardContent: {
+    padding: 16,
+  },
+  nativeTagBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  nativeTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#15803D',
+    letterSpacing: 0.5,
+  },
+  nativeCardHeading: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  nativeCardDescription: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  nativePriceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+    paddingTop: 10,
+  },
+  nativePriceText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  nativeActionLink: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.primary,
   },
 
   // Section 2: Welcome Section
