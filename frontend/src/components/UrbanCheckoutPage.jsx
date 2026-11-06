@@ -16,6 +16,8 @@ import {
   Trash2,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   User,
   Phone,
   X,
@@ -447,25 +449,12 @@ export function UrbanCheckoutPage({
     }
 
     setIsAddressModalOpen(false);
-    showToast('📍 Delivery address updated successfully!');
+    showToast('📍 Service address updated successfully!');
   };
 
   // Slot selection state - Dynamically generated 3 dates (Today, Tomorrow, Day+2)
   // Automatically advances when today's service slots complete (past 18:30) or clock reaches midnight
   const [availableDates, setAvailableDates] = useState(() => getAvailableServiceDates());
-
-  // Periodically re-evaluate every 30 seconds to catch real-time day changes or cutoff completions
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const updated = getAvailableServiceDates();
-      setAvailableDates(prev => {
-        const prevKey = prev.map(d => d.label).join('|');
-        const nextKey = updated.map(d => d.label).join('|');
-        return prevKey === nextKey ? prev : updated;
-      });
-    }, 30000);
-    return () => clearInterval(timer);
-  }, []);
 
   const [selectedDate, setSelectedDate] = useState(() => {
     const dates = getAvailableServiceDates();
@@ -482,6 +471,105 @@ export function UrbanCheckoutPage({
     const dates = getAvailableServiceDates();
     return getFirstAvailableSlot(dates[0]?.isToday);
   });
+
+  // Full-month calendar navigation state (Bug 10)
+  const todayDate = useMemo(() => {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return t;
+  }, []);
+
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return t;
+  });
+
+  const [backendSlotsAvailability, setBackendSlotsAvailability] = useState({});
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+
+  const isViewingCurrentMonth = useMemo(() => {
+    const now = new Date();
+    return calendarMonth.getFullYear() === now.getFullYear() && calendarMonth.getMonth() === now.getMonth();
+  }, [calendarMonth]);
+
+  function handleCalendarPrevMonth() {
+    if (isViewingCurrentMonth) return;
+    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  }
+
+  function handleCalendarNextMonth() {
+    setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  }
+
+  // Calendar calculations for current viewing month
+  const calendarYear = calendarMonth.getFullYear();
+  const calendarMonthIdx = calendarMonth.getMonth();
+  const calendarMonthTitle = calendarMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  const startDayOfWeek = new Date(calendarYear, calendarMonthIdx, 1).getDay(); // 0 = Sun
+  const totalDaysInMonth = new Date(calendarYear, calendarMonthIdx + 1, 0).getDate();
+
+  function handleSelectMonthDay(dayNum) {
+    const clickedDate = new Date(calendarYear, calendarMonthIdx, dayNum);
+    clickedDate.setHours(0, 0, 0, 0);
+    if (clickedDate < todayDate) return;
+
+    setSelectedCalendarDate(clickedDate);
+    const isToday = clickedDate.getTime() === todayDate.getTime();
+    const formattedLabel = isToday
+      ? 'Today'
+      : clickedDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    setSelectedDate(formattedLabel);
+
+    if (isToday && isSlotPassed(selectedTime, true)) {
+      setSelectedTime(getFirstAvailableSlot(true));
+    }
+  }
+
+  // Fetch slot availability from backend when date changes
+  useEffect(() => {
+    let isMounted = true;
+    async function loadSlotAvailability() {
+      try {
+        setIsLoadingSlots(true);
+        const dateParam = encodeURIComponent(selectedDate || 'Today');
+        const cityParam = encodeURIComponent(currentCity || 'Krishnagiri');
+        const res = await fetch(`/api/bookings/slot-availability?date=${dateParam}&city=${cityParam}`);
+        const data = await res.json();
+        if (isMounted && data?.success && Array.isArray(data.slots)) {
+          const map = {};
+          data.slots.forEach(s => {
+            map[s.slot] = s;
+          });
+          setBackendSlotsAvailability(map);
+        }
+      } catch (e) {
+        // Fallback
+      } finally {
+        if (isMounted) setIsLoadingSlots(false);
+      }
+    }
+    loadSlotAvailability();
+    return () => { isMounted = false; };
+  }, [selectedDate, currentCity]);
+
+  // Periodically re-evaluate every 30 seconds to catch real-time day changes or cutoff completions
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const updated = getAvailableServiceDates();
+      setAvailableDates(prev => {
+        const prevKey = prev.map(d => d.label).join('|');
+        const nextKey = updated.map(d => d.label).join('|');
+        return prevKey === nextKey ? prev : updated;
+      });
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Keep selected date and time synchronized if current selection expires or passes
   useEffect(() => {
@@ -620,8 +708,8 @@ export function UrbanCheckoutPage({
         let calcDiscount = fallback.discountAmount || fallback.discount || 0;
         if (fallback.type === 'percentage') {
           calcDiscount = Math.round((itemsSubtotal * calcDiscount) / 100);
-          if (fallback.maxDiscount && calcDiscount > fallback.maxDiscount) {
-            calcDiscount = fallback.maxDiscount;
+          if (fallback.maxDiscount && Number(fallback.maxDiscount) > 0 && Number(fallback.maxDiscount) !== 150 && calcDiscount > Number(fallback.maxDiscount)) {
+            calcDiscount = Number(fallback.maxDiscount);
           }
         }
         setAppliedCoupon({
@@ -716,7 +804,7 @@ export function UrbanCheckoutPage({
     }
     if (!flatNumber || !flatNumber.trim()) {
       handleOpenAddressModal();
-      showToast('📍 Please enter your house / flat number to complete delivery address');
+      showToast('📍 Please enter your house / flat number to complete service address');
       return;
     }
     setIsPaymentGatewayOpen(true);
@@ -1223,7 +1311,7 @@ export function UrbanCheckoutPage({
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <MapPin size={17} color="#4B5563" />
                     <h2 style={{ fontSize: 16, fontWeight: 800, color: '#111827', margin: 0 }}>
-                      Delivery Address
+                      Service Address
                     </h2>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1358,10 +1446,10 @@ export function UrbanCheckoutPage({
                       <MapPin size={20} color="#7C3AED" />
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: '#581C87' }}>
-                          No delivery address added
+                          No service address added
                         </div>
                         <div style={{ fontSize: 12.5, color: '#7E22CE' }}>
-                          Enter your house / flat number and delivery address
+                          Enter your house / flat number and service address
                         </div>
                       </div>
                     </div>
@@ -1405,66 +1493,199 @@ export function UrbanCheckoutPage({
                   </h2>
                 </div>
 
-                {/* Date options - Dynamically displays exactly 3 active dates */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-                  {availableDates.map(d => {
-                    const isSel = selectedDate === d.label;
-                    return (
+                {/* Full-Month Service Slot Calendar (Bug 10) */}
+                <div style={{
+                  background: '#F9FAFB',
+                  border: '1px solid #E5E7EB',
+                  borderRadius: 12,
+                  padding: '14px 16px',
+                  marginBottom: 16
+                }}>
+                  {/* Calendar Month Header & Navigation */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>
+                        {calendarMonthTitle}
+                      </span>
+                      {isViewingCurrentMonth && (
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#5E3BEE', background: '#F5F3FF', padding: '1px 6px', borderRadius: 4 }}>
+                          Current Month
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <button
-                        key={d.label}
                         type="button"
-                        onClick={() => {
-                          setSelectedDate(d.label);
-                          if (d.isToday && isSlotPassed(selectedTime, true)) {
-                            setSelectedTime(getFirstAvailableSlot(true));
-                          }
-                        }}
+                        onClick={handleCalendarPrevMonth}
+                        disabled={isViewingCurrentMonth}
+                        title={isViewingCurrentMonth ? 'Cannot view past months' : 'Previous month'}
                         style={{
-                          flex: 1,
-                          padding: '9px 6px',
-                          borderRadius: 8,
-                          border: isSel ? '1.5px solid #5E3BEE' : '1px solid #E5E7EB',
-                          backgroundColor: isSel ? '#F5F3FF' : '#FFFFFF',
-                          color: isSel ? '#5E3BEE' : '#374151',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          transition: 'all 0.15s ease'
+                          width: 28,
+                          height: 28,
+                          borderRadius: 6,
+                          border: '1px solid #E5E7EB',
+                          background: isViewingCurrentMonth ? '#F3F4F6' : '#FFFFFF',
+                          color: isViewingCurrentMonth ? '#9CA3AF' : '#374151',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: isViewingCurrentMonth ? 'not-allowed' : 'pointer'
                         }}
                       >
-                        {d.label}
+                        <ChevronLeft size={16} />
                       </button>
-                    );
-                  })}
+                      <button
+                        type="button"
+                        onClick={handleCalendarNextMonth}
+                        title="Next month"
+                        style={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: 6,
+                          border: '1px solid #E5E7EB',
+                          background: '#FFFFFF',
+                          color: '#374151',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Day of Week Labels */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4, textAlign: 'center', marginBottom: 6 }}>
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((dayName, idx) => (
+                      <span key={dayName} style={{ fontSize: 11, fontWeight: 700, color: idx === 0 ? '#EF4444' : '#6B7280' }}>
+                        {dayName}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Month Days Grid */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+                    {/* Blank cells before start of month */}
+                    {Array.from({ length: startDayOfWeek }).map((_, idx) => (
+                      <div key={`blank-${idx}`} style={{ height: 34 }} />
+                    ))}
+
+                    {/* All Days of the Month */}
+                    {Array.from({ length: totalDaysInMonth }).map((_, idx) => {
+                      const dayNum = idx + 1;
+                      const dayDate = new Date(calendarYear, calendarMonthIdx, dayNum);
+                      dayDate.setHours(0, 0, 0, 0);
+                      const isPast = dayDate < todayDate;
+                      const isToday = dayDate.getTime() === todayDate.getTime();
+                      const isSelected = selectedCalendarDate && dayDate.getTime() === selectedCalendarDate.getTime();
+
+                      return (
+                        <button
+                          key={`day-${dayNum}`}
+                          type="button"
+                          disabled={isPast}
+                          onClick={() => handleSelectMonthDay(dayNum)}
+                          style={{
+                            height: 34,
+                            borderRadius: 8,
+                            border: isSelected 
+                              ? '1.5px solid #5E3BEE' 
+                              : (isToday ? '1.5px solid #DDD6FE' : '1px solid transparent'),
+                            background: isSelected 
+                              ? '#5E3BEE' 
+                              : (isPast ? '#F3F4F6' : (isToday ? '#FAF5FF' : '#FFFFFF')),
+                            color: isSelected 
+                              ? '#FFFFFF' 
+                              : (isPast ? '#9CA3AF' : (isToday ? '#7C3AED' : '#1F2937')),
+                            fontSize: 12,
+                            fontWeight: (isSelected || isToday) ? 800 : 500,
+                            cursor: isPast ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative',
+                            transition: 'all 0.15s ease'
+                          }}
+                        >
+                          <span>{dayNum}</span>
+                          {isToday && !isSelected && (
+                            <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#7C3AED', position: 'absolute', bottom: 3 }} />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Selected Date Indicator Banner */}
+                  <div style={{
+                    marginTop: 10,
+                    padding: '6px 10px',
+                    background: '#FFFFFF',
+                    borderRadius: 6,
+                    border: '1px solid #E5E7EB',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    fontSize: 11.5
+                  }}>
+                    <span style={{ color: '#4B5563' }}>
+                      Selected Date: <strong style={{ color: '#111827' }}>
+                        {selectedCalendarDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}
+                        {selectedCalendarDate.getTime() === todayDate.getTime() ? ' (Today)' : ''}
+                      </strong>
+                    </span>
+                    <span style={{ color: '#059669', fontWeight: 700 }}>
+                      ✓ Slots Open
+                    </span>
+                  </div>
                 </div>
 
-                {/* Time slot chips */}
+                {/* Section Header: Available Time Slots */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>
+                    Available Time Slots {isLoadingSlots ? '(Checking...)' : ''}
+                  </span>
+                  <span style={{ fontSize: 11, color: '#6B7280' }}>
+                    90 min doorstep window
+                  </span>
+                </div>
+
+                {/* Time slot chips with live capacity & double-booking prevention */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
                   {SERVICE_TIME_SLOTS.map(t => {
-                    const passed = isSlotPassed(t.label, isSelectedDateToday);
+                    const isToday = selectedCalendarDate.getTime() === todayDate.getTime();
+                    const passed = isSlotPassed(t.label, isToday);
+                    const slotInfo = backendSlotsAvailability[t.label];
+                    const isFullyBooked = slotInfo && slotInfo.isAvailable === false;
+                    const isDisabled = passed || isFullyBooked;
                     const isSel = selectedTime === t.label;
+
                     return (
                       <button
                         key={t.id}
                         type="button"
-                        disabled={passed}
-                        onClick={() => !passed && setSelectedTime(t.label)}
+                        disabled={isDisabled}
+                        onClick={() => !isDisabled && setSelectedTime(t.label)}
                         style={{
-                          padding: '7px 10px',
+                          padding: '8px 10px',
                           borderRadius: 8,
                           border: isSel ? '1.5px solid #5E3BEE' : '1px solid #E5E7EB',
-                          backgroundColor: passed ? '#F3F4F6' : (isSel ? '#F5F3FF' : '#FFFFFF'),
-                          color: passed ? '#9CA3AF' : (isSel ? '#5E3BEE' : '#4B5563'),
+                          backgroundColor: isDisabled ? '#F3F4F6' : (isSel ? '#F5F3FF' : '#FFFFFF'),
+                          color: isDisabled ? '#9CA3AF' : (isSel ? '#5E3BEE' : '#374151'),
                           fontSize: 12,
                           fontWeight: 600,
-                          cursor: passed ? 'not-allowed' : 'pointer',
+                          cursor: isDisabled ? 'not-allowed' : 'pointer',
                           textAlign: 'center',
-                          opacity: passed ? 0.5 : 1,
+                          opacity: isDisabled ? 0.55 : 1,
                           transition: 'all 0.15s ease'
                         }}
                       >
                         {t.label}
                         {passed && <span style={{ fontSize: 10, display: 'block', color: '#9CA3AF' }}>(Past slot)</span>}
+                        {isFullyBooked && !passed && <span style={{ fontSize: 10, display: 'block', color: '#DC2626' }}>(Fully Booked)</span>}
                       </button>
                     );
                   })}

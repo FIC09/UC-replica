@@ -42,6 +42,19 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
     setTimeout(() => setCopiedId(false), 2500);
   };
 
+  // Accurate KYC document verification status calculation (Bug 15)
+  const docStatus = (() => {
+    const docs = profile?.documents;
+    if (!docs) return 'Not Uploaded';
+    const values = Object.values(docs).filter(d => d && (d.docNumber || d.fileUrl || d.status));
+    if (values.length === 0) return 'Not Uploaded';
+    const hasRejected = values.some(d => d.status === 'Rejected' || d.status === 'Changes Requested' || d.status === 'Needs Correction');
+    if (hasRejected) return 'Rejected';
+    const allVerified = values.length >= 2 && values.every(d => d.status === 'Verified' || d.status === 'Approved');
+    if (allVerified) return 'Verified';
+    return 'Pending';
+  })();
+
   const menuSections = [
     {
       title: 'Compliance & Verification',
@@ -50,11 +63,11 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
           label: 'KYC Documents & Verification',
           desc: 'Aadhaar, PAN, Police clearance, Trade licenses',
           icon: ShieldCheck,
-          iconColor: '#059669',
-          iconBg: '#ecfdf5',
+          iconColor: docStatus === 'Verified' ? '#059669' : docStatus === 'Rejected' ? '#dc2626' : '#d97706',
+          iconBg: docStatus === 'Verified' ? '#ecfdf5' : docStatus === 'Rejected' ? '#fef2f2' : '#fffbeb',
           path: '/professional/documents',
-          badge: profile?.documents?.pan?.status === 'Changes Requested' ? 'Action Needed' : 'Verified',
-          badgeType: profile?.documents?.pan?.status === 'Changes Requested' ? 'warning' : 'success'
+          badge: docStatus,
+          badgeType: docStatus === 'Verified' ? 'success' : docStatus === 'Rejected' ? 'danger' : docStatus === 'Pending' ? 'warning' : 'neutral'
         },
         {
           label: 'Onboarding & Application Status',

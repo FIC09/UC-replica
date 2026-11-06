@@ -92,6 +92,7 @@ export function ACServicePage({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDetailService, setSelectedDetailService] = useState(null);
   const [optionsModalService, setOptionsModalService] = useState(null);
+  const [isWarrantyModalOpen, setIsWarrantyModalOpen] = useState(false);
 
   // Sub-services for the left sidebar "Select a service" (Matches Screenshots 1, 2)
   const SUB_SERVICES = [
@@ -720,6 +721,7 @@ export function ACServicePage({
           }}
           onMouseEnter={e => e.currentTarget.style.backgroundColor = '#DCFCE7'}
           onMouseLeave={e => e.currentTarget.style.backgroundColor = '#F0FDF4'}
+          onClick={() => setIsWarrantyModalOpen(true)}
           >
             <div>
               <div style={{
@@ -2432,6 +2434,104 @@ export function ACServicePage({
           </span>
         </div>
       </footer>
+
+      {/* Warranty Details Modal (Bug 13) */}
+      {isWarrantyModalOpen && (
+        <div 
+          className="modal-backdrop-overlay" 
+          onClick={() => setIsWarrantyModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              maxWidth: 480,
+              width: '100%',
+              padding: 24,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShieldCheck size={20} color="#16A34A" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                    UC Cover • Up to 30 Days Warranty
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>Urban Company Verified Service Guarantee</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsWarrantyModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#64748B' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', marginTop: 6 }} />
+                <div>
+                  <h5 style={{ margin: '0 0 2px 0', fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>30-Day Service Revisit Guarantee</h5>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#64748B', lineHeight: 1.5 }}>
+                    If any gas leakage, cooling defect, or installation issue re-occurs within 30 days of service, our technician will revisit and resolve it for free.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6E42E5', marginTop: 6 }} />
+                <div>
+                  <h5 style={{ margin: '0 0 2px 0', fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>Genuine Spare Parts & Refrigerant</h5>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#64748B', lineHeight: 1.5 }}>
+                    All replacement capacitors, contactors, copper piping, and R32/R410A refrigerants are 100% manufacturer-certified.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', marginTop: 6 }} />
+                <div>
+                  <h5 style={{ margin: '0 0 2px 0', fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>₹10,000 Accidental Protection</h5>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#64748B', lineHeight: 1.5 }}>
+                    Comprehensive insurance coverage against accidental property damage during outdoor jet cleaning or uninstallation.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsWarrantyModalOpen(false)}
+              style={{
+                width: '100%',
+                backgroundColor: '#0F172A',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 8,
+                padding: '10px',
+                fontSize: 13.5,
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

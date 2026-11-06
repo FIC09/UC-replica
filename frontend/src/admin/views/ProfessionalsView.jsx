@@ -635,8 +635,8 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
         overflow: 'hidden',
         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
       }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', minWidth: '960px', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
             <thead>
               <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                 <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Professional Partner</th>
@@ -965,7 +965,12 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
               borderBottom: '1px solid #E2E8F0',
               backgroundColor: '#F8FAFC',
               padding: '0 20px',
-              overflowX: 'auto'
+              overflowX: 'auto',
+              position: 'sticky',
+              top: 73,
+              zIndex: 9,
+              flexShrink: 0,
+              scrollbarWidth: 'thin'
             }}>
               {[
                 { id: 'profile', label: 'Profile & Coverage' },
@@ -984,10 +989,11 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                     backgroundColor: 'transparent',
                     borderBottom: drawerTab === tab.id ? '2px solid #6E42E5' : '2px solid transparent',
                     color: drawerTab === tab.id ? '#6E42E5' : '#64748B',
-                    fontSize: 12,
-                    fontWeight: drawerTab === tab.id ? 700 : 500,
+                    fontSize: 12.5,
+                    fontWeight: drawerTab === tab.id ? 700 : 600,
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap'
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
                   }}
                 >
                   {tab.label}
@@ -1271,8 +1277,10 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                     { key: 'policeClearance', title: 'Police Clearance Certificate (PCC)', desc: 'Criminal background verification certificate' },
                     { key: 'tradeCertificate', title: 'ITI Trade Certificate / Diploma', desc: 'National Skill Development / ITI diploma' }
                   ].map(doc => {
-                    const docInfo = proDetail?.documents?.[doc.key] || { status: 'Pending Review', docNumber: 'Uploaded' };
-                    const isVerified = docInfo.status === 'Verified';
+                    const rawDoc = proDetail?.documents?.[doc.key];
+                    const hasDoc = Boolean(rawDoc && (rawDoc.fileUrl || rawDoc.docNumber || (rawDoc.status && rawDoc.status !== 'Not Uploaded')));
+                    const docInfo = hasDoc ? rawDoc : null;
+                    const isVerified = docInfo?.status === 'Verified';
 
                     return (
                       <div
@@ -1297,55 +1305,77 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                               borderRadius: 4,
                               fontSize: 10,
                               fontWeight: 600,
-                              backgroundColor: isVerified ? '#DCFCE7' : docInfo.status === 'Rejected' ? '#FEE2E2' : '#FEF3C7',
-                              color: isVerified ? '#15803D' : docInfo.status === 'Rejected' ? '#B91C1C' : '#92400E'
+                              backgroundColor: !docInfo ? '#F1F5F9' : isVerified ? '#DCFCE7' : docInfo.status === 'Rejected' ? '#FEE2E2' : '#FEF3C7',
+                              color: !docInfo ? '#64748B' : isVerified ? '#15803D' : docInfo.status === 'Rejected' ? '#B91C1C' : '#92400E'
                             }}>
-                              {docInfo.status || 'Pending Review'}
+                              {docInfo ? (docInfo.status || 'Pending Review') : 'Not Uploaded'}
                             </span>
                           </div>
                           <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{doc.desc}</div>
-                          {docInfo.docNumber && (
-                            <div style={{ fontSize: 11, color: '#334155', marginTop: 2 }}>Doc ID: <code>{docInfo.docNumber}</code></div>
-                          )}
-                          {docInfo.verifiedBy && (
-                            <div style={{ fontSize: 10, color: '#16A34A', marginTop: 2 }}>
-                              Verified by {docInfo.verifiedBy} on {docInfo.verifiedAt}
+                          {docInfo ? (
+                            <>
+                              {docInfo.docNumber && (
+                                <div style={{ fontSize: 11, color: '#334155', marginTop: 2 }}>Doc ID: <code>{docInfo.docNumber}</code></div>
+                              )}
+                              {docInfo.fileUrl && (
+                                <div style={{ fontSize: 11, color: '#2563EB', marginTop: 2 }}>
+                                  <a href={docInfo.fileUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'underline' }}>
+                                    View Uploaded File ↗
+                                  </a>
+                                </div>
+                              )}
+                              {docInfo.verifiedBy && (
+                                <div style={{ fontSize: 10, color: '#16A34A', marginTop: 2 }}>
+                                  Verified by {docInfo.verifiedBy} on {new Date(docInfo.verifiedAt || Date.now()).toLocaleDateString('en-IN')}
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 3, fontStyle: 'italic' }}>
+                              No document uploaded by applicant yet
                             </div>
                           )}
                         </div>
 
                         <div style={{ display: 'flex', gap: 6 }}>
-                          {!isVerified ? (
-                            <button
-                              onClick={() => handleDocVerification(doc.key, 'Verified')}
-                              style={{
-                                padding: '6px 12px',
-                                borderRadius: 6,
-                                border: 'none',
-                                backgroundColor: '#16A34A',
-                                color: '#FFFFFF',
-                                fontSize: 11,
-                                fontWeight: 600,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              Approve Doc
-                            </button>
+                          {docInfo ? (
+                            !isVerified ? (
+                              <button
+                                onClick={() => handleDocVerification(doc.key, 'Verified')}
+                                style={{
+                                  padding: '6px 12px',
+                                  borderRadius: 6,
+                                  border: 'none',
+                                  backgroundColor: '#16A34A',
+                                  color: '#FFFFFF',
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Approve Doc
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleDocVerification(doc.key, 'Pending Review')}
+                                style={{
+                                  padding: '6px 10px',
+                                  borderRadius: 6,
+                                  border: '1px solid #CBD5E1',
+                                  backgroundColor: '#FFFFFF',
+                                  color: '#475569',
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                Mark Pending
+                              </button>
+                            )
                           ) : (
-                            <button
-                              onClick={() => handleDocVerification(doc.key, 'Pending Review')}
-                              style={{
-                                padding: '6px 10px',
-                                borderRadius: 6,
-                                border: '1px solid #CBD5E1',
-                                backgroundColor: '#FFFFFF',
-                                color: '#64748B',
-                                fontSize: 11,
-                                cursor: 'pointer'
-                              }}
-                            >
-                              Revoke
-                            </button>
+                            <span style={{ fontSize: 11, color: '#94A3B8', padding: '6px 8px' }}>
+                              Awaiting upload
+                            </span>
                           )}
 
                           <button
@@ -1373,100 +1403,121 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                 </div>
               )}
 
-              {/* DRAWER TAB 3: BANK DETAILS REVIEW */}
-              {drawerTab === 'bank' && (
-                <div style={{
-                  backgroundColor: '#FFFFFF',
-                  borderRadius: 10,
-                  padding: '18px',
-                  border: '1px solid #E2E8F0'
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>
-                      Settlement Bank Account & Payout Details
-                    </span>
-                    <span style={{
-                      padding: '2px 8px',
-                      borderRadius: 4,
-                      fontSize: 11,
-                      fontWeight: 600,
-                      backgroundColor: proDetail?.bankDetails?.status === 'Verified' ? '#DCFCE7' : '#FEF3C7',
-                      color: proDetail?.bankDetails?.status === 'Verified' ? '#15803D' : '#92400E'
-                    }}>
-                      {proDetail?.bankDetails?.status || 'Pending Review'}
-                    </span>
-                  </div>
+              {/* DRAWER TAB 3: BANK DETAILS REVIEW (Bug 17) */}
+              {drawerTab === 'bank' && (() => {
+                const bDetails = proDetail?.bankDetails;
+                const hasBankInfo = Boolean(bDetails && (bDetails.accountNumber || bDetails.bankName || bDetails.upiId || bDetails.ifscCode));
 
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, fontSize: 12, marginBottom: 16 }}>
-                    <div>
-                      <span style={{ color: '#64748B' }}>Account Holder:</span>
-                      <div style={{ fontWeight: 600, color: '#0F172A', marginTop: 2 }}>
-                        {proDetail?.bankDetails?.accountHolderName || selectedPro.applicantName || selectedPro.name}
-                      </div>
+                return (
+                  <div style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 10,
+                    padding: '18px',
+                    border: '1px solid #E2E8F0'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                      <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>
+                        Settlement Bank Account & Payout Details
+                      </span>
+                      {hasBankInfo && (
+                        <span style={{
+                          padding: '2px 8px',
+                          borderRadius: 4,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          backgroundColor: bDetails?.status === 'Verified' ? '#DCFCE7' : '#FEF3C7',
+                          color: bDetails?.status === 'Verified' ? '#15803D' : '#92400E'
+                        }}>
+                          {bDetails?.status || 'Pending Review'}
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <span style={{ color: '#64748B' }}>Bank Name:</span>
-                      <div style={{ fontWeight: 600, color: '#0F172A', marginTop: 2 }}>
-                        {proDetail?.bankDetails?.bankName || 'HDFC Bank Ltd'}
-                      </div>
-                    </div>
-                    <div>
-                      <span style={{ color: '#64748B' }}>Account Number:</span>
-                      <div style={{ fontWeight: 600, color: '#0F172A', marginTop: 2 }}>
-                        {proDetail?.bankDetails?.accountNumber || '••••••••4821'}
-                      </div>
-                    </div>
-                    <div>
-                      <span style={{ color: '#64748B' }}>IFSC Code:</span>
-                      <div style={{ fontWeight: 600, color: '#0F172A', marginTop: 2 }}>
-                        {proDetail?.bankDetails?.ifscCode || 'HDFC0001248'}
-                      </div>
-                    </div>
-                    <div>
-                      <span style={{ color: '#64748B' }}>UPI ID:</span>
-                      <div style={{ fontWeight: 600, color: '#0F172A', marginTop: 2 }}>
-                        {proDetail?.bankDetails?.upiId || `${(selectedPro.applicantName || 'pro').toLowerCase().replace(/\s+/g, '')}@okaxis`}
-                      </div>
-                    </div>
-                  </div>
 
-                  <div style={{ display: 'flex', gap: 10, borderTop: '1px solid #F1F5F9', paddingTop: 14 }}>
-                    <button
-                      onClick={() => handleBankVerification('Verified')}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: 6,
-                        border: 'none',
-                        backgroundColor: '#16A34A',
-                        color: '#FFFFFF',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      ✓ Approve Bank Details
-                    </button>
-                    <button
-                      onClick={() => {
-                        const reason = prompt('Enter rejection reason for bank account:');
-                        if (reason) handleBankVerification('Rejected', reason);
-                      }}
-                      style={{
-                        padding: '8px 16px',
-                        borderRadius: 6,
-                        border: '1px solid #FECACA',
-                        backgroundColor: '#FEF2F2',
-                        color: '#DC2626',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Reject Bank Account
-                    </button>
+                    {!hasBankInfo ? (
+                      <div style={{ textAlign: 'center', padding: '36px 16px', color: '#64748B' }}>
+                        <div style={{ fontSize: 32, marginBottom: 10 }}>🏦</div>
+                        <h4 style={{ fontSize: 15, fontWeight: 700, color: '#0F172A', margin: '0 0 6px 0' }}>
+                          No Bank Details Available
+                        </h4>
+                        <p style={{ fontSize: 12.5, color: '#64748B', margin: '0 auto', maxWidth: 360, lineHeight: 1.5 }}>
+                          The professional has not submitted settlement bank account, IFSC code, or UPI payment details yet.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, fontSize: 12, marginBottom: 16 }}>
+                          <div>
+                            <span style={{ color: '#64748B' }}>Account Holder:</span>
+                            <div style={{ fontWeight: 600, color: '#0F172A', marginTop: 2 }}>
+                              {bDetails.accountHolderName || selectedPro.applicantName || selectedPro.name}
+                            </div>
+                          </div>
+                          <div>
+                            <span style={{ color: '#64748B' }}>Bank Name:</span>
+                            <div style={{ fontWeight: 600, color: '#0F172A', marginTop: 2 }}>
+                              {bDetails.bankName || 'Not Specified'}
+                            </div>
+                          </div>
+                          <div>
+                            <span style={{ color: '#64748B' }}>Account Number:</span>
+                            <div style={{ fontWeight: 600, color: '#0F172A', marginTop: 2 }}>
+                              {bDetails.accountNumber ? `••••${String(bDetails.accountNumber).slice(-4)}` : 'Not Specified'}
+                            </div>
+                          </div>
+                          <div>
+                            <span style={{ color: '#64748B' }}>IFSC Code:</span>
+                            <div style={{ fontWeight: 600, color: '#0F172A', marginTop: 2 }}>
+                              {bDetails.ifscCode || 'Not Specified'}
+                            </div>
+                          </div>
+                          <div>
+                            <span style={{ color: '#64748B' }}>UPI ID:</span>
+                            <div style={{ fontWeight: 600, color: '#0F172A', marginTop: 2 }}>
+                              {bDetails.upiId || 'Not Specified'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: 10, borderTop: '1px solid #F1F5F9', paddingTop: 14 }}>
+                          <button
+                            onClick={() => handleBankVerification('Verified')}
+                            style={{
+                              padding: '8px 16px',
+                              borderRadius: 6,
+                              border: 'none',
+                              backgroundColor: '#16A34A',
+                              color: '#FFFFFF',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            ✓ Approve Bank Details
+                          </button>
+                          <button
+                            onClick={() => {
+                              const reason = prompt('Enter rejection reason for bank account:');
+                              if (reason) handleBankVerification('Rejected', reason);
+                            }}
+                            style={{
+                              padding: '8px 16px',
+                              borderRadius: 6,
+                              border: '1px solid #FECACA',
+                              backgroundColor: '#FEF2F2',
+                              color: '#DC2626',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Reject Bank Account
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* DRAWER TAB 4: TRAINING & CERTIFICATIONS */}
               {drawerTab === 'training' && (

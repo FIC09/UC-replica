@@ -63,7 +63,39 @@ export function CartDrawer({
   if (!isOpen) return null;
 
   const cartItems = Object.values(cart);
-  const itemsSubtotal = cartItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+  const [selectedIds, setSelectedIds] = useState(() => cartItems.map(i => i.id));
+
+  // Keep selection synchronized with cart changes
+  useEffect(() => {
+    setSelectedIds(prev => {
+      const existing = new Set(prev);
+      const currentIds = cartItems.map(i => i.id);
+      const next = currentIds.filter(id => existing.has(id));
+      currentIds.forEach(id => {
+        if (!existing.has(id)) next.push(id);
+      });
+      return next;
+    });
+  }, [cart]);
+
+  function toggleSelectItem(id) {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.length === cartItems.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(cartItems.map(i => i.id));
+    }
+  }
+
+  // Calculate pricing based STRICTLY on selected services only
+  const selectedCartItems = cartItems.filter(i => selectedIds.includes(i.id));
+  const selectedCount = selectedCartItems.reduce((sum, item) => sum + item.qty, 0);
+  const itemsSubtotal = selectedCartItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
   // Discounts
   const ucPlusDiscount = hasUCPlus ? Math.min(150, Math.round(itemsSubtotal * 0.1)) : 0;
@@ -75,6 +107,16 @@ export function CartDrawer({
 
   // Final Total
   const finalTotal = Math.max(0, itemsSubtotal - ucPlusDiscount - couponDiscount + hygieneFee + taxesFee);
+
+  function handleProceed() {
+    if (selectedCartItems.length === 0) {
+      alert('Please select at least one service to proceed to checkout.');
+      return;
+    }
+    if (onProceedToCheckout) {
+      onProceedToCheckout(selectedIds);
+    }
+  }
 
   async function handleApplyCoupon(code) {
     setCouponError('');
@@ -211,23 +253,73 @@ export function CartDrawer({
             </div>
           ) : (
             <>
-              {/* Items List (READ, UPDATE qty, DELETE item) */}
+              {/* Individual Item Selection Bar (Bug 8) */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '8px 12px',
+                background: '#F8FAFC',
+                borderRadius: 8,
+                border: '1px solid #E2E8F0',
+                fontSize: 12.5,
+                marginBottom: 10
+              }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', fontWeight: 700, color: '#334155' }}>
+                  <input
+                    type="checkbox"
+                    checked={cartItems.length > 0 && selectedIds.length === cartItems.length}
+                    onChange={toggleSelectAll}
+                    style={{ width: 16, height: 16, accentColor: '#6E42E5', cursor: 'pointer' }}
+                  />
+                  <span>Select All ({selectedCount}/{cartItems.length})</span>
+                </label>
+                <span style={{ color: '#64748B', fontWeight: 600 }}>
+                  {selectedIds.length === 0 ? '0 selected' : `${selectedIds.length} service(s) selected`}
+                </span>
+              </div>
+
+              {/* Items List (READ, UPDATE qty, DELETE item, SELECT/DESELECT) */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {cartItems.map((item) => (
-                  <div key={item.id} className="cart-item-row">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-                      <img
-                        src={item.image}
-                        alt={item.title}
-                        style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                {cartItems.map((item) => {
+                  const isSelected = selectedIds.includes(item.id);
+                  return (
+                    <div 
+                      key={item.id} 
+                      className="cart-item-row"
+                      style={{
+                        opacity: isSelected ? 1 : 0.6,
+                        border: isSelected ? '1.5px solid #DDD6FE' : '1px solid #E2E8F0',
+                        background: isSelected ? '#FFFFFF' : '#F8FAFC',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectItem(item.id)}
+                        style={{
+                          width: 17,
+                          height: 17,
+                          accentColor: '#6E42E5',
+                          cursor: 'pointer',
+                          marginRight: 6
+                        }}
+                        title={isSelected ? 'Deselect service' : 'Select service for checkout'}
                       />
-                      <div style={{ minWidth: 0 }}>
-                        <div className="cart-item-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {item.title}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+                        />
+                        <div style={{ minWidth: 0 }}>
+                          <div className="cart-item-title" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.title}
+                          </div>
+                          <div className="cart-item-price">₹{item.price * item.qty}</div>
                         </div>
-                        <div className="cart-item-price">₹{item.price * item.qty}</div>
                       </div>
-                    </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       {/* Quantity Stepper (UPDATE) */}
@@ -267,7 +359,8 @@ export function CartDrawer({
                       </button>
                     </div>
                   </div>
-                ))}
+                );
+              })}
               </div>
 
               {/* UC Plus Membership Upsell Box */}
@@ -448,11 +541,16 @@ export function CartDrawer({
             <button
               type="button"
               className="proceed-checkout-btn"
-              onClick={onProceedToCheckout}
+              onClick={handleProceed}
+              disabled={selectedCartItems.length === 0}
+              style={{
+                opacity: selectedCartItems.length === 0 ? 0.6 : 1,
+                cursor: selectedCartItems.length === 0 ? 'not-allowed' : 'pointer'
+              }}
             >
               <div>
                 <span style={{ fontSize: 12, opacity: 0.9, display: 'block', fontWeight: 600 }}>
-                  Total to pay
+                  Total to pay ({selectedCount} item{selectedCount === 1 ? '' : 's'})
                 </span>
                 <span style={{ fontSize: 17, fontWeight: 800 }}>₹{finalTotal}</span>
               </div>

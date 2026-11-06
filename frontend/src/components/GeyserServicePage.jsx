@@ -31,6 +31,7 @@ export function GeyserServicePage({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDetailItem, setSelectedDetailItem] = useState(null);
   const [optionsModalService, setOptionsModalService] = useState(null);
+  const [isWarrantyModalOpen, setIsWarrantyModalOpen] = useState(false);
 
   // Catalogue of Geyser services matching official Urban Company Screenshots 1 & 2
   const GEYSER_SERVICES = [
@@ -404,7 +405,9 @@ export function GeyserServicePage({
             fontWeight: 600,
             color: '#334155',
             cursor: 'pointer'
-          }}>
+          }}
+          onClick={() => setIsWarrantyModalOpen(true)}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <ShieldCheck size={16} color="#6E42E5" />
               <span>Up to 30 days warranty</span>
@@ -1347,6 +1350,104 @@ export function GeyserServicePage({
           </span>
         </div>
       </footer>
+
+      {/* Warranty Details Modal (Bug 13) */}
+      {isWarrantyModalOpen && (
+        <div 
+          className="modal-backdrop-overlay" 
+          onClick={() => setIsWarrantyModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              maxWidth: 480,
+              width: '100%',
+              padding: 24,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#F0FDF4', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShieldCheck size={20} color="#16A34A" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                    Up to 30 Days Warranty
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>Urban Company Water Heater Service Guarantee</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsWarrantyModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#64748B' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', marginTop: 6 }} />
+                <div>
+                  <h5 style={{ margin: '0 0 2px 0', fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>30-Day Service Guarantee</h5>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#64748B', lineHeight: 1.5 }}>
+                    Free revisit and repair if water leakage, thermostat trip, or heating coil issues persist within 30 days.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6E42E5', marginTop: 6 }} />
+                <div>
+                  <h5 style={{ margin: '0 0 2px 0', fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>Genuine Spare Parts</h5>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#64748B', lineHeight: 1.5 }}>
+                    ISI-certified heating elements, copper thermostats, and high-pressure inlet/outlet pipes.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', marginTop: 6 }} />
+                <div>
+                  <h5 style={{ margin: '0 0 2px 0', fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>₹10,000 Safety Protection</h5>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#64748B', lineHeight: 1.5 }}>
+                    Every technician is verified with shock-proof testing instruments and protected by damage insurance.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsWarrantyModalOpen(false)}
+              style={{
+                width: '100%',
+                backgroundColor: '#0F172A',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 8,
+                padding: '10px',
+                fontSize: 13.5,
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Understood
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

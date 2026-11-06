@@ -91,7 +91,7 @@ export function CheckoutModal({
 
   function handleSubmit() {
     if (selectedAddressId === 'custom' && !flatNumber.trim()) {
-      alert('Please enter your house / flat / door number to complete delivery address');
+      alert('Please enter your house / flat / door number to complete service address');
       return;
     }
 

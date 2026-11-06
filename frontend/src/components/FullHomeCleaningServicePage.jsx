@@ -41,6 +41,7 @@ export function FullHomeCleaningServicePage({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDetailProduct, setSelectedDetailProduct] = useState(null);
   const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+  const [hasStartedVideo, setHasStartedVideo] = useState(false);
   const videoRef = useRef(null);
 
   const CATEGORIES = [
@@ -352,8 +353,13 @@ export function FullHomeCleaningServicePage({
       videoRef.current.pause();
       setIsPlayingVideo(false);
     } else {
-      videoRef.current.play().catch(() => {});
-      setIsPlayingVideo(true);
+      setHasStartedVideo(true);
+      videoRef.current.play().then(() => {
+        setIsPlayingVideo(true);
+      }).catch((err) => {
+        console.warn('Video playback notice:', err);
+        setIsPlayingVideo(true);
+      });
     }
   }
 
@@ -745,16 +751,44 @@ export function FullHomeCleaningServicePage({
             <video 
               ref={videoRef}
               src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
+              playsInline
               style={{
                 position: 'absolute',
                 inset: 0,
                 width: '100%',
                 height: '100%',
                 objectFit: 'cover',
-                display: isPlayingVideo ? 'block' : 'none'
+                display: hasStartedVideo ? 'block' : 'none'
               }}
-              onEnded={() => setIsPlayingVideo(false)}
+              onEnded={() => {
+                setIsPlayingVideo(false);
+                setHasStartedVideo(false);
+              }}
             />
+
+            {/* Status Feedback Badge (Bug 14) */}
+            {hasStartedVideo && (
+              <div style={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+                zIndex: 20,
+                background: isPlayingVideo ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
+                backdropFilter: 'blur(4px)',
+                color: '#FFFFFF',
+                padding: '5px 12px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
+              }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#FFFFFF' }} />
+                <span>{isPlayingVideo ? 'Playing Live Demonstration' : 'Paused — Click to Resume'}</span>
+              </div>
+            )}
 
             <div style={{
               position: 'absolute',

@@ -44,7 +44,7 @@ export function AuthModal({
   const [loginPassword, setLoginPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Sign up fields
   const [signupName, setSignupName] = useState('');
@@ -312,9 +312,14 @@ export function AuthModal({
           token: res.token
         };
 
-        try {
+        if (rememberMe) {
           localStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
-        } catch {}
+          localStorage.setItem('uc_remember_me', 'true');
+        } else {
+          sessionStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
+          localStorage.removeItem('uc_user');
+          localStorage.removeItem('uc_remember_me');
+        }
 
         setupRoleAuth(detectedRole, authenticatedUser);
         window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: authenticatedUser } }));
@@ -340,99 +345,11 @@ export function AuthModal({
         return;
       }
     } catch (err) {
-      console.warn('Unified login attempt fallback:', err?.message || err);
-
-      // 2. Client-side fallback checks
-      const cleanLower = cleanInput.toLowerCase();
-      let detectedRole = 'customer';
-      if (cleanLower.includes('admin')) {
-        detectedRole = 'admin';
-      } else if (cleanLower.includes('pro') || cleanLower.includes('worker') || cleanLower.includes('technician')) {
-        detectedRole = 'professional';
-      } else if (cleanLower.includes('partner') || cleanLower.includes('agency') || cleanLower.includes('apex')) {
-        detectedRole = 'partner';
-      }
-
-      const preset = ROLE_PRESETS[detectedRole] || ROLE_PRESETS.customer;
-      const authenticatedUser = {
-        name: preset.name,
-        email: cleanInput.includes('@') ? cleanInput : preset.email,
-        phone: preset.phone,
-        role: detectedRole,
-        trade: preset.trade,
-        agencyName: preset.agencyName
-      };
-
-      if (detectedRole === 'admin') {
-        try {
-          const adminRes = await adminClient.login(cleanInput, cleanPassword);
-          if (adminRes?.admin) {
-            authenticatedUser.name = adminRes.admin.name || authenticatedUser.name;
-            authenticatedUser.id = adminRes.admin.id;
-          }
-        } catch (adminErr) {
-          setErrorMsg(adminErr.message || 'Invalid administrator credentials.');
-          setIsLoggingIn(false);
-          return;
-        }
-      } else if (detectedRole === 'professional') {
-        try {
-          const proRes = await professionalClient.login({
-            identifier: cleanInput,
-            password: cleanPassword
-          });
-          if (proRes?.success && proRes?.professional) {
-            const pro = proRes.professional;
-            authenticatedUser.name = pro.applicantName || pro.name;
-            authenticatedUser.id = pro.id || pro.workerId;
-            authenticatedUser.workerId = pro.id || pro.workerId;
-            authenticatedUser.trade = pro.tradeName || pro.trade;
-            authenticatedUser.token = proRes.token;
-          } else {
-            setErrorMsg(proRes?.error || 'Invalid worker credentials.');
-            setIsLoggingIn(false);
-            return;
-          }
-        } catch (proErr) {
-          setErrorMsg(proErr.message || 'Invalid worker credentials.');
-          setIsLoggingIn(false);
-          return;
-        }
-      } else if (detectedRole === 'partner') {
-        try {
-          const partnerRes = await partnerClient.login({
-            emailOrPhone: cleanInput,
-            password: cleanPassword
-          });
-          if (partnerRes?.success && partnerRes?.partner) {
-            authenticatedUser.name = partnerRes.partner.ownerName || authenticatedUser.name;
-            authenticatedUser.businessName = partnerRes.partner.businessName;
-            authenticatedUser.agencyName = partnerRes.partner.businessName;
-          } else {
-            setErrorMsg(partnerRes?.error || 'Invalid partner credentials.');
-            setIsLoggingIn(false);
-            return;
-          }
-        } catch (partnerErr) {
-          setErrorMsg(partnerErr.message || 'Invalid partner credentials.');
-          setIsLoggingIn(false);
-          return;
-        }
-      }
-
-      try {
-        localStorage.setItem('uc_user', JSON.stringify(authenticatedUser));
-      } catch {}
-
-      setupRoleAuth(detectedRole, authenticatedUser);
-      window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: authenticatedUser } }));
-
-      setSuccessMsg(`✓ Logged in successfully! Opening dashboard...`);
-      setTimeout(() => {
-        setIsLoggingIn(false);
-        onLogin(authenticatedUser);
-        onClose();
-      }, 350);
+      console.warn('Unified login attempt failed:', err?.message || err);
+      const errorMessage = err?.response?.data?.error || err?.response?.data?.message || err?.message || 'Invalid credentials. Please verify your email/phone and password.';
+      setErrorMsg(errorMessage);
+      setIsLoggingIn(false);
+      return;
     }
   }
 
@@ -512,7 +429,7 @@ export function AuthModal({
     if (signupPhone) {
       const pDigits = signupPhone.replace(/\D/g, '');
       if (pDigits.length !== 10 || !/^[6-9]/.test(pDigits)) {
-        setErrorMsg('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
+        setErrorMsg('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9. Numbers starting with 0–5 are invalid.');
         return;
       }
     }
@@ -565,7 +482,8 @@ export function AuthModal({
       if (res && res.success) {
         setIsEmailVerified(true);
         setIsOtpSent(false);
-        setSuccessMsg('✓ Email verified successfully! You can now set your password below.');
+        setErrorMsg('');
+        setSuccessMsg('');
       } else {
         setErrorMsg(res?.message || 'Invalid or expired verification code.');
       }
@@ -596,7 +514,7 @@ export function AuthModal({
       return;
     }
     if (!/^[6-9]/.test(phoneDigits)) {
-      setErrorMsg('Mobile number must start with 6, 7, 8, or 9. Numbers starting with 1–5 are invalid.');
+      setErrorMsg('Mobile number must start with 6, 7, 8, or 9. Numbers starting with 0–5 are invalid.');
       return;
     }
     if (!isEmailVerified) {
@@ -1525,6 +1443,20 @@ export function AuthModal({
                       </button>
                     )}
                   </div>
+                  {isEmailVerified && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      color: '#15803D',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      marginTop: 6
+                    }}>
+                      <CheckCircle2 size={14} color="#16A34A" />
+                      <span>Email verified successfully</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Inline OTP Input Box when OTP is sent */}

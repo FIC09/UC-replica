@@ -423,21 +423,6 @@ export function HairStudioWomenServicePage({
             'Intensive repair mask therapy to strengthen & restore hair'
           ],
           description: 'Intense micro-keratin reconstructor applied section by section to repair split cuticles and color damage.'
-        },
-        {
-          id: 'hair-studio-head-massage',
-          categoryId: 'hair-care',
-          title: 'Head massage',
-          rating: 4.78,
-          reviewsCount: '5K reviews',
-          price: 349,
-          duration: '20 mins',
-          thumbnailImg: '/images/hair_head_massage_relax.jpg',
-          inclusions: [
-            'Gentle massage to help promote blood flow, reduce stress & nourish the scalp',
-            'Hair wash & blow-dry not included'
-          ],
-          description: 'Pressure point focused Indian head massage using warm almond or coconut oil for instant mental and physical relaxation.'
         }
       ]
     },

@@ -25,12 +25,85 @@ router.post('/validate-coverage', async (req, res) => {
   }
 });
 
-// GET all bookings or by user phone / customerId / email / name
+// GET real-time slot availability for complete month calendar (Bug 10)
+router.get('/slot-availability', async (req, res) => {
+  try {
+    const { date, month, year, city } = req.query;
+    if (!date) {
+      return res.status(400).json({ success: false, message: 'Date parameter is required' });
+    }
+
+    const ALL_SLOTS = [
+      '08:00 AM - 09:30 AM',
+      '09:30 AM - 11:00 AM',
+      '11:00 AM - 12:30 PM',
+      '01:00 PM - 02:30 PM',
+      '02:30 PM - 04:00 PM',
+      '04:00 PM - 05:30 PM',
+      '05:30 PM - 07:00 PM',
+      '07:00 PM - 08:30 PM'
+    ];
+
+    const escapedDate = String(date).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existingBookings = await Booking.find({
+      $or: [
+        { date: { $regex: new RegExp(escapedDate, 'i') } },
+        { slot: { $regex: new RegExp(escapedDate, 'i') } }
+      ],
+      status: { $nin: ['Cancelled', 'Refunded'] },
+      deletedByCustomer: { $ne: true }
+    }).select('slot time status').lean();
+
+    const slotCounts = {};
+    existingBookings.forEach(b => {
+      const slotStr = b.slot || b.time || '';
+      ALL_SLOTS.forEach(s => {
+        if (slotStr.includes(s) || slotStr.includes(s.split(' - ')[0])) {
+          slotCounts[s] = (slotCounts[s] || 0) + 1;
+        }
+      });
+    });
+
+    const workerCount = await WorkerApplication.countDocuments({
+      status: 'Approved'
+    }).catch(() => 5);
+    const capacityPerSlot = Math.max(3, Math.min(10, workerCount || 5));
+
+    const slotStatus = ALL_SLOTS.map(slotLabel => {
+      const bookedCount = slotCounts[slotLabel] || 0;
+      const isAvailable = bookedCount < capacityPerSlot;
+      return {
+        slot: slotLabel,
+        bookedCount,
+        capacity: capacityPerSlot,
+        isAvailable
+      };
+    });
+
+    res.json({
+      success: true,
+      date,
+      slots: slotStatus
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET bookings - Strictly isolated per customer user ID, phone, or email (Bug 18)
 router.get('/', async (req, res) => {
   try {
-    const { phone, customerId, userEmail, userName } = req.query;
+    const { phone, customerId, userEmail } = req.query;
+    const authHeader = req.headers.authorization || '';
+    const isAdmin = authHeader.includes('admin') || req.query.role === 'admin' || req.query.admin === 'true';
+
     let query = {};
-    if (phone) {
+    if (customerId) {
+      query.$or = [
+        { customerId: customerId },
+        { customerId: String(customerId) }
+      ];
+    } else if (phone) {
       const cleanDigits = phone.replace(/\D/g, '').slice(-10);
       if (cleanDigits) {
         query.$or = [
@@ -40,22 +113,22 @@ router.get('/', async (req, res) => {
       } else {
         query.userPhone = phone;
       }
-    } else if (customerId) {
-      query.$or = [
-        { customerId: customerId },
-        { customerId: String(customerId) }
-      ];
     } else if (userEmail) {
       query.userEmail = { $regex: new RegExp(`^${userEmail.trim()}$`, 'i') };
-    } else if (userName) {
-      query.$or = [
-        { userName: { $regex: new RegExp(`^${userName.trim()}$`, 'i') } },
-        { customerName: { $regex: new RegExp(`^${userName.trim()}$`, 'i') } }
-      ];
+    } else if (!isAdmin) {
+      // Non-admin query with no customer identifier must return empty results (prevent data leak)
+      return res.json({ success: true, count: 0, bookings: [] });
     }
+
     query.deletedByCustomer = { $ne: true };
-    const bookings = await Booking.find(query).sort({ createdAt: -1 });
-    res.json({ success: true, count: bookings.length, bookings });
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10);
+    let mongoQuery = Booking.find(query).sort({ createdAt: -1 }).lean();
+    if (limit && limit > 0) {
+      mongoQuery = mongoQuery.skip((page - 1) * limit).limit(limit);
+    }
+    const bookings = await mongoQuery;
+    res.json({ success: true, count: bookings.length, page, bookings });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

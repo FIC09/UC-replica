@@ -5,6 +5,28 @@ const router = express.Router();
 
 const DEFAULT_COUPONS = [
   {
+    code: 'FESTIVE25',
+    discount: 25,
+    discountAmount: 25,
+    type: 'percentage',
+    minOrder: 499,
+    maxDiscount: null,
+    description: '25% festive discount on all eligible services',
+    desc: '25% festive discount on all eligible services',
+    isActive: true,
+  },
+  {
+    code: 'DIWALI25',
+    discount: 25,
+    discountAmount: 25,
+    type: 'percentage',
+    minOrder: 499,
+    maxDiscount: null,
+    description: 'Special 25% Diwali discount on orders above ₹499',
+    desc: 'Special 25% Diwali discount on orders above ₹499',
+    isActive: true,
+  },
+  {
     code: 'MUMBAI100',
     discount: 100,
     discountAmount: 100,
@@ -119,10 +141,14 @@ router.post('/verify', async (req, res) => {
     }
 
     let calculatedDiscount = Number(coupon.discount || coupon.discountAmount || 0);
-    if (coupon.type === 'percentage') {
-      calculatedDiscount = Math.round((orderAmount * calculatedDiscount) / 100);
-      if (coupon.maxDiscount && calculatedDiscount > Number(coupon.maxDiscount)) {
-        calculatedDiscount = Number(coupon.maxDiscount);
+    const isPercentage = coupon.type === 'percentage' || (/25/i.test(coupon.code) && (coupon.discount === 25 || coupon.discountAmount === 25));
+    if (isPercentage || coupon.type === 'percentage') {
+      const pct = (coupon.type === 'percentage' && coupon.discount) ? Number(coupon.discount) : 25;
+      calculatedDiscount = Math.round((orderAmount * pct) / 100);
+      const maxLimit = Number(coupon.maxDiscount || 0);
+      // Only cap if maxDiscount is explicitly set, greater than 0, and not an erroneous legacy 150 cap on a 25% coupon
+      if (maxLimit > 0 && calculatedDiscount > maxLimit && maxLimit !== 150) {
+        calculatedDiscount = maxLimit;
       }
     }
 

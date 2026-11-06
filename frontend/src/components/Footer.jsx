@@ -149,7 +149,7 @@ export function Footer({
                       e.preventDefault(); 
                       if (onOpenWorkerOnboarding) onOpenWorkerOnboarding(); 
                     }}
-                    style={{ color: '#64748B' }}
+                    style={{ color: '#4B5563' }}
                   >
                     Worker Onboarding
                   </a>
@@ -161,7 +161,7 @@ export function Footer({
                       e.preventDefault(); 
                       if (onOpenPartnerDashboard) onOpenPartnerDashboard(); 
                     }}
-                    style={{ color: '#64748B' }}
+                    style={{ color: '#4B5563' }}
                   >
                     Partner Pro Portal
                   </a>
@@ -177,7 +177,7 @@ export function Footer({
                         window.location.href = '/professional';
                       }
                     }}
-                    style={{ color: '#64748B' }}
+                    style={{ color: '#4B5563' }}
                   >
                     Urban Pro Worker Portal
                   </a>
@@ -193,7 +193,7 @@ export function Footer({
                         window.location.href = '/admin';
                       }
                     }}
-                    style={{ color: '#94A3B8', fontSize: 13 }}
+                    style={{ color: '#4B5563', fontSize: 14 }}
                   >
                     Admin Operations Hub
                   </a>

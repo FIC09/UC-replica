@@ -40,8 +40,12 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return sessionStorage.getItem('uc_admin_auth') === 'true';
+    return sessionStorage.getItem('uc_admin_auth') === 'true' ||
+           localStorage.getItem('uc_admin_auth') === 'true' ||
+           Boolean(sessionStorage.getItem('uc_admin_token')) ||
+           Boolean(localStorage.getItem('uc_admin_token'));
   });
+  const [isAuthInitialized, setIsAuthInitialized] = useState(false);
 
   const [adminUser, setAdminUser] = useState(() => {
     try {
@@ -127,12 +131,64 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
     showToast(`Welcome back, ${user.name}`);
   }, [handleNavigate, showToast]);
 
+  // Authenticated Admin Session Restoration & Persistence
+  useEffect(() => {
+    let isMounted = true;
+    async function restoreAdminSession() {
+      const hasAuth = sessionStorage.getItem('uc_admin_auth') === 'true' || localStorage.getItem('uc_admin_auth') === 'true';
+      const token = sessionStorage.getItem('uc_admin_token') || localStorage.getItem('uc_admin_token');
+
+      if (!hasAuth && !token) {
+        if (isMounted) {
+          setIsAuthenticated(false);
+          setIsAuthInitialized(true);
+        }
+        return;
+      }
+
+      // Synchronize persistent tokens and flags across session & local storage
+      try {
+        sessionStorage.setItem('uc_admin_auth', 'true');
+        localStorage.setItem('uc_admin_auth', 'true');
+        if (token) {
+          sessionStorage.setItem('uc_admin_token', token);
+          localStorage.setItem('uc_admin_token', token);
+        }
+        const meRes = await adminClient.me();
+        if (isMounted) {
+          if (meRes && meRes.admin) {
+            setAdminUser(meRes.admin);
+            localStorage.setItem('uc_admin_user', JSON.stringify(meRes.admin));
+            sessionStorage.setItem('uc_admin_user', JSON.stringify(meRes.admin));
+          }
+          setIsAuthenticated(true);
+          setIsAuthInitialized(true);
+        }
+      } catch {
+        if (isMounted) {
+          setIsAuthenticated(true);
+          setIsAuthInitialized(true);
+        }
+      }
+    }
+    restoreAdminSession();
+    return () => { isMounted = false; };
+  }, []);
+
   const handleExitToMarketplace = useCallback(() => {
+    sessionStorage.removeItem('uc_admin_auth');
+    localStorage.removeItem('uc_admin_auth');
+    sessionStorage.removeItem('uc_admin_token');
+    localStorage.removeItem('uc_admin_token');
+    setIsAuthenticated(false);
+    if (typeof onAppLogout === 'function') {
+      try { onAppLogout(); } catch {}
+    }
     if (typeof onExitToMarketplace === 'function') {
-      onExitToMarketplace();
+      try { onExitToMarketplace(); } catch {}
     }
     window.location.replace('/');
-  }, [onExitToMarketplace]);
+  }, [onAppLogout, onExitToMarketplace]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -172,12 +228,41 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
       });
   }, [showToast]);
 
-  // If unauthenticated or accessing /admin/login, immediately redirect to main landing page
+  // Protected route check: only redirect AFTER authentication initialization has completed
   useEffect(() => {
-    if (!isAuthenticated || currentPath === '/admin/login') {
+    if (isAuthInitialized && (!isAuthenticated || currentPath === '/admin/login')) {
       handleExitToMarketplace();
     }
-  }, [isAuthenticated, currentPath, handleExitToMarketplace]);
+  }, [isAuthInitialized, isAuthenticated, currentPath, handleExitToMarketplace]);
+
+  if (!isAuthInitialized) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: '#0F172A',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#94A3B8',
+        fontSize: '15px',
+        fontWeight: 600,
+        fontFamily: 'Inter, system-ui, sans-serif'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{
+            width: 20,
+            height: 20,
+            border: '2.5px solid #6366F1',
+            borderTopColor: 'transparent',
+            borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite'
+          }} />
+          <span>Restoring Admin Session...</span>
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   if (!isAuthenticated || currentPath === '/admin/login') {
     return null;

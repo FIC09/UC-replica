@@ -29,6 +29,7 @@ export function LaptopServicePage({
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDetailItem, setSelectedDetailItem] = useState(null);
+  const [isWarrantyModalOpen, setIsWarrantyModalOpen] = useState(false);
 
   // Catalogue of Laptop services matching official Urban Company screenshot
   const LAPTOP_SERVICES = [
@@ -142,6 +143,45 @@ export function LaptopServicePage({
   const cartEntries = Object.entries(cart);
   const totalCartCount = cartEntries.reduce((sum, [, item]) => sum + (item.qty || 0), 0);
   const cartTotalAmount = cartEntries.reduce((sum, [, item]) => sum + ((item.price || 0) * (item.qty || 0)), 0);
+
+  function openServiceDetails(service) {
+    if (!service) return;
+    setSelectedDetailItem(service);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('service', service.id);
+      window.history.pushState({ serviceId: service.id }, '', url.toString());
+    } catch {}
+  }
+
+  function closeServiceDetails() {
+    setSelectedDetailItem(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('service');
+      url.searchParams.delete('serviceId');
+      window.history.pushState({}, '', url.toString());
+    } catch {}
+  }
+
+  // Restore service details on mount and browser back/forward navigation
+  React.useEffect(() => {
+    function syncFromUrl() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const svcId = params.get('service') || params.get('serviceId');
+        if (svcId) {
+          const match = LAPTOP_SERVICES.find(s => s.id === svcId);
+          if (match) {
+            setSelectedDetailItem(match);
+          }
+        }
+      } catch {}
+    }
+    syncFromUrl();
+    window.addEventListener('popstate', syncFromUrl);
+    return () => window.removeEventListener('popstate', syncFromUrl);
+  }, []);
 
   function scrollToServices() {
     const el = document.getElementById('laptop-services-section');
@@ -380,8 +420,11 @@ export function LaptopServicePage({
             fontSize: 13,
             fontWeight: 600,
             color: '#334155',
-            cursor: 'default'
-          }}>
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
+          }}
+          onClick={() => setIsWarrantyModalOpen(true)}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <ShieldCheck size={16} color="#6E42E5" />
               <span>Up to 180 days warranty</span>
@@ -392,7 +435,7 @@ export function LaptopServicePage({
           {/* View Services Button (From Screenshot) */}
           <button
             type="button"
-            onClick={scrollToServices}
+            onClick={() => openServiceDetails(LAPTOP_SERVICES[0])}
             style={{
               backgroundColor: '#6E42E5',
               color: '#FFFFFF',
@@ -527,7 +570,7 @@ export function LaptopServicePage({
                       {/* View details button */}
                       <button
                         type="button"
-                        onClick={() => setSelectedDetailItem(service)}
+                        onClick={() => openServiceDetails(service)}
                         style={{
                           background: 'none',
                           border: 'none',
@@ -918,7 +961,7 @@ export function LaptopServicePage({
       {selectedDetailItem && (
         <div 
           className="modal-backdrop-overlay" 
-          onClick={() => setSelectedDetailItem(null)}
+          onClick={closeServiceDetails}
           style={{
             position: 'fixed',
             inset: 0,
@@ -946,7 +989,7 @@ export function LaptopServicePage({
                 {selectedDetailItem.title}
               </h3>
               <button 
-                onClick={() => setSelectedDetailItem(null)}
+                onClick={closeServiceDetails}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#64748B' }}
               >
                 ✕
@@ -971,7 +1014,7 @@ export function LaptopServicePage({
               onClick={() => {
                 onAddToCart(selectedDetailItem);
                 showToast(`Added ${selectedDetailItem.title} to cart`);
-                setSelectedDetailItem(null);
+                closeServiceDetails();
               }}
               style={{
                 width: '100%',
@@ -986,6 +1029,104 @@ export function LaptopServicePage({
               }}
             >
               Add to Cart • ₹{selectedDetailItem.price}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Warranty Details Modal (Bug 13) */}
+      {isWarrantyModalOpen && (
+        <div 
+          className="modal-backdrop-overlay" 
+          onClick={() => setIsWarrantyModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 20
+          }}
+        >
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 16,
+              maxWidth: 480,
+              width: '100%',
+              padding: 24,
+              boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShieldCheck size={20} color="#6E42E5" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
+                    Forge Service Warranty
+                  </h3>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>Urban Company Certified Protection</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setIsWarrantyModalOpen(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#64748B' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 20 }}>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#10B981', marginTop: 6 }} />
+                <div>
+                  <h5 style={{ margin: '0 0 2px 0', fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>Up to 180-Day Guarantee</h5>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#64748B', lineHeight: 1.5 }}>
+                    Free revisit and fault rectification if the same issue recurs during the warranty period.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6E42E5', marginTop: 6 }} />
+                <div>
+                  <h5 style={{ margin: '0 0 2px 0', fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>100% Genuine Replacement Parts</h5>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#64748B', lineHeight: 1.5 }}>
+                    All spare components and consumables sourced directly from authorized brand distributors.
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', marginTop: 6 }} />
+                <div>
+                  <h5 style={{ margin: '0 0 2px 0', fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>₹10,000 Damage Cover</h5>
+                  <p style={{ margin: 0, fontSize: 12.5, color: '#64748B', lineHeight: 1.5 }}>
+                    Every doorstep service job is automatically backed by our comprehensive accidental damage protection policy.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsWarrantyModalOpen(false)}
+              style={{
+                width: '100%',
+                backgroundColor: '#0F172A',
+                color: '#FFFFFF',
+                border: 'none',
+                borderRadius: 8,
+                padding: '10px',
+                fontSize: 13.5,
+                fontWeight: 700,
+                cursor: 'pointer'
+              }}
+            >
+              Understood
             </button>
           </div>
         </div>

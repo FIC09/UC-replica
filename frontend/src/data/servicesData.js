@@ -1492,6 +1492,22 @@ export const FAQS = [
 
 export const COUPONS = [
   {
+    code: 'FESTIVE25',
+    discount: 25,
+    discountAmount: 25,
+    type: 'percentage',
+    minOrder: 499,
+    desc: '25% festive discount on all eligible services',
+  },
+  {
+    code: 'DIWALI25',
+    discount: 25,
+    discountAmount: 25,
+    type: 'percentage',
+    minOrder: 499,
+    desc: 'Special 25% Diwali discount on orders above ₹499',
+  },
+  {
     code: 'MUMBAI100',
     discountAmount: 100,
     minOrder: 399,

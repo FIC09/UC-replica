@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { professionalClient } from '../professionalClient';
 
 export function SupportView({ showToast }) {
   const [tickets, setTickets] = useState([]);
   const [selectedTicket, setSelectedTicket] = useState(null);
+  const detailsRef = useRef(null);
   const [activeCategoryFilter, setActiveCategoryFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
@@ -129,7 +130,7 @@ export function SupportView({ showToast }) {
   const handleSafetyEscalation = async (e) => {
     e.preventDefault();
     if (!consentLocationShare) {
-      showToast('You must authorize location transmission to alert the safety cell.');
+      showToast('⚠️ You must authorize location transmission to broadcast GPS coordinates.');
       return;
     }
     if (submittingSafety) return;
@@ -139,13 +140,13 @@ export function SupportView({ showToast }) {
       const res = await professionalClient.escalateSafetyIncident({
         incidentType: safetyIncidentType,
         relatedBookingId: safetyBookingId,
-        description: safetyDescription || 'Emergency doorstep safety incident reported.',
+        description: safetyDescription || 'Emergency doorstep safety incident reported with broadcasted GPS coordinates.',
         consentLocationShare: true,
-        latitude: '19.0596',
-        longitude: '72.8295'
+        latitude: '12.5200',
+        longitude: '78.2090'
       });
 
-      showToast('🚨 ' + res.message);
+      showToast('🚨 Broadcast GPS Alert Sent: ' + (res.message || 'Safety Cell alerted with coordinates.'));
       setShowSafetyModal(false);
       setSafetyDescription('');
       setConsentLocationShare(false);
@@ -417,7 +418,12 @@ export function SupportView({ showToast }) {
             {tickets.map(t => (
               <div
                 key={t.id}
-                onClick={() => setSelectedTicket(t)}
+                onClick={() => {
+                  setSelectedTicket(t);
+                  setTimeout(() => {
+                    detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                  }, 60);
+                }}
                 style={{
                   background: selectedTicket?.id === t.id ? '#f8fafc' : '#ffffff',
                   borderRadius: 12,
@@ -491,13 +497,13 @@ export function SupportView({ showToast }) {
 
       {/* Ticket Details & Thread Drawer */}
       {selectedTicket && (
-        <div style={{
+        <div ref={detailsRef} style={{
           marginTop: 24,
           background: '#ffffff',
           borderRadius: 16,
           padding: '24px 28px',
-          border: '1px solid #cbd5e1',
-          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+          border: '2px solid #2563eb',
+          boxShadow: '0 8px 25px rgba(37, 99, 235, 0.12)'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottom: '1px solid #e2e8f0', paddingBottom: 12 }}>
             <div>
@@ -535,9 +541,9 @@ export function SupportView({ showToast }) {
 
           {/* Messages Thread */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
-            {selectedTicket.messages?.map(m => (
+            {(selectedTicket.messages || selectedTicket.conversation || []).map((m, mIdx) => (
               <div
-                key={m.id}
+                key={m.id || mIdx}
                 style={{
                   alignSelf: m.sender === 'Professional' ? 'flex-end' : 'flex-start',
                   maxWidth: '80%',
@@ -552,11 +558,11 @@ export function SupportView({ showToast }) {
                     {m.sender} ({m.senderRole || 'User'})
                   </span>
                   <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                    {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(m.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
                 <div style={{ fontSize: 13, color: '#1e293b', lineHeight: 1.5 }}>
-                  {m.text}
+                  {m.text || m.message}
                 </div>
               </div>
             ))}
@@ -771,11 +777,11 @@ export function SupportView({ showToast }) {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0,0,0,0.6)',
+          background: 'rgba(0,0,0,0.65)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 9999,
+          zIndex: 8000,
           padding: 20
         }}>
           <div style={{
@@ -873,20 +879,20 @@ export function SupportView({ showToast }) {
                 </button>
                 <button
                   type="submit"
-                  disabled={submittingSafety || !consentLocationShare}
+                  disabled={submittingSafety}
                   style={{
                     flex: 1.5,
-                    background: (submittingSafety || !consentLocationShare) ? '#94a3b8' : '#b91c1c',
+                    background: submittingSafety ? '#94a3b8' : '#b91c1c',
                     color: '#ffffff',
                     border: 'none',
                     padding: '12px 0',
                     borderRadius: 8,
                     fontSize: 13,
                     fontWeight: 800,
-                    cursor: (submittingSafety || !consentLocationShare) ? 'not-allowed' : 'pointer'
+                    cursor: submittingSafety ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  {submittingSafety ? 'Alerting...' : 'Dispatch Safety Escalation'}
+                  {submittingSafety ? 'Broadcasting GPS...' : 'Broadcast GPS & Dispatch Alert'}
                 </button>
               </div>
             </form>

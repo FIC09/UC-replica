@@ -662,9 +662,8 @@ export function NativeWaterPurifierPage({
               </div>
 
               {/* Carousel indicator */}
-              <div style={{ textAlign: 'right', fontSize: 11, color: '#94A3B8', fontWeight: 600 }}>
-                <div>6/9</div>
-                <div style={{ display: 'flex', gap: 3, justifyContent: 'flex-end', marginTop: 3 }}>
+              <div style={{ textAlign: 'right', fontSize: 11, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
+                <div style={{ display: 'flex', gap: 3, justifyContent: 'flex-end' }}>
                   <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#CBD5E1' }} />
                   <span style={{ width: 8, height: 4, borderRadius: 2, backgroundColor: '#6E42E5' }} />
                   <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#CBD5E1' }} />

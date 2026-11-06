@@ -107,7 +107,7 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
       id: 'ac-appliances',
       title: 'Appliance Repair & Service',
       icon: '/images/categories/cat_ac.jpg',
-      badge: '44 mins',
+      badge: null,
     },
     {
       id: 'quick-repairs',
@@ -208,10 +208,11 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
     },
     {
       id: 'mens-salon',
-      title: 'Massage for Men',
-      badge: '59 mins',
+      title: 'Beard & Hair Grooming',
+      badge: '30 mins',
       badgeClass: 'uc-badge-green',
-      type: 'massage-table'
+      icon: '/images/categories/cat_mens_salon.jpg',
+      type: 'image'
     },
     {
       id: 'all',
@@ -392,27 +393,27 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
               </div>
             </div>
 
-            {/* Card 3: Let go of that built-up stress */}
+            {/* Card 3: Radiant Skin Care & Radiance Facial */}
             <div 
               className="uc-spotlight-card card-massage"
-              onClick={() => handleCategoryClick('womens-salon', 'Swedish stress relief massage')}
+              onClick={() => handleCategoryClick('womens-salon', 'Radiant glow skin therapy')}
             >
               <img 
-                src="/images/spotlight_massage.jpg" 
-                alt="Swedish stress relief massage" 
+                src="/images/beauty_korean_glow_facial.jpg" 
+                alt="Radiant glow skin therapy" 
                 className="uc-spotlight-bg-img"
               />
               <div className="uc-spotlight-content">
                 <div>
-                  <h3 className="uc-spotlight-card-heading">Let go of that built-up stress</h3>
-                  <p className="uc-spotlight-card-sub">Swedish stress relief massage</p>
+                  <h3 className="uc-spotlight-card-heading">Restore your natural glow</h3>
+                  <p className="uc-spotlight-card-sub">Hydrating facial & skin therapy</p>
                 </div>
                 <button 
                   type="button" 
                   className="uc-spotlight-btn"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleCategoryClick('womens-salon', 'Swedish stress relief massage');
+                    handleCategoryClick('womens-salon', 'Radiant glow skin therapy');
                   }}
                 >
                   Book now

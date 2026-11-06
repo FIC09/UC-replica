@@ -469,9 +469,10 @@ function App() {
       const saved = localStorage.getItem('uc_services');
       if (saved) {
         const parsed = JSON.parse(saved);
-        const existingIds = new Set(parsed.map(s => s.id));
-        const missingInitial = INITIAL_SERVICES.filter(s => !existingIds.has(s.id));
-        const combined = missingInitial.length > 0 ? [...parsed, ...missingInitial] : parsed;
+        const filtered = parsed.filter(s => !/massage/i.test(s?.title || '') && !/massage/i.test(s?.subcategory || ''));
+        const existingIds = new Set(filtered.map(s => s.id));
+        const missingInitial = INITIAL_SERVICES.filter(s => !existingIds.has(s.id) && !/massage/i.test(s?.title || '') && !/massage/i.test(s?.subcategory || ''));
+        const combined = missingInitial.length > 0 ? [...filtered, ...missingInitial] : filtered;
         return combined.map(s => {
           let updated = { ...s };
           if (updated.image && updated.image.includes('1548839140')) {
@@ -535,7 +536,20 @@ function App() {
       }
 
       try {
-        const bRes = await bookingsApi.getAll();
+        let bRes;
+        if (user) {
+          const userPhoneDigits = (user.phone || '').replace(/\D/g, '').slice(-10);
+          const userId = (user._id || user.id || '').toString().trim();
+          const userEmail = (user.email || '').trim().toLowerCase();
+          bRes = await bookingsApi.getAll({
+            customerId: userId || undefined,
+            phone: userPhoneDigits || undefined,
+            userEmail: userEmail || undefined
+          });
+        } else {
+          bRes = { success: true, count: 0, bookings: [] };
+        }
+
         if (isMounted) {
           const serverBookings = Array.isArray(bRes?.bookings) ? bRes.bookings : [];
           setBookings(serverBookings);
@@ -810,7 +824,24 @@ function App() {
       paymentStatus: bookingDetails.paymentStatus || 'Paid'
     };
     setBookings(prev => [enriched, ...prev]);
-    setCart({}); // clear cart
+    // Remove only booked items from cart, keeping unselected items intact
+    const bookedIds = (enriched.items || bookingDetails.items || []).map(i => i.id || i.serviceId).filter(Boolean);
+    if (bookedIds.length > 0) {
+      setCart(prev => {
+        const next = { ...prev };
+        bookedIds.forEach(id => delete next[id]);
+        return next;
+      });
+    } else if (selectedCartItemIds && selectedCartItemIds.length > 0) {
+      setCart(prev => {
+        const next = { ...prev };
+        selectedCartItemIds.forEach(id => delete next[id]);
+        return next;
+      });
+    } else {
+      setCart({});
+    }
+    setSelectedCartItemIds(null);
     setIsCheckoutModalOpen(false);
     navigateToView('home');
     setActiveTrackingBooking(enriched);
@@ -1116,18 +1147,15 @@ function App() {
     const userName = (user.name || '').trim().toLowerCase();
 
     return bookings.filter(b => {
-      // 1. Match by customerId
+      // 1. Strictly match by customerId
       if (userId && b.customerId && (b.customerId.toString() === userId)) return true;
-      // 2. Match by 10-digit phone number
+      // 2. Strictly match by 10-digit phone number
       if (userPhoneDigits && b.userPhone) {
         const bPhoneDigits = b.userPhone.replace(/\D/g, '').slice(-10);
         if (bPhoneDigits && bPhoneDigits === userPhoneDigits) return true;
       }
-      // 3. Match by email
+      // 3. Strictly match by email
       if (userEmail && b.userEmail && b.userEmail.toLowerCase() === userEmail) return true;
-      // 4. Match by customer/user name
-      const bCustName = (b.userName || b.customerName || '').trim().toLowerCase();
-      if (userName && bCustName && bCustName === userName) return true;
 
       return false;
     });
@@ -1186,10 +1214,13 @@ function App() {
   const [isAdminAuthenticated, setIsAdminAuthenticated] = useState(false);
 
   useEffect(() => {
-    // Purge any stale admin session if not on admin route
+    // Purge any stale admin session if not on admin route and no valid admin token exists
     try {
       if (!window.location.pathname.startsWith('/admin')) {
-        sessionStorage.removeItem('uc_admin_auth');
+        const hasToken = localStorage.getItem('uc_admin_token') || sessionStorage.getItem('uc_admin_token');
+        if (!hasToken) {
+          sessionStorage.removeItem('uc_admin_auth');
+        }
       }
     } catch {}
   }, []);
@@ -1643,13 +1674,30 @@ function App() {
     showToast(`📍 Delivering to ${finalLocality}, ${finalCity}`);
   }
 
-  function handleProceedToCheckout() {
+  const [selectedCartItemIds, setSelectedCartItemIds] = useState(null);
+
+  const checkoutCart = React.useMemo(() => {
+    if (!selectedCartItemIds || selectedCartItemIds.length === 0) return cart;
+    const filtered = {};
+    selectedCartItemIds.forEach(id => {
+      if (cart[id]) filtered[id] = cart[id];
+    });
+    return filtered;
+  }, [cart, selectedCartItemIds]);
+
+  function handleProceedToCheckout(selectedIds) {
+    if (Array.isArray(selectedIds)) {
+      setSelectedCartItemIds(selectedIds);
+    } else {
+      setSelectedCartItemIds(null);
+    }
     setIsCartOpen(false);
     setIsCheckoutModalOpen(false);
     navigateToView('checkout');
   }
 
   function handleOpenCartView() {
+    setSelectedCartItemIds(null);
     setIsCartOpen(false);
     setIsCheckoutModalOpen(false);
     navigateToView('checkout');
@@ -2076,7 +2124,7 @@ function App() {
       ) : isCheckoutRoute || currentView === 'checkout' ? (
         <UrbanCheckoutPage
           onBackHome={handleBackHome}
-          cart={cart}
+          cart={checkoutCart}
           onUpdateQty={handleUpdateQty}
           onRemoveItem={handleRemoveItem}
           onClearCart={handleClearCart}

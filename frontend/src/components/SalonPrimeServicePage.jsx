@@ -842,7 +842,7 @@ export function SalonPrimeServicePage({
     },
     {
       id: 'detan',
-      title: 'Bleach, detan & massages',
+      title: 'Bleach & detan',
       services: [
         {
           id: 'bleach-service',
@@ -873,36 +873,6 @@ export function SalonPrimeServicePage({
             'Covers application only; please have your product ready before the service'
           ],
           description: 'Neat sectioned hair colour or organic mehendi application by skilled salon professionals.'
-        },
-        {
-          id: 'head-massage',
-          categoryId: 'detan',
-          isPackage: false,
-          title: 'Head massage',
-          rating: 4.87,
-          reviewsCount: '223K reviews',
-          price: 249,
-          optionsCount: 2,
-          thumbnailImg: '/images/salon_head_massage_photo.jpg',
-          inclusions: [
-            'Pressure point focused massage for instant relaxation'
-          ],
-          description: 'Acupressure and tension-relief head massage using nourishing essential oils.'
-        },
-        {
-          id: 'foot-massage',
-          categoryId: 'detan',
-          isPackage: false,
-          title: 'Foot massage',
-          rating: 4.81,
-          reviewsCount: '7K reviews',
-          price: 249,
-          optionsCount: 2,
-          thumbnailImg: '/images/salon_foot_massage_photo.jpg',
-          inclusions: [
-            'Pressure point focused massage for instant relaxation'
-          ],
-          description: 'Reflexology pressure point focused foot and heel massage for deep muscular relief.'
         },
         {
           id: 'raaga-white-detan',

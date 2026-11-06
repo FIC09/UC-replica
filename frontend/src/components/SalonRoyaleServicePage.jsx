@@ -36,8 +36,7 @@ export function SalonRoyaleServicePage({
     { id: 'hair-care', title: 'Hair care', img: '/images/royale_tile_haircare.png' },
     { id: 'face-care', title: 'Face care', img: '/images/royale_tile_facecare.png' },
     { id: 'beard-grooming', title: 'Shave/beard grooming', img: '/images/royale_tile_shave.png' },
-    { id: 'hair-color', title: 'Hair color', img: '/images/royale_tile_haircolor.png' },
-    { id: 'massage', title: 'Massage', img: '/images/royale_tile_massage.png' }
+    { id: 'hair-color', title: 'Hair color', img: '/images/royale_tile_haircolor.png' }
   ];
 
   // Full Catalogue matching Screenshots
@@ -310,33 +309,6 @@ export function SalonRoyaleServicePage({
           optionsCount: 4,
           image: '/images/men_inoa_logo_thumb.jpg',
           description: 'Ammonia-free luxury oil delivery system (ODS2) for 6 weeks of intense, glossy color'
-        }
-      ]
-    },
-    {
-      id: 'massage',
-      title: 'Massage',
-      services: [
-        {
-          id: 'royale-head-massage',
-          title: 'Head massage',
-          rating: 4.88,
-          reviewsCount: '190K reviews',
-          price: 219,
-          duration: '15 mins',
-          optionsCount: 2,
-          image: '/images/men_head_massage_pro.jpg',
-          description: 'Stress-busting pressure points massage using soothing almond or cooling herbal oils'
-        },
-        {
-          id: 'royale-head-neck-shoulder',
-          title: 'Head, neck & shoulder massage',
-          rating: 4.90,
-          reviewsCount: '140K reviews',
-          price: 449,
-          duration: '40 mins',
-          image: '/images/men_head_neck_shoulder.jpg',
-          description: 'Deep tissue therapy targeting upper back knots, cervical tension, and stress fatigue'
         }
       ]
     }

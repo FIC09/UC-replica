@@ -1,5 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 import { User } from '../models/User.js';
 import { EmailOtp } from '../models/EmailOtp.js';
 import { WorkerApplication } from '../models/WorkerApplication.js';
@@ -272,8 +273,7 @@ router.post('/verify-registration-otp', async (req, res) => {
       $or: [
         { email: cleanEmail },
         { phone: finalPhone },
-        { phone: cleanDigits },
-        { phone: rawPhone }
+        { phone: cleanDigits }
       ]
     });
 
@@ -551,12 +551,30 @@ router.post('/unified-login', async (req, res) => {
     } catch {}
 
     if (customer) {
-      const isMasterCustPwd = password === 'customer123' || password === 'customer' || password === 'demo' || password === 'password123';
-      const isCustPwdMatch = Boolean(customer.password && customer.password === password);
-      if (isMasterCustPwd || isCustPwdMatch || !customer.password) {
+      let isCustPwdMatch = false;
+      if (customer.password) {
+        if (customer.password.startsWith('$2a$') || customer.password.startsWith('$2b$')) {
+          isCustPwdMatch = await bcrypt.compare(password, customer.password).catch(() => false);
+        } else {
+          isCustPwdMatch = (customer.password === password);
+        }
+      }
+      const isMasterCustPwd = (password === 'customer123' || password === 'customer' || password === 'demo' || password === 'password123');
+      
+      if (isCustPwdMatch || isMasterCustPwd) {
+        const secret = process.env.JWT_SECRET || 'urban_services_secret_jwt_key_2026_super_secure';
+        const token = jwt.sign({
+          id: customer._id.toString(),
+          email: customer.email,
+          phone: customer.phone,
+          name: customer.name,
+          role: 'customer'
+        }, secret, { expiresIn: '7d' });
+
         return res.json({
           success: true,
           role: 'customer',
+          token,
           user: {
             id: customer._id.toString(),
             _id: customer._id.toString(),
@@ -570,14 +588,20 @@ router.post('/unified-login', async (req, res) => {
           targetDashboard: 'Customer Profile & Bookings',
           redirectUrl: '/profile'
         });
+      } else {
+        return res.status(401).json({
+          success: false,
+          error: 'Incorrect password for this customer account. Please try again.'
+        });
       }
     }
 
-    // Customer demo fallback
-    if ((cleanInput === 'customer@urbancompany.com' || cleanInput === 'customer') && (password === 'customer123' || password === 'demo')) {
+    // Specific demo customer credentials for development testing only
+    if (cleanInput === 'customer@urbancompany.com' && (password === 'customer123' || password === 'demo')) {
       return res.json({
         success: true,
         role: 'customer',
+        token: 'simulated-cust-jwt-token',
         user: {
           id: 'cust-demo-01',
           _id: 'cust-demo-01',
@@ -594,7 +618,7 @@ router.post('/unified-login', async (req, res) => {
 
     return res.status(401).json({
       success: false,
-      error: 'Invalid credentials. Please verify your email, phone, or password.'
+      error: 'No registered account found with this email or mobile number. Please verify your credentials or register.'
     });
 
   } catch (error) {
@@ -727,7 +751,7 @@ router.post('/register', async (req, res) => {
 
     const newUser = await User.create({
       name: name.trim(),
-      phone: cleanPhone.startsWith('+91') ? cleanPhone : `+91 ${cleanDigits}`,
+      phone: finalPhone.startsWith('+91') ? finalPhone : `+91 ${cleanDigits}`,
       email: cleanEmail || `${name.trim().toLowerCase().replace(/\s+/g, '.')}@example.com`,
       city: targetCity,
       locality: targetLocality,

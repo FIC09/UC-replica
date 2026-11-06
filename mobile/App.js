@@ -30,7 +30,11 @@ const IMAGES = {
   catPainting: require('./assets/images/categories/cat_painting.jpg'),
   catAc: require('./assets/images/categories/cat_ac.jpg'),
   catRepairs: require('./assets/images/categories/cat_repairs.jpg'),
-  catLock: require('./assets/images/door_lock_mortise.jpg'),
+  catLock: require('./assets/images/categories/cat_lock.jpg'),
+  catPurifier: require('./assets/images/categories/cat_purifier.jpg'),
+  heroAc: require('./assets/images/hero_ac.jpg'),
+  nativeSmartLockHero: require('./assets/images/native_smart_lock.jpg'),
+  beautyArmTreatment: require('./assets/images/beauty_arm_treatment.jpg'),
 
   // Spotlight & Curations
   spotlightWaxing: require('./assets/images/spotlight_waxing.jpg'),
@@ -55,6 +59,7 @@ const IMAGES = {
   beautyPedicure: require('./assets/images/beauty_pedicure.jpg'),
   headMassage: require('./assets/images/hair_head_massage_relax.jpg'),
   homeFestive: require('./assets/images/home_festive.jpg'),
+  decorAbstractFrame: require('./assets/images/decor_abstract_frame.jpg'),
   salonFestive: require('./assets/images/salon_festive_glow.jpg'),
 
   // New Sections: Appliances, Electrical, Plumbing, Men's Salon & Massage
@@ -175,7 +180,7 @@ const FESTIVE_CARDS = [
     id: 'festive-4',
     title: 'Diwali lights & decor',
     tag: null,
-    image: IMAGES.homeFestive,
+    image: IMAGES.decorAbstractFrame,
     bgColor: '#311042',
   },
 ];
@@ -186,7 +191,7 @@ const MAIN_CATEGORIES = [
     id: 'cat-1',
     name: 'InstaHelp by UC',
     image: IMAGES.catInstahelp,
-    badge: 'Price Drop ⬇',
+    badge: 'Price Drop',
     badgeType: 'green-pill-top',
   },
   {
@@ -197,7 +202,7 @@ const MAIN_CATEGORIES = [
   },
   {
     id: 'cat-3',
-    name: "Men's Salon & Massage",
+    name: "Men's Salon",
     image: IMAGES.catMensSalon,
     badge: '59 mins',
     badgeType: 'bottom-pill',
@@ -219,8 +224,7 @@ const MAIN_CATEGORIES = [
     id: 'cat-6',
     name: 'AC & Appliance Repair',
     image: IMAGES.catAc,
-    badge: '44 mins',
-    badgeType: 'bottom-pill',
+    badge: null,
   },
   {
     id: 'cat-7',
@@ -459,10 +463,10 @@ const SALON_WOMEN = [
   },
   {
     id: 'salon-2',
-    title: 'Head massage',
-    image: IMAGES.headMassage,
+    title: 'Hair styling & care',
+    image: IMAGES.hairStudioWomen,
     rating: '4.87 (226.2K)',
-    duration: '10 MINS',
+    duration: '25 MINS',
     price: 'Starts at ₹249',
     btnSubtext: '2 options',
     luxe: false,
@@ -541,39 +545,8 @@ const HOME_REPAIR_SERVICES = [
   },
 ];
 
-// 13. Massage for Men
-const MASSAGE_MEN = [
-  {
-    id: 'massage-m-1',
-    title: 'Deep tissue pain relief massage',
-    image: IMAGES.spotlightMassage,
-    rating: '4.83 (201.3K)',
-    duration: '60 MINS',
-    price: 'Starts at ₹1,429',
-    btnSubtext: null,
-    luxe: false,
-  },
-  {
-    id: 'massage-m-2',
-    title: 'Swedish stress relief massage',
-    image: IMAGES.menHeadNeckShoulder,
-    rating: '4.81 (136.3K)',
-    duration: '60 MINS',
-    price: 'Starts at ₹1,299',
-    btnSubtext: null,
-    luxe: false,
-  },
-  {
-    id: 'massage-m-3',
-    title: 'Deep tissue massage therapy',
-    image: IMAGES.heroMassage,
-    rating: '4.88 (59.4K)',
-    duration: '60 MINS',
-    price: 'Starts at ₹1,869',
-    btnSubtext: null,
-    luxe: true,
-  },
-];
+// 13. Massage for Men (Removed)
+const MASSAGE_MEN = [];
 
 // 14. Salon for Men
 const SALON_MEN = [
@@ -637,9 +610,9 @@ const BEAUTY_CATEGORIES = [
   },
   {
     id: 'b-cat-5',
-    name: 'Massage for Men',
-    image: IMAGES.beautyMassageBed,
-    badge: '59 mins',
+    name: 'Facials & Cleanup',
+    image: IMAGES.beautySkinHydrating,
+    badge: '50 mins',
   },
   {
     id: 'b-cat-6',
@@ -663,22 +636,22 @@ const BEAUTY_MOST_BOOKED = [
   },
   {
     id: 'b-most-2',
-    title: 'Stress relief Swedish massage',
-    image: IMAGES.spotlightMassage,
-    rating: '4.81 (331.8K)',
-    duration: '60 MINS',
+    title: 'Hydrating cleanup & facial',
+    image: IMAGES.beautySkinHydrating,
+    rating: '4.85 (331.8K)',
+    duration: '45 MINS',
     startsAt: true,
-    price: '₹1,469',
+    price: '₹799',
     btnSubtext: null,
   },
   {
     id: 'b-most-3',
-    title: 'Deep tissue massage',
-    image: IMAGES.beautyDeepTissueWomen,
-    rating: '4.80 (248.9K)',
-    duration: '60 MINS',
+    title: 'Haircut & beard grooming',
+    image: IMAGES.beautyMenHaircutCard,
+    rating: '4.86 (248.9K)',
+    duration: '40 MINS',
     startsAt: true,
-    price: '₹1,619',
+    price: '₹399',
     btnSubtext: null,
   },
 ];
@@ -775,27 +748,78 @@ const BEAUTY_SALON_MEN = [
   },
 ];
 
-// Beauty Tab: Massage for Men (Screenshot 5 & 6)
-const BEAUTY_MASSAGE_MEN = [
+// Beauty Tab: Massage for Men (Removed)
+const BEAUTY_MASSAGE_MEN = [];
+
+// Native Tab: "What are you looking for?" 6-Tile Grid (Direct reference screenshot)
+const NATIVE_LOOKING_FOR_TILES = [
   {
-    id: 'b-mm-1',
-    title: 'Deep tissue pain relief massage',
-    image: IMAGES.beautyMassageMenCard,
-    rating: '4.83 (201.3K)',
-    duration: '60 MINS',
-    startsAt: true,
-    price: '₹1,429',
-    btnSubtext: null,
+    id: 'ac-appliances',
+    title: 'Appliance Repair\n& Service',
+    icon: IMAGES.catAc,
+    badge: null,
   },
   {
-    id: 'b-mm-2',
-    title: 'Swedish stress relief massage',
-    image: IMAGES.heroMassage,
-    rating: '4.81 (136.3K)',
-    duration: '60 MINS',
-    startsAt: true,
-    price: '₹1,299',
-    btnSubtext: null,
+    id: 'quick-repairs',
+    title: 'Electrician,\nPlumber &...',
+    icon: IMAGES.catRepairs,
+    badge: '46 mins',
+    badgeType: 'bottom-pill',
+  },
+  {
+    id: 'bathroom-kitchen-cleaning',
+    title: 'Bathroom &\nKitchen cleaning',
+    icon: IMAGES.catCleaning,
+    badge: null,
+  },
+  {
+    id: 'cleaning',
+    title: 'Cleaning',
+    icon: IMAGES.catCleaning,
+    badge: null,
+  },
+  {
+    id: 'native-ro',
+    title: 'Native Water\nPurifier',
+    icon: IMAGES.catPurifier,
+    badge: 'Sale',
+    badgeType: 'top-sale',
+  },
+  {
+    id: 'native-smart-locks',
+    title: 'Native Smart\nLocks',
+    icon: IMAGES.catLock,
+    badge: 'Sale',
+    badgeType: 'top-sale',
+  },
+];
+
+// Beauty Tab: Web Categories (Matches Screenshot 3)
+const BEAUTY_WEB_TILES = [
+  {
+    id: 'b-tile-salon-prime',
+    title: 'Salon Prime',
+    icon: IMAGES.beautyWomenAvatar,
+    badge: null,
+  },
+  {
+    id: 'b-tile-hair-studio',
+    title: 'Hair Studio for\nWomen',
+    icon: IMAGES.beautyHairDryer,
+    badge: '74 mins',
+    badgeType: 'purple',
+  },
+  {
+    id: 'b-tile-salon-men',
+    title: 'Salon for Men',
+    icon: IMAGES.beautyMenAvatar,
+    badge: null,
+  },
+  {
+    id: 'b-tile-all',
+    title: 'All services',
+    isIcon: true,
+    badge: null,
   },
 ];
 
@@ -976,7 +1000,7 @@ const ALL_SERVICES_GROUPS = [
   },
   {
     id: 'grp-mens-salon',
-    title: "Men's Salon & Massage",
+    title: "Men's Salon",
     items: [
       {
         id: 'as-salon-men',
@@ -986,11 +1010,11 @@ const ALL_SERVICES_GROUPS = [
         price: 'Starts at ₹199',
       },
       {
-        id: 'as-massage-men',
-        name: 'Massage for Men',
-        image: IMAGES.beautyMassageBed,
-        badge: '59 mins',
-        price: 'Starts at ₹1,299',
+        id: 'as-beard-trim',
+        name: 'Beard Trimming & Styling',
+        image: IMAGES.beautyBeardTrimCard,
+        badge: '20 mins',
+        price: 'Starts at ₹199',
       },
     ],
   },
@@ -1159,7 +1183,7 @@ const ALL_SERVICES_GROUPS = [
       {
         id: 'as-festive-lights',
         name: 'Festival Lights Installation',
-        image: IMAGES.homeFestive,
+        image: IMAGES.decorAbstractFrame,
         badge: null,
         price: 'Starts at ₹499',
       },
@@ -1247,7 +1271,7 @@ const findFullProductDetails = (item, dbServices = []) => {
       { trigger: ['purifier', 'water purifier', 'ro'], match: 'native m3' },
       { trigger: ['lock ultra', 'face recognition'], match: 'native lock ultra' },
       { trigger: ['lock pro', 'smart lock'], match: 'native lock pro' },
-      { trigger: ['deep tissue', 'massage for men', 'pain relief'], match: 'scalp & neck tension relief' },
+      { trigger: ['beard', 'men grooming', 'haircut'], match: 'expert haircut' },
       { trigger: ['men haircut', 'salon for men', 'haircut'], match: 'expert haircut' },
       { trigger: ['waxing', 'rica'], match: 'rica roll-on' },
       { trigger: ['facial', 'o3', 'japanese glow', 'korean glow'], match: 'o3+ bridal glow' },
@@ -1362,7 +1386,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedService, setSelectedService] = useState(null);
   const [showAllServicesModal, setShowAllServicesModal] = useState(false);
-  const [activeTab, setActiveTab] = useState('uc');
+  const [activeTab, setActiveTab] = useState('homes');
   const [cartCount, setCartCount] = useState(0);
   const [coinsBalance, setCoinsBalance] = useState(350);
   const [scratchedCardId, setScratchedCardId] = useState(null);
@@ -1413,6 +1437,8 @@ export default function App() {
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.searchResultsHeaderRow}>
           <Text style={styles.searchResultsCount}>
@@ -1428,7 +1454,7 @@ export default function App() {
             <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
             <Text style={styles.noResultsTitle}>No exact match found</Text>
             <Text style={styles.noResultsSub}>
-              Try searching for AC, Purifier, Sofa, Massage, Haircut, or Painting
+              Try searching for AC, Purifier, Sofa, Haircut, or Painting
             </Text>
           </View>
         ) : (
@@ -1659,55 +1685,93 @@ export default function App() {
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      nestedScrollEnabled={true}
+      keyboardShouldPersistTaps="handled"
     >
-      {/* 1. Category 6-Grid (2 rows x 3 columns - Screenshot 1) */}
-      <View style={styles.beautyCategoryGrid}>
-        {BEAUTY_CATEGORIES.map((cat) => (
-          <TouchableOpacity
-            key={cat.id}
-            style={styles.beautyCategoryItem}
-            activeOpacity={0.8}
-            onPress={() => {
-              if (cat.isAllServices) {
-                setShowAllServicesModal(true);
-              } else {
-                handleAddService({ title: cat.name, price: '₹499', image: cat.image });
-              }
-            }}
-          >
-            <View style={styles.beautyCategoryCard}>
-              {cat.isIcon ? (
-                <View style={styles.allServicesIconBox}>
-                  <View style={styles.dotRow}>
-                    <View style={styles.gridDot} />
-                    <View style={styles.gridDot} />
-                    <View style={styles.gridDot} />
-                  </View>
-                  <View style={styles.dotRow}>
-                    <View style={styles.gridDot} />
-                    <View style={styles.gridDot} />
-                    <View style={styles.gridDot} />
-                  </View>
-                  <View style={styles.dotRow}>
-                    <View style={styles.gridDot} />
-                    <View style={styles.gridDot} />
-                    <View style={styles.gridDot} />
-                  </View>
+      {/* 1. BEAUTY HERO: "Beauty services at your doorstep" + Categories + 2-Photo Collage + Ratings (Screenshot 3) */}
+      <View style={styles.webHeroSection}>
+        <Text style={styles.doorstepHeadline}>
+          Beauty services at your{'\n'}doorstep
+        </Text>
+
+        {/* Category Card (Screenshot 3) */}
+        <View style={styles.beautyWebCard}>
+          <View style={styles.beautyWebGrid}>
+            {BEAUTY_WEB_TILES.map((cat) => (
+              <TouchableOpacity
+                key={cat.id}
+                style={styles.beautyWebItem}
+                activeOpacity={0.8}
+                onPress={() => {
+                  if (cat.isIcon) {
+                    setShowAllServicesModal(true);
+                  } else {
+                    handleAddService({ title: cat.title.replace('\n', ' '), price: '₹499', image: cat.icon });
+                  }
+                }}
+              >
+                <View style={styles.beautyWebIconBox}>
+                  {cat.isIcon ? (
+                    <View style={styles.allServicesIconBox}>
+                      <View style={styles.dotRow}>
+                        <View style={styles.gridDot} />
+                        <View style={styles.gridDot} />
+                        <View style={styles.gridDot} />
+                      </View>
+                      <View style={styles.dotRow}>
+                        <View style={styles.gridDot} />
+                        <View style={styles.gridDot} />
+                        <View style={styles.gridDot} />
+                      </View>
+                      <View style={styles.dotRow}>
+                        <View style={styles.gridDot} />
+                        <View style={styles.gridDot} />
+                        <View style={styles.gridDot} />
+                      </View>
+                    </View>
+                  ) : (
+                    <SafeImage source={cat.icon} style={styles.beautyWebImg} />
+                  )}
                 </View>
-              ) : (
-                <SafeImage source={cat.image} style={styles.beautyCategoryImg} />
-              )}
-              {cat.badge && (
-                <View style={styles.beautyBadgePill}>
-                  <Text style={styles.beautyBadgeText}>{cat.badge}</Text>
-                </View>
-              )}
-            </View>
-            <Text style={styles.beautyCategoryName} numberOfLines={2}>
-              {cat.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
+
+                {cat.badge ? (
+                  <View style={styles.beautyArrivalBadge}>
+                    <Text style={styles.beautyArrivalBadgeText}>{cat.badge}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.beautyBadgeSpacer} />
+                )}
+
+                <Text style={styles.beautyWebLabel} numberOfLines={2}>
+                  {cat.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* 2-Photo Mosaic Collage (Screenshot 3) */}
+        <View style={styles.beautyMosaicRow}>
+          <View style={styles.beautyMosaicCard}>
+            <SafeImage source={IMAGES.beautyArmTreatment} style={styles.beautyMosaicImg} />
+          </View>
+          <View style={styles.beautyMosaicCard}>
+            <SafeImage source={IMAGES.beautyHeroTrimmed} style={styles.beautyMosaicImg} />
+          </View>
+        </View>
+
+        {/* Trust & Ratings Banner (Screenshot 3) */}
+        <View style={styles.ratingTrustBanner}>
+          <View style={styles.ratingTrustCol}>
+            <Text style={styles.ratingTrustNumber}>★ 4.8</Text>
+            <Text style={styles.ratingTrustLabel}>Service Rating</Text>
+          </View>
+          <View style={styles.ratingTrustDivider} />
+          <View style={styles.ratingTrustCol}>
+            <Text style={styles.ratingTrustNumber}>12M+</Text>
+            <Text style={styles.ratingTrustLabel}>Customers Globally</Text>
+          </View>
+        </View>
       </View>
 
       <View style={styles.sectionDivider} />
@@ -1880,45 +1944,6 @@ export default function App() {
         ))}
       </ScrollView>
 
-      {/* 10. Hero Banner 3: Targeted pain relief for body (Screenshot 5 & 6) */}
-      <View style={styles.beautyHeroCardContainer}>
-        <TouchableOpacity
-          style={styles.beautyHeroCard}
-          activeOpacity={0.92}
-          onPress={() => handleAddService({ title: 'Deep tissue pain relief massage', price: '₹1,429', image: IMAGES.beautyHeroPainRelief })}
-        >
-          <SafeImage source={IMAGES.beautyHeroPainRelief} style={styles.beautyHeroCardBg} />
-        </TouchableOpacity>
-      </View>
-
-      {/* 11. Massage for men (Screenshot 5 & 6) */}
-      <View style={styles.beautySectionHeader}>
-        <Text style={styles.beautySectionTitle}>Massage for men</Text>
-        <Text style={styles.beautySectionSubtitle}>Massage services by trained professionals</Text>
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.servicesScroll}>
-        {BEAUTY_MASSAGE_MEN.map((item, idx) => (
-          <View key={item.id} style={[styles.serviceProductCard, idx === 0 && { marginLeft: 16 }, idx === BEAUTY_MASSAGE_MEN.length - 1 && { marginRight: 16 }]}>
-            <View style={styles.serviceImageWrapper}>
-              <SafeImage source={item.image} style={styles.serviceImage} />
-              <View style={styles.beautyAddWrapper}>
-                <TouchableOpacity style={styles.beautyAddBtn} onPress={() => handleAddService(item)}>
-                  <Text style={styles.beautyAddBtnText}>Add</Text>
-                </TouchableOpacity>
-                {item.btnSubtext && (
-                  <Text style={styles.beautyBtnSubtext}>{item.btnSubtext}</Text>
-                )}
-              </View>
-            </View>
-            <Text style={styles.serviceCardTitle} numberOfLines={2}>{item.title}</Text>
-            <Text style={styles.serviceRating}>★ {item.rating} · {item.duration}</Text>
-            {item.startsAt && <Text style={styles.beautyStartsAtText}>Starts at</Text>}
-            <Text style={styles.servicePrice}>{item.price}</Text>
-          </View>
-        ))}
-      </ScrollView>
-
       <View style={{ height: 110 }} />
     </ScrollView>
   );
@@ -1929,35 +1954,51 @@ export default function App() {
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      nestedScrollEnabled={true}
+      keyboardShouldPersistTaps="handled"
     >
-      {/* 1. Quick Category 2-Card Row (Water Purifiers & Smart Locks - Screenshot 1) */}
-      <View style={styles.nativeCategoryRow}>
+      {/* NATIVE PRODUCT SHOWCASE AT TOP: Water Purifiers & Smart Locks (Matches Screenshot 2) */}
+      <View style={styles.nativeShowcaseGrid}>
+        {/* 1. Water Purifiers Card */}
         <TouchableOpacity
-          style={styles.nativeCategoryTile}
-          activeOpacity={0.88}
-          onPress={() => handleAddService({ title: 'Native Water Purifier', price: '₹16,699', image: IMAGES.nativeTilePurifiers })}
+          style={styles.nativeShowcaseCard}
+          activeOpacity={0.92}
+          onPress={() => setSelectedService(NATIVE_WATER_PURIFIERS[0])}
         >
-          <View style={styles.nativeTileBadge}>
-            <Text style={styles.nativeTileBadgeText}>% ₹4,300 off</Text>
+          <View style={styles.nativeShowcaseBadge}>
+            <Text style={styles.nativeShowcaseBadgeText}>% ₹4,800 off</Text>
           </View>
-          <View style={styles.nativeTileImgContainer}>
-            <SafeImage source={IMAGES.nativeTilePurifiers} style={styles.nativeTileImg} />
+          <View style={styles.nativeShowcaseImgBox}>
+            <SafeImage source={IMAGES.nativePurifierM3} style={styles.nativeShowcaseImg} />
           </View>
-          <Text style={styles.nativeTileName}>Water Purifiers</Text>
+          <Text style={styles.nativeShowcaseTitle}>Water Purifiers</Text>
+          <Text style={styles.nativeShowcaseDesc}>
+            Needs no service for 2 years • In-built RO + UV + Alkaline Copper
+          </Text>
+          <View style={styles.nativeShowcasePrimaryBtn}>
+            <Text style={styles.nativeShowcasePrimaryBtnText}>Explore Water Purifiers →</Text>
+          </View>
         </TouchableOpacity>
 
+        {/* 2. Smart Locks Card */}
         <TouchableOpacity
-          style={styles.nativeCategoryTile}
-          activeOpacity={0.88}
-          onPress={() => handleAddService({ title: 'Native Smart Lock', price: '₹15,000', image: IMAGES.nativeTileLocks })}
+          style={styles.nativeShowcaseCard}
+          activeOpacity={0.92}
+          onPress={() => setSelectedService(NATIVE_SMART_LOCKS[0])}
         >
-          <View style={styles.nativeTileBadge}>
-            <Text style={styles.nativeTileBadgeText}>% ₹3,500 off</Text>
+          <View style={styles.nativeShowcaseBadge}>
+            <Text style={styles.nativeShowcaseBadgeText}>% ₹4,500 off</Text>
           </View>
-          <View style={styles.nativeTileImgContainer}>
-            <SafeImage source={IMAGES.nativeTileLocks} style={styles.nativeTileImg} />
+          <View style={styles.nativeShowcaseImgBox}>
+            <SafeImage source={IMAGES.nativeSmartLockHero} style={styles.nativeShowcaseImg} />
           </View>
-          <Text style={styles.nativeTileName}>Smart Locks</Text>
+          <Text style={styles.nativeShowcaseTitle}>Smart Locks</Text>
+          <Text style={styles.nativeShowcaseDesc}>
+            6 in 1 Unlocking • Built in Video Doorbell & Anti Theft Security
+          </Text>
+          <View style={styles.nativeShowcaseSecondaryBtn}>
+            <Text style={styles.nativeShowcaseSecondaryBtnText}>Explore Smart Locks →</Text>
+          </View>
         </TouchableOpacity>
       </View>
 
@@ -2266,7 +2307,84 @@ export default function App() {
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
+      nestedScrollEnabled={true}
+      keyboardShouldPersistTaps="handled"
     >
+      {/* 1. HOMES HERO: "Home services at your doorstep" + "What are you looking for?" + 4-Mosaic (Screenshot 1) */}
+      <View style={styles.webHeroSection}>
+        <Text style={styles.doorstepHeadline}>
+          Home services at your{'\n'}doorstep
+        </Text>
+
+        {/* White Card: "What are you looking for?" with 6 Category Tiles */}
+        <View style={styles.nativeLookingForCard}>
+          <Text style={styles.nativeLookingForTitle}>What are you looking for?</Text>
+          <View style={styles.nativeLookingForGrid}>
+            {NATIVE_LOOKING_FOR_TILES.map((tile) => (
+              <TouchableOpacity
+                key={tile.id}
+                style={styles.nativeLookingForItem}
+                activeOpacity={0.8}
+                onPress={() => {
+                  if (tile.id === 'native-ro') {
+                    setSelectedService(NATIVE_WATER_PURIFIERS[0]);
+                  } else if (tile.id === 'native-smart-locks') {
+                    setSelectedService(NATIVE_SMART_LOCKS[0]);
+                  } else if (tile.id === 'ac-appliances') {
+                    setSelectedService(APPLIANCE_SERVICES[0]);
+                  } else if (tile.id === 'quick-repairs') {
+                    setSelectedService(HOME_REPAIR_SERVICES[0]);
+                  } else {
+                    setSelectedService(CLEANING_ESSENTIALS[0]);
+                  }
+                }}
+              >
+                <View style={styles.nativeLookingForIconBox}>
+                  {tile.badgeType === 'top-sale' && (
+                    <View style={styles.nativeLookingForSaleBadge}>
+                      <Text style={styles.nativeLookingForSaleText}>{tile.badge}</Text>
+                    </View>
+                  )}
+                  <SafeImage source={tile.icon} style={styles.nativeLookingForImg} />
+                </View>
+
+                {tile.badgeType === 'bottom-pill' ? (
+                  <View style={styles.nativeLookingForArrivalBadge}>
+                    <Text style={styles.nativeLookingForArrivalText}>{tile.badge}</Text>
+                  </View>
+                ) : (
+                  <View style={styles.nativeLookingForBadgeSpacer} />
+                )}
+
+                <Text style={styles.nativeLookingForLabel} numberOfLines={2}>
+                  {tile.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        {/* 4-Photo 2x2 Mosaic Collage (Screenshot 1) */}
+        <View style={styles.mosaicGrid2x2}>
+          <View style={styles.mosaicSubcol}>
+            <View style={styles.mosaicImgCard}>
+              <SafeImage source={IMAGES.heroAc} style={styles.mosaicImg} />
+            </View>
+            <View style={styles.mosaicImgCard}>
+              <SafeImage source={IMAGES.ceilingFanInstall} style={styles.mosaicImg} />
+            </View>
+          </View>
+          <View style={styles.mosaicSubcol}>
+            <View style={styles.mosaicImgCard}>
+              <SafeImage source={IMAGES.homeBathroom} style={styles.mosaicImg} />
+            </View>
+            <View style={styles.mosaicImgCard}>
+              <SafeImage source={IMAGES.homePainter} style={styles.mosaicImg} />
+            </View>
+          </View>
+        </View>
+      </View>
+
       {/* 2. FESTIVE DIWALI ROOFTOP CAROUSEL BANNER */}
       <View style={styles.festiveContainer}>
         <View style={styles.festiveHeaderBar}>
@@ -2863,55 +2981,6 @@ export default function App() {
         ))}
       </ScrollView>
 
-      <View style={styles.sectionDivider} />
-
-      {/* 16. MASSAGE FOR MEN */}
-      <View style={styles.sectionHeaderRowWithLink}>
-        <Text style={styles.sectionHeading}>Massage for Men</Text>
-        <TouchableOpacity onPress={() => setShowAllServicesModal(true)}>
-          <Text style={styles.seeAllLink}>See all</Text>
-        </TouchableOpacity>
-      </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.servicesScroll}
-      >
-        {MASSAGE_MEN.map((item, idx) => (
-          <View
-            key={item.id}
-            style={[
-              styles.serviceProductCard,
-              idx === 0 && { marginLeft: 16 },
-              idx === MASSAGE_MEN.length - 1 && { marginRight: 16 }
-            ]}
-          >
-            <View style={styles.serviceImageWrapper}>
-              <SafeImage source={item.image} style={styles.serviceImage} />
-              {item.luxe && (
-                <View style={styles.luxeBadge}>
-                  <Text style={styles.luxeBadgeText}>Luxe</Text>
-                </View>
-              )}
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => handleAddService(item)}
-              >
-                <Text style={styles.addButtonText}>Add</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.serviceCardTitle} numberOfLines={2}>
-              {item.title}
-            </Text>
-            <Text style={styles.serviceRating}>
-              ★ {item.rating} · {item.duration}
-            </Text>
-            <Text style={styles.servicePrice}>{item.price}</Text>
-          </View>
-        ))}
-      </ScrollView>
 
       {/* 17. NATIVE M2 PRO LIMITED EDITION BANNER */}
       <View style={styles.diyaSectionBar}>
@@ -3084,7 +3153,7 @@ export default function App() {
         <View style={styles.topPurpleHeader}>
           <View style={styles.statusLocationRow}>
             <View style={styles.locationContainer}>
-              <Text style={styles.timeStatusText}>In 44 mins</Text>
+              <Text style={styles.timeStatusText}>Forge India Connect</Text>
               <TouchableOpacity activeOpacity={0.8} style={styles.locationPill}>
                 <Text style={styles.locationName}>Chennai Central - Tamil Nadu</Text>
                 <Text style={styles.dropdownArrow}> ▾</Text>
@@ -3106,12 +3175,10 @@ export default function App() {
             <TextInput
               style={styles.searchInput}
               placeholder={
-                activeTab === 'rewards'
-                  ? 'Search offers, vouchers & perks...'
-                  : activeTab === 'native'
+                activeTab === 'native'
                   ? 'Search RO purifiers, smart locks...'
-                  : activeTab === 'homes'
-                  ? 'Search deep cleaning, repairs...'
+                  : activeTab === 'beauty'
+                  ? 'Search salon, facials, spa...'
                   : 'Search for a service'
               }
               placeholderTextColor="#64748B"
@@ -3129,102 +3196,84 @@ export default function App() {
       )}
 
       {/* DYNAMIC CONTENT SWITCHER: SEARCH RESULTS OR ACTIVE BOTTOM TAB */}
-      {searchQuery.trim().length > 0 ? (
-        renderSearchResultsView()
-      ) : (
-        <>
-          {activeTab === 'uc' && renderHomeContent()}
-          {activeTab === 'beauty' && renderBeautyView()}
-          {activeTab === 'native' && renderNativeView()}
-          {activeTab === 'homes' && renderHomesView()}
-          {activeTab === 'rewards' && renderRewardsView()}
-        </>
-      )}
+      <View style={styles.tabContentWrapper}>
+        {searchQuery.trim().length > 0 ? (
+          renderSearchResultsView()
+        ) : (
+          <>
+            {(activeTab === 'homes' || activeTab === 'uc') && renderHomeContent()}
+            {activeTab === 'native' && renderNativeView()}
+            {activeTab === 'beauty' && renderBeautyView()}
+          </>
+        )}
+      </View>
 
-      {/* 21. BOTTOM NAVIGATION BAR (5 TABS) */}
+      {/* 21. BOTTOM NAVIGATION BAR (3 SECTIONS: HOMES, NATIVE, BEAUTY) */}
       <View style={styles.bottomNavContainer}>
-        {/* Tab 1: UC (Home) */}
+        {/* Tab 1: Homes */}
         <TouchableOpacity
-          style={styles.bottomNavItem}
-          onPress={() => setActiveTab('uc')}
-          activeOpacity={0.7}
-        >
-          <Image
-            source={IMAGES.iconTabUc}
-            style={[styles.bottomNavTabImg, activeTab === 'uc' && styles.bottomNavActiveTabImg]}
-          />
-          <Text style={[styles.bottomNavText, activeTab === 'uc' && styles.bottomNavActiveText]}>
-            UC
-          </Text>
-        </TouchableOpacity>
-
-        {/* Tab 2: Beauty */}
-        <TouchableOpacity
-          style={styles.bottomNavItem}
-          onPress={() => setActiveTab('beauty')}
-          activeOpacity={0.7}
-        >
-          <Image
-            source={IMAGES.iconTabBeauty}
-            style={[styles.bottomNavTabImg, activeTab === 'beauty' && styles.bottomNavActiveTabImg]}
-          />
-          <Text style={[styles.bottomNavText, activeTab === 'beauty' && styles.bottomNavActiveText]}>
-            Beauty
-          </Text>
-        </TouchableOpacity>
-
-        {/* Tab 3: Native */}
-        <TouchableOpacity
-          style={styles.bottomNavItem}
-          onPress={() => setActiveTab('native')}
-          activeOpacity={0.7}
-        >
-          {activeTab === 'native' ? (
-            <Image source={IMAGES.iconNativeTab} style={styles.bottomNavNativeImg} />
-          ) : (
-            <Image
-              source={IMAGES.iconTabNative}
-              style={[styles.bottomNavTabImg, activeTab === 'native' && styles.bottomNavActiveTabImg]}
-            />
-          )}
-          <Text style={[styles.bottomNavText, activeTab === 'native' && styles.bottomNavActiveText]}>
-            Native
-          </Text>
-        </TouchableOpacity>
-
-        {/* Tab 4: Homes */}
-        <TouchableOpacity
-          style={styles.bottomNavItem}
+          style={styles.navSectionTab}
           onPress={() => setActiveTab('homes')}
           activeOpacity={0.7}
         >
-          <Image
-            source={IMAGES.iconTabHomes}
-            style={[styles.bottomNavTabImg, activeTab === 'homes' && styles.bottomNavActiveTabImg]}
-          />
-          <Text style={[styles.bottomNavText, activeTab === 'homes' && styles.bottomNavActiveText]}>
+          <Text
+            style={[
+              styles.navSectionText,
+              (activeTab === 'homes' || activeTab === 'uc') && styles.navSectionActiveText,
+            ]}
+          >
             Homes
           </Text>
+          <View
+            style={[
+              styles.navSectionIndicator,
+              (activeTab === 'homes' || activeTab === 'uc') && styles.navSectionIndicatorActive,
+            ]}
+          />
         </TouchableOpacity>
 
-        {/* Tab 5: Rewards */}
+        {/* Tab 2: Native */}
         <TouchableOpacity
-          style={styles.bottomNavItem}
-          onPress={() => setActiveTab('rewards')}
+          style={styles.navSectionTab}
+          onPress={() => setActiveTab('native')}
           activeOpacity={0.7}
         >
-          <View style={{ position: 'relative' }}>
-            <Image
-              source={IMAGES.iconTabRewards}
-              style={[styles.bottomNavTabImg, activeTab === 'rewards' && styles.bottomNavActiveTabImg]}
-            />
-            {coinsBalance > 0 && (
-              <View style={styles.rewardsBadgeDot} />
-            )}
-          </View>
-          <Text style={[styles.bottomNavText, activeTab === 'rewards' && styles.bottomNavActiveText]}>
-            Rewards
+          <Text
+            style={[
+              styles.navSectionText,
+              activeTab === 'native' && styles.navSectionActiveText,
+            ]}
+          >
+            Native
           </Text>
+          <View
+            style={[
+              styles.navSectionIndicator,
+              activeTab === 'native' && styles.navSectionIndicatorActive,
+            ]}
+          />
+        </TouchableOpacity>
+
+        {/* Tab 3: Beauty */}
+        <TouchableOpacity
+          style={styles.navSectionTab}
+          onPress={() => setActiveTab('beauty')}
+          activeOpacity={0.7}
+        >
+          <Text
+            style={[
+              styles.navSectionText,
+              activeTab === 'beauty' && styles.navSectionActiveText,
+            ]}
+          >
+            Beauty
+          </Text>
+          <View
+            style={[
+              styles.navSectionIndicator,
+              activeTab === 'beauty' && styles.navSectionIndicatorActive,
+            ]}
+          />
         </TouchableOpacity>
       </View>
 
@@ -3495,14 +3544,27 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
+    height: Platform.OS === 'web' ? '100vh' : '100%',
+    maxHeight: Platform.OS === 'web' ? '100vh' : undefined,
     backgroundColor: '#2B0957',
+    maxWidth: Platform.OS === 'web' ? 440 : undefined,
+    width: '100%',
+    alignSelf: 'center',
+    overflow: 'hidden',
+  },
+  tabContentWrapper: {
+    flex: 1,
+    width: '100%',
+    overflow: 'hidden',
   },
   container: {
     flex: 1,
+    width: '100%',
     backgroundColor: '#FFFFFF',
   },
   scrollContent: {
-    paddingBottom: 20,
+    flexGrow: 1,
+    paddingBottom: 90,
   },
 
   // 1. TOP PURPLE BANNER HEADER
@@ -3709,13 +3771,14 @@ const styles = StyleSheet.create({
     rowGap: 14,
   },
   categoryItem: {
-    width: (width - 20) / 4,
+    width: '25%',
     alignItems: 'center',
     paddingHorizontal: 4,
+    marginBottom: 6,
   },
   categoryCard: {
-    width: (width - 20) / 4 - 8,
-    height: (width - 20) / 4 - 8,
+    width: '90%',
+    aspectRatio: 1,
     borderRadius: 16,
     backgroundColor: '#F8FAFC',
     overflow: 'hidden',
@@ -4043,13 +4106,13 @@ const styles = StyleSheet.create({
     rowGap: 20,
   },
   noteworthyItem: {
-    width: (width - 24) / 4,
+    width: '25%',
     alignItems: 'center',
     paddingHorizontal: 4,
   },
   noteworthyImageCard: {
-    width: (width - 24) / 4 - 8,
-    height: (width - 24) / 4 - 8,
+    width: '90%',
+    aspectRatio: 1,
     borderRadius: 14,
     backgroundColor: '#F8FAFC',
     overflow: 'hidden',
@@ -4737,13 +4800,13 @@ const styles = StyleSheet.create({
     rowGap: 14,
   },
   beautyCategoryItem: {
-    width: (width - 24) / 3,
+    width: '33.33%',
     alignItems: 'center',
     paddingHorizontal: 6,
   },
   beautyCategoryCard: {
-    width: (width - 24) / 3 - 12,
-    height: (width - 24) / 3 - 12,
+    width: '90%',
+    aspectRatio: 1,
     borderRadius: 16,
     backgroundColor: '#F8FAFC',
     overflow: 'hidden',
@@ -5018,6 +5081,99 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     marginTop: 4,
   },
+
+  // "What are you looking for?" 6-Tile Card (Matches Reference Screenshot)
+  nativeLookingForCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 14,
+    marginBottom: 14,
+    borderRadius: 22,
+    paddingHorizontal: 16,
+    paddingTop: 18,
+    paddingBottom: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  nativeLookingForTitle: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.4,
+    marginBottom: 16,
+  },
+  nativeLookingForGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 18,
+  },
+  nativeLookingForItem: {
+    width: '31%',
+    alignItems: 'center',
+  },
+  nativeLookingForIconBox: {
+    width: 76,
+    height: 76,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  nativeLookingForImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  nativeLookingForSaleBadge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: '#059669',
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    zIndex: 10,
+  },
+  nativeLookingForSaleText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  nativeLookingForArrivalBadge: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 5,
+  },
+  nativeLookingForArrivalText: {
+    color: '#059669',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  nativeLookingForBadgeSpacer: {
+    height: 19,
+  },
+  nativeLookingForLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1E293B',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 16,
+  },
+
   nativeCategoryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -5026,7 +5182,7 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   nativeCategoryTile: {
-    width: (width - 42) / 2,
+    width: '48%',
     backgroundColor: '#F8FAFC',
     borderRadius: 16,
     paddingVertical: 14,
@@ -5280,16 +5436,48 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  // 21. BOTTOM NAVIGATION BAR
+  // 21. BOTTOM NAVIGATION BAR (3 SECTIONS: HOMES, NATIVE, BEAUTY)
   bottomNavContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    height: 62,
-    paddingBottom: Platform.OS === 'ios' ? 6 : 2,
+    borderTopColor: '#E2E8F0',
+    paddingTop: 8,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 6,
+    elevation: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+  },
+  navSectionTab: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 2,
+  },
+  navSectionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#64748B',
+    letterSpacing: 0.1,
+  },
+  navSectionActiveText: {
+    color: '#000000',
+    fontWeight: '800',
+  },
+  navSectionIndicator: {
+    height: 3.5,
+    width: '100%',
+    minWidth: 54,
+    backgroundColor: 'transparent',
+    marginTop: 6,
+    borderRadius: 2,
+  },
+  navSectionIndicatorActive: {
+    backgroundColor: '#000000',
   },
   bottomNavItem: {
     alignItems: 'center',
@@ -5481,13 +5669,13 @@ const styles = StyleSheet.create({
     rowGap: 14,
   },
   allServicesGridItem: {
-    width: (width - 32) / 4,
+    width: '25%',
     alignItems: 'center',
     paddingHorizontal: 2,
   },
   allServicesCardImageWrapper: {
-    width: (width - 32) / 4 - 8,
-    height: (width - 32) / 4 - 8,
+    width: '90%',
+    aspectRatio: 1,
     borderRadius: 14,
     backgroundColor: '#F8FAFC',
     alignItems: 'center',
@@ -6039,5 +6227,273 @@ const styles = StyleSheet.create({
     color: '#6D28D9',
     fontSize: 12,
     fontWeight: '800',
+  },
+
+  // ==========================================
+  // WEB-ALIGNED HERO & SHOWCASE STYLES
+  // ==========================================
+  webHeroSection: {
+    backgroundColor: '#FFFFFF',
+    paddingTop: 12,
+    paddingBottom: 16,
+  },
+  doorstepHeadline: {
+    fontSize: 26,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.5,
+    lineHeight: 32,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+
+  // 4-Photo 2x2 Mosaic Collage (Homes View)
+  mosaicGrid2x2: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 16,
+    gap: 10,
+  },
+  mosaicSubcol: {
+    flex: 1,
+    gap: 10,
+  },
+  mosaicImgCard: {
+    width: '100%',
+    height: 110,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  mosaicImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+
+  // Beauty Tab: Web Categories Card
+  beautyWebCard: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    marginTop: 10,
+    marginBottom: 14,
+    borderRadius: 22,
+    paddingHorizontal: 14,
+    paddingTop: 18,
+    paddingBottom: 20,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  beautyWebGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 18,
+  },
+  beautyWebItem: {
+    width: '31%',
+    alignItems: 'center',
+  },
+  beautyWebIconBox: {
+    width: 72,
+    height: 72,
+    borderRadius: 18,
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  beautyWebImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  beautyArrivalBadge: {
+    backgroundColor: '#F3E8FF',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginTop: 5,
+  },
+  beautyArrivalBadgeText: {
+    color: '#7E22CE',
+    fontSize: 9.5,
+    fontWeight: '700',
+  },
+  beautyBadgeSpacer: {
+    height: 18,
+  },
+  beautyWebLabel: {
+    fontSize: 11.5,
+    fontWeight: '600',
+    color: '#1E293B',
+    textAlign: 'center',
+    marginTop: 4,
+    lineHeight: 15,
+  },
+
+  // Beauty 2-Photo Mosaic Row
+  beautyMosaicRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 16,
+    gap: 10,
+  },
+  beautyMosaicCard: {
+    flex: 1,
+    height: 140,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  beautyMosaicImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+
+  // Rating & Trust Banner
+  ratingTrustBanner: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  ratingTrustCol: {
+    alignItems: 'center',
+  },
+  ratingTrustNumber: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  ratingTrustLabel: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#64748B',
+    marginTop: 2,
+  },
+  ratingTrustDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: '#E2E8F0',
+  },
+
+  // Native Showcase Cards (Water Purifiers & Smart Locks)
+  nativeShowcaseGrid: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  nativeShowcaseCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    position: 'relative',
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: 16,
+  },
+  nativeShowcaseBadge: {
+    position: 'absolute',
+    top: 14,
+    left: 14,
+    backgroundColor: '#047857',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    zIndex: 5,
+  },
+  nativeShowcaseBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  nativeShowcaseImgBox: {
+    width: '100%',
+    height: 180,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#1E293B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
+  },
+  nativeShowcaseImg: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  nativeShowcaseTitle: {
+    fontSize: 21,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+    marginBottom: 6,
+  },
+  nativeShowcaseDesc: {
+    fontSize: 13,
+    color: '#64748B',
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  nativeShowcasePrimaryBtn: {
+    backgroundColor: '#0F172A',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nativeShowcasePrimaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  nativeShowcaseSecondaryBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nativeShowcaseSecondaryBtnText: {
+    color: '#0F172A',
+    fontSize: 14,
+    fontWeight: '700',
   },
 });

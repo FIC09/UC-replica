@@ -897,7 +897,7 @@ export function SupportView({ onShowToast }) {
                   </div>
 
                   <p style={{ margin: '4px 0 0 0', fontSize: 13, color: '#334155', lineHeight: 1.45 }}>
-                    {msg.text}
+                    {msg.text || msg.message}
                   </p>
 
                   {msg.attachments?.length > 0 && (

@@ -541,21 +541,21 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
 
   return (
     <>
-      {/* Toast Notification */}
+      {/* Toast Notification (Z-Index 100000 guaranteed above all popups and modal backdrops) */}
       {toastMessage && (
         <div style={{
           position: 'fixed',
-          top: 20,
-          right: 20,
+          top: 24,
+          right: 24,
           background: '#0f172a',
           color: '#ffffff',
-          padding: '12px 20px',
+          padding: '14px 22px',
           borderRadius: 12,
           fontSize: 14,
-          fontWeight: 600,
-          zIndex: 99999,
-          boxShadow: '0 10px 25px -5px rgba(0,0,0,0.3)',
-          border: '1px solid rgba(255,255,255,0.1)',
+          fontWeight: 700,
+          zIndex: 100000,
+          boxShadow: '0 20px 40px -5px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.15)',
+          border: '1px solid rgba(255,255,255,0.15)',
           animation: 'slideDown 0.2s ease-out'
         }}>
           {toastMessage}

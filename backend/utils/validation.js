@@ -40,7 +40,7 @@ export function validateIndianMobile(rawPhone) {
   if (!/^[6-9]/.test(str)) {
     return {
       isValid: false,
-      message: 'Mobile number must start with 6, 7, 8, or 9. Numbers starting with 1–5 are invalid.'
+      message: 'Mobile number must start with 6, 7, 8, or 9. Numbers starting with 0–5 are invalid.'
     };
   }
 

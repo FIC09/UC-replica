@@ -1651,7 +1651,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 99999,
+          zIndex: 8000,
           padding: 20
         }}>
           <div style={{

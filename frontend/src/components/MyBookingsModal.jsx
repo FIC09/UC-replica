@@ -489,7 +489,7 @@ export function MyBookingsModal({
                               alignItems: 'center',
                               gap: 4
                             }}
-                            title="Edit delivery address or instructions"
+                            title="Edit service address or instructions"
                           >
                             <Edit3 size={13} />
                             <span>Edit</span>
@@ -740,7 +740,7 @@ export function MyBookingsModal({
               <div style={{ padding: 18, borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <Edit3 size={18} color="#6E42E5" />
-                  <h4 style={{ fontSize: 16, fontWeight: 800 }}>Edit Delivery Address & Notes</h4>
+                  <h4 style={{ fontSize: 16, fontWeight: 800 }}>Edit Service Address & Notes</h4>
                 </div>
                 <button type="button" onClick={() => setEditingAddressBooking(null)}>
                   <X size={18} />
@@ -750,7 +750,7 @@ export function MyBookingsModal({
               <form onSubmit={handleSaveAddressNotes} style={{ padding: 20 }}>
                 <div style={{ marginBottom: 14 }}>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#4B5563', display: 'block', marginBottom: 4 }}>
-                    Delivery Address
+                    Service Address
                   </label>
                   <textarea
                     rows={3}

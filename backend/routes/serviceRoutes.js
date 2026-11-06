@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
       ];
     }
 
-    const services = await Service.find(query).sort({ createdAt: -1 });
+    const services = await Service.find(query).sort({ createdAt: -1 }).lean();
     res.json({ success: true, count: services.length, services });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -38,7 +38,7 @@ router.get('/', async (req, res) => {
 // GET service by custom id
 router.get('/:id', async (req, res) => {
   try {
-    const service = await Service.findOne({ id: req.params.id });
+    const service = await Service.findOne({ id: req.params.id }).lean();
     if (!service) {
       return res.status(404).json({ success: false, message: 'Service not found' });
     }
