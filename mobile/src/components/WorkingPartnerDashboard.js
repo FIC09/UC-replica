@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,8 @@ export default function WorkingPartnerDashboard({
   onAddReviewReply,
   onUpdateJobStage,
   sharedBooking,
+  sharedLeads,
+  onAcceptLead,
   onSyncJob
 }) {
   const [isOnline, setIsOnline] = useState(true);
@@ -92,31 +94,55 @@ export default function WorkingPartnerDashboard({
     if (onSwitchToCustomer) onSwitchToCustomer();
   };
 
-  // Available hot job leads matching the web application
-  const [availableLeads, setAvailableLeads] = useState([
-    {
-      id: 'LEAD-104',
-      service: 'AC Gas Leak Repair & Refill',
-      customer: 'Pooja Deshmukh',
-      address: 'Perry Cross Rd, Bandra West, Mumbai',
-      distance: '0.8 km away',
-      payout: 1250,
-      slot: 'Today, 02:00 PM',
-      phone: '+91 98330 99881',
-      tag: '⚡ HOT LEAD (15 MINS)'
-    },
-    {
-      id: 'LEAD-105',
-      service: 'Microwave Heating Coil & Magnetron Fix',
-      customer: 'Amitabh Sen',
-      address: 'Turner Road, Bandra West, Mumbai',
-      distance: '1.4 km away',
-      payout: 650,
-      slot: 'Today, 04:30 PM',
-      phone: '+91 98210 44321',
-      tag: '⚡ POPULAR'
+  // Available hot job leads matching live customer bookings and web application
+  const [availableLeads, setAvailableLeads] = useState(() => {
+    if (sharedLeads && Array.isArray(sharedLeads) && sharedLeads.length > 0) {
+      return sharedLeads;
     }
-  ]);
+    return [
+      {
+        id: 'LEAD-9410',
+        bookingId: '9410',
+        service: 'All in All AC',
+        customer: 'Rahul Sharma',
+        address: 'Flat 302, Green Park, Rayakottai Road, Krishnagiri - 635122',
+        distance: '0.5 km away',
+        payout: 3524,
+        slot: 'Today, 04:00 PM - 05:00 PM',
+        phone: '+91 98200 12345',
+        tag: '🔥 NEW LIVE BOOKING (JUST NOW)'
+      },
+      {
+        id: 'LEAD-104',
+        service: 'AC Gas Leak Repair & Refill',
+        customer: 'Pooja Deshmukh',
+        address: 'Perry Cross Rd, Bandra West, Mumbai',
+        distance: '0.8 km away',
+        payout: 1250,
+        slot: 'Today, 02:00 PM',
+        phone: '+91 98330 99881',
+        tag: '⚡ HOT LEAD (15 MINS)'
+      },
+      {
+        id: 'LEAD-105',
+        service: 'Microwave Heating Coil & Magnetron Fix',
+        customer: 'Amitabh Sen',
+        address: 'Turner Road, Bandra West, Mumbai',
+        distance: '1.4 km away',
+        payout: 650,
+        slot: 'Today, 04:30 PM',
+        phone: '+91 98210 44321',
+        tag: '⚡ POPULAR'
+      }
+    ];
+  });
+
+  // Sync available hot leads when customer books a new service
+  useEffect(() => {
+    if (sharedLeads && Array.isArray(sharedLeads)) {
+      setAvailableLeads(sharedLeads);
+    }
+  }, [sharedLeads]);
 
   // Real Customer reviews matching the web application
   const [localReviews, setLocalReviews] = useState([
@@ -294,15 +320,16 @@ export default function WorkingPartnerDashboard({
   };
 
   const handleAcceptLead = (lead) => {
+    const cleanId = lead.id ? (lead.id.startsWith('JOB') ? lead.id : lead.id.replace('LEAD-', 'JOB-').replace('LEAD', 'JOB-')) : 'JOB-9410';
     const newJob = {
-      id: lead.id.replace('LEAD', 'JOB'),
-      customer: lead.customer,
-      address: lead.address,
-      phone: lead.phone,
-      service: lead.service,
-      payout: lead.payout,
-      distance: lead.distance,
-      otp: '4829',
+      id: cleanId,
+      customer: lead.customer || 'Rahul Sharma',
+      address: lead.address || 'Flat 302, Green Park, Rayakottai Road, Krishnagiri - 635122',
+      phone: lead.phone || '+91 98200 12345',
+      service: lead.service || 'All in All AC',
+      payout: lead.payout || 3524,
+      distance: lead.distance || '0.5 km away',
+      otp: lead.otp || '4829',
       status: 'Assigned',
       checklist: [
         { id: 1, text: 'Verify 4-digit start OTP with customer', done: false },
@@ -319,6 +346,9 @@ export default function WorkingPartnerDashboard({
     setPreServicePhoto(null);
     setPostServicePhoto(null);
     setAvailableLeads((prev) => prev.filter((l) => l.id !== lead.id));
+    if (onAcceptLead) {
+      onAcceptLead(lead.id);
+    }
     setActiveTab('jobs');
     if (onUpdateJobStage) onUpdateJobStage(2);
     if (onSyncJob) onSyncJob({ ...newJob, stage: 2 });
@@ -884,28 +914,43 @@ export default function WorkingPartnerDashboard({
               <Text style={styles.sectionSub}>Available nearby dispatches ready for instant pickup</Text>
             </View>
 
-            {availableLeads.map((lead) => (
-              <View key={lead.id} style={styles.leadCard}>
-                <View style={styles.leadTopRow}>
-                  <View style={styles.leadTagBadge}>
-                    <Text style={styles.leadTagText}>{lead.tag}</Text>
-                  </View>
-                  <Text style={styles.leadPayoutText}>₹{lead.payout}</Text>
-                </View>
-
-                <Text style={styles.leadServiceText}>{lead.service}</Text>
-                <Text style={styles.leadAddressText}>📍 {lead.address} ({lead.distance})</Text>
-                <Text style={styles.leadSlotText}>⏰ Scheduled Slot: {lead.slot}</Text>
-
-                <TouchableOpacity
-                  style={styles.acceptLeadBtn}
-                  onPress={() => handleAcceptLead(lead)}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.acceptLeadBtnText}>⚡ Accept Dispatch →</Text>
-                </TouchableOpacity>
+            {availableLeads.length === 0 ? (
+              <View style={[styles.leadCard, { alignItems: 'center', paddingVertical: 36, backgroundColor: '#1E293B' }]}>
+                <Text style={{ fontSize: 32, marginBottom: 8 }}>🎉</Text>
+                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }}>All Caught Up!</Text>
+                <Text style={{ color: '#94A3B8', fontSize: 12, marginTop: 4, textAlign: 'center' }}>
+                  No pending dispatches right now. New customer bookings will appear here instantly.
+                </Text>
               </View>
-            ))}
+            ) : (
+              availableLeads.map((lead) => {
+                const isNew = lead.tag?.includes('NEW') || lead.tag?.includes('LIVE');
+                return (
+                  <View key={lead.id} style={[styles.leadCard, isNew && { borderColor: '#F04400', borderWidth: 1.5 }]}>
+                    <View style={styles.leadTopRow}>
+                      <View style={[styles.leadTagBadge, isNew && { backgroundColor: '#EF4444' }]}>
+                        <Text style={styles.leadTagText}>{lead.tag}</Text>
+                      </View>
+                      <Text style={styles.leadPayoutText}>₹{lead.payout}</Text>
+                    </View>
+
+                    <Text style={styles.leadServiceText}>{lead.service}</Text>
+                    <Text style={styles.leadAddressText}>
+                      📍 {lead.address} {lead.distance ? `(${lead.distance})` : ''}
+                    </Text>
+                    <Text style={styles.leadSlotText}>⏰ Scheduled Slot: {lead.slot}</Text>
+
+                    <TouchableOpacity
+                      style={styles.acceptLeadBtn}
+                      onPress={() => handleAcceptLead(lead)}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={styles.acceptLeadBtnText}>⚡ Accept Dispatch →</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })
+            )}
           </View>
         )}
 
@@ -2083,6 +2128,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderWidth: 1,
     borderColor: '#334155',
+    marginBottom: 12,
   },
   leadTopRow: {
     flexDirection: 'row',

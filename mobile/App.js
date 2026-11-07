@@ -2210,10 +2210,14 @@ export default function App() {
   const [partnerReviews, setPartnerReviews] = useState([]);
   const [activeCustomerBooking, setActiveCustomerBooking] = useState({
     id: '9410',
-    service: 'Powerjet AC Servicing (Split)',
-    price: 750,
+    service: 'All in All AC',
+    price: 3524,
     otp: '4829',
-    stage: 3, // Specialist En Route
+    stage: 2, // Specialist Assigned
+    address: 'Flat 302, Green Park, Rayakottai Road, Krishnagiri - 635122',
+    customer: 'Rahul Sharma',
+    phone: '+91 98200 12345',
+    slot: 'Today, 04:00 PM - 05:00 PM',
     technician: {
       name: 'Vikram Salvi',
       rating: 4.94,
@@ -2221,6 +2225,44 @@ export default function App() {
       vehicle: 'MH-02-CB-4912'
     }
   });
+
+  // Partner Hot Leads Queue (live synchronized between customer bookings and worker portal)
+  const [partnerLeads, setPartnerLeads] = useState([
+    {
+      id: 'LEAD-9410',
+      bookingId: '9410',
+      service: 'All in All AC',
+      payout: 3524,
+      customer: 'Rahul Sharma',
+      address: 'Flat 302, Green Park, Rayakottai Road, Krishnagiri - 635122',
+      distance: '0.5 km away',
+      slot: 'Today, 04:00 PM - 05:00 PM',
+      phone: '+91 98200 12345',
+      tag: '🔥 NEW LIVE BOOKING (JUST NOW)'
+    },
+    {
+      id: 'LEAD-104',
+      service: 'AC Gas Leak Repair & Refill',
+      customer: 'Pooja Deshmukh',
+      address: 'Perry Cross Rd, Bandra West, Mumbai',
+      distance: '0.8 km away',
+      payout: 1250,
+      slot: 'Today, 02:00 PM',
+      phone: '+91 98330 99881',
+      tag: '⚡ HOT LEAD (15 MINS)'
+    },
+    {
+      id: 'LEAD-105',
+      service: 'Microwave Heating Coil & Magnetron Fix',
+      customer: 'Amitabh Sen',
+      address: 'Turner Road, Bandra West, Mumbai',
+      distance: '1.4 km away',
+      payout: 650,
+      slot: 'Today, 04:30 PM',
+      phone: '+91 98210 44321',
+      tag: '⚡ POPULAR'
+    }
+  ]);
 
   // Slot, Address & Payment Flow State
   const [showCheckoutFlow, setShowCheckoutFlow] = useState(false);
@@ -4278,6 +4320,10 @@ export default function App() {
             }}
             sharedReviews={partnerReviews}
             sharedBooking={activeCustomerBooking}
+            sharedLeads={partnerLeads}
+            onAcceptLead={(leadId) => {
+              setPartnerLeads((prev) => prev.filter((l) => l.id !== leadId));
+            }}
             onAddReviewReply={(revId, replyText) => {
               setPartnerReviews((prev) =>
                 prev.map((r) => (r.id === revId ? { ...r, reply: replyText } : r))
@@ -5147,6 +5193,24 @@ export default function App() {
               {/* Action Buttons */}
               <View style={styles.profileMenuActions}>
                 <TouchableOpacity
+                  style={[styles.profileLogoutBtn, { backgroundColor: '#1E293B', marginBottom: 10 }]}
+                  activeOpacity={0.85}
+                  onPress={() => {
+                    setShowProfileMenuModal(false);
+                    setCurrentUser((prev) => ({
+                      ...(prev || {}),
+                      name: 'Vikram Salvi',
+                      email: 'partner@forgeindia.in',
+                      role: 'partner'
+                    }));
+                  }}
+                >
+                  <Text style={[styles.profileLogoutText, { color: '#38BDF8' }]}>
+                    ⚡ Switch to Worker Portal
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                   style={styles.profileLogoutBtn}
                   activeOpacity={0.85}
                   onPress={() => {
@@ -5195,14 +5259,37 @@ export default function App() {
         onBookingSuccess={(bookingDetails) => {
           setCartCount((prev) => prev + 1);
           setCoinsBalance((prev) => prev + 50);
+
+          const newLeadId = `LEAD-${bookingDetails.id || Math.floor(1000 + Math.random() * 9000)}`;
+          const freshLead = {
+            id: newLeadId,
+            bookingId: bookingDetails.id || '9410',
+            service: bookingDetails.serviceName || checkoutService?.title || checkoutService?.name || 'All in All AC',
+            customer: currentUser?.name || 'Rahul Sharma',
+            address: bookingDetails.address || 'Flat 302, Green Park, Rayakottai Road, Krishnagiri - 635122',
+            distance: '0.4 km away',
+            payout: bookingDetails.price || 3524,
+            slot: bookingDetails.slot || 'Today, Express Doorstep',
+            phone: currentUser?.phone || '+91 98200 12345',
+            tag: '🔥 NEW LIVE BOOKING (JUST NOW)',
+            paymentMode: bookingDetails.paymentMode || 'UPI',
+            otp: bookingDetails.otp || '4829'
+          };
+
+          // Prepend to partner leads so worker dashboard immediately has it in Hot Leads & Queue!
+          setPartnerLeads((prev) => [freshLead, ...prev.filter((l) => l.id !== newLeadId)]);
+
           setActiveCustomerBooking((prev) => ({
             ...prev,
             id: bookingDetails.id || '9410',
-            service: bookingDetails.serviceName,
-            price: bookingDetails.price,
-            slot: bookingDetails.slot,
-            address: bookingDetails.address,
-            stage: 2 // Specialist Assigned
+            service: freshLead.service,
+            price: freshLead.payout,
+            slot: freshLead.slot,
+            address: freshLead.address,
+            customer: freshLead.customer,
+            phone: freshLead.phone,
+            otp: freshLead.otp,
+            stage: 2 // Specialist Assigned / Pending pickup
           }));
           setShowCheckoutFlow(false);
           setCheckoutService(null);
