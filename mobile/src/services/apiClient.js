@@ -1,8 +1,10 @@
-import { API_BASE_URL, CLOUD_API_URL } from '../config/api';
+import { Platform } from 'react-native';
+import { API_BASE_URL, CLOUD_API_URL, getCandidateApiUrls } from '../config/api';
 
 // In-memory persistent user credential store for offline & instant mobile access
 const LOCAL_USERS_STORE = new Map();
-LOCAL_USERS_STORE.set('partner@forgeindia.in', {
+
+const defaultWorkerUser = {
   email: 'partner@forgeindia.in',
   password: 'password123',
   name: 'Vikram Salvi',
@@ -10,14 +12,33 @@ LOCAL_USERS_STORE.set('partner@forgeindia.in', {
   trade: 'Master AC Specialist & Electrician',
   rating: 4.94,
   id: 'PRO-8841'
-});
-LOCAL_USERS_STORE.set('customer@forgeindia.in', {
+};
+
+// Register worker aliases
+LOCAL_USERS_STORE.set('partner@forgeindia.in', defaultWorkerUser);
+LOCAL_USERS_STORE.set('pro@urbancompany.com', { ...defaultWorkerUser, email: 'pro@urbancompany.com' });
+LOCAL_USERS_STORE.set('pro@forgeindia.in', { ...defaultWorkerUser, email: 'pro@forgeindia.in' });
+LOCAL_USERS_STORE.set('partner@urbancompany.com', { ...defaultWorkerUser, email: 'partner@urbancompany.com' });
+LOCAL_USERS_STORE.set('worker@urbancompany.com', { ...defaultWorkerUser, email: 'worker@urbancompany.com' });
+LOCAL_USERS_STORE.set('vikram@urbancompany.com', { ...defaultWorkerUser, email: 'vikram@urbancompany.com' });
+LOCAL_USERS_STORE.set('pro', defaultWorkerUser);
+LOCAL_USERS_STORE.set('worker', defaultWorkerUser);
+LOCAL_USERS_STORE.set('partner', defaultWorkerUser);
+
+// Register customer aliases
+const defaultCustomerUser = {
   email: 'customer@forgeindia.in',
   password: 'password123',
   name: 'Rahul Sharma',
   role: 'customer',
   id: 'CUST-1001'
-});
+};
+LOCAL_USERS_STORE.set('customer@forgeindia.in', defaultCustomerUser);
+LOCAL_USERS_STORE.set('customer@urbancompany.com', { ...defaultCustomerUser, email: 'customer@urbancompany.com' });
+LOCAL_USERS_STORE.set('customer', defaultCustomerUser);
+
+// Track recent network errors to prevent terminal flooding
+const LAST_ERROR_MAP = new Map();
 
 /**
  * Universal Mobile API Client connected directly to the Express & MongoDB Atlas backend.
@@ -28,64 +49,127 @@ class MobileApiClient {
   }
 
   async request(endpoint, options = {}) {
-    const primaryUrl = `${this.baseUrl}${endpoint}`;
-    const headers = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      ...(options.headers || {})
-    };
+    const candidates = [
+      this.baseUrl,
+      ...getCandidateApiUrls()
+    ].filter((cand, idx, arr) => cand && arr.indexOf(cand) === idx);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    let lastError = null;
+    const timeoutMs = options.timeout || 1800;
 
-    try {
-      const response = await fetch(primaryUrl, {
-        ...options,
-        headers,
-        signal: controller.signal
-      });
-      clearTimeout(timeoutId);
+    for (const base of candidates) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
-      const contentType = response.headers.get('content-type') || '';
-      if (!response.ok || !contentType.includes('application/json')) {
-        throw new Error(`Server returned HTTP ${response.status} (${contentType.split(';')[0] || 'HTML/Text'})`);
-      }
-      const data = await response.json();
-      return data;
-    } catch (err) {
-      clearTimeout(timeoutId);
+      try {
+        const url = `${base}${endpoint}`;
+        const response = await fetch(url, {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+            ...(options.headers || {})
+          },
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
 
-      // Fallback to secondary HTTPS cloud backend if primary is sleeping/suspended
-      if (this.baseUrl !== CLOUD_API_URL) {
-        try {
-          const fallbackCtrl = new AbortController();
-          const fbTimeout = setTimeout(() => fallbackCtrl.abort(), 4000);
-          const fallbackUrl = `${CLOUD_API_URL}${endpoint}`;
-          const fallbackRes = await fetch(fallbackUrl, {
-            ...options,
-            headers,
-            signal: fallbackCtrl.signal
-          });
-          clearTimeout(fbTimeout);
-
-          const fbType = fallbackRes.headers.get('content-type') || '';
-          if (fallbackRes.ok && fbType.includes('application/json')) {
-            const fallbackData = await fallbackRes.json();
-            return fallbackData;
+        const contentType = response.headers.get('content-type') || '';
+        if (response.ok && contentType.includes('application/json')) {
+          const data = await response.json();
+          if (this.baseUrl !== base) {
+            this.baseUrl = base;
           }
-        } catch (_) {}
-      }
+          if (LAST_ERROR_MAP.has(endpoint)) {
+            LAST_ERROR_MAP.delete(endpoint);
+            if (__DEV__) {
+              console.log(`[MobileApiClient] ✅ ${endpoint} connected via ${base}`);
+            }
+          }
+          return data;
+        }
 
-      // Silent info log so Expo UI does not show intrusive warning banners
-      if (__DEV__) {
-        console.log(`[MobileApiClient] ${endpoint} offline or suspended on backend (${err.name === 'AbortError' ? 'timed out' : err.message}). Using local catalogue.`);
+        // If server responded with a non-200 JSON client error (e.g. 400 Bad Request, 401 Unauthorized), do not retry
+        if (response.status >= 400 && response.status < 500 && contentType.includes('application/json')) {
+          const clientErrData = await response.json().catch(() => ({}));
+          const clientErr = new Error(clientErrData.error || clientErrData.message || `HTTP ${response.status}`);
+          clientErr.status = response.status;
+          throw clientErr;
+        }
+      } catch (err) {
+        clearTimeout(timeoutId);
+        if (err.status && err.status >= 400 && err.status < 500) {
+          throw err;
+        }
+        lastError = err;
       }
-      throw err;
     }
+
+    // Only provide safe empty defaults for read-only GET polling queries to prevent crashes
+    const isGet = !options.method || options.method.toUpperCase() === 'GET';
+    if (isGet) {
+      if (endpoint.startsWith('/services')) {
+        return { success: true, count: 0, services: [] };
+      }
+      if (endpoint.startsWith('/health')) {
+        return { status: 'offline', database: 'Offline fallback' };
+      }
+      if (endpoint.startsWith('/bookings')) {
+        return { success: true, count: 0, bookings: [] };
+      }
+      if (endpoint.startsWith('/promotions')) {
+        return { success: true, count: 0, promotions: [] };
+      }
+    }
+
+    if (__DEV__) {
+      const now = Date.now();
+      const lastLog = LAST_ERROR_MAP.get(endpoint) || 0;
+      if (now - lastLog > 60000) {
+        LAST_ERROR_MAP.set(endpoint, now);
+        console.warn(`[MobileApiClient] ${endpoint} unreachable across dev endpoints. Operating in resilient offline mode.`);
+      }
+    }
+
+    throw lastError || new Error(`Failed to connect to ${endpoint}`);
   }
 
-  // Health
-  checkHealth() {
+  // Health check with fast parallel candidate discovery
+  async checkHealth() {
+    const candidates = [
+      this.baseUrl,
+      ...getCandidateApiUrls()
+    ].filter((cand, idx, arr) => cand && arr.indexOf(cand) === idx);
+
+    try {
+      const probePromises = candidates.map(async (base) => {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 1400);
+        try {
+          const res = await fetch(`${base}/health`, { signal: controller.signal });
+          clearTimeout(tid);
+          if (res.ok) {
+            const data = await res.json();
+            return { base, data };
+          }
+        } catch (_) {
+          clearTimeout(tid);
+        }
+        throw new Error('failed');
+      });
+
+      const winner = await Promise.any(probePromises);
+      if (winner && winner.base) {
+        if (this.baseUrl !== winner.base) {
+          this.baseUrl = winner.base;
+          if (__DEV__) {
+            console.log(`[MobileApiClient] ⚡ Auto-discovered fastest API base: ${winner.base}`);
+          }
+        }
+        return winner.data;
+      }
+    } catch (_) {}
+
     return this.request('/health');
   }
 
@@ -102,7 +186,24 @@ class MobileApiClient {
   }
 
   getBookingById(id) {
-    return this.request(`/bookings/${id}`);
+    const cleanId = String(id).replace(/^#/, '');
+    return this.request(`/bookings/${cleanId}`);
+  }
+
+  updateBooking(id, updateData) {
+    const cleanId = String(id).replace(/^#/, '');
+    return this.request(`/bookings/${cleanId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData)
+    });
+  }
+
+  updateBookingStatus(id, status, stage, extra = {}) {
+    const cleanId = String(id).replace(/^#/, '');
+    return this.request(`/bookings/${cleanId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ status, stage, ...extra })
+    });
   }
 
   // Promotions & Coupons
@@ -257,7 +358,8 @@ class MobileApiClient {
         method: 'POST',
         body: JSON.stringify({
           identifier: cleanEmail,
-          password: cleanPassword
+          password: cleanPassword,
+          role: role || 'customer'
         })
       });
 

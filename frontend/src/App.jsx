@@ -524,11 +524,12 @@ function App() {
     async function syncFromBackend() {
       try {
         const res = await servicesApi.getAll();
-        if (isMounted && res?.services?.length > 0) {
-          const backendServices = res.services;
-          const backendIds = new Set(backendServices.map(s => s.id));
-          const missing = INITIAL_SERVICES.filter(s => !backendIds.has(s.id));
-          setServices([...backendServices, ...missing]);
+        if (isMounted && res?.services) {
+          const allServer = res.services;
+          const activeServices = allServer.filter(s => !s.isArchived && s.status !== 'Archived');
+          const serverIds = new Set(allServer.map(s => s.id));
+          const missing = INITIAL_SERVICES.filter(s => !serverIds.has(s.id));
+          setServices([...activeServices, ...missing]);
           setIsBackendConnected(true);
         }
       } catch (err) {
@@ -602,26 +603,104 @@ function App() {
       } catch {}
     }
 
+    // Initial sync
     syncFromBackend();
-    return () => { isMounted = false; };
-  }, []);
+
+    // 1. Silent Background Polling (Every 5 seconds for real-time live sync)
+    const pollTimer = setInterval(syncFromBackend, 5000);
+
+    // 2. Cross-tab BroadcastChannel listener
+    let bc = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('uc_sync_channel');
+        bc.onmessage = (event) => {
+          const type = event?.data?.type;
+          if (type === 'CATALOGUE_UPDATED' || type === 'BOOKING_CREATED' || type === 'BOOKING_UPDATED') {
+            syncFromBackend();
+          }
+        };
+      }
+    } catch (_) {}
+
+    // 3. Focus, visibility & storage listeners for instant cross-tab sync
+    const handleReFocus = () => syncFromBackend();
+    const handleStorage = (e) => {
+      if (e.key === 'uc_services_last_updated' || e.key === 'uc_last_booking_event') {
+        syncFromBackend();
+      }
+    };
+    window.addEventListener('focus', handleReFocus);
+    window.addEventListener('visibilitychange', handleReFocus);
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('uc:catalogue-updated', handleReFocus);
+
+    return () => {
+      isMounted = false;
+      clearInterval(pollTimer);
+      window.removeEventListener('focus', handleReFocus);
+      window.removeEventListener('visibilitychange', handleReFocus);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('uc:catalogue-updated', handleReFocus);
+      if (bc) {
+        try { bc.close(); } catch (_) {}
+      }
+    };
+  }, [user]);
+
+  function notifyCatalogueUpdated(serviceId, action) {
+    try {
+      localStorage.setItem('uc_services_last_updated', Date.now().toString());
+      window.dispatchEvent(new CustomEvent('uc:catalogue-updated', { detail: { serviceId, action } }));
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('uc_sync_channel');
+        bc.postMessage({ type: 'CATALOGUE_UPDATED', serviceId, action, timestamp: Date.now() });
+        bc.close();
+      }
+    } catch (_) {}
+  }
 
   function handleAddService(newSvc) {
     setServices(prev => [newSvc, ...prev]);
-    servicesApi.create(newSvc).catch(err => console.warn('Backend sync failed:', err));
+    servicesApi.create(newSvc)
+      .then(() => {
+        servicesApi.getAll().then(res => {
+          if (res && res.services) setServices(res.services);
+        }).catch(() => {});
+        notifyCatalogueUpdated(newSvc.id, 'created');
+      })
+      .catch(err => console.warn('Backend sync failed:', err));
     showToast(`✅ Created new service: "${newSvc.title}"`);
   }
 
-  function handleUpdateService(id, updatedFields) {
-    setServices(prev => prev.map(s => s.id === id ? { ...s, ...updatedFields } : s));
-    servicesApi.update(id, updatedFields).catch(err => console.warn('Backend sync failed:', err));
+  function handleUpdateService(idOrObj, updatedFields) {
+    const isObj = typeof idOrObj === 'object' && idOrObj !== null;
+    const targetId = isObj ? (idOrObj.id || idOrObj._id) : idOrObj;
+    const fields = isObj ? idOrObj : (updatedFields || {});
+
+    setServices(prev => prev.map(s => (s.id === targetId || s._id === targetId) ? { ...s, ...fields } : s));
+    servicesApi.update(targetId, fields)
+      .then(() => {
+        servicesApi.getAll().then(res => {
+          if (res && res.services) setServices(res.services);
+        }).catch(() => {});
+        notifyCatalogueUpdated(targetId, 'updated');
+      })
+      .catch(err => console.warn('Backend sync failed:', err));
     showToast(`✏️ Updated service details successfully!`);
   }
 
   function handleDeleteService(id) {
-    const target = services.find(s => s.id === id);
-    setServices(prev => prev.filter(s => s.id !== id));
-    servicesApi.delete(id).catch(err => console.warn('Backend sync failed:', err));
+    const target = services.find(s => s.id === id || s._id === id);
+    setServices(prev => prev.filter(s => s.id !== id && s._id !== id));
+    servicesApi.delete(id)
+      .then(() => {
+        servicesApi.getAll().then(res => {
+          if (res && res.services) setServices(res.services);
+        }).catch(() => {});
+        notifyCatalogueUpdated(id, 'deleted');
+      })
+      .catch(err => console.warn('Backend sync failed:', err));
     showToast(`🗑️ Deleted "${target?.title || 'Service'}" from catalogue`);
   }
 

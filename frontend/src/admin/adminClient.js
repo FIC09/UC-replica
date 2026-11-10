@@ -21,11 +21,25 @@ async function ensureAdminLoggedIn() {
   if (adminLoginPromise) return adminLoginPromise;
   adminLoginPromise = (async () => {
     try {
-      const loginRes = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: 'admin@urbancompany.com', password: 'admin123' })
-      });
+      let loginRes;
+      try {
+        loginRes = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'admin@urbancompany.com', password: 'admin123' })
+        });
+      } catch (e) {
+        if (rawBase.startsWith('/')) {
+          loginRes = await fetch(`http://127.0.0.1:5000/api/admin/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: 'admin@urbancompany.com', password: 'admin123' })
+          });
+        } else {
+          throw e;
+        }
+      }
+
       if (loginRes.ok) {
         const authData = await loginRes.json().catch(() => ({}));
         if (authData.token) {
@@ -54,7 +68,7 @@ async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 8000);
   try {
-    const url = `${API_BASE}${endpoint}`;
+    let url = `${API_BASE}${endpoint}`;
     let token = getAdminAuthToken();
 
     const headers = {
@@ -63,26 +77,53 @@ async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
       ...options.headers,
     };
 
-    let res = await fetch(url, {
-      ...options,
-      headers,
-      signal: options.signal || controller.signal
-    });
+    let res;
+    try {
+      res = await fetch(url, {
+        ...options,
+        headers,
+        signal: options.signal || controller.signal
+      });
+    } catch (fetchErr) {
+      if (rawBase.startsWith('/')) {
+        // Transparent direct fallback to backend if proxy refuses connection
+        const fallbackUrl = `http://127.0.0.1:5000/api/admin${endpoint}`;
+        res = await fetch(fallbackUrl, {
+          ...options,
+          headers,
+          signal: options.signal || controller.signal
+        });
+      } else {
+        throw fetchErr;
+      }
+    }
 
     // Auto-authenticate with demo admin credentials if token is missing or expired
     if (res.status === 401 && !options._retriedAuth) {
       token = await ensureAdminLoggedIn();
       if (token) {
-        res = await fetch(url, {
-          ...options,
-          _retriedAuth: true,
-          signal: options.signal || controller.signal,
-          headers: {
-            ...options.headers,
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+        const retryHeaders = {
+          ...options.headers,
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        };
+        try {
+          res = await fetch(url, {
+            ...options,
+            _retriedAuth: true,
+            signal: options.signal || controller.signal,
+            headers: retryHeaders
+          });
+        } catch {
+          if (rawBase.startsWith('/')) {
+            res = await fetch(`http://127.0.0.1:5000/api/admin${endpoint}`, {
+              ...options,
+              _retriedAuth: true,
+              signal: options.signal || controller.signal,
+              headers: retryHeaders
+            });
           }
-        });
+        }
       }
     }
 
@@ -111,11 +152,24 @@ async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
 export const adminClient = {
   // Authentication & RBAC
   login: async (email, password) => {
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
+    let res;
+    try {
+      res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+    } catch (e) {
+      if (rawBase.startsWith('/')) {
+        res = await fetch(`http://127.0.0.1:5000/api/admin/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+      } else {
+        throw e;
+      }
+    }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       throw new Error(data.error || data.message || `Login failed with status ${res.status}`);
@@ -141,7 +195,7 @@ export const adminClient = {
           'Content-Type': 'application/json',
           ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         }
-      });
+      }).catch(() => {});
     } catch {}
     sessionStorage.removeItem('uc_admin_token');
     sessionStorage.removeItem('uc_admin_auth');

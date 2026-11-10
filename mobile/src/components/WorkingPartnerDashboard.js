@@ -13,6 +13,7 @@ import {
   Dimensions,
   Image
 } from 'react-native';
+import mobileApi from '../services/apiClient';
 
 const { width } = Dimensions.get('window');
 
@@ -28,11 +29,11 @@ export default function WorkingPartnerDashboard({
   onAcceptLead,
   onSyncJob
 }) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
   const [activeTab, setActiveTab] = useState('jobs'); 
   // Tabs: 'jobs' | 'live-tracking' | 'leads' | 'fleet' | 'calendar' | 'photos' | 'sop' | 'quality' | 'earnings' | 'wallet' | 'invoices' | 'disputes' | 'notifications' | 'documents' | 'settings'
   
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [otpInput, setOtpInput] = useState('');
   const [isOtpVerified, setIsOtpVerified] = useState(() => (sharedBooking?.stage >= 5));
   const [walletBalance, setWalletBalance] = useState(5800);
@@ -82,14 +83,59 @@ export default function WorkingPartnerDashboard({
     };
   });
 
+  // Synchronize active job whenever sharedBooking changes (from customer checkout or lead accept)
+  useEffect(() => {
+    if (!sharedBooking) return;
+    const stageNum = sharedBooking.stage || (
+      sharedBooking.status === 'Completed' ? 6 :
+      sharedBooking.status === 'In Progress' ? 5 :
+      sharedBooking.status === 'Arrived' ? 4 :
+      sharedBooking.status === 'En Route' ? 3 : 2
+    );
+    const stageToStatus = {
+      1: 'Assigned',
+      2: 'Assigned',
+      3: 'En Route',
+      4: 'Arrived',
+      5: 'In Progress',
+      6: 'Completed'
+    };
+    setActiveJob((prev) => ({
+      ...prev,
+      id: sharedBooking.id ? (String(sharedBooking.id).startsWith('JOB') ? sharedBooking.id : `JOB-${sharedBooking.id}`) : (prev?.id || 'JOB-9410'),
+      customer: sharedBooking.customer || prev?.customer || 'Rahul Sharma',
+      address: sharedBooking.address || prev?.address || 'Flat 302, Green Park, Rayakottai Road, Krishnagiri - 635122',
+      phone: sharedBooking.phone || prev?.phone || '+91 98200 12345',
+      service: sharedBooking.service || prev?.service || 'All in All AC',
+      payout: sharedBooking.price || prev?.payout || 3524,
+      otp: sharedBooking.otp || prev?.otp || '4829',
+      status: sharedBooking.status || stageToStatus[stageNum] || prev?.status || 'Assigned',
+      stage: stageNum
+    }));
+    if (stageNum >= 5) {
+      setIsOtpVerified(true);
+    }
+  }, [sharedBooking?.id, sharedBooking?.stage, sharedBooking?.status, sharedBooking?.service]);
+
   const handleSwitchCustomerWithSync = () => {
-    if (onSyncJob && activeJob) {
+    if (activeJob) {
       const stageNum =
-        activeJob.status === 'Completed' ? 6 :
-        activeJob.status === 'In Progress' ? 5 :
-        activeJob.status === 'Arrived' ? 4 :
-        activeJob.status === 'En Route' ? 3 : 2;
-      onSyncJob({ ...activeJob, stage: stageNum });
+        activeJob.stage || (
+          activeJob.status === 'Completed' ? 6 :
+          activeJob.status === 'In Progress' ? 5 :
+          activeJob.status === 'Arrived' ? 4 :
+          activeJob.status === 'En Route' ? 3 : 2
+        );
+      const syncedPayload = {
+        ...activeJob,
+        stage: stageNum,
+        prePhoto: preServicePhoto,
+        postPhoto: postServicePhoto
+      };
+      if (onUpdateJobStage) onUpdateJobStage(stageNum);
+      if (onSyncJob) onSyncJob(syncedPayload);
+      const bookingId = activeJob.id || '9410';
+      mobileApi.updateBookingStatus(bookingId, activeJob.status || 'Assigned', stageNum).catch(() => {});
     }
     if (onSwitchToCustomer) onSwitchToCustomer();
   };
@@ -228,20 +274,24 @@ export default function WorkingPartnerDashboard({
   // 1. STAGE PROGRESSION WORKFLOW: Assigned -> En Route -> Arrived -> In Progress (with OTP) -> Completed
   const handleMarkEnRoute = () => {
     if (!activeJob) return;
-    const updated = { ...activeJob, status: 'En Route' };
+    const updated = { ...activeJob, status: 'En Route', stage: 3 };
     setActiveJob(updated);
     if (onUpdateJobStage) onUpdateJobStage(3);
-    if (onSyncJob) onSyncJob({ ...updated, stage: 3 });
+    if (onSyncJob) onSyncJob(updated);
+    const bookingId = activeJob.id || '9410';
+    mobileApi.updateBookingStatus(bookingId, 'En Route', 3).catch(() => {});
     showToast('🛵 Trip started! Status updated to EN ROUTE. Customer notified.');
     Alert.alert('Trip Started 🛵', 'Customer has been notified that you are en route. Live GPS location sharing is now active.');
   };
 
   const handleMarkArrived = () => {
     if (!activeJob) return;
-    const updated = { ...activeJob, status: 'Arrived' };
+    const updated = { ...activeJob, status: 'Arrived', stage: 4 };
     setActiveJob(updated);
     if (onUpdateJobStage) onUpdateJobStage(4);
-    if (onSyncJob) onSyncJob({ ...updated, stage: 4 });
+    if (onSyncJob) onSyncJob(updated);
+    const bookingId = activeJob.id || '9410';
+    mobileApi.updateBookingStatus(bookingId, 'Arrived', 4).catch(() => {});
     showToast('📍 Doorstep Arrival recorded! Ask customer for 4-digit start OTP.');
     Alert.alert('Arrived at Doorstep 📍', 'You have arrived. Please greet the customer, wear your shoe covers, and request the 4-digit Safety Start OTP shown on their screen.');
   };
@@ -254,11 +304,14 @@ export default function WorkingPartnerDashboard({
       const updated = {
         ...activeJob,
         status: 'In Progress',
+        stage: 5,
         checklist: activeJob.checklist.map((i) => (i.id === 1 ? { ...i, done: true } : i))
       };
       setActiveJob(updated);
       if (onUpdateJobStage) onUpdateJobStage(5);
-      if (onSyncJob) onSyncJob({ ...updated, stage: 5 });
+      if (onSyncJob) onSyncJob(updated);
+      const bookingId = activeJob.id || '9410';
+      mobileApi.updateBookingStatus(bookingId, 'In Progress', 5, { safetyPin: entered, otpVerified: true }).catch(() => {});
       showToast('✅ Customer Start OTP verified! Job status is now IN PROGRESS.');
       Alert.alert('Work Started ⚡', 'Customer OTP verified successfully! Please take the Pre-Service Inspection photo and adhere to the 6-step SOP checklist.');
     } else {
@@ -272,11 +325,6 @@ export default function WorkingPartnerDashboard({
       Alert.alert('Start Job First', 'Please enter customer start OTP before completing.');
       return;
     }
-    const allChecked = activeJob.checklist.every((item) => item.done);
-    if (!allChecked) {
-      Alert.alert('Incomplete Checklist', 'Please complete and mark all 6 SOP checklist steps before final handover.');
-      return;
-    }
     if (!postServicePhoto) {
       Alert.alert('Upload Post-Service Photo', 'Please capture or upload the Post-Service completion photo evidence to complete the quality check.');
       return;
@@ -286,10 +334,23 @@ export default function WorkingPartnerDashboard({
     setTodayEarnings((prev) => prev + earned);
     setWalletBalance((prev) => prev + earned);
     setCompletedCount((prev) => prev + 1);
-    const updated = { ...activeJob, status: 'Completed' };
+    const updated = {
+      ...activeJob,
+      status: 'Completed',
+      stage: 6,
+      prePhoto: preServicePhoto,
+      postPhoto: postServicePhoto
+    };
     setActiveJob(updated);
     if (onUpdateJobStage) onUpdateJobStage(6);
-    if (onSyncJob) onSyncJob({ ...updated, stage: 6 });
+    if (onSyncJob) onSyncJob(updated);
+
+    const bookingId = activeJob.id || '9410';
+    mobileApi.updateBookingStatus(bookingId, 'Completed', 6, {
+      paymentStatus: 'Paid',
+      preWorkPhoto: preServicePhoto,
+      afterWorkPhoto: postServicePhoto
+    }).catch(() => {});
 
     showToast(`🎉 Job Completed! ₹${earned} credited to your wallet.`);
     Alert.alert(
@@ -308,12 +369,28 @@ export default function WorkingPartnerDashboard({
       caption: photoCaption.trim() || (type === 'pre' ? 'Pre-service cooling coil inspection' : 'Deep PowerJet cleaned & sanitized coils')
     };
 
+    let updated = null;
     if (type === 'pre') {
       setPreServicePhoto(photoObj);
       showToast('📸 Pre-service inspection photo uploaded & verified!');
+      if (activeJob) {
+        updated = { ...activeJob, prePhoto: photoObj };
+        setActiveJob(updated);
+      }
     } else {
       setPostServicePhoto(photoObj);
       showToast('📸 Post-service completion photo uploaded & verified!');
+      if (activeJob) {
+        updated = { ...activeJob, postPhoto: photoObj };
+        setActiveJob(updated);
+      }
+    }
+    if (updated && onSyncJob) {
+      onSyncJob(updated);
+    }
+    if (activeJob) {
+      const bookingId = activeJob.id || '9410';
+      mobileApi.updateBooking(bookingId, type === 'pre' ? { beforeWorkPhoto: photoObj } : { afterWorkPhoto: photoObj }).catch(() => {});
     }
     setUploadingPhotoType(null);
     setPhotoCaption('');
@@ -398,43 +475,6 @@ export default function WorkingPartnerDashboard({
   const proEmail = currentUser?.email || 'partner@forgeindia.in';
   const proTrade = currentUser?.trade || 'Master AC Specialist & Electrician';
 
-  // Navigation Items matching the Web Application
-  const navSections = [
-    {
-      group: 'Core Operations',
-      items: [
-        { id: 'jobs', label: 'Active Dispatch', icon: '⚡' },
-        { id: 'live-tracking', label: 'Live GPS Operations', icon: '📡', badge: 'Live' },
-        { id: 'leads', label: 'Hot Leads & Queue', icon: '📋', count: availableLeads.length },
-        { id: 'fleet', label: 'Fleet Technicians Cluster', icon: '👥', count: fleet.length }
-      ]
-    },
-    {
-      group: 'Quality & Work Evidence',
-      items: [
-        { id: 'photos', label: 'Work Photo Evidence', icon: '📸' },
-        { id: 'quality', label: 'Quality & Reviews', icon: '⭐', count: allReviews.length }
-      ]
-    },
-    {
-      group: 'Finance & Ledger',
-      items: [
-        { id: 'earnings', label: 'Business Earnings', icon: '💰' },
-        { id: 'wallet', label: 'Wallet & Payouts', icon: '💳' },
-        { id: 'invoices', label: 'GST Tax Invoices', icon: '📄' },
-        { id: 'disputes', label: 'Refunds & Disputes', icon: '⚠️' }
-      ]
-    },
-    {
-      group: 'Administration & Compliance',
-      items: [
-        { id: 'notifications', label: 'Alerts & Notifications', icon: '🔔' },
-        { id: 'documents', label: 'KYC & Aadhaar Compliance', icon: '🛡️' },
-        { id: 'settings', label: 'Business Settings', icon: '⚙️' }
-      ]
-    }
-  ];
-
   return (
     <View style={styles.container}>
       {/* Toast Notification Banner */}
@@ -448,6 +488,15 @@ export default function WorkingPartnerDashboard({
       <View style={styles.headerBar}>
         <View style={styles.headerTopRow}>
           <TouchableOpacity
+            style={styles.sidebarToggleBtn}
+            onPress={() => setIsSidebarOpen(true)}
+            activeOpacity={0.7}
+            accessibilityLabel="Open Navigation Menu"
+          >
+            <Text style={styles.sidebarToggleText}>☰</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={styles.avatarBox}
             onPress={() => setIsSidebarOpen(true)}
             activeOpacity={0.8}
@@ -455,7 +504,11 @@ export default function WorkingPartnerDashboard({
             <Text style={styles.avatarInitial}>{proName.charAt(0).toUpperCase()}</Text>
           </TouchableOpacity>
 
-          <View style={styles.headerInfoCol}>
+          <TouchableOpacity
+            style={styles.headerInfoCol}
+            onPress={() => setIsSidebarOpen(true)}
+            activeOpacity={0.8}
+          >
             <View style={styles.nameRow}>
               <Text style={styles.headerName} numberOfLines={1}>{proName}</Text>
               <View style={styles.ratingBadge}>
@@ -466,7 +519,7 @@ export default function WorkingPartnerDashboard({
             <Text style={styles.headerEmail} numberOfLines={1}>
               {proEmail} • ID: PRO-8841 • Diamond Pro L5
             </Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Status Toggle & Top Action Buttons */}
@@ -480,7 +533,16 @@ export default function WorkingPartnerDashboard({
             activeOpacity={0.85}
           >
             <View style={[styles.statusDot, { backgroundColor: isOnline ? '#10B981' : '#94A3B8' }]} />
-            <Text style={styles.onlinePillText}>{isOnline ? 'Online' : 'Offline'}</Text>
+            <Text style={[styles.onlinePillText, { color: isOnline ? '#065F46' : '#64748B' }]}>{isOnline ? 'Online' : 'Offline'}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.headerCustomerSwitchBtn}
+            activeOpacity={0.85}
+            onPress={handleSwitchCustomerWithSync}
+          >
+            <Text style={styles.headerCustomerSwitchIcon}>👤</Text>
+            <Text style={styles.headerCustomerSwitchText}>Customer App ›</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -489,6 +551,7 @@ export default function WorkingPartnerDashboard({
             onPress={onLogout}
           >
             <Text style={styles.logoutIconSymbol}>⏻</Text>
+            <Text style={styles.headerLogoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -557,15 +620,6 @@ export default function WorkingPartnerDashboard({
           >
             <Text style={[styles.navTabText, activeTab === 'leads' && styles.navTabActiveText]}>
               Hot Leads ({availableLeads.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.navTabItem, activeTab === 'fleet' && styles.navTabActive]}
-            onPress={() => setActiveTab('fleet')}
-          >
-            <Text style={[styles.navTabText, activeTab === 'fleet' && styles.navTabActiveText]}>
-              Fleet Hub ({fleet.length})
             </Text>
           </TouchableOpacity>
 
@@ -640,7 +694,7 @@ export default function WorkingPartnerDashboard({
                     <TouchableOpacity
                       onPress={() => Alert.alert('Dialing Customer', `Calling ${activeJob.customer} at ${activeJob.phone}...`)}
                     >
-                      <Text style={[styles.detailValue, { color: '#38BDF8', fontWeight: '800' }]}>
+                      <Text style={[styles.detailValue, { color: '#0284C7', fontWeight: '800' }]}>
                         📞 {activeJob.phone}
                       </Text>
                     </TouchableOpacity>
@@ -792,46 +846,23 @@ export default function WorkingPartnerDashboard({
                   </View>
                 </View>
 
-                {/* 6-Step Service Quality SOP Checklist */}
-                <View style={styles.sopSection}>
-                  <Text style={styles.sopHeaderTitle}>📋 6-Step Service Quality SOP Checklist</Text>
-                  <Text style={styles.sopHelperText}>
-                    Please perform each step carefully and tap to mark complete:
-                  </Text>
-
-                  {activeJob.checklist.map((item) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={[styles.checklistItem, item.done && styles.checklistItemDone]}
-                      onPress={() => toggleChecklistItem(item.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={[styles.checkbox, item.done && styles.checkboxDone]}>
-                        {item.done && <Text style={styles.checkmarkText}>✓</Text>}
-                      </View>
-                      <Text style={[styles.checklistText, item.done && styles.checklistTextDone]}>
-                        {item.text}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Complete Job Button */}
-                {activeJob.status !== 'Completed' ? (
-                  <TouchableOpacity
-                    style={styles.completeJobBtn}
-                    onPress={handleCompleteJob}
-                    activeOpacity={0.85}
-                  >
-                    <Text style={styles.completeJobBtnText}>🎉 Complete Service & Handover</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={styles.completedBanner}>
-                    <Text style={styles.completedBannerText}>
-                      ✓ SERVICE HANDOVER COMPLETED · EARNINGS CREDITED
+                {/* Real-time Customer Tracking View Button */}
+                <TouchableOpacity
+                  style={styles.viewInCustomerTrackingBtn}
+                  onPress={handleSwitchCustomerWithSync}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.viewInCustomerTrackingIcon}>📱</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.viewInCustomerTrackingTitle}>
+                      View in Customer Tracking Modal
+                    </Text>
+                    <Text style={styles.viewInCustomerTrackingSub}>
+                      Live Stage {activeJob.stage || (activeJob.status === 'Completed' ? 6 : activeJob.status === 'In Progress' ? 5 : activeJob.status === 'Arrived' ? 4 : activeJob.status === 'En Route' ? 3 : 2)}/6 • {activeJob.status}
                     </Text>
                   </View>
-                )}
+                  <Text style={styles.viewInCustomerTrackingArrow}>→</Text>
+                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.noJobBox}>
@@ -915,10 +946,10 @@ export default function WorkingPartnerDashboard({
             </View>
 
             {availableLeads.length === 0 ? (
-              <View style={[styles.leadCard, { alignItems: 'center', paddingVertical: 36, backgroundColor: '#1E293B' }]}>
+              <View style={[styles.leadCard, { alignItems: 'center', paddingVertical: 36, backgroundColor: '#FFFFFF' }]}>
                 <Text style={{ fontSize: 32, marginBottom: 8 }}>🎉</Text>
-                <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '800' }}>All Caught Up!</Text>
-                <Text style={{ color: '#94A3B8', fontSize: 12, marginTop: 4, textAlign: 'center' }}>
+                <Text style={{ color: '#0F172A', fontSize: 16, fontWeight: '800' }}>All Caught Up!</Text>
+                <Text style={{ color: '#64748B', fontSize: 12, marginTop: 4, textAlign: 'center' }}>
                   No pending dispatches right now. New customer bookings will appear here instantly.
                 </Text>
               </View>
@@ -1231,100 +1262,75 @@ export default function WorkingPartnerDashboard({
           </View>
         )}
 
-        <View style={{ height: 60 }} />
-      </ScrollView>
-
-      {/* ==================== OFF-CANVAS SIDEBAR DRAWER MODAL (LEFT-DOCKED) ==================== */}
-      <Modal
-        visible={isSidebarOpen}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setIsSidebarOpen(false)}
-      >
-        <View style={styles.sidebarOverlay}>
-          {/* 1. Left-Docked Sidebar Drawer */}
-          <View style={styles.sidebarDrawer}>
-            <View style={styles.sidebarHeader}>
-              <View style={styles.sidebarAvatarBox}>
-                <Text style={styles.sidebarAvatarText}>{proName.charAt(0)}</Text>
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.sidebarName}>{proName}</Text>
-                <Text style={styles.sidebarRole}>Working Partner Portal</Text>
-                <Text style={styles.sidebarId}>ID: PRO-8841</Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setIsSidebarOpen(false)}
-                style={styles.sidebarCloseBtn}
-              >
-                <Text style={styles.sidebarCloseText}>✕</Text>
-              </TouchableOpacity>
+        {/* ==================== TAB 12: REFUNDS & DISPUTES ==================== */}
+        {activeTab === 'disputes' && (
+          <View style={styles.tabSection}>
+            <View style={styles.sectionHeaderBox}>
+              <Text style={styles.sectionTitle}>⚠️ Refunds & Customer Disputes</Text>
+              <Text style={styles.sectionSub}>Quality resolution & escalation record</Text>
             </View>
-
-            <ScrollView style={styles.sidebarNavList} showsVerticalScrollIndicator={false}>
-              {navSections.map((group, gIdx) => (
-                <View key={`g-${gIdx}`} style={styles.sidebarGroup}>
-                  <Text style={styles.sidebarGroupTitle}>{group.group.toUpperCase()}</Text>
-                  {group.items.map((item) => {
-                    const isActive = activeTab === item.id;
-                    return (
-                      <TouchableOpacity
-                        key={item.id}
-                        style={[styles.sidebarNavItem, isActive && styles.sidebarNavItemActive]}
-                        onPress={() => {
-                          setActiveTab(item.id);
-                          setIsSidebarOpen(false);
-                        }}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={styles.sidebarNavIcon}>{item.icon}</Text>
-                        <Text style={[styles.sidebarNavLabel, isActive && styles.sidebarNavLabelActive]}>
-                          {item.label}
-                        </Text>
-                        {item.count !== undefined && (
-                          <View style={styles.sidebarCountBadge}>
-                            <Text style={styles.sidebarCountText}>{item.count}</Text>
-                          </View>
-                        )}
-                        {item.badge && (
-                          <View style={styles.sidebarLiveBadge}>
-                            <Text style={styles.sidebarLiveText}>{item.badge}</Text>
-                          </View>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              ))}
-
-              <View style={{ height: 20 }} />
-            </ScrollView>
-
-            {/* Pinned Bottom Logout Footer */}
-            <View style={styles.sidebarFooter}>
-              <TouchableOpacity
-                style={styles.sidebarFooterLogoutBtn}
-                onPress={() => {
-                  setIsSidebarOpen(false);
-                  onLogout();
-                }}
-                activeOpacity={0.85}
-              >
-                <View style={styles.logoutIconBadge}>
-                  <Text style={styles.sidebarLogoutIconSymbol}>⏻</Text>
-                </View>
-              </TouchableOpacity>
+            <View style={[styles.kycCard, { backgroundColor: '#F0FDF4', borderColor: '#BBF7D0' }]}>
+              <View style={styles.kycRow}>
+                <Text style={[styles.kycTitle, { color: '#166534' }]}>Zero Active Consumer Disputes</Text>
+                <Text style={styles.kycStatusOk}>100% CLEAN SLA</Text>
+              </View>
+              <Text style={[styles.kycSub, { color: '#15803D' }]}>
+                No pending customer chargebacks or disputes. 100% quality guarantee maintained for Krishnagiri cluster.
+              </Text>
             </View>
           </View>
+        )}
 
-          {/* 2. Dimmed Dismiss Backdrop on the Right */}
-          <TouchableOpacity
-            style={styles.sidebarBackdrop}
-            onPress={() => setIsSidebarOpen(false)}
-            activeOpacity={1}
-          />
-        </View>
-      </Modal>
+        {/* ==================== TAB 13: ALERTS & NOTIFICATIONS ==================== */}
+        {activeTab === 'notifications' && (
+          <View style={styles.tabSection}>
+            <View style={styles.sectionHeaderBox}>
+              <Text style={styles.sectionTitle}>🔔 Alerts & Dispatch Notifications</Text>
+              <Text style={styles.sectionSub}>Platform announcements and job alerts</Text>
+            </View>
+            <View style={styles.kycCard}>
+              <View style={styles.kycRow}>
+                <Text style={styles.kycTitle}>⚡ High Demand in Krishnagiri</Text>
+                <Text style={[styles.kycStatusOk, { color: '#F04400' }]}>SURGE</Text>
+              </View>
+              <Text style={styles.kycSub}>AC servicing demand is 2.4x higher today along Rayakottai Road.</Text>
+            </View>
+            <View style={styles.kycCard}>
+              <View style={styles.kycRow}>
+                <Text style={styles.kycTitle}>💰 Daily Payout Credited</Text>
+                <Text style={styles.kycStatusOk}>₹2,250 CREDITED</Text>
+              </View>
+              <Text style={styles.kycSub}>IMPS transaction IMPS-8841-SUCCESS processed to HDFC Bank.</Text>
+            </View>
+          </View>
+        )}
+
+        {/* ==================== TAB 14: BUSINESS SETTINGS ==================== */}
+        {activeTab === 'settings' && (
+          <View style={styles.tabSection}>
+            <View style={styles.sectionHeaderBox}>
+              <Text style={styles.sectionTitle}>⚙️ Working Partner Business Settings</Text>
+              <Text style={styles.sectionSub}>Preferences, cluster dispatch & profile</Text>
+            </View>
+            <View style={styles.kycCard}>
+              <View style={styles.kycRow}>
+                <Text style={styles.kycTitle}>Service Territory Radius</Text>
+                <Text style={styles.kycStatusOk}>12 KM</Text>
+              </View>
+              <Text style={styles.kycSub}>Operating Zone: Krishnagiri Town & Surrounding Sectors</Text>
+            </View>
+            <View style={styles.kycCard}>
+              <View style={styles.kycRow}>
+                <Text style={styles.kycTitle}>Auto Lead Acceptance</Text>
+                <Text style={styles.kycStatusOk}>ENABLED</Text>
+              </View>
+              <Text style={styles.kycSub}>Direct dispatch priority for Diamond Pro L5 partners</Text>
+            </View>
+          </View>
+        )}
+
+        <View style={{ height: 60 }} />
+      </ScrollView>
 
       {/* ==================== PHOTO PRESET PICKER MODAL ==================== */}
       <Modal
@@ -1441,6 +1447,282 @@ export default function WorkingPartnerDashboard({
           </View>
         </View>
       </Modal>
+      {/* ==================== OFF-CANVAS SIDEBAR DRAWER MODAL ==================== */}
+      <Modal
+        visible={isSidebarOpen}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setIsSidebarOpen(false)}
+      >
+        <View style={styles.sidebarOverlay}>
+          {/* Sidebar Drawer */}
+          <View style={styles.sidebarDrawer}>
+            {/* Header */}
+            <View style={styles.sidebarHeader}>
+              <View style={styles.sidebarAvatarBox}>
+                <Text style={styles.sidebarAvatarText}>{proName.charAt(0).toUpperCase()}</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.sidebarName} numberOfLines={1}>{proName}</Text>
+                <Text style={styles.sidebarRole}>Working Partner Portal</Text>
+                <Text style={styles.sidebarId}>ID: PRO-8841</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.sidebarCloseBtn}
+                onPress={() => setIsSidebarOpen(false)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Text style={styles.sidebarCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Navigation List */}
+            <ScrollView style={styles.sidebarNavList} showsVerticalScrollIndicator={false}>
+              {/* CORE OPERATIONS */}
+              <View style={styles.sidebarGroup}>
+                <Text style={styles.sidebarGroupTitle}>CORE OPERATIONS</Text>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'jobs' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('jobs');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>⚡</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'jobs' && styles.sidebarNavLabelActive]}>
+                    Active Dispatch
+                  </Text>
+                  {activeJob && activeJob.status !== 'Completed' && (
+                    <View style={styles.sidebarLiveBadge}>
+                      <Text style={styles.sidebarLiveText}>1</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'live-tracking' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('live-tracking');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>🔬</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'live-tracking' && styles.sidebarNavLabelActive]}>
+                    Live GPS Operations
+                  </Text>
+                  <View style={styles.sidebarLiveBadge}>
+                    <Text style={styles.sidebarLiveText}>Live</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'leads' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('leads');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>📋</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'leads' && styles.sidebarNavLabelActive]}>
+                    Hot Leads & Queue
+                  </Text>
+                  <View style={styles.sidebarCountBadge}>
+                    <Text style={styles.sidebarCountText}>{availableLeads.length}</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* QUALITY & WORK EVIDENCE */}
+              <View style={styles.sidebarGroup}>
+                <Text style={styles.sidebarGroupTitle}>QUALITY & WORK EVIDENCE</Text>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'photos' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('photos');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>📷</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'photos' && styles.sidebarNavLabelActive]}>
+                    Work Photo Evidence
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'quality' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('quality');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>⭐</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'quality' && styles.sidebarNavLabelActive]}>
+                    Quality & Reviews
+                  </Text>
+                  <View style={styles.sidebarCountBadge}>
+                    <Text style={styles.sidebarCountText}>{allReviews.length}</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* FINANCE & LEDGER */}
+              <View style={styles.sidebarGroup}>
+                <Text style={styles.sidebarGroupTitle}>FINANCE & LEDGER</Text>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'earnings' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('earnings');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>💰</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'earnings' && styles.sidebarNavLabelActive]}>
+                    Business Earnings
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'wallet' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('wallet');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>💳</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'wallet' && styles.sidebarNavLabelActive]}>
+                    Wallet & Payouts
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'invoices' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('invoices');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>🧾</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'invoices' && styles.sidebarNavLabelActive]}>
+                    GST Tax Invoices
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'disputes' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('disputes');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>⚠️</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'disputes' && styles.sidebarNavLabelActive]}>
+                    Refunds & Disputes
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* ADMINISTRATION & COMPLIANCE */}
+              <View style={styles.sidebarGroup}>
+                <Text style={styles.sidebarGroupTitle}>ADMINISTRATION & COMPLIANCE</Text>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'notifications' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('notifications');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>🔔</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'notifications' && styles.sidebarNavLabelActive]}>
+                    Alerts & Notifications
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'documents' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('documents');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>🛡️</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'documents' && styles.sidebarNavLabelActive]}>
+                    KYC & Aadhaar Compliance
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.sidebarNavItem, activeTab === 'settings' && styles.sidebarNavItemActive]}
+                  onPress={() => {
+                    setActiveTab('settings');
+                    setIsSidebarOpen(false);
+                  }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.sidebarNavIcon}>⚙️</Text>
+                  <Text style={[styles.sidebarNavLabel, activeTab === 'settings' && styles.sidebarNavLabelActive]}>
+                    Business Settings
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+
+            {/* Footer Customer Switch & Logout Button */}
+            <View style={styles.sidebarFooter}>
+              <TouchableOpacity
+                style={styles.sidebarCustomerSwitchBtn}
+                onPress={() => {
+                  setIsSidebarOpen(false);
+                  handleSwitchCustomerWithSync();
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={{ fontSize: 16 }}>👤</Text>
+                <Text style={{ color: '#0F172A', fontSize: 13, fontWeight: '700', marginLeft: 8 }}>
+                  Switch to Customer Portal
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.compactSidebarLogoutBtn}
+                onPress={() => {
+                  setIsSidebarOpen(false);
+                  if (onLogout) onLogout();
+                }}
+                activeOpacity={0.8}
+              >
+                <View style={styles.compactLogoutIconCircle}>
+                  <Text style={styles.compactLogoutIconSymbol}>⏻</Text>
+                </View>
+                <Text style={{ color: '#DC2626', fontSize: 13, fontWeight: '800' }}>
+                  Secure Partner Logout
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Backdrop (tap to close) */}
+          <TouchableOpacity
+            style={styles.sidebarBackdrop}
+            activeOpacity={1}
+            onPress={() => setIsSidebarOpen(false)}
+          />
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1448,7 +1730,7 @@ export default function WorkingPartnerDashboard({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
   },
   toastBanner: {
     backgroundColor: '#10B981',
@@ -1462,12 +1744,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   headerBar: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'android' ? 36 : 14,
     paddingBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   headerTopRow: {
     flexDirection: 'row',
@@ -1478,12 +1765,14 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 8,
-    backgroundColor: '#334155',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   sidebarToggleText: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 20,
     fontWeight: '900',
   },
@@ -1509,12 +1798,12 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerName: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 16,
     fontWeight: '800',
   },
   ratingBadge: {
-    backgroundColor: '#334155',
+    backgroundColor: '#FEF3C7',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1522,17 +1811,18 @@ const styles = StyleSheet.create({
     borderColor: '#F59E0B',
   },
   ratingBadgeText: {
-    color: '#F59E0B',
+    color: '#B45309',
     fontSize: 11,
     fontWeight: '800',
   },
   headerTrade: {
-    color: '#94A3B8',
+    color: '#475569',
     fontSize: 12,
     marginTop: 1,
+    fontWeight: '600',
   },
   headerEmail: {
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 10,
     marginTop: 2,
   },
@@ -1552,12 +1842,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   onlineActive: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    backgroundColor: '#ECFDF5',
     borderColor: '#10B981',
   },
   onlineInactive: {
-    backgroundColor: 'rgba(148, 163, 184, 0.15)',
-    borderColor: '#64748B',
+    backgroundColor: '#F1F5F9',
+    borderColor: '#CBD5E1',
   },
   statusDot: {
     width: 8,
@@ -1565,7 +1855,6 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   onlinePillText: {
-    color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -1574,17 +1863,88 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   headerLogoutIconBtn: {
-    backgroundColor: '#DC2626',
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 14,
+    gap: 4,
   },
   logoutIconSymbol: {
+    color: '#DC2626',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  headerLogoutText: {
+    color: '#DC2626',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  headerCustomerSwitchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 14,
+    gap: 4,
+  },
+  headerCustomerSwitchIcon: {
+    fontSize: 11,
+  },
+  headerCustomerSwitchText: {
+    color: '#1D4ED8',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  viewInCustomerTrackingBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginTop: 14,
+    gap: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  viewInCustomerTrackingIcon: {
+    fontSize: 22,
+  },
+  viewInCustomerTrackingTitle: {
     color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  viewInCustomerTrackingSub: {
+    color: '#94A3B8',
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  viewInCustomerTrackingArrow: {
+    color: '#38BDF8',
     fontSize: 16,
     fontWeight: '900',
+  },
+  sidebarCustomerSwitchBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   metricRow: {
     flexDirection: 'row',
@@ -1594,32 +1954,37 @@ const styles = StyleSheet.create({
   },
   metricCard: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   metricLabel: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 10,
     fontWeight: '600',
   },
   metricValue: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 16,
     fontWeight: '900',
     marginTop: 2,
   },
   metricSub: {
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 9,
     marginTop: 2,
   },
   navTabsWrapper: {
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
-    backgroundColor: '#1E293B',
+    borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
   },
   navTabsScroll: {
     paddingHorizontal: 12,
@@ -1630,16 +1995,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   navTabActive: {
     backgroundColor: '#F04400',
     borderColor: '#F04400',
   },
   navTabText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1659,27 +2024,32 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   sectionTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 18,
     fontWeight: '800',
   },
   sectionSub: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     marginTop: 2,
   },
   jobCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   jobTopHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: '#E2E8F0',
     paddingBottom: 12,
     marginBottom: 12,
   },
@@ -1689,7 +2059,7 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   jobTitleText: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 15,
     fontWeight: '800',
     marginTop: 2,
@@ -1698,11 +2068,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   payoutBadgeText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 10,
   },
   payoutAmountText: {
-    color: '#10B981',
+    color: '#059669',
     fontSize: 18,
     fontWeight: '900',
   },
@@ -1716,11 +2086,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   detailLabel: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
   },
   detailValue: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -1739,7 +2109,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#2563EB',
   },
   statusCompleted: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#059669',
   },
   statusPillText: {
     color: '#FFFFFF',
@@ -1754,6 +2124,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   enRouteBtnText: {
     color: '#FFFFFF',
@@ -1765,6 +2140,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     alignItems: 'center',
+    shadowColor: '#2563EB',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   arrivedBtnText: {
     color: '#FFFFFF',
@@ -1772,26 +2152,26 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   otpSection: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     marginBottom: 14,
   },
   otpHeaderTitle: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 13,
     fontWeight: '800',
   },
   otpHelperText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     marginTop: 3,
     marginBottom: 10,
   },
   otpVerifiedBanner: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: '#ECFDF5',
     paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
@@ -1799,7 +2179,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   otpVerifiedText: {
-    color: '#10B981',
+    color: '#065F46',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -1809,11 +2189,11 @@ const styles = StyleSheet.create({
   },
   otpInput: {
     flex: 1,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#475569',
-    color: '#FFFFFF',
+    borderColor: '#CBD5E1',
+    color: '#0F172A',
     paddingHorizontal: 12,
     fontSize: 14,
     fontWeight: '800',
@@ -1830,20 +2210,20 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   photoUploadSection: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     marginBottom: 14,
   },
   photoSectionTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '800',
   },
   photoSectionSub: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     marginTop: 2,
     marginBottom: 10,
@@ -1856,33 +2236,33 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   photoBoxTitle: {
-    color: '#CBD5E1',
+    color: '#334155',
     fontSize: 11,
     fontWeight: '700',
     marginBottom: 6,
   },
   uploadPlaceholder: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
     borderStyle: 'dashed',
-    borderColor: '#475569',
+    borderColor: '#CBD5E1',
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 18,
   },
   uploadBtnText: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 11,
     fontWeight: '800',
   },
   uploadSubtext: {
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 9,
     marginTop: 2,
   },
   photoUploadedCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 10,
     padding: 10,
     alignItems: 'center',
@@ -1890,14 +2270,14 @@ const styles = StyleSheet.create({
     borderColor: '#10B981',
   },
   photoName: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 10,
     fontWeight: '700',
     marginTop: 4,
     textAlign: 'center',
   },
   photoTime: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 9,
     marginTop: 2,
   },
@@ -1914,26 +2294,26 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   replacePhotoText: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 10,
     fontWeight: '700',
     marginTop: 6,
   },
   sopSection: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     marginBottom: 14,
   },
   sopHeaderTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '800',
   },
   sopHelperText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     marginTop: 2,
     marginBottom: 10,
@@ -1952,9 +2332,10 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: '#CBD5E1',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
   },
   checkboxDone: {
     backgroundColor: '#10B981',
@@ -1966,19 +2347,24 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   checklistText: {
-    color: '#CBD5E1',
+    color: '#334155',
     fontSize: 12,
     flex: 1,
   },
   checklistTextDone: {
     textDecorationLine: 'line-through',
-    color: '#64748B',
+    color: '#94A3B8',
   },
   completeJobBtn: {
     backgroundColor: '#10B981',
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   completeJobBtnText: {
     color: '#FFFFFF',
@@ -1986,7 +2372,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   completedBanner: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: '#ECFDF5',
     paddingVertical: 12,
     borderRadius: 10,
     borderWidth: 1,
@@ -1994,36 +2380,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   completedBannerText: {
-    color: '#10B981',
+    color: '#065F46',
     fontSize: 12,
     fontWeight: '900',
   },
   noJobBox: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 30,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   noJobTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 18,
     fontWeight: '800',
   },
   noJobSub: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     textAlign: 'center',
     marginTop: 4,
   },
   // Live GPS Card
   liveTrackingCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   liveMapHeader: {
     flexDirection: 'row',
@@ -2043,29 +2439,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#10B981',
   },
   liveIndicatorText: {
-    color: '#10B981',
+    color: '#059669',
     fontSize: 11,
     fontWeight: '900',
   },
   liveEtaBadge: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 11,
     fontWeight: '800',
   },
   liveMapGraphic: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: 12,
     padding: 14,
     marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   liveMapRouteTitle: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     marginBottom: 14,
   },
   routeProgressBarBg: {
     height: 6,
-    backgroundColor: '#334155',
+    backgroundColor: '#E2E8F0',
     borderRadius: 3,
     position: 'relative',
     justifyContent: 'center',
@@ -2073,7 +2471,7 @@ const styles = StyleSheet.create({
   },
   routeProgressBarFill: {
     height: 6,
-    backgroundColor: '#38BDF8',
+    backgroundColor: '#0284C7',
     borderRadius: 3,
   },
   scooterPin: {
@@ -2085,7 +2483,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   endpointLabel: {
-    color: '#CBD5E1',
+    color: '#64748B',
     fontSize: 10,
     fontWeight: '600',
   },
@@ -2093,7 +2491,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: '#E2E8F0',
     paddingTop: 12,
     marginBottom: 14,
   },
@@ -2101,7 +2499,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   liveStatVal: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
   },
@@ -2111,24 +2509,34 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   advanceGpsBtn: {
-    backgroundColor: '#38BDF8',
+    backgroundColor: '#0284C7',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
+    shadowColor: '#0284C7',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   advanceGpsBtnText: {
-    color: '#0F172A',
+    color: '#FFFFFF',
     fontSize: 13,
     fontWeight: '900',
   },
   // Hot Leads
   leadCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   leadTopRow: {
     flexDirection: 'row',
@@ -2148,22 +2556,22 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   leadPayoutText: {
-    color: '#10B981',
+    color: '#059669',
     fontSize: 16,
     fontWeight: '900',
   },
   leadServiceText: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
   },
   leadAddressText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     marginTop: 4,
   },
   leadSlotText: {
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 11,
     marginTop: 2,
     marginBottom: 10,
@@ -2173,6 +2581,11 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
+    shadowColor: '#F04400',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   acceptLeadBtnText: {
     color: '#FFFFFF',
@@ -2183,11 +2596,17 @@ const styles = StyleSheet.create({
   fleetCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   fleetAvatarBox: {
     width: 40,
@@ -2207,16 +2626,16 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   fleetName: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
   },
   fleetTrade: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
   },
   fleetDispatches: {
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 10,
     marginTop: 2,
   },
@@ -2226,26 +2645,31 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   fleetOnJob: {
-    backgroundColor: 'rgba(37, 99, 235, 0.2)',
+    backgroundColor: '#EFF6FF',
   },
   fleetAvailable: {
-    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    backgroundColor: '#ECFDF5',
   },
   fleetStatusText: {
-    color: '#FFFFFF',
+    color: '#1E40AF',
     fontSize: 10,
     fontWeight: '800',
   },
   // Evidence Card
   evidenceCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   evidenceHeader: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 14,
     fontWeight: '800',
     marginBottom: 12,
@@ -2259,27 +2683,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   evidenceLabel: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     marginBottom: 6,
   },
   evidencePlaceholderBox: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   evidenceTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 10,
     fontWeight: '700',
     marginTop: 4,
     textAlign: 'center',
   },
   evidenceTime: {
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 9,
     marginTop: 2,
   },
@@ -2297,21 +2721,27 @@ const styles = StyleSheet.create({
   // Calendar Slot Card
   calendarSlotCard: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   calendarTimeCol: {
     width: '40%',
     borderRightWidth: 1,
-    borderRightColor: '#334155',
+    borderRightColor: '#E2E8F0',
     paddingRight: 10,
     justifyContent: 'center',
   },
   calendarTimeText: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 11,
     fontWeight: '800',
   },
@@ -2323,13 +2753,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   calDone: {
-    backgroundColor: '#10B981',
+    backgroundColor: '#ECFDF5',
   },
   calPending: {
-    backgroundColor: '#D97706',
+    backgroundColor: '#FEF3C7',
   },
   calendarStatusTagText: {
-    color: '#FFFFFF',
+    color: '#065F46',
     fontSize: 9,
     fontWeight: '800',
   },
@@ -2339,41 +2769,46 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   calendarService: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 12,
     fontWeight: '800',
   },
   calendarCustomer: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     marginTop: 2,
   },
   calendarPayout: {
-    color: '#10B981',
+    color: '#059669',
     fontSize: 11,
     fontWeight: '700',
     marginTop: 2,
   },
   // Wallet Card
   walletHeroCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
   },
   walletHeroLabel: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
   },
   walletHeroAmount: {
-    color: '#10B981',
+    color: '#059669',
     fontSize: 32,
     fontWeight: '900',
     marginTop: 4,
   },
   walletHeroSub: {
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 11,
     marginTop: 4,
     marginBottom: 16,
@@ -2383,6 +2818,11 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 10,
     alignItems: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   withdrawBtnText: {
     color: '#FFFFFF',
@@ -2390,15 +2830,21 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   bankDetailCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     gap: 8,
+    marginTop: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   bankCardTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '800',
     marginBottom: 4,
@@ -2408,28 +2854,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   bankKey: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
   },
   bankVal: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 11,
     fontWeight: '700',
   },
   // Quality & Rating
   ratingOverviewCard: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   ratingBigCol: {
     width: '45%',
     alignItems: 'center',
     borderRightWidth: 1,
-    borderRightColor: '#334155',
+    borderRightColor: '#E2E8F0',
     paddingRight: 10,
   },
   bigRatingNum: {
@@ -2443,7 +2894,7 @@ const styles = StyleSheet.create({
     marginVertical: 2,
   },
   bigRatingCount: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 10,
   },
   ratingBreakdownCol: {
@@ -2453,16 +2904,22 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   breakdownRow: {
-    color: '#CBD5E1',
+    color: '#334155',
     fontSize: 11,
     fontWeight: '600',
   },
   reviewCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -2470,7 +2927,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   reviewCustomer: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -2480,7 +2937,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   reviewRatingBadge: {
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#FEF3C7',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 6,
@@ -2488,31 +2945,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   reviewRatingBadgeText: {
-    color: '#000000',
+    color: '#B45309',
     fontSize: 10,
     fontWeight: '900',
   },
   reviewComment: {
-    color: '#CBD5E1',
+    color: '#334155',
     fontSize: 12,
     fontStyle: 'italic',
     lineHeight: 18,
   },
   reviewReplyBox: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: 8,
     padding: 8,
     marginTop: 8,
     borderLeftWidth: 3,
-    borderLeftColor: '#38BDF8',
+    borderLeftColor: '#0284C7',
   },
   reviewReplyAuthor: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 10,
     fontWeight: '800',
   },
   reviewReplyText: {
-    color: '#94A3B8',
+    color: '#475569',
     fontSize: 11,
     marginTop: 2,
   },
@@ -2522,45 +2979,56 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: '#E2E8F0',
   },
   replyBtnText: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 11,
     fontWeight: '700',
   },
   // Earnings
   earningsSummaryBox: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   earningsStat: {
     alignItems: 'center',
   },
   earningsStatVal: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 16,
     fontWeight: '900',
   },
   earningsStatLbl: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 10,
     marginTop: 2,
   },
   // Invoices
   invoiceCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   invoiceHeader: {
     flexDirection: 'row',
@@ -2568,17 +3036,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   invoiceId: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 13,
     fontWeight: '800',
   },
   invoiceStatus: {
-    color: '#10B981',
+    color: '#059669',
     fontSize: 11,
     fontWeight: '700',
   },
   invoiceCustomer: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
   },
   invoicePriceRow: {
@@ -2588,28 +3056,35 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   invoiceTotal: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 12,
     fontWeight: '800',
   },
   downloadInvoiceBtn: {
-    backgroundColor: '#334155',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   downloadInvoiceBtnText: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 11,
     fontWeight: '700',
   },
   // KYC Card
   kycCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
   kycRow: {
     flexDirection: 'row',
@@ -2617,17 +3092,17 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   kycTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '800',
   },
   kycStatusOk: {
-    color: '#10B981',
+    color: '#059669',
     fontSize: 11,
     fontWeight: '800',
   },
   kycSub: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
   },
   // Off-Canvas Sidebar
@@ -2637,28 +3112,28 @@ const styles = StyleSheet.create({
   },
   sidebarDrawer: {
     width: Math.min(width * 0.85, 330),
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     height: '100%',
     borderRightWidth: 1,
-    borderRightColor: '#334155',
+    borderRightColor: '#E2E8F0',
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.45,
+    shadowOpacity: 0.15,
     shadowRadius: 12,
     elevation: 12,
   },
   sidebarBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
   sidebarHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
     paddingTop: Platform.OS === 'android' ? 40 : 20,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: '#E2E8F0',
   },
   sidebarAvatarBox: {
     width: 44,
@@ -2674,12 +3149,12 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   sidebarName: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 15,
     fontWeight: '800',
   },
   sidebarRole: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 11,
     fontWeight: '700',
   },
@@ -2691,7 +3166,7 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   sidebarCloseText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 18,
     fontWeight: '800',
   },
@@ -2704,7 +3179,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   sidebarGroupTitle: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 1,
@@ -2727,7 +3202,7 @@ const styles = StyleSheet.create({
     width: 28,
   },
   sidebarNavLabel: {
-    color: '#CBD5E1',
+    color: '#334155',
     fontSize: 13.5,
     fontWeight: '700',
     flex: 1,
@@ -2737,13 +3212,13 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   sidebarCountBadge: {
-    backgroundColor: '#334155',
+    backgroundColor: '#F1F5F9',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 10,
   },
   sidebarCountText: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 10,
     fontWeight: '800',
   },
@@ -2759,40 +3234,47 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   sidebarFooter: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: '#334155',
-    backgroundColor: '#0F172A',
+    borderTopColor: '#F1F5F9',
+    backgroundColor: '#FFFFFF',
+  },
+  compactSidebarLogoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FEE2E2',
+    paddingVertical: 9,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    gap: 8,
+    width: '100%',
+  },
+  compactLogoutIconCircle: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#EF4444',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  sidebarFooterLogoutBtn: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoutIconBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#DC2626',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#DC2626',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  sidebarLogoutIconSymbol: {
+  compactLogoutIconSymbol: {
     color: '#FFFFFF',
-    fontSize: 22,
+    fontSize: 11,
     fontWeight: '900',
+  },
+  compactLogoutText: {
+    color: '#DC2626',
+    fontSize: 13,
+    fontWeight: '700',
   },
   // Photo Preset Modal
   photoModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -2800,11 +3282,16 @@ const styles = StyleSheet.create({
   photoModalCard: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 8,
   },
   photoModalHeader: {
     flexDirection: 'row',
@@ -2813,17 +3300,17 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   photoModalTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 15,
     fontWeight: '800',
   },
   photoModalClose: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 18,
     fontWeight: '700',
   },
   photoModalSub: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     marginBottom: 14,
   },
@@ -2833,14 +3320,14 @@ const styles = StyleSheet.create({
   presetItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: 10,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   presetItemTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 12,
     fontWeight: '800',
   },
@@ -2852,7 +3339,7 @@ const styles = StyleSheet.create({
   // Reply Modal
   replyModalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
@@ -2860,30 +3347,35 @@ const styles = StyleSheet.create({
   replyModalCard: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 15,
+    elevation: 8,
   },
   replyModalTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 15,
     fontWeight: '800',
     marginBottom: 6,
   },
   replyCustomerComment: {
-    color: '#CBD5E1',
+    color: '#475569',
     fontSize: 12,
     fontStyle: 'italic',
     marginBottom: 12,
   },
   replyInput: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#334155',
-    color: '#FFFFFF',
+    borderColor: '#E2E8F0',
+    color: '#0F172A',
     padding: 10,
     fontSize: 12,
     height: 80,
@@ -2900,7 +3392,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   replyCancelText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     fontWeight: '700',
   },

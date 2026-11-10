@@ -168,6 +168,19 @@ export function ServicesView({ onShowToast, onNavigate }) {
     reader.readAsDataURL(file);
   }
 
+  // Broadcast real-time catalogue updates across tabs and to Customer Dashboard
+  function notifyCatalogueChanged(serviceId, action = 'updated') {
+    try {
+      localStorage.setItem('uc_services_last_updated', Date.now().toString());
+      window.dispatchEvent(new CustomEvent('uc:catalogue-updated', { detail: { serviceId, action } }));
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('uc_sync_channel');
+        bc.postMessage({ type: 'CATALOGUE_UPDATED', serviceId, action, timestamp: Date.now() });
+        bc.close();
+      }
+    } catch (_) {}
+  }
+
   // Submit Form
   function handleSave(e) {
     e.preventDefault();
@@ -180,14 +193,31 @@ export function ServicesView({ onShowToast, onNavigate }) {
       return;
     }
 
+    const catMap = {
+      'ac-appliances': 'AC & Appliances',
+      'cleaning-pest': 'Cleaning & Pest',
+      'salon-women': 'Salon for Women',
+      'mens-grooming': "Men's Salon",
+      'electrician-plumber': 'Electrician & Plumber'
+    };
+
     const payload = {
       ...formData,
+      categoryName: catMap[formData.category] || formData.categoryName || 'Home Services',
       price: parseFloat(formData.price),
       durationMins: parseInt(formData.durationMins),
-      includedWork: formData.includedWork.split(',').map(s => s.trim()).filter(Boolean),
-      excludedWork: formData.excludedWork.split(',').map(s => s.trim()).filter(Boolean),
-      prepInstructions: formData.prepInstructions.split(',').map(s => s.trim()).filter(Boolean),
-      applicableCities: formData.applicableCities.split(',').map(s => s.trim()).filter(Boolean)
+      includedWork: typeof formData.includedWork === 'string' 
+        ? formData.includedWork.split(',').map(s => s.trim()).filter(Boolean)
+        : (Array.isArray(formData.includedWork) ? formData.includedWork : []),
+      excludedWork: typeof formData.excludedWork === 'string'
+        ? formData.excludedWork.split(',').map(s => s.trim()).filter(Boolean)
+        : (Array.isArray(formData.excludedWork) ? formData.excludedWork : []),
+      prepInstructions: typeof formData.prepInstructions === 'string'
+        ? formData.prepInstructions.split(',').map(s => s.trim()).filter(Boolean)
+        : (Array.isArray(formData.prepInstructions) ? formData.prepInstructions : []),
+      applicableCities: typeof formData.applicableCities === 'string'
+        ? formData.applicableCities.split(',').map(s => s.trim()).filter(Boolean)
+        : (Array.isArray(formData.applicableCities) ? formData.applicableCities : ['Mumbai', 'Bengaluru', 'Delhi NCR', 'Krishnagiri'])
     };
 
     if (isEditing && formData.id) {
@@ -196,16 +226,19 @@ export function ServicesView({ onShowToast, onNavigate }) {
           onShowToast && onShowToast(`✓ Service "${formData.title}" updated (historical bookings preserved)`);
           setIsModalOpen(false);
           fetchServicesList();
+          notifyCatalogueChanged(formData.id, 'updated');
         })
         .catch(err => {
           onShowToast && onShowToast(`Error: ${err.message}`);
         });
     } else {
       adminClient.createService(payload)
-        .then(() => {
+        .then((res) => {
+          const createdId = res?.service?.id || formData.id;
           onShowToast && onShowToast(`🎉 Service "${formData.title}" added to catalogue!`);
           setIsModalOpen(false);
           fetchServicesList();
+          notifyCatalogueChanged(createdId, 'created');
         })
         .catch(err => {
           onShowToast && onShowToast(`Error: ${err.message}`);
@@ -220,6 +253,7 @@ export function ServicesView({ onShowToast, onNavigate }) {
         .then(() => {
           onShowToast && onShowToast(`✓ Service "${title}" soft-archived`);
           fetchServicesList();
+          notifyCatalogueChanged(id, 'archived');
           if (selectedService?.id === id) setSelectedService(null);
         })
         .catch(err => {
@@ -234,6 +268,7 @@ export function ServicesView({ onShowToast, onNavigate }) {
       .then(() => {
         onShowToast && onShowToast(`✓ Service "${title}" restored to Active catalogue`);
         fetchServicesList();
+        notifyCatalogueChanged(id, 'restored');
       })
       .catch(err => {
         onShowToast && onShowToast(`Error restoring service: ${err.message}`);
@@ -247,6 +282,7 @@ export function ServicesView({ onShowToast, onNavigate }) {
         .then(() => {
           onShowToast && onShowToast(`✓ Service "${title}" permanently removed from catalogue`);
           fetchServicesList();
+          notifyCatalogueChanged(id, 'deleted');
           if (selectedService?.id === id) setSelectedService(null);
         })
         .catch(err => {
@@ -876,7 +912,21 @@ export function ServicesView({ onShowToast, onNavigate }) {
                   <label style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>Primary Category</label>
                   <select
                     value={formData.category}
-                    onChange={e => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                    onChange={e => {
+                      const newCat = e.target.value;
+                      const catNames = {
+                        'ac-appliances': 'AC & Appliances',
+                        'cleaning-pest': 'Cleaning & Pest',
+                        'salon-women': 'Salon for Women',
+                        'mens-grooming': "Men's Salon",
+                        'electrician-plumber': 'Electrician & Plumber'
+                      };
+                      setFormData(prev => ({
+                        ...prev,
+                        category: newCat,
+                        categoryName: catNames[newCat] || prev.categoryName
+                      }));
+                    }}
                     style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
                   >
                     <option value="ac-appliances">AC & Appliances</option>

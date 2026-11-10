@@ -185,6 +185,12 @@ const bookingSchema = new mongoose.Schema({
       return map[String(val).toLowerCase()] || val;
     }
   },
+  stage: {
+    type: Number,
+    default: 2,
+    min: 1,
+    max: 6
+  },
   paymentStatus: {
     type: String,
     enum: ['Paid', 'Pending', 'Refunded', 'Partially Refunded', 'Failed'],

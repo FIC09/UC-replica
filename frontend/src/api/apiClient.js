@@ -21,7 +21,16 @@ async function request(endpoint, options = {}) {
   }
 
   try {
-    const res = await fetch(url, config);
+    let res;
+    try {
+      res = await fetch(url, config);
+    } catch (fetchErr) {
+      if (API_BASE.startsWith('/')) {
+        res = await fetch(`http://127.0.0.1:5000/api${endpoint}`, config);
+      } else {
+        throw fetchErr;
+      }
+    }
     clearTimeout(timeoutId);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {

@@ -137,7 +137,28 @@ router.get('/', async (req, res) => {
 // GET single booking
 router.get('/:id', async (req, res) => {
   try {
-    const booking = await Booking.findOne({ $or: [{ id: req.params.id }, { bookingReference: req.params.id }] });
+    const rawId = req.params.id;
+    const cleanId = String(rawId).replace(/^[#\s]+/, '');
+    const bareNum = cleanId.replace(/^(JOB|UC|LEAD)[-_]?/i, '');
+    const query = [
+      { id: cleanId },
+      { id: `#${cleanId}` },
+      { id: `UC-${bareNum}` },
+      { id: `JOB-${bareNum}` },
+      { id: bareNum },
+      { bookingReference: cleanId },
+      { bookingReference: `#${cleanId}` },
+      { bookingReference: `UC-${bareNum}` },
+      { bookingReference: `JOB-${bareNum}` },
+      { bookingReference: bareNum }
+    ];
+    if (mongoose.isValidObjectId(rawId)) {
+      query.push({ _id: rawId });
+    }
+    let booking = await Booking.findOne({ $or: query });
+    if (!booking && inMemoryBookings) {
+      booking = inMemoryBookings.get(cleanId) || inMemoryBookings.get(`#${cleanId}`) || inMemoryBookings.get(bareNum) || inMemoryBookings.get(`UC-${bareNum}`);
+    }
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
@@ -268,6 +289,12 @@ router.post('/', async (req, res) => {
 
     if (!bookingData.status) {
       bookingData.status = 'Confirmed';
+    }
+    if (!bookingData.stage) {
+      bookingData.stage = bookingData.status === 'Completed' ? 6 :
+        bookingData.status === 'In Progress' ? 5 :
+        bookingData.status === 'Arrived' ? 4 :
+        bookingData.status === 'En Route' ? 3 : 2;
     }
     if (!bookingData.paymentStatus) {
       bookingData.paymentStatus = 'Paid';
@@ -514,27 +541,46 @@ router.post('/:id/auto-assign', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const cleanId = String(id).replace(/^#/, '');
+    const cleanId = String(id).replace(/^[#\s]+/, '');
+    const bareNum = cleanId.replace(/^(JOB|UC|LEAD)[-_]?/i, '');
     const query = [
       { id: cleanId },
       { id: `#${cleanId}` },
+      { id: `UC-${bareNum}` },
+      { id: `JOB-${bareNum}` },
+      { id: bareNum },
       { bookingReference: cleanId },
-      { bookingReference: `#${cleanId}` }
+      { bookingReference: `#${cleanId}` },
+      { bookingReference: `UC-${bareNum}` },
+      { bookingReference: `JOB-${bareNum}` },
+      { bookingReference: bareNum }
     ];
     if (mongoose.isValidObjectId(id)) {
       query.push({ _id: id });
     }
+
+    const updatePayload = { ...req.body };
+    if (updatePayload.stage && !updatePayload.status) {
+      const stageMap = { 1: 'Confirmed', 2: 'Assigned', 3: 'En Route', 4: 'Arrived', 5: 'In Progress', 6: 'Completed' };
+      updatePayload.status = stageMap[updatePayload.stage] || 'In Progress';
+    } else if (updatePayload.status && !updatePayload.stage) {
+      const statusMap = { 'Confirmed': 1, 'Assigned': 2, 'En Route': 3, 'Arrived': 4, 'In Progress': 5, 'Completed': 6 };
+      updatePayload.stage = statusMap[updatePayload.status] || 2;
+    }
+
     const updated = await Booking.findOneAndUpdate(
       { $or: query },
-      req.body,
+      updatePayload,
       { new: true }
     );
     if (!updated) {
-      if (inMemoryBookings && (inMemoryBookings.has(cleanId) || inMemoryBookings.has(`#${cleanId}`))) {
-        const memB = inMemoryBookings.get(cleanId) || inMemoryBookings.get(`#${cleanId}`);
-        Object.assign(memB, req.body);
+      if (inMemoryBookings && (inMemoryBookings.has(cleanId) || inMemoryBookings.has(`#${cleanId}`) || inMemoryBookings.has(bareNum) || inMemoryBookings.has(`UC-${bareNum}`))) {
+        const memB = inMemoryBookings.get(cleanId) || inMemoryBookings.get(`#${cleanId}`) || inMemoryBookings.get(bareNum) || inMemoryBookings.get(`UC-${bareNum}`);
+        Object.assign(memB, updatePayload);
         inMemoryBookings.set(cleanId, memB);
         inMemoryBookings.set(`#${cleanId}`, memB);
+        inMemoryBookings.set(bareNum, memB);
+        inMemoryBookings.set(`UC-${bareNum}`, memB);
         return res.json({ success: true, booking: memB });
       }
       return res.status(404).json({ success: false, message: 'Booking not found' });
@@ -544,6 +590,8 @@ router.put('/:id', async (req, res) => {
       const plain = updated.toObject ? updated.toObject() : updated;
       inMemoryBookings.set(cleanId, plain);
       inMemoryBookings.set(`#${cleanId}`, plain);
+      inMemoryBookings.set(bareNum, plain);
+      inMemoryBookings.set(`UC-${bareNum}`, plain);
     }
 
     emitEvent('BOOKING_UPDATED', { bookingId: cleanId, status: updated.status });

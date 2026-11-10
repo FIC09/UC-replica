@@ -313,6 +313,32 @@ export default function LoginAuthModal({
             ) : authMode === 'signin' ? (
               /* SIGN IN FORM (Only Email & Password) */
               <View style={styles.formSection}>
+                {/* Demo Quick-Fill Pill Card */}
+                <View style={styles.demoAccountBox}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.demoAccountTitle}>
+                      {selectedRole === 'partner' ? '👷 Demo Partner Login' : '👤 Demo Customer Login'}
+                    </Text>
+                    <Text style={styles.demoAccountText}>
+                      {selectedRole === 'partner' ? 'partner@forgeindia.in' : 'customer@forgeindia.in'} • password123
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.demoFillBtn}
+                    onPress={() => {
+                      if (selectedRole === 'partner') {
+                        setEmail('partner@forgeindia.in');
+                        setPassword('password123');
+                      } else {
+                        setEmail('customer@forgeindia.in');
+                        setPassword('password123');
+                      }
+                    }}
+                  >
+                    <Text style={styles.demoFillBtnText}>Auto Fill</Text>
+                  </TouchableOpacity>
+                </View>
+
                 <Text style={styles.inputLabel}>Email Address *</Text>
                 <TextInput
                   style={styles.input}
@@ -457,13 +483,13 @@ export default function LoginAuthModal({
 const styles = StyleSheet.create({
   keyboardAvoid: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
   },
   brandHeader: {
     alignItems: 'center',
@@ -484,23 +510,23 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   brandTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 24,
     fontWeight: '900',
   },
   brandSubtitle: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
     marginTop: 4,
   },
   roleTabsContainer: {
     flexDirection: 'row',
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F1F5F9',
     borderRadius: 12,
     padding: 4,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
   },
   roleTab: {
     flex: 1,
@@ -515,7 +541,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F04400',
   },
   roleTabText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -524,30 +550,30 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   card: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E2E8F0',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
   roleHeaderBox: {
     marginBottom: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#334155',
+    borderBottomColor: '#E2E8F0',
     paddingBottom: 10,
   },
   roleHeadline: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 17,
     fontWeight: '800',
   },
   roleDescription: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     marginTop: 4,
     lineHeight: 17,
@@ -576,25 +602,25 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   inputLabel: {
-    color: '#CBD5E1',
+    color: '#334155',
     fontSize: 12,
     fontWeight: '700',
     marginBottom: 6,
     marginTop: 10,
   },
   showHideText: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 12,
     fontWeight: '700',
   },
   input: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
-    borderColor: '#475569',
+    borderColor: '#CBD5E1',
     borderRadius: 8,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 15,
   },
   inputHelper: {
@@ -603,13 +629,13 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   otpBigInput: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F8FAFC',
     borderWidth: 2,
     borderColor: '#F04400',
     borderRadius: 10,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 26,
     fontWeight: '900',
     letterSpacing: 10,
@@ -617,26 +643,26 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   otpNoticeBox: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#EFF6FF',
     borderRadius: 10,
     padding: 14,
     borderWidth: 1,
-    borderColor: '#38BDF8',
+    borderColor: '#BFDBFE',
     marginBottom: 12,
   },
   otpNoticeTitle: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 14,
     fontWeight: '800',
   },
   otpNoticeEmail: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 13,
     fontWeight: '700',
     marginTop: 2,
   },
   otpNoticeSub: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     marginTop: 4,
   },
@@ -662,11 +688,11 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   switchModePrompt: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
   },
   switchModeLink: {
-    color: '#FFD91A',
+    color: '#F04400',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -678,16 +704,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   cooldownText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
   },
   resendLinkText: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 12,
     fontWeight: '700',
   },
   changeEmailText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 12,
     textDecorationLine: 'underline',
   },
@@ -697,7 +723,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   guestBtnText: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 13,
     fontWeight: '600',
   },
@@ -706,9 +732,41 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   footerNoteText: {
-    color: '#64748B',
+    color: '#94A3B8',
     fontSize: 11,
     textAlign: 'center',
     lineHeight: 16,
+  },
+  demoAccountBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 14,
+    gap: 8,
+  },
+  demoAccountTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  demoAccountText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  demoFillBtn: {
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  demoFillBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

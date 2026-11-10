@@ -1,32 +1,107 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 // Localhost Configuration matching the backend running locally on port 5000
 export const LOCAL_PORT = process.env.EXPO_PUBLIC_PORT || 5000;
-export const LOCAL_DEV_IP = process.env.EXPO_PUBLIC_LOCAL_DEV_IP || '192.168.1.2';
+
+/**
+ * Automatically resolve developer machine's IP on your local Wi-Fi:
+ * 1. Checks EXPO_PUBLIC_LOCAL_DEV_IP or EXPO_PUBLIC_API_URL
+ * 2. Extracts from Expo Metro debugger host (auto-detects your computer's Wi-Fi IP on iPhone & Android)
+ * 3. Falls back to current PC Wi-Fi IP (192.168.1.27)
+ */
+function resolveDevHostIp() {
+  if (process.env.EXPO_PUBLIC_LOCAL_DEV_IP) {
+    return process.env.EXPO_PUBLIC_LOCAL_DEV_IP;
+  }
+  const hostUri =
+    Constants?.expoConfig?.hostUri ||
+    Constants?.manifest2?.extra?.expoClient?.hostUri ||
+    Constants?.manifest?.debuggerHost;
+
+  if (hostUri && typeof hostUri === 'string') {
+    const extractedIp = hostUri.split(':')[0];
+    if (extractedIp && extractedIp !== 'localhost' && extractedIp !== '127.0.0.1') {
+      return extractedIp;
+    }
+  }
+  return '192.168.1.27';
+}
+
+export const LOCAL_DEV_IP = resolveDevHostIp();
 
 // Localhost API URL variants depending on platform/device
 export const LOCALHOST_API_URL = process.env.EXPO_PUBLIC_API_URL || `http://localhost:${LOCAL_PORT}/api`;
 export const ANDROID_EMULATOR_API_URL = process.env.EXPO_PUBLIC_ANDROID_API_URL || `http://10.0.2.2:${LOCAL_PORT}/api`;
 export const LAN_API_URL = process.env.EXPO_PUBLIC_LAN_API_URL || `http://${LOCAL_DEV_IP}:${LOCAL_PORT}/api`;
-
-// Secondary Cloud Fallbacks (kept as graceful failovers if local backend is stopped)
 export const RENDER_API_URL = process.env.EXPO_PUBLIC_RENDER_API_URL || 'https://uc-replica.onrender.com/api';
 export const CLOUD_API_URL = process.env.EXPO_PUBLIC_CLOUD_API_URL || 'https://urban-rosy.vercel.app/api';
 
 /**
- * Resolves the active backend API URL for local testing:
- * - On Web & iOS: connects to http://localhost:5000/api
- * - On Android Emulator: connects to http://10.0.2.2:5000/api (alias for host machine localhost)
- * - On Physical Devices on LAN: can use http://192.168.1.2:5000/api
+ * Resolves Metro-proxied API URL through the active development host.
+ * Because the phone is already connected to Metro to download the bundle (over Wi-Fi or Tunnel),
+ * forwarding /api through Metro guarantees the mobile client can reach the backend from any network.
  */
-export function getBaseApiUrl() {
-  if (Platform.OS === 'android') {
-    // Android emulator cannot reach 'localhost' directly; 10.0.2.2 routes to the host's localhost
-    return ANDROID_EMULATOR_API_URL;
+export function getMetroApiUrl() {
+  if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && window.location) {
+      const port = window.location.port;
+      if (port === '8081') {
+        return `${window.location.protocol}//${window.location.host}/api`;
+      }
+      return `http://localhost:${LOCAL_PORT}/api`;
+    }
   }
 
-  // Web, iOS simulators, and standard localhost
-  return LOCALHOST_API_URL;
+  const hostUri =
+    Constants?.expoConfig?.hostUri ||
+    Constants?.manifest2?.extra?.expoClient?.hostUri ||
+    Constants?.manifest?.debuggerHost;
+
+  if (hostUri && typeof hostUri === 'string') {
+    const isSecure = hostUri.includes('.exp.direct') || hostUri.includes('ngrok') || hostUri.includes('https');
+    const proto = isSecure ? 'https:' : 'http:';
+    return `${proto}//${hostUri}/api`;
+  }
+
+  return `http://${LOCAL_DEV_IP}:8081/api`;
+}
+
+export const VITE_PROXY_URL = `http://${LOCAL_DEV_IP}:5173/api`;
+
+/**
+ * Resolves the primary active backend API URL:
+ * 1. Checks EXPO_PUBLIC_API_URL environment variable override
+ * 2. Connects through the active Metro proxy URL (since Metro is guaranteed reachable by the active bundle)
+ * 3. Falls back to direct LAN IP
+ */
+export function getBaseApiUrl() {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+  const metro = getMetroApiUrl();
+  if (metro) return metro;
+  return LAN_API_URL;
+}
+
+/**
+ * Returns prioritized list of candidate URLs for seamless failover.
+ */
+export function getCandidateApiUrls() {
+  const metroUrl = getMetroApiUrl();
+  const lanUrl = LAN_API_URL;
+  const directLocalhost = `http://localhost:${LOCAL_PORT}/api`;
+  const direct127 = `http://127.0.0.1:${LOCAL_PORT}/api`;
+  const viteProxy = VITE_PROXY_URL;
+
+  const candidates = [
+    metroUrl,
+    lanUrl,
+    direct127,
+    directLocalhost,
+    viteProxy
+  ];
+  return Array.from(new Set(candidates.filter(Boolean)));
 }
 
 export const API_BASE_URL = getBaseApiUrl();

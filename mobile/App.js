@@ -17,7 +17,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
 import { mobileApi } from './src/services/apiClient';
-import { SERVICES as WEB_APP_SERVICES } from './src/data/servicesData';
+import { SERVICES as WEB_APP_SERVICES, CATEGORIES as WEB_APP_CATEGORIES } from './src/data/servicesData';
 import LoginAuthModal from './src/components/LoginAuthModal';
 import WorkingPartnerDashboard from './src/components/WorkingPartnerDashboard';
 import CustomerOrderTrackingModal from './src/components/CustomerOrderTrackingModal';
@@ -274,26 +274,48 @@ const FILENAME_MAP = {
   'men_prime_beard_trim.jpg': IMAGES.menBeardTrim,
 };
 
+// Filter out tiny category icons so full services use crystal-clear studio photographs
+const isCategoryIcon = (num) => {
+  return (
+    num === IMAGES.catWomensSalon ||
+    num === IMAGES.catMensSalon ||
+    num === IMAGES.catCleaning ||
+    num === IMAGES.catPainting ||
+    num === IMAGES.catAc ||
+    num === IMAGES.catRepairs ||
+    num === IMAGES.catLock ||
+    num === IMAGES.catPurifier ||
+    num === IMAGES.catInstahelp ||
+    num === IMAGES.beautyWomenAvatar ||
+    num === IMAGES.beautyMenAvatar ||
+    num === IMAGES.beautySpaPrime ||
+    num === IMAGES.beautyHairDryer ||
+    num === IMAGES.beautyMassageBed
+  );
+};
+
 // Unique Image Resolver based on Service Name, Designation Role & Category
 const resolveServiceImage = (item) => {
   if (!item) return IMAGES.homeSofaClean;
 
-  // 1. If already a local require() number or asset object with default/uri, use it
-  if (typeof item === 'number') return item;
-  if (typeof item === 'object' && item !== null && item.default) return item.default;
-  if (typeof item === 'object' && item !== null && item.uri) return item;
-  if (typeof item.image === 'number') return item.image;
-  if (typeof item.image === 'object' && item.image !== null && item.image.default) return item.image.default;
-  if (typeof item.image === 'object' && item.image !== null && item.image.uri) return item.image;
-  if (typeof item.icon === 'number') return item.icon;
-  if (typeof item.icon === 'object' && item.icon !== null && item.icon.default) return item.icon.default;
-  if (typeof item.icon === 'object' && item.icon !== null && item.icon.uri) return item.icon;
+  // 1. If already a local require() number or asset object with default/uri, use it (if not a small category icon)
+  if (typeof item === 'number' && !isCategoryIcon(item)) return item;
+  if (typeof item === 'object' && item !== null && item.default && !isCategoryIcon(item.default)) return item.default;
+  if (typeof item.image === 'number' && !isCategoryIcon(item.image)) return item.image;
+  if (typeof item.image === 'object' && item.image !== null && item.image.default && !isCategoryIcon(item.image.default)) return item.image.default;
+  if (typeof item.icon === 'number' && !isCategoryIcon(item.icon)) return item.icon;
+  if (typeof item.icon === 'object' && item.icon !== null && item.icon.default && !isCategoryIcon(item.icon.default)) return item.icon.default;
 
   // 2. Direct filename lookup
-  const imgStr = typeof item === 'string' ? item : (typeof item.image === 'string' ? item.image : (typeof item.icon === 'string' ? item.icon : ''));
+  const imgStr = typeof item === 'string' ? item : (typeof item.image === 'string' ? item.image : (typeof item.icon === 'string' ? item.icon : (item.image?.uri || item.icon?.uri || '')));
   if (imgStr) {
     const fn = imgStr.split('?')[0].split('/').pop().toLowerCase();
-    if (FILENAME_MAP[fn]) return FILENAME_MAP[fn];
+    if (FILENAME_MAP[fn] && !isCategoryIcon(FILENAME_MAP[fn])) return FILENAME_MAP[fn];
+  }
+
+  // If item has a custom remote or uploaded image URL from Admin Dashboard / DB, prioritize it
+  if (typeof item === 'object' && item !== null && typeof item.image === 'string' && (item.image.startsWith('http://') || item.image.startsWith('https://') || item.image.startsWith('data:image/'))) {
+    return { uri: item.image };
   }
 
   // 3. Extract strings for title, category, subcategory, and description
@@ -305,7 +327,7 @@ const resolveServiceImage = (item) => {
 
   // Check if title itself is a filename in FILENAME_MAP
   const titleClean = title.split('?')[0].split('/').pop().toLowerCase();
-  if (FILENAME_MAP[titleClean]) return FILENAME_MAP[titleClean];
+  if (FILENAME_MAP[titleClean] && !isCategoryIcon(FILENAME_MAP[titleClean])) return FILENAME_MAP[titleClean];
 
   // 1. CARPENTER & FURNITURE ASSEMBLY
   if (title.includes('floating shelf') || title.includes('shelf install') || title.includes('cabinet install')) {
@@ -426,33 +448,42 @@ const resolveServiceImage = (item) => {
     return IMAGES.nativeSmartLock;
   }
 
-  // 8. BEAUTY & SALON (Role-based)
-  if (title.includes('brazilian')) return IMAGES.salonBrazilianWax;
+  // 8. BEAUTY & SALON (Role-based High-Res Studio Photography)
+  if (title.includes('brazilian') || title.includes('stripless') || title.includes('intimate')) return IMAGES.spotlightWaxing;
   if (title.includes('matcha')) return IMAGES.matchaDetoxRitual;
   if (title.includes('aqua gel')) return IMAGES.salonAquaGelWax;
   if (title.includes('cherry blossom') || title.includes('sakura')) return IMAGES.cherryBlossomRitual;
   if (title.includes('bleach')) return IMAGES.salonBleachPhoto;
-  if (title.includes('waxing') || title.includes('roll-on') || title.includes('rica')) {
+  if (title.includes('waxing') || title.includes('roll-on') || title.includes('rica') || title.includes('arms') || title.includes('legs') || title.includes('wax')) {
     return IMAGES.salonRollonWaxing;
   }
-  if (title.includes('bridal') || title.includes('facial') || title.includes('glow')) {
+  if (title.includes('bridal') || title.includes('facial') || title.includes('glow') || title.includes('korean')) {
     return IMAGES.beautyKoreanGlowFacial;
   }
-  if (title.includes('manicure') || title.includes('pedicure')) {
+  if (title.includes('manicure') || title.includes('pedicure') || title.includes('mani-pedi') || title.includes('mani') || title.includes('pedi')) {
     return IMAGES.beautyPedicure;
+  }
+  if (title.includes('festive') || title.includes('package') || title.includes('combo') || title.includes('maintenance')) {
+    return IMAGES.salonFestive;
   }
   if (title.includes('beard') || title.includes('shave')) {
     return IMAGES.menCleanShave;
   }
-  if (title.includes('haircut') || title.includes('men') || title.includes('grooming')) {
+  if (title.includes('haircut') || title.includes('grooming') || (title.includes('men') && !title.includes('women'))) {
     return IMAGES.menHaircutPro;
   }
-  if (title.includes('hair') || title.includes('spa') || title.includes('conditioning')) {
+  if (title.includes('hair') || title.includes('spa') || title.includes('blowdry') || title.includes('curls') || title.includes('straightening')) {
     return IMAGES.hairCurlsWaves;
+  }
+  if (title.includes('massage') || title.includes('potli') || title.includes('pain relief')) {
+    return IMAGES.heroMassage;
+  }
+  if (cat.includes('salon') || cat.includes('beauty') || role.includes('salon for women') || role.includes('women')) {
+    return IMAGES.beautyArmTreatment;
   }
 
   // 9. Remote URL fallback if valid
-  if (typeof item === 'object' && item !== null && typeof item.image === 'string' && item.image.startsWith('http')) {
+  if (typeof item === 'object' && item !== null && typeof item.image === 'string' && (item.image.startsWith('http://') || item.image.startsWith('https://'))) {
     return { uri: item.image };
   }
 
@@ -461,8 +492,10 @@ const resolveServiceImage = (item) => {
   if (cat.includes('plumb') || sub.includes('plumber') || role.includes('plumber')) return IMAGES.drainBlockage;
   if (cat.includes('elect') || sub.includes('electrician') || role.includes('electrician')) return IMAGES.homeElectrician;
   if (cat.includes('clean') || role.includes('clean')) return IMAGES.homeBathroom;
-  if (cat.includes('beauty') || cat.includes('salon') || role.includes('salon')) return IMAGES.menHaircutPro;
-  if (role.includes('ac')) return IMAGES.acService;
+  if (cat.includes('beauty') || cat.includes('salon') || role.includes('salon')) {
+    return title.includes('men') ? IMAGES.menHaircutPro : IMAGES.beautyArmTreatment;
+  }
+  if (role.includes('ac')) return IMAGES.acCard;
 
   return IMAGES.homeSofaClean;
 };
@@ -486,26 +519,56 @@ const normalizeSource = (source, item) => {
 
   // 2. Object with uri property (e.g. remote network URL, Metro asset object)
   if (s && typeof s === 'object' && typeof s.uri === 'string' && s.uri.trim().length > 0) {
-    return { uri: s.uri.trim() };
+    const rawUri = s.uri.trim();
+    // Prioritize high-resolution local bundled assets by filename match
+    const fnFromUri = rawUri.split('?')[0].split('/').pop().toLowerCase();
+    if (FILENAME_MAP[fnFromUri]) {
+      return normalizeSource(FILENAME_MAP[fnFromUri], item);
+    }
+    // Remote full network URLs (http/https/data)
+    if (rawUri.startsWith('http://') || rawUri.startsWith('https://') || rawUri.startsWith('data:') || rawUri.startsWith('blob:')) {
+      return { uri: rawUri };
+    }
+    // Web only relative paths
+    if (Platform.OS === 'web' && (rawUri.startsWith('/') || rawUri.startsWith('./'))) {
+      return { uri: rawUri };
+    }
+    // On native iOS/Android, resolve via role-based local high-res image
+    if (item) {
+      const fallback = resolveServiceImage(item);
+      if (fallback && fallback !== s) return normalizeSource(fallback, null);
+    }
+    return { uri: rawUri };
   }
 
   // 3. String (web URL, data URI, web path, or asset filename)
   if (typeof s === 'string' && s.trim().length > 0) {
     const trimmed = s.trim();
-    if (
-      trimmed.startsWith('http://') ||
-      trimmed.startsWith('https://') ||
-      trimmed.startsWith('data:') ||
-      trimmed.startsWith('/') ||
-      trimmed.startsWith('./') ||
-      trimmed.startsWith('blob:')
-    ) {
-      return { uri: trimmed };
-    }
+
+    // Check if filename is in local high-res bundled assets FIRST
     const fn = trimmed.split('?')[0].split('/').pop().toLowerCase();
     if (FILENAME_MAP[fn]) {
       return normalizeSource(FILENAME_MAP[fn], item);
     }
+
+    // Remote HTTP/HTTPS URLs or Data URIs
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
+      return { uri: trimmed };
+    }
+
+    // If on web and starts with / or ./
+    if (Platform.OS === 'web' && (trimmed.startsWith('/') || trimmed.startsWith('./'))) {
+      return { uri: trimmed };
+    }
+
+    // On native mobile (iOS / Android), fall back to role-resolved local image
+    if (item) {
+      const fallback = resolveServiceImage(item);
+      if (fallback && fallback !== s) {
+        return normalizeSource(fallback, null);
+      }
+    }
+
     return { uri: trimmed };
   }
 
@@ -877,6 +940,50 @@ const SALON_WOMEN = [
     price: 'Starts at ₹99',
     btnSubtext: null,
     luxe: true,
+  },
+];
+
+// 10B. Recently Viewed Services (Urban Company Home)
+const RECENTLY_VIEWED_SERVICES = [
+  {
+    id: 'recent-1',
+    title: 'AC Foam Jet Deep Service',
+    rating: '4.86 (142K)',
+    duration: '45 mins',
+    price: '₹599',
+    oldPrice: '₹799',
+    image: IMAGES.heroAc,
+    badge: 'Popular',
+  },
+  {
+    id: 'recent-2',
+    title: 'Intense Bathroom Cleaning',
+    rating: '4.81 (95K)',
+    duration: '50 mins',
+    price: '₹449',
+    oldPrice: '₹599',
+    image: IMAGES.homeBathroom,
+    badge: 'Bestseller',
+  },
+  {
+    id: 'recent-3',
+    title: 'Salon Deluxe Pedicure & Spa',
+    rating: '4.92 (68K)',
+    duration: '60 mins',
+    price: '₹799',
+    oldPrice: '₹999',
+    image: IMAGES.catWomensSalon,
+    badge: 'VIP Choice',
+  },
+  {
+    id: 'recent-4',
+    title: 'Water Purifier Filter Service',
+    rating: '4.89 (42K)',
+    duration: '40 mins',
+    price: '₹899',
+    oldPrice: '₹1,199',
+    image: IMAGES.nativePurifier,
+    badge: 'Genuine Parts',
   },
 ];
 
@@ -1310,13 +1417,14 @@ const BEAUTY_WEB_TILES = [
 // Salon Prime Categories matching Left Sidebar ("Select a service") from Web App
 const SALON_PRIME_CATEGORIES = [
   { id: 'all', label: 'All Services', icon: '★' },
-  { id: 'festive', label: 'Festive ready', icon: '%', badge: null },
-  { id: 'super-saver', label: 'Super saver packages', icon: '🏷️', discount: 'Upto 20% OFF' },
+  { id: 'festive', label: 'Festive ready', image: IMAGES.salonFestive },
+  { id: 'super-saver', label: 'Super saver packages', image: IMAGES.salonAquaGelWax, discount: 'Upto 20% OFF' },
   { id: 'waxing', label: 'Waxing & threading', image: IMAGES.spotlightWaxing },
   { id: 'rituals', label: 'Japanese & Korean rituals', image: IMAGES.spotlightGlow, badge: 'New' },
-  { id: 'facial', label: 'Signature facial & cleanup', image: IMAGES.heroSalon },
+  { id: 'facial', label: 'Signature facial & cleanup', image: IMAGES.beautyKoreanGlowFacial },
   { id: 'pedi-mani', label: 'Pedicure & manicure', image: IMAGES.beautyPedicure },
-  { id: 'detan', label: 'Bleach, detan & massages', image: IMAGES.salonBleachPhoto }
+  { id: 'detan', label: 'Bleach, detan & massages', image: IMAGES.salonBleachPhoto },
+  { id: 'hair-care', label: 'Hair Studio & Care', image: IMAGES.hairStudioWomen }
 ];
 
 // Salon Prime Hero Carousel Slides
@@ -1632,6 +1740,48 @@ const SALON_PRIME_SECTIONS = [
           'Milk enzyme kojic formula for instant sun damage reversal',
           'Zero peroxide formula, completely burn-free and gentle on skin',
           'Deep nourishing cocoa butter application'
+        ]
+      }
+    ]
+  },
+  {
+    id: 'hair-care',
+    title: 'Hair Studio & Care',
+    services: [
+      {
+        id: 'hair-studio-cut-blowdry',
+        title: 'Hair Studio Haircut, Layered Trim & Blowdry',
+        rating: 4.86,
+        reviewsCount: '48K reviews',
+        price: '₹599',
+        originalPrice: '₹899',
+        inclusions: [
+          'Face shape consultation & precision sectioned haircut',
+          'Split-end removal & heat-protectant blowdry styling'
+        ]
+      },
+      {
+        id: 'loreal-hair-care',
+        title: 'L’Oréal Deep Nourishing Hair Conditioning Treatment',
+        rating: 4.84,
+        reviewsCount: '62K reviews',
+        price: '₹999',
+        originalPrice: '₹1,499',
+        inclusions: [
+          'Scalp analysis, L’Oréal Creambath infusion & ampoule',
+          '20-min rhythmic scalp therapy & micro-mist steaming'
+        ]
+      },
+      {
+        id: 'root-touchup-hair',
+        title: 'Root Touch-up & Grey Coverage',
+        rating: 4.83,
+        reviewsCount: '45K reviews',
+        price: '₹799',
+        originalPrice: '₹1,099',
+        inclusions: [
+          'Ammonia-free branded matrix / L’Oréal hair colour',
+          'Even root coverage without scalp staining'
         ]
       }
     ]
@@ -2169,7 +2319,7 @@ const findFullProductDetails = (item, dbServices = []) => {
     duration: (matched && matched.duration) || item.duration || '45 mins',
     badge: (matched && matched.badge) || item.badge || 'VERIFIED',
     tag: (matched && matched.tag) || item.tag || null,
-    image: resolveServiceImage(item.image ? item : (matched || item)),
+    image: resolveServiceImage((!isCategoryIcon(item?.image) && item?.image) ? item : (matched || item)),
     description:
       (matched && matched.description) ||
       item.description ||
@@ -2203,6 +2353,8 @@ export default function App() {
   const [selectedService, setSelectedService] = useState(null);
   const [showAllServicesModal, setShowAllServicesModal] = useState(false);
   const [activeTab, setActiveTab] = useState('homes');
+  const [bookingFilter, setBookingFilter] = useState('all');
+  const [selectedCategoryTab, setSelectedCategoryTab] = useState('all');
   const [cartCount, setCartCount] = useState(0);
 
   // Live Tracking & Reviews State (syncs customer and partner views)
@@ -2275,7 +2427,7 @@ export default function App() {
   };
   const [coinsBalance, setCoinsBalance] = useState(350);
   const [scratchedCardId, setScratchedCardId] = useState(null);
-  const [dbServices, setDbServices] = useState([]);
+  const [dbServices, setDbServices] = useState(WEB_APP_SERVICES || []);
 
   // Modals for categories
   const [showApplianceModal, setShowApplianceModal] = useState(false);
@@ -2284,22 +2436,104 @@ export default function App() {
   const [showCleaningModal, setShowCleaningModal] = useState(false);
   const [showHairStudioModal, setShowHairStudioModal] = useState(false);
   const [showSalonMenModal, setShowSalonMenModal] = useState(false);
-  const [currentScreen, setCurrentScreen] = useState('home'); // 'home' | 'native-purifier' | 'native-locks' | 'salon-prime'
+  const [currentScreen, setCurrentScreen] = useState('home'); // 'home' | 'native-purifier' | 'native-locks' | 'salon-prime' | 'category-detail'
   const [salonCategoryTab, setSalonCategoryTab] = useState('all');
   const [salonSlideIndex, setSalonSlideIndex] = useState(0);
   const [salonSearch, setSalonSearch] = useState('');
 
-  // Auto connect to backend and sync all live web app products
-  useEffect(() => {
-    mobileApi.checkHealth().catch(() => {});
+  // Category Detail View state
+  const [selectedCategoryView, setSelectedCategoryView] = useState('all');
+  const [selectedSubcategoryFilter, setSelectedSubcategoryFilter] = useState('all');
+  const [categorySearchQuery, setCategorySearchQuery] = useState('');
+
+  const fetchLiveServices = () => {
     mobileApi
       .getServices()
       .then((res) => {
-        if (res && res.success && Array.isArray(res.services)) {
+        if (res && res.success && Array.isArray(res.services) && res.services.length > 0) {
           setDbServices(res.services);
         }
       })
       .catch(() => {});
+  };
+
+  const openCategoryScreen = (categoryId, subcategoryName = 'all') => {
+    fetchLiveServices();
+    setShowAllServicesModal(false);
+    setShowApplianceModal(false);
+    setShowEPCModal(false);
+    setShowBathroomKitchenModal(false);
+    setShowCleaningModal(false);
+    setShowHairStudioModal(false);
+    setShowSalonMenModal(false);
+
+    if (categoryId === 'womens-salon' || categoryId === 'salon' || categoryId === 'beauty') {
+      setSalonCategoryTab(subcategoryName === 'all' ? 'all' : subcategoryName);
+      setSalonSearch('');
+      setCurrentScreen('salon-prime');
+    } else if (categoryId === 'native-purifier' || categoryId === 'water-purifier') {
+      setCurrentScreen('native-purifier');
+    } else if (categoryId === 'native-locks' || categoryId === 'smart-locks') {
+      setCurrentScreen('native-locks');
+    } else {
+      setSelectedCategoryView(categoryId);
+      setSelectedSubcategoryFilter(subcategoryName || 'all');
+      setCategorySearchQuery('');
+      setCurrentScreen('category-detail');
+    }
+  };
+
+  // Auto connect to backend and sync all live web app products & bookings in real-time
+  const syncActiveBooking = async () => {
+    try {
+      const res = await mobileApi.getBookings();
+      if (res && res.success && Array.isArray(res.bookings) && res.bookings.length > 0) {
+        const latest = res.bookings[0];
+        if (latest) {
+          const stageMap = { 'Pending': 1, 'Confirmed': 1, 'Assigned': 2, 'En Route': 3, 'Arrived': 4, 'In Progress': 5, 'Completed': 6 };
+          const stageFromStatus = (status) => {
+            if (!status) return null;
+            const s = String(status).toLowerCase();
+            if (s.includes('completed')) return 6;
+            if (s.includes('progress')) return 5;
+            if (s.includes('arrived')) return 4;
+            if (s.includes('route') || s.includes('way')) return 3;
+            if (s.includes('assigned')) return 2;
+            if (s.includes('confirm') || s.includes('placed')) return 1;
+            return null;
+          };
+          const resolvedStage = (typeof latest.stage === 'number' && latest.stage >= 1 && latest.stage <= 6)
+            ? latest.stage
+            : (stageFromStatus(latest.status) || stageMap[latest.status] || 2);
+
+          setActiveCustomerBooking((prev) => ({
+            ...prev,
+            id: (latest.id || latest.bookingReference || prev.id || '9410').replace(/^[#\s]+/, '').replace(/^(UC|JOB)-/, ''),
+            service: latest.serviceName || latest.service || prev.service,
+            price: latest.totalAmount || latest.price || prev.price,
+            customer: latest.customerName || latest.userName || prev.customer,
+            address: latest.address || prev.address,
+            phone: latest.userPhone || prev.phone,
+            otp: latest.safetyPin || prev.otp || '4829',
+            status: latest.status || prev.status,
+            stage: resolvedStage,
+            prePhoto: latest.beforeWorkPhoto || prev.prePhoto,
+            postPhoto: latest.afterWorkPhoto || prev.postPhoto
+          }));
+        }
+      }
+    } catch (_) {}
+  };
+
+  useEffect(() => {
+    mobileApi.checkHealth().catch(() => {});
+    fetchLiveServices();
+    syncActiveBooking();
+    const interval = setInterval(() => {
+      fetchLiveServices();
+      syncActiveBooking();
+    }, 4000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleAddService = (item) => {
@@ -2615,6 +2849,675 @@ export default function App() {
     </ScrollView>
   );
 
+  // 1B. CATEGORIES SCREEN VIEW (Urban Company Image-Based Grid & Categories)
+  const renderCategoriesView = () => {
+    const categoryFilters = [
+      { id: 'all', label: 'All Services' },
+      { id: 'ac', label: 'AC & Appliances' },
+      { id: 'cleaning', label: 'Cleaning & Pest' },
+      { id: 'salon', label: "Women's Salon" },
+      { id: 'men', label: "Men's Salon" },
+      { id: 'electrician', label: 'Electrician & Plumber' },
+      { id: 'painting', label: 'Painting' },
+    ];
+
+    const categoryCards = [
+      {
+        id: 'cat-card-1',
+        category: 'ac',
+        title: 'AC Service & Repair',
+        subtitle: 'Power jet, gas refill, installation',
+        price: 'Starts at ₹499',
+        rating: '4.86 ★ (1.2M)',
+        badge: 'High Demand',
+        image: IMAGES.heroAc,
+        onClick: () => openCategoryScreen('ac-appliances', 'AC Service & Repair'),
+      },
+      {
+        id: 'cat-card-2',
+        category: 'cleaning',
+        title: 'Bathroom & Kitchen Cleaning',
+        subtitle: 'Deep stain removal & disinfection',
+        price: 'Starts at ₹399',
+        rating: '4.82 ★ (850K)',
+        badge: '55 mins',
+        image: IMAGES.homeBathroom,
+        onClick: () => openCategoryScreen('cleaning-pest', 'Bathroom Cleaning'),
+      },
+      {
+        id: 'cat-card-3',
+        category: 'salon',
+        title: "Women's Salon & Spa",
+        subtitle: 'Waxing, facials, mani-pedi at home',
+        price: 'Starts at ₹149',
+        rating: '4.91 ★ (2.1M)',
+        badge: 'Top Rated',
+        image: IMAGES.catWomensSalon,
+        onClick: () => {
+          setSalonCategoryTab('all');
+          setCurrentScreen('salon-prime');
+        },
+      },
+      {
+        id: 'cat-card-4',
+        category: 'men',
+        title: "Men's Haircut & Grooming",
+        subtitle: 'Haircut, beard styling, head massage',
+        price: 'Starts at ₹199',
+        rating: '4.88 ★ (720K)',
+        badge: '30 mins',
+        image: IMAGES.catMensSalon,
+        onClick: () => openCategoryScreen('mens-salon', 'all'),
+      },
+      {
+        id: 'cat-card-5',
+        category: 'cleaning',
+        title: 'Sofa & Carpet Cleaning',
+        subtitle: 'Multi-stage deep extraction shampooing',
+        price: 'Starts at ₹599',
+        rating: '4.85 ★ (410K)',
+        badge: 'Trending',
+        image: IMAGES.homeSofaClean,
+        onClick: () => openCategoryScreen('cleaning-pest', 'Sofa & Carpet'),
+      },
+      {
+        id: 'cat-card-6',
+        category: 'electrician',
+        title: 'Electrician Services',
+        subtitle: 'Switchboards, fans, MCB, wiring repair',
+        price: 'Starts at ₹99',
+        rating: '4.84 ★ (980K)',
+        badge: '60 mins',
+        image: IMAGES.ceilingFanInstall,
+        onClick: () => openCategoryScreen('quick-repairs', 'Electrician'),
+      },
+      {
+        id: 'cat-card-7',
+        category: 'painting',
+        title: 'Home Painting & Waterproofing',
+        subtitle: 'Laser measurement, free shade consult',
+        price: 'Free inspection',
+        rating: '4.89 ★ (150K)',
+        badge: 'Warranty',
+        image: IMAGES.homePainter,
+        onClick: () => openCategoryScreen('painting-decor', 'all'),
+      },
+      {
+        id: 'cat-card-8',
+        category: 'ac',
+        title: 'Washing Machine & Chimney',
+        subtitle: 'Comprehensive diagnosis & repair',
+        price: 'Starts at ₹299',
+        rating: '4.80 ★ (310K)',
+        badge: 'Same Day',
+        image: IMAGES.applianceChimney,
+        onClick: () => openCategoryScreen('ac-appliances', 'Washing Machine'),
+      },
+    ];
+
+    const filteredCards = selectedCategoryTab === 'all'
+      ? categoryCards
+      : categoryCards.filter(c => c.category === selectedCategoryTab);
+
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Category Header */}
+        <View style={styles.categoriesHeroHeader}>
+          <Text style={styles.categoriesHeroTitle}>Service Categories</Text>
+          <Text style={styles.categoriesHeroSub}>
+            Book vetted background-verified professionals for your home & beauty needs
+          </Text>
+        </View>
+
+        {/* Filter Pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryFilterRow}
+        >
+          {categoryFilters.map((tab) => {
+            const isActive = selectedCategoryTab === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                style={[styles.categoryFilterPill, isActive && styles.categoryFilterPillActive]}
+                onPress={() => setSelectedCategoryTab(tab.id)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.categoryFilterText, isActive && styles.categoryFilterTextActive]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* 2-Column Image Card Grid */}
+        <View style={styles.categoryCardsGrid}>
+          {filteredCards.map((card) => (
+            <TouchableOpacity
+              key={card.id}
+              style={styles.categoryImageCard}
+              activeOpacity={0.88}
+              onPress={card.onClick}
+            >
+              <View style={styles.categoryCardImgBox}>
+                <SafeImage source={card.image} style={styles.categoryCardImg} resizeMode="cover" />
+                {card.badge && (
+                  <View style={styles.categoryCardBadge}>
+                    <Text style={styles.categoryCardBadgeText}>{card.badge}</Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.categoryCardContent}>
+                <Text style={styles.categoryCardRating}>{card.rating}</Text>
+                <Text style={styles.categoryCardTitle} numberOfLines={2}>{card.title}</Text>
+                <Text style={styles.categoryCardSubtitle} numberOfLines={1}>{card.subtitle}</Text>
+                <View style={styles.categoryCardPriceRow}>
+                  <Text style={styles.categoryCardPrice}>{card.price}</Text>
+                  <View style={styles.categoryCardArrowBtn}>
+                    <Text style={styles.categoryCardArrowText}>→</Text>
+                  </View>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* View Full 150+ Services Catalog Card */}
+        <TouchableOpacity
+          style={styles.fullCatalogCard}
+          activeOpacity={0.9}
+          onPress={() => setShowAllServicesModal(true)}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.fullCatalogSuper}>CAN'T FIND WHAT YOU'RE LOOKING FOR?</Text>
+            <Text style={styles.fullCatalogTitle}>Explore Complete 150+ Services Catalog</Text>
+            <Text style={styles.fullCatalogSub}>From emergency water motor repairs to luxury facials</Text>
+          </View>
+          <View style={styles.fullCatalogBtn}>
+            <Text style={styles.fullCatalogBtnText}>View All</Text>
+          </View>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
+
+  // 1C. MY BOOKINGS SCREEN VIEW (Urban Company Step-by-Step Experience & Tracking)
+  const renderMyBookingsView = () => {
+    const filterTabs = [
+      { id: 'all', label: 'All' },
+      { id: 'ongoing', label: 'Ongoing (1)' },
+      { id: 'upcoming', label: 'Upcoming' },
+      { id: 'completed', label: 'Completed (2)' },
+      { id: 'cancelled', label: 'Cancelled (1)' },
+    ];
+
+    const showOngoing = bookingFilter === 'all' || bookingFilter === 'ongoing';
+    const showUpcoming = bookingFilter === 'all' || bookingFilter === 'upcoming';
+    const showCompleted = bookingFilter === 'all' || bookingFilter === 'completed';
+    const showCancelled = bookingFilter === 'all' || bookingFilter === 'cancelled';
+
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.bookingsHeaderBox}>
+          <Text style={styles.bookingsHeaderTitle}>My Bookings</Text>
+          <Text style={styles.bookingsHeaderSub}>Track live dispatches, view invoices and manage orders</Text>
+        </View>
+
+        {/* Filter Pills */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.bookingFilterScroll}
+        >
+          {filterTabs.map((tab) => {
+            const isActive = bookingFilter === tab.id;
+            return (
+              <TouchableOpacity
+                key={tab.id}
+                style={[styles.bookingFilterChip, isActive && styles.bookingFilterChipActive]}
+                onPress={() => setBookingFilter(tab.id)}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.bookingFilterText, isActive && styles.bookingFilterTextActive]}>
+                  {tab.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* 1. ONGOING BOOKING CARD (JOB #9410 - VIKRAM SALVI) */}
+        {showOngoing && (
+          <View style={styles.bookingCardOngoing}>
+            {/* Live Indicator Header */}
+            <View style={styles.ongoingCardHeader}>
+              <View style={[
+                styles.liveStatusPill,
+                activeCustomerBooking?.stage === 6 ? { backgroundColor: '#ECFDF5' } :
+                activeCustomerBooking?.stage === 5 ? { backgroundColor: '#FEF3C7' } :
+                activeCustomerBooking?.stage === 4 ? { backgroundColor: '#EFF6FF' } :
+                { backgroundColor: '#FFF7ED' }
+              ]}>
+                <View style={[
+                  styles.liveGreenPulse,
+                  activeCustomerBooking?.stage === 6 ? { backgroundColor: '#10B981' } :
+                  activeCustomerBooking?.stage === 5 ? { backgroundColor: '#F59E0B' } :
+                  activeCustomerBooking?.stage === 4 ? { backgroundColor: '#3B82F6' } :
+                  { backgroundColor: '#F04400' }
+                ]} />
+                <Text style={[
+                  styles.liveStatusText,
+                  activeCustomerBooking?.stage === 6 ? { color: '#047857' } :
+                  activeCustomerBooking?.stage === 5 ? { color: '#B45309' } :
+                  activeCustomerBooking?.stage === 4 ? { color: '#1D4ED8' } :
+                  { color: '#C2410C' }
+                ]}>
+                  {activeCustomerBooking?.stage === 6 ? 'SERVICE COMPLETED 🎉' :
+                   activeCustomerBooking?.stage === 5 ? 'SERVICE IN PROGRESS ⚡' :
+                   activeCustomerBooking?.stage === 4 ? 'SPECIALIST ARRIVED 📍' :
+                   activeCustomerBooking?.stage === 3 ? 'SPECIALIST EN ROUTE 🛵' :
+                   'SPECIALIST ASSIGNED 👷'}
+                </Text>
+              </View>
+              <Text style={styles.bookingIdText}>#UC-{activeCustomerBooking?.id || '9410'}</Text>
+            </View>
+
+            {/* Service & Price */}
+            <View style={styles.ongoingServiceRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.ongoingServiceTitle}>{activeCustomerBooking.service || 'All in All AC'}</Text>
+                <Text style={styles.ongoingSlotText}>📅 {activeCustomerBooking.slot || 'Today, 04:00 PM - 05:00 PM'}</Text>
+                <Text style={styles.ongoingAddressText} numberOfLines={1}>📍 {activeCustomerBooking.address}</Text>
+              </View>
+              <Text style={styles.ongoingPriceText}>₹{activeCustomerBooking.price || '3,524'}</Text>
+            </View>
+
+            {/* Assigned Specialist Details Box */}
+            <View style={styles.ongoingSpecialistBox}>
+              <View style={styles.specialistAvatarCircle}>
+                <Text style={styles.specialistAvatarText}>V</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={styles.specialistName}>{activeCustomerBooking.technician?.name || 'Vikram Salvi'}</Text>
+                  <View style={styles.specialistRatingPill}>
+                    <Text style={styles.specialistRatingText}>★ {activeCustomerBooking.technician?.rating || 4.94}</Text>
+                  </View>
+                </View>
+                <Text style={styles.specialistSub}>Master AC Specialist & Electrician • Diamond Pro L5</Text>
+              </View>
+              <TouchableOpacity
+                style={styles.specialistCallBtn}
+                onPress={() => Alert.alert('Call Specialist', `Calling Vikram Salvi at ${activeCustomerBooking.technician?.phone || '+91 98765 43210'}...`)}
+              >
+                <Text style={styles.specialistCallIcon}>📞</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Start Service OTP Box */}
+            <View style={styles.otpNoticeBox}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.otpNoticeLabel}>Start Service Verification Code</Text>
+                <Text style={styles.otpNoticeSub}>Share this 4-digit OTP with specialist upon arrival</Text>
+              </View>
+              <View style={styles.otpDisplayBox}>
+                <Text style={styles.otpDisplayText}>{activeCustomerBooking.otp || '4829'}</Text>
+              </View>
+            </View>
+
+            {/* Primary Action: LIVE GPS TRACK */}
+            <TouchableOpacity
+              style={styles.liveTrackCTAButton}
+              activeOpacity={0.88}
+              onPress={() => setShowTrackingModal(true)}
+            >
+              <Text style={styles.liveTrackCTAIcon}>🛵</Text>
+              <Text style={styles.liveTrackCTAText}>Live GPS Track Specialist (ETA ~8 mins)</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* 2. UPCOMING STATE (Empty placeholder or informational card) */}
+        {showUpcoming && bookingFilter === 'upcoming' && (
+          <View style={styles.emptyBookingsBox}>
+            <Text style={{ fontSize: 36, marginBottom: 8 }}>🗓️</Text>
+            <Text style={styles.emptyBookingsTitle}>No other upcoming bookings</Text>
+            <Text style={styles.emptyBookingsSub}>All your upcoming scheduled appointments will appear here.</Text>
+            <TouchableOpacity
+              style={styles.bookNewServiceBtn}
+              onPress={() => handleTabChange('categories')}
+            >
+              <Text style={styles.bookNewServiceBtnText}>Book a Service</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* 3. COMPLETED BOOKING CARDS */}
+        {showCompleted && (
+          <>
+            <View style={styles.bookingCardCompleted}>
+              <View style={styles.completedHeaderRow}>
+                <View style={styles.completedBadgePill}>
+                  <Text style={styles.completedBadgeText}>✓ COMPLETED</Text>
+                </View>
+                <Text style={styles.bookingDateText}>02 Nov 2026, 11:30 AM</Text>
+              </View>
+
+              <View style={styles.completedBodyRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.completedServiceTitle}>Deep Kitchen & Chimney Cleaning</Text>
+                  <Text style={styles.completedSpecialistText}>Served by Suresh Kumar (★ 4.91)</Text>
+                  <View style={styles.starRow}>
+                    <Text style={styles.starGold}>★★★★★</Text>
+                    <Text style={styles.ratedText}>Rated 5.0 by you</Text>
+                  </View>
+                </View>
+                <Text style={styles.completedPriceText}>₹1,299</Text>
+              </View>
+
+              <View style={styles.completedActionsRow}>
+                <TouchableOpacity
+                  style={styles.repeatBookingBtn}
+                  onPress={() => handleAddService({ id: 'clean-kitchen', title: 'Deep Kitchen & Chimney Cleaning', price: 1299, rating: 4.91 })}
+                >
+                  <Text style={styles.repeatBookingText}>Book Again</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.invoiceBtn}
+                  onPress={() => Alert.alert('Tax Invoice', 'Invoice for #UC-8842 (₹1,299) has been sent to customer@forgeindia.in')}
+                >
+                  <Text style={styles.invoiceBtnText}>📄 Invoice</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.bookingCardCompleted}>
+              <View style={styles.completedHeaderRow}>
+                <View style={styles.completedBadgePill}>
+                  <Text style={styles.completedBadgeText}>✓ COMPLETED</Text>
+                </View>
+                <Text style={styles.bookingDateText}>18 Oct 2026, 03:00 PM</Text>
+              </View>
+
+              <View style={styles.completedBodyRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.completedServiceTitle}>Salon Classic Pedicure & Hair Spa</Text>
+                  <Text style={styles.completedSpecialistText}>Served by Priya Sharma (★ 4.96)</Text>
+                  <View style={styles.starRow}>
+                    <Text style={styles.starGold}>★★★★★</Text>
+                    <Text style={styles.ratedText}>Rated 5.0 by you</Text>
+                  </View>
+                </View>
+                <Text style={styles.completedPriceText}>₹1,599</Text>
+              </View>
+
+              <View style={styles.completedActionsRow}>
+                <TouchableOpacity
+                  style={styles.repeatBookingBtn}
+                  onPress={() => handleAddService({ id: 'salon-pedi', title: 'Salon Classic Pedicure & Hair Spa', price: 1599, rating: 4.96 })}
+                >
+                  <Text style={styles.repeatBookingText}>Book Again</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.invoiceBtn}
+                  onPress={() => Alert.alert('Tax Invoice', 'Invoice for #UC-7921 (₹1,599) has been sent to customer@forgeindia.in')}
+                >
+                  <Text style={styles.invoiceBtnText}>📄 Invoice</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </>
+        )}
+
+        {/* 4. CANCELLED BOOKING CARD */}
+        {showCancelled && (
+          <View style={styles.bookingCardCancelled}>
+            <View style={styles.cancelledHeaderRow}>
+              <View style={styles.cancelledBadgePill}>
+                <Text style={styles.cancelledBadgeText}>✕ CANCELLED</Text>
+              </View>
+              <Text style={styles.bookingDateText}>04 Sep 2026</Text>
+            </View>
+
+            <View style={styles.cancelledBodyRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cancelledServiceTitle}>Bathroom Anti-Bacterial Cleaning</Text>
+                <Text style={styles.refundText}>✓ Full refund of ₹499 processed to HDFC UPI (Ref #TXN-902148)</Text>
+              </View>
+              <Text style={styles.cancelledPriceText}>₹499</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.rebookCancelledBtn}
+              onPress={() => handleAddService({ id: 'clean-bath', title: 'Bathroom Anti-Bacterial Cleaning', price: 499, rating: 4.81 })}
+            >
+              <Text style={styles.rebookCancelledText}>Book Service Again</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    );
+  };
+
+  // 1D. PROFILE SCREEN VIEW (Urban Company Profile, Saved Addresses & Account Hub)
+  const renderProfileView = () => {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Profile Hero Card */}
+        <View style={styles.profileHeroCard}>
+          <View style={styles.profileAvatarLarge}>
+            <Text style={styles.profileAvatarLargeText}>
+              {(currentUser?.name || 'Rahul').charAt(0).toUpperCase()}
+            </Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+              <Text style={styles.profileUserName}>{currentUser?.name || 'Rahul Sharma'}</Text>
+              <View style={styles.profilePlusBadge}>
+                <Text style={styles.profilePlusBadgeText}>👑 UC PLUS</Text>
+              </View>
+            </View>
+            <Text style={styles.profileUserEmail}>{currentUser?.email || 'customer@forgeindia.in'}</Text>
+            <Text style={styles.profileUserPhone}>{currentUser?.phone || '+91 98200 12345'}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.profileEditBtn}
+            onPress={() => Alert.alert('Edit Profile', 'Profile editing options.')}
+          >
+            <Text style={styles.profileEditBtnText}>Edit</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Quick Stats Metrics Row */}
+        <View style={styles.profileStatsRow}>
+          <TouchableOpacity
+            style={styles.profileStatItem}
+            activeOpacity={0.8}
+            onPress={() => handleTabChange('bookings')}
+          >
+            <Text style={styles.profileStatNumber}>4</Text>
+            <Text style={styles.profileStatLabel}>Total Bookings</Text>
+          </TouchableOpacity>
+          <View style={styles.profileStatDivider} />
+          <TouchableOpacity
+            style={styles.profileStatItem}
+            activeOpacity={0.8}
+            onPress={() => handleTabChange('offers')}
+          >
+            <Text style={styles.profileStatNumber}>🪙 {coinsBalance}</Text>
+            <Text style={styles.profileStatLabel}>UC Coins</Text>
+          </TouchableOpacity>
+          <View style={styles.profileStatDivider} />
+          <TouchableOpacity
+            style={styles.profileStatItem}
+            activeOpacity={0.8}
+            onPress={() => Alert.alert('Saved Addresses', '1. Flat 302, Green Park, Rayakottai Rd (Home)\n2. Brigade Tech Gardens, Bangalore (Work)')}
+          >
+            <Text style={styles.profileStatNumber}>2</Text>
+            <Text style={styles.profileStatLabel}>Addresses</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* UC Plus Banner */}
+        <View style={styles.profilePlusBanner}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.profilePlusBannerSuper}>URBAN COMPANY PLUS VIP</Text>
+            <Text style={styles.profilePlusBannerTitle}>Active VIP Membership</Text>
+            <Text style={styles.profilePlusBannerSub}>Saving 15% extra on every booking • Renews Dec 2026</Text>
+          </View>
+          <Text style={{ fontSize: 28 }}>👑</Text>
+        </View>
+
+        {/* Account Menu Items List */}
+        <View style={styles.profileMenuGroup}>
+          <Text style={styles.profileMenuSectionTitle}>Account & Orders</Text>
+
+          <TouchableOpacity
+            style={styles.profileMenuItem}
+            onPress={() => handleTabChange('bookings')}
+          >
+            <View style={styles.profileMenuIconBox}>
+              <Text style={styles.profileMenuIcon}>📋</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.profileMenuTitle}>My Bookings</Text>
+              <Text style={styles.profileMenuSub}>Track active bookings, rate services & see history</Text>
+            </View>
+            <Text style={styles.profileMenuChevron}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.profileMenuItem}
+            onPress={() => Alert.alert('Saved Addresses', '1. Home: Flat 302, Green Park, Rayakottai Rd, Krishnagiri\n2. Work: Brigade Tech Gardens, Outer Ring Rd, Bangalore')}
+          >
+            <View style={styles.profileMenuIconBox}>
+              <Text style={styles.profileMenuIcon}>📍</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.profileMenuTitle}>Saved Addresses</Text>
+              <Text style={styles.profileMenuSub}>Manage home, office and other delivery locations</Text>
+            </View>
+            <Text style={styles.profileMenuChevron}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.profileMenuItem}
+            onPress={() => Alert.alert('Payment Methods', '• Saved Cards: HDFC Regalia Visa ending in 4112\n• UPI: 9820012345@okhdfcbank (Default)\n• UC Wallet Balance: ₹350')}
+          >
+            <View style={styles.profileMenuIconBox}>
+              <Text style={styles.profileMenuIcon}>💳</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.profileMenuTitle}>Payment Methods & Wallet</Text>
+              <Text style={styles.profileMenuSub}>Saved UPI, credit/debit cards & refunds</Text>
+            </View>
+            <Text style={styles.profileMenuChevron}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.profileMenuItem}
+            onPress={() => handleTabChange('offers')}
+          >
+            <View style={styles.profileMenuIconBox}>
+              <Text style={styles.profileMenuIcon}>🪙</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.profileMenuTitle}>Rewards & Scratch Cards</Text>
+              <Text style={styles.profileMenuSub}>350 Coins available • 2 mystery cards to scratch</Text>
+            </View>
+            <Text style={styles.profileMenuChevron}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Safety & Help Section */}
+        <View style={styles.profileMenuGroup}>
+          <Text style={styles.profileMenuSectionTitle}>Safety & Support</Text>
+
+          <TouchableOpacity
+            style={styles.profileMenuItem}
+            onPress={() => Alert.alert('UC Insurance & Protection', 'Every service booking comes with standard ₹10,000 damage protection guarantee.')}
+          >
+            <View style={styles.profileMenuIconBox}>
+              <Text style={styles.profileMenuIcon}>🛡️</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.profileMenuTitle}>UC Safety & Insurance Guarantee</Text>
+              <Text style={styles.profileMenuSub}>100% background checked & ₹10,000 cover</Text>
+            </View>
+            <Text style={styles.profileMenuChevron}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.profileMenuItem}
+            onPress={() => Alert.alert('24x7 Help Center', 'Customer Support Hotline: 1800-123-4567\nWhatsApp Support: +91 91234 56789\nAverage wait time: < 1 min')}
+          >
+            <View style={styles.profileMenuIconBox}>
+              <Text style={styles.profileMenuIcon}>💬</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.profileMenuTitle}>Help & Support</Text>
+              <Text style={styles.profileMenuSub}>FAQs, 24x7 instant chat and ticket history</Text>
+            </View>
+            <Text style={styles.profileMenuChevron}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Working Partner Mode Switcher Button */}
+        <TouchableOpacity
+          style={styles.switchPartnerModeBtn}
+          activeOpacity={0.88}
+          onPress={() => {
+            setCurrentUser((prev) => ({
+              ...(prev || {}),
+              role: 'partner',
+              name: prev?.name && prev?.name !== 'Customer' && prev?.name !== 'Rahul Sharma' ? prev.name : 'Vikram Salvi',
+              email: prev?.email || 'partner@forgeindia.in',
+              trade: 'Master AC Specialist & Electrician'
+            }));
+          }}
+        >
+          <Text style={styles.switchPartnerModeIcon}>👷</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.switchPartnerModeTitle}>Switch to Working Partner Portal</Text>
+            <Text style={styles.switchPartnerModeSub}>View assigned jobs, hot leads queue & dispatch tracker</Text>
+          </View>
+          <Text style={styles.switchPartnerModeArrow}>→</Text>
+        </TouchableOpacity>
+
+        {/* Log Out */}
+        <TouchableOpacity
+          style={styles.profileLogoutBtn}
+          activeOpacity={0.8}
+          onPress={() => {
+            Alert.alert('Log Out', 'Are you sure you want to log out?', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Log Out', style: 'destructive', onPress: handleLogout }
+            ]);
+          }}
+        >
+          <Text style={styles.profileLogoutBtnText}>Log Out</Text>
+        </TouchableOpacity>
+
+        <Text style={styles.profileAppVersionText}>Urban Company Mobile v4.18.2 • Chennai</Text>
+      </ScrollView>
+    );
+  };
+
   // 2. BEAUTY TAB VIEW (Matches all 5 screenshots)
   const renderBeautyView = () => (
     <ScrollView
@@ -2640,15 +3543,19 @@ export default function App() {
                 activeOpacity={0.8}
                 onPress={() => {
                   if (cat.id === 'b-tile-salon-prime' || cat.id === 'b-tile-facials-cleanup' || cat.title.includes('Salon Prime') || cat.title.includes('Facial')) {
+                    setSalonCategoryTab('all');
+                    setSalonSearch('');
                     setCurrentScreen('salon-prime');
                   } else if (cat.id === 'b-tile-hair-studio' || cat.title.includes('Hair Studio')) {
-                    setShowHairStudioModal(true);
+                    setSalonCategoryTab('hair-care');
+                    setSalonSearch('');
+                    setCurrentScreen('salon-prime');
                   } else if (cat.id === 'b-tile-salon-men' || cat.id === 'b-tile-beard-hair' || cat.title.includes('Men') || cat.title.includes('Beard')) {
-                    setShowSalonMenModal(true);
+                    openCategoryScreen('mens-salon', cat.title.includes('Beard') ? 'Hair & Beard' : 'all');
                   } else if (cat.isIcon) {
                     setShowAllServicesModal(true);
                   } else {
-                    handleAddService({ title: cat.title.replace('\n', ' '), price: '₹499', image: cat.icon });
+                    openCategoryScreen('womens-salon', 'all');
                   }
                 }}
               >
@@ -3360,19 +4267,19 @@ export default function App() {
                 activeOpacity={0.8}
                 onPress={() => {
                   if (tile.id === 'painting') {
-                    handleAddService({ title: 'Full home painting consultation', price: 'Free Quote' });
-                  } else if (tile.id === 'home-repairs') {
-                    setShowEPCModal(true);
+                    openCategoryScreen('painting-decor', 'all');
+                  } else if (tile.id === 'home-repairs' || tile.id === 'quick-repairs') {
+                    openCategoryScreen('quick-repairs', 'all');
                   } else if (tile.id === 'ac-appliances') {
-                    setShowApplianceModal(true);
-                  } else if (tile.id === 'quick-repairs') {
-                    setShowEPCModal(true);
+                    openCategoryScreen('ac-appliances', 'all');
                   } else if (tile.id === 'bathroom-kitchen-cleaning') {
-                    setShowBathroomKitchenModal(true);
+                    openCategoryScreen('cleaning-pest', 'Bathroom Cleaning');
                   } else if (tile.id === 'cleaning') {
-                    setShowCleaningModal(true);
+                    openCategoryScreen('cleaning-pest', 'all');
+                  } else if (tile.id === 'native-ro' || tile.id === 'water-purifier') {
+                    openCategoryScreen('native-ro', 'all');
                   } else {
-                    setSelectedService(CLEANING_ESSENTIALS[0]);
+                    openCategoryScreen('ac-appliances', 'all');
                   }
                 }}
               >
@@ -3511,7 +4418,7 @@ export default function App() {
 
       <View style={styles.sectionDivider} />
 
-      {/* 7. MOST BOOKED SERVICES */}
+      {/* 7. MOST BOOKED & LIVE CATALOGUE SERVICES */}
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionHeading}>Most booked services</Text>
       </View>
@@ -3521,42 +4428,58 @@ export default function App() {
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.servicesScroll}
       >
-        {MOST_BOOKED_ITEMS.map((item, idx) => (
-          <View
-            key={`mostbooked-${item.id}-${idx}`}
-            style={[
-              styles.serviceProductCard,
-              idx === 0 && { marginLeft: 16 },
-              idx === MOST_BOOKED_ITEMS.length - 1 && { marginRight: 16 }
-            ]}
-          >
-            <View style={styles.serviceImageWrapper}>
-              <SafeImage source={item.image} style={styles.serviceImage} />
-              <TouchableOpacity
-                style={styles.addButton}
-                onPress={() => handleAddService(item)}
-              >
-                <Text style={styles.addButtonText}>Add</Text>
-              </TouchableOpacity>
-              {item.btnSubtext && (
-                <Text style={styles.btnSubtext}>{item.btnSubtext}</Text>
-              )}
-            </View>
+        {(() => {
+          const activeDb = (dbServices || []).filter(s => !s.isArchived && s.status !== 'Archived');
+          const dynamicCards = activeDb.map((s, dIdx) => ({
+            id: s.id || s._id || `db-${dIdx}`,
+            title: s.title,
+            image: s.image ? (typeof s.image === 'string' ? { uri: s.image } : s.image) : IMAGES.acCard,
+            rating: typeof s.rating === 'number' ? `${s.rating} (${s.reviewsCount || '100K'})` : (s.rating || '4.85 (100K)'),
+            duration: s.duration || `${s.durationMins || 60} MINS`,
+            price: typeof s.price === 'number' ? `₹${s.price}` : s.price,
+            oldPrice: s.originalPrice ? (typeof s.originalPrice === 'number' ? `₹${s.originalPrice}` : s.originalPrice) : null,
+            btnSubtext: s.badge || 'Verified',
+            rawService: s
+          }));
+          const combinedItems = [...dynamicCards, ...MOST_BOOKED_ITEMS];
 
-            <Text style={styles.serviceCardTitle} numberOfLines={2}>
-              {item.title}
-            </Text>
-            <Text style={styles.serviceRating}>
-              ★ {item.rating} · {item.duration}
-            </Text>
-            <View style={styles.priceRow}>
-              <Text style={styles.servicePrice}>{item.price}</Text>
-              {item.oldPrice && (
-                <Text style={styles.serviceOldPrice}>{item.oldPrice}</Text>
-              )}
+          return combinedItems.map((item, idx) => (
+            <View
+              key={`mostbooked-${item.id}-${idx}`}
+              style={[
+                styles.serviceProductCard,
+                idx === 0 && { marginLeft: 16 },
+                idx === combinedItems.length - 1 && { marginRight: 16 }
+              ]}
+            >
+              <View style={styles.serviceImageWrapper}>
+                <SafeImage source={item.image} item={item.rawService || item} style={styles.serviceImage} resizeMode="cover" />
+                <TouchableOpacity
+                  style={styles.addButton}
+                  onPress={() => handleAddService(item.rawService || item)}
+                >
+                  <Text style={styles.addButtonText}>Add</Text>
+                </TouchableOpacity>
+                {item.btnSubtext && (
+                  <Text style={styles.btnSubtext}>{item.btnSubtext}</Text>
+                )}
+              </View>
+
+              <Text style={styles.serviceCardTitle} numberOfLines={2}>
+                {item.title}
+              </Text>
+              <Text style={styles.serviceRating}>
+                ★ {item.rating} · {item.duration}
+              </Text>
+              <View style={styles.priceRow}>
+                <Text style={styles.servicePrice}>{item.price}</Text>
+                {item.oldPrice && (
+                  <Text style={styles.serviceOldPrice}>{item.oldPrice}</Text>
+                )}
+              </View>
             </View>
-          </View>
-        ))}
+          ));
+        })()}
       </ScrollView>
 
       <View style={styles.sectionDivider} />
@@ -3824,6 +4747,61 @@ export default function App() {
 
       <View style={styles.sectionDivider} />
 
+      {/* 18B. RECENTLY VIEWED SERVICES (Urban Company Recents) */}
+      <View style={styles.sectionHeaderRowWithLink}>
+        <Text style={styles.sectionHeading}>Recently viewed</Text>
+        <TouchableOpacity onPress={() => setShowAllServicesModal(true)}>
+          <Text style={styles.seeAllLink}>See all</Text>
+        </TouchableOpacity>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.servicesScroll}
+      >
+        {RECENTLY_VIEWED_SERVICES.map((item, idx) => (
+          <View
+            key={`recent-${item.id}-${idx}`}
+            style={[
+              styles.serviceProductCard,
+              idx === 0 && { marginLeft: 16 },
+              idx === RECENTLY_VIEWED_SERVICES.length - 1 && { marginRight: 16 }
+            ]}
+          >
+            <View style={styles.serviceImageWrapper}>
+              <SafeImage source={item.image} style={styles.serviceImage} />
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => handleAddService(item)}
+              >
+                <Text style={styles.addButtonText}>Add</Text>
+              </TouchableOpacity>
+              {item.badge && (
+                <View style={styles.serviceCardBadgePill}>
+                  <Text style={styles.serviceCardBadgePillText}>{item.badge}</Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.serviceCardTitle} numberOfLines={2}>
+              {item.title}
+            </Text>
+            <Text style={styles.serviceRating}>
+              ★ {item.rating} · {item.duration}
+            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+              <Text style={styles.servicePrice}>{item.price}</Text>
+              {item.oldPrice && (
+                <Text style={styles.serviceOldPrice}>{item.oldPrice}</Text>
+              )}
+            </View>
+          </View>
+        ))}
+      </ScrollView>
+
+      <View style={styles.sectionDivider} />
+
       {/* 19. REFERRAL BANNER */}
       <View style={styles.referralCardContainer}>
         <TouchableOpacity
@@ -4050,8 +5028,108 @@ export default function App() {
   const renderSalonPrimeScreen = () => {
     const currentSlide = SALON_PRIME_HERO_SLIDES[salonSlideIndex] || SALON_PRIME_HERO_SLIDES[0];
 
+    // Build real-time dynamic catalogue sections merged with live dbServices
+    const activeDb = (dbServices || []).filter((s) => !s.isArchived && s.status !== 'Archived');
+    const dbMap = new Map();
+    activeDb.forEach((s) => {
+      const k = (s.id || s._id || s.title || '').trim().toLowerCase();
+      if (k) dbMap.set(k, s);
+      if (s.title) dbMap.set(s.title.trim().toLowerCase(), s);
+    });
+
+    const usedDbIds = new Set();
+    const liveSalonSections = SALON_PRIME_SECTIONS.map((sec) => {
+      const updatedServices = sec.services
+        .filter((s) => {
+          const k = (s.id || s.title || '').trim().toLowerCase();
+          const dbItem = dbMap.get(k);
+          if (dbItem && (dbItem.isArchived || dbItem.status === 'Archived')) return false;
+          return true;
+        })
+        .map((s) => {
+          const k = (s.id || s.title || '').trim().toLowerCase();
+          const dbItem = dbMap.get(k);
+          if (dbItem) {
+            usedDbIds.add(dbItem.id || dbItem._id);
+            return {
+              ...s,
+              title: dbItem.title || s.title,
+              price: typeof dbItem.price === 'number' ? `₹${dbItem.price.toLocaleString('en-IN')}` : (dbItem.price || s.price),
+              originalPrice: dbItem.originalPrice ? (typeof dbItem.originalPrice === 'number' ? `₹${dbItem.originalPrice.toLocaleString('en-IN')}` : dbItem.originalPrice) : s.originalPrice,
+              rating: dbItem.rating || s.rating,
+              reviewsCount: dbItem.reviewsCount || s.reviewsCount,
+              inclusions: Array.isArray(dbItem.includedWork) && dbItem.includedWork.length > 0
+                ? dbItem.includedWork
+                : Array.isArray(dbItem.inclusions) && dbItem.inclusions.length > 0
+                ? dbItem.inclusions
+                : s.inclusions,
+              image: dbItem.image || s.image
+            };
+          }
+          return s;
+        });
+
+      // Also append any new dbServices whose subcategory matches this section
+      activeDb.forEach((db) => {
+        if (usedDbIds.has(db.id || db._id)) return;
+        const cat = (db.category || '').toLowerCase();
+        const isSalon = cat.includes('salon') || cat.includes('beauty') || cat.includes('women');
+        if (!isSalon) return;
+        const sub = (db.subcategory || '').toLowerCase();
+        const secId = sec.id.toLowerCase();
+        if (
+          sub.includes(secId) ||
+          (secId === 'waxing' && sub.includes('wax')) ||
+          (secId === 'facial' && sub.includes('facial')) ||
+          (secId === 'pedi-mani' && (sub.includes('mani') || sub.includes('pedi'))) ||
+          (secId === 'hair-care' && (sub.includes('hair') || sub.includes('studio')))
+        ) {
+          usedDbIds.add(db.id || db._id);
+          updatedServices.push({
+            id: db.id || `srv-${Date.now()}`,
+            title: db.title,
+            rating: db.rating || 4.88,
+            reviewsCount: db.reviewsCount || '12K reviews',
+            price: typeof db.price === 'number' ? `₹${db.price.toLocaleString('en-IN')}` : db.price,
+            originalPrice: db.originalPrice ? `₹${db.originalPrice}` : `₹${Math.round((Number(db.price) || 500) * 1.25)}`,
+            inclusions: Array.isArray(db.includedWork) && db.includedWork.length > 0 ? db.includedWork : [db.description || 'Doorstep service with certified technician'],
+            image: db.image
+          });
+        }
+      });
+
+      return {
+        ...sec,
+        services: updatedServices
+      };
+    });
+
+    // Any remaining salon services from DB go into a "More Catalogue Services" section
+    const remainingSalon = activeDb.filter((db) => {
+      if (usedDbIds.has(db.id || db._id)) return false;
+      const cat = (db.category || '').toLowerCase();
+      return cat.includes('salon') || cat.includes('beauty') || cat.includes('women');
+    });
+
+    if (remainingSalon.length > 0) {
+      liveSalonSections.push({
+        id: 'more-salon',
+        title: 'More Catalogue Services',
+        services: remainingSalon.map((db) => ({
+          id: db.id || `srv-${Date.now()}`,
+          title: db.title,
+          rating: db.rating || 4.86,
+          reviewsCount: db.reviewsCount || '15K reviews',
+          price: typeof db.price === 'number' ? `₹${db.price.toLocaleString('en-IN')}` : db.price,
+          originalPrice: db.originalPrice ? `₹${db.originalPrice}` : `₹${Math.round((Number(db.price) || 500) * 1.2)}`,
+          inclusions: Array.isArray(db.includedWork) && db.includedWork.length > 0 ? db.includedWork : [db.description || 'Verified doorstep service'],
+          image: db.image
+        }))
+      });
+    }
+
     // Filter catalogue sections by active category tab and search query
-    const filteredSections = SALON_PRIME_SECTIONS.filter((section) => {
+    const filteredSections = liveSalonSections.filter((section) => {
       if (salonCategoryTab !== 'all' && section.id !== salonCategoryTab) {
         return false;
       }
@@ -4228,7 +5306,12 @@ export default function App() {
                 </View>
 
                 {sec.services.map((srv, srvIdx) => (
-                  <View key={`srv-${srv.id}-${srvIdx}`} style={styles.salonItemCard}>
+                  <TouchableOpacity
+                    key={`srv-${srv.id}-${srvIdx}`}
+                    style={styles.salonItemCard}
+                    activeOpacity={0.88}
+                    onPress={() => handleAddService(srv)}
+                  >
                     <View style={styles.salonItemInfo}>
                       <Text style={styles.salonItemTitle}>{srv.title}</Text>
                       <View style={styles.salonItemRatingRow}>
@@ -4247,6 +5330,14 @@ export default function App() {
                     </View>
 
                     <View style={styles.salonItemActionCol}>
+                      <View style={styles.salonItemThumbContainer}>
+                        <SafeImage
+                          source={srv.image || resolveServiceImage(srv)}
+                          item={srv}
+                          style={styles.salonItemThumbImage}
+                          resizeMode="cover"
+                        />
+                      </View>
                       <TouchableOpacity
                         style={styles.salonItemAddBtn}
                         activeOpacity={0.8}
@@ -4258,7 +5349,7 @@ export default function App() {
                         <Text style={styles.salonItemAddBtnText}>Add +</Text>
                       </TouchableOpacity>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 ))}
               </View>
             ))}
@@ -4289,12 +5380,348 @@ export default function App() {
     );
   };
 
+  const renderCategoryDetailScreen = () => {
+    // 1. Category metadata dictionary
+    const categoryMetaMap = {
+      'mens-salon': {
+        title: "Men's Salon & Grooming",
+        ratingSub: '★ 4.88 (720K+ bookings)',
+        bannerTag: 'MOST BOOKED',
+        bannerTitle: 'Expert Grooming & Haircuts',
+        bannerSub: 'Custom scissor cuts, fade styling, beard shaping & detan facials',
+        bannerBg: '#0F172A',
+        icon: '✂️'
+      },
+      'ac-appliances': {
+        title: 'AC & Appliance Repair',
+        ratingSub: '★ 4.86 (1.2M+ bookings)',
+        bannerTag: 'SUMMER SAVER',
+        bannerTitle: 'PowerJet AC Servicing',
+        bannerSub: 'Deep foam wash • 2X cooling • 60-day warranty protection',
+        bannerBg: '#1E293B',
+        icon: '❄️'
+      },
+      'cleaning-pest': {
+        title: 'Cleaning & Pest Control',
+        ratingSub: '★ 4.85 (950K+ bookings)',
+        bannerTag: '100% SPOTLESS',
+        bannerTitle: 'Intense Stain Removal & Disinfection',
+        bannerSub: 'Motorized single-disc floor scrub & German chemical descaling',
+        bannerBg: '#064E3B',
+        icon: '✨'
+      },
+      'quick-repairs': {
+        title: 'Electrician, Plumber & Carpenter',
+        ratingSub: '★ 4.84 (2.4M+ bookings)',
+        bannerTag: 'IN 15 MINS',
+        bannerTitle: 'Doorstep Home Repairs',
+        bannerSub: 'Switchboards, tap leaks, door lock fixes & drill/hang',
+        bannerBg: '#78350F',
+        icon: '🔧'
+      },
+      'native-ro': {
+        title: 'Native Water Purifiers & Locks',
+        ratingSub: '★ 4.90 (240K+ bookings)',
+        bannerTag: 'UC INNOVATION',
+        bannerTitle: 'Needs No Filter Service for 2 Years',
+        bannerSub: '10-Stage RO+UV water purification & 3D face recognition smart locks',
+        bannerBg: '#1E1B4B',
+        icon: '💧'
+      },
+      'painting-decor': {
+        title: 'Painting & Waterproofing',
+        ratingSub: '★ 4.89 (150K+ bookings)',
+        bannerTag: 'CONSULTATION ₹49',
+        bannerTitle: 'Express Home Painting & Laser Inspection',
+        bannerSub: 'Laser room measurement, 3D shade preview & Dr. Fixit waterproofing',
+        bannerBg: '#312E81',
+        icon: '🎨'
+      }
+    };
+
+    const meta = categoryMetaMap[selectedCategoryView] || {
+      title: 'Available Services',
+      ratingSub: '★ 4.86 (1M+ bookings)',
+      bannerTag: 'VERIFIED',
+      bannerTitle: 'Doorstep Professional Services',
+      bannerSub: 'Certified specialists, standardized pricing & 100% mess-free SOP',
+      bannerBg: '#0F172A',
+      icon: '⭐'
+    };
+
+    // 2. Fetch all services matching category from live dbServices + WEB_APP_SERVICES
+    const activeDb = (dbServices || []).filter((s) => !s.isArchived && s.status !== 'Archived');
+    const rawServices = [...activeDb, ...(WEB_APP_SERVICES || [])].filter((s) => {
+      if (s.isArchived || s.status === 'Archived') return false;
+      const cat = (s.category || '').toLowerCase().trim();
+      const target = (selectedCategoryView || '').toLowerCase().trim();
+      if (cat === target) return true;
+      if (target === 'cleaning-pest' && (cat === 'cleaning' || cat === 'pest' || cat.includes('clean') || cat.includes('pest'))) return true;
+      if (target === 'ac-appliances' && (cat === 'ac' || cat === 'appliances' || cat.includes('ac') || cat.includes('appliance'))) return true;
+      if (target === 'quick-repairs' && (cat === 'repair' || cat === 'epc' || cat.includes('repair') || cat.includes('electric') || cat.includes('plumb') || cat.includes('carpent'))) return true;
+      if (target === 'painting-decor' && (cat === 'painting' || cat.includes('paint') || cat.includes('decor'))) return true;
+      if (target === 'native-ro' && (cat === 'native-purifier' || cat === 'water-purifier' || cat.includes('purifier'))) return true;
+      if ((target === 'womens-salon' || target === 'salon-women') && (cat.includes('salon') || cat.includes('beauty') || cat.includes('women'))) return true;
+      if ((target === 'mens-salon' || target === 'mens-grooming') && (cat.includes('men') || cat.includes('groom'))) return true;
+      return false;
+    });
+
+    // Deduplicate by unique id / title (live database records take precedence)
+    const seen = new Set();
+    const uniqueCatServices = [];
+    rawServices.forEach((s) => {
+      const k = (s.id || s._id || s.title || '').trim().toLowerCase();
+      if (k && !seen.has(k)) {
+        seen.add(k);
+        uniqueCatServices.push(s);
+      }
+    });
+
+    // Extract all distinct subcategories
+    const distinctSubs = Array.from(new Set(uniqueCatServices.map((s) => s.subcategory).filter(Boolean)));
+    const subcategoryTabs = ['all', ...distinctSubs];
+
+    // Filter services based on active subcategory pill and search query
+    const filteredList = uniqueCatServices.filter((s) => {
+      if (selectedSubcategoryFilter !== 'all') {
+        const sub = (s.subcategory || '').toLowerCase().trim();
+        const activeFilter = (selectedSubcategoryFilter || '').toLowerCase().trim();
+        if (sub !== activeFilter && !sub.includes(activeFilter) && !activeFilter.includes(sub)) {
+          return false;
+        }
+      }
+      if (categorySearchQuery.trim()) {
+        const q = categorySearchQuery.toLowerCase().trim();
+        const tMatch = (s.title || '').toLowerCase().includes(q);
+        const sMatch = (s.subcategory || '').toLowerCase().includes(q);
+        const dMatch = (s.description || '').toLowerCase().includes(q);
+        const iMatch = Array.isArray(s.inclusions) && s.inclusions.some((inc) => inc.toLowerCase().includes(q));
+        return tMatch || sMatch || dMatch || iMatch;
+      }
+      return true;
+    });
+
+    // Group by subcategory
+    const subcategoryGroups = {};
+    filteredList.forEach((srv) => {
+      const sub = srv.subcategory || 'All Services';
+      if (!subcategoryGroups[sub]) subcategoryGroups[sub] = [];
+      subcategoryGroups[sub].push(srv);
+    });
+
+    return (
+      <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+        {/* Header Bar */}
+        <View style={styles.salonPrimeHeader}>
+          <View style={styles.salonPrimeHeaderTop}>
+            <TouchableOpacity
+              onPress={() => setCurrentScreen('home')}
+              style={styles.detailHeaderBackBtn}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.detailHeaderBackArrow}>←</Text>
+            </TouchableOpacity>
+
+            <View style={{ flex: 1, marginLeft: 12 }}>
+              <Text style={styles.salonPrimeTitle} numberOfLines={1}>{meta.title}</Text>
+              <Text style={styles.salonPrimeRatingSub}>{meta.ratingSub}</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.cartIconWrapper}
+              onPress={() => Alert.alert('Cart', `${cartCount || 1} item in cart.`)}
+            >
+              <Text style={styles.cartIconText}>🛒</Text>
+              <View style={styles.cartCountBadge}>
+                <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
+              </View>
+            </TouchableOpacity>
+          </View>
+
+          {/* Location & Search row */}
+          <View style={styles.salonPrimeSearchRow}>
+            <View style={styles.salonPrimeLocationChip}>
+              <Text style={styles.salonPrimeLocationText} numberOfLines={1}>📍 4744+HMQ, Rayakottai Road ▾</Text>
+            </View>
+            <View style={styles.salonPrimeSearchInputBox}>
+              <Text style={{ fontSize: 13, marginRight: 6 }}>🔍</Text>
+              <TextInput
+                style={styles.salonPrimeSearchInput}
+                placeholder={`Search in ${meta.title}`}
+                placeholderTextColor="#94A3B8"
+                value={categorySearchQuery}
+                onChangeText={setCategorySearchQuery}
+              />
+              {categorySearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setCategorySearchQuery('')}>
+                  <Text style={{ fontSize: 14, color: '#94A3B8' }}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </View>
+
+        <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+          {/* Subcategory Filter Pills */}
+          {subcategoryTabs.length > 1 && (
+            <View style={styles.salonSelectSection}>
+              <Text style={styles.salonSelectHeading}>Select category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.salonCatScroll}>
+                {subcategoryTabs.map((subName) => {
+                  const isActive = selectedSubcategoryFilter === subName;
+                  const label = subName === 'all' ? 'All Services' : subName;
+                  return (
+                    <TouchableOpacity
+                      key={subName}
+                      style={[styles.salonCatTabCard, isActive && styles.salonCatTabCardActive]}
+                      activeOpacity={0.8}
+                      onPress={() => setSelectedSubcategoryFilter(subName)}
+                    >
+                      <View style={styles.salonCatIconBox}>
+                        <Text style={[styles.salonCatStarIcon, isActive && { color: '#F04400' }]}>
+                          {subName === 'all' ? '★' : meta.icon}
+                        </Text>
+                      </View>
+                      <Text style={[styles.salonCatTabLabel, isActive && styles.salonCatTabLabelActive]} numberOfLines={2}>
+                        {label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* Hero Banner Card */}
+          <View style={[styles.salonHeroBannerCard, { backgroundColor: meta.bannerBg }]}>
+            <View style={[styles.salonHeroBannerLeft, { flex: 1 }]}>
+              <View style={[styles.salonHeroBadgePill, { backgroundColor: '#F04400' }]}>
+                <Text style={styles.salonHeroBadgeText}>{meta.bannerTag}</Text>
+              </View>
+              <Text style={styles.salonHeroBannerTitle}>{meta.bannerTitle}</Text>
+              <Text style={styles.salonHeroBannerSubtitle}>{meta.bannerSub}</Text>
+            </View>
+          </View>
+
+          {/* UC Assurance Strip */}
+          <View style={styles.salonPromoRow}>
+            <View style={styles.salonPromiseCard}>
+              <View style={styles.salonPromiseHeader}>
+                <Text style={styles.salonPromiseTitle}>Urban Company Assurance</Text>
+                <View style={styles.salonQualityPill}>
+                  <Text style={styles.salonQualityPillText}>VERIFIED</Text>
+                </View>
+              </View>
+              <Text style={styles.salonPromiseItem}>✓ Background-verified master specialists</Text>
+              <Text style={styles.salonPromiseItem}>✓ 30-Day service warranty & standardized pricing</Text>
+              <Text style={styles.salonPromiseItem}>✓ Sealed single-use kit & post-service cleanup</Text>
+            </View>
+          </View>
+
+          {/* Services List by Subcategory */}
+          <View style={styles.salonCatalogueContainer}>
+            {Object.keys(subcategoryGroups).length === 0 ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <Text style={{ fontSize: 32, marginBottom: 8 }}>🔍</Text>
+                <Text style={{ fontSize: 16, fontWeight: '700', color: '#1E293B', marginBottom: 4 }}>No services found</Text>
+                <Text style={{ fontSize: 13, color: '#64748B', textAlign: 'center' }}>Try clearing your search query or choosing another category filter.</Text>
+              </View>
+            ) : (
+              Object.keys(subcategoryGroups).map((subTitle, grpIdx) => (
+                <View key={`grp-${subTitle}-${grpIdx}`} style={styles.salonSectionBlock}>
+                  <View style={styles.salonSectionHeaderRow}>
+                    <Text style={styles.salonSectionHeading}>{subTitle}</Text>
+                    <Text style={styles.salonSectionCount}>{subcategoryGroups[subTitle].length} services</Text>
+                  </View>
+
+                  {subcategoryGroups[subTitle].map((srv, srvIdx) => {
+                    const priceNum = typeof srv.price === 'number' ? `₹${srv.price}` : srv.price;
+                    const origPriceNum = srv.originalPrice ? (typeof srv.originalPrice === 'number' ? `₹${srv.originalPrice}` : srv.originalPrice) : null;
+                    const ratingNum = srv.rating || 4.85;
+                    const reviewsNum = srv.reviewsCount || '100K+ reviews';
+                    const inclusionsList = Array.isArray(srv.inclusions) ? srv.inclusions : [srv.description || 'Doorstep service with verified professional'];
+
+                    return (
+                      <TouchableOpacity
+                        key={`srv-${srv.id || srvIdx}`}
+                        style={styles.salonItemCard}
+                        activeOpacity={0.88}
+                        onPress={() => handleAddService(srv)}
+                      >
+                        <View style={styles.salonItemInfo}>
+                          <Text style={styles.salonItemTitle}>{srv.title}</Text>
+                          <View style={styles.salonItemRatingRow}>
+                            <Text style={styles.salonItemStar}>★ {ratingNum}</Text>
+                            <Text style={styles.salonItemReviews}>({reviewsNum})</Text>
+                            {srv.duration && <Text style={[styles.salonItemReviews, { marginLeft: 6 }]}>• ⏱ {srv.duration}</Text>}
+                          </View>
+                          <View style={styles.salonItemPriceRow}>
+                            <Text style={styles.salonItemPrice}>{priceNum}</Text>
+                            {origPriceNum && <Text style={styles.salonItemOrigPrice}>{origPriceNum}</Text>}
+                          </View>
+                          <View style={styles.salonItemInclusions}>
+                            {inclusionsList.slice(0, 3).map((inc, i) => (
+                              <Text key={i} style={styles.salonInclusionText} numberOfLines={2}>• {inc}</Text>
+                            ))}
+                          </View>
+                        </View>
+
+                        <View style={styles.salonItemActionCol}>
+                          {srv.image && (
+                            <View style={{ width: 72, height: 72, borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
+                              <SafeImage source={srv.image} item={srv} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                            </View>
+                          )}
+                          <TouchableOpacity
+                            style={styles.salonItemAddBtn}
+                            activeOpacity={0.8}
+                            onPress={() => {
+                              setCartCount((prev) => prev + 1);
+                              Alert.alert('Added to Cart 🎉', `"${srv.title}" added to your cart!`);
+                            }}
+                          >
+                            <Text style={styles.salonItemAddBtnText}>Add +</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              ))
+            )}
+          </View>
+
+          <View style={{ height: 110 }} />
+        </ScrollView>
+
+        {/* Sticky Floating View Cart Bottom Bar */}
+        <View style={styles.salonStickyCartBar}>
+          <View>
+            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+              <Text style={styles.salonCartPriceMain}>₹{cartCount ? cartCount * 499 : 499}</Text>
+              <Text style={styles.salonCartPriceOrig}>₹{cartCount ? cartCount * 799 : 799}</Text>
+            </View>
+            <Text style={styles.salonCartItemsLabel}>{cartCount || 1} service in cart</Text>
+          </View>
+
+          <TouchableOpacity
+            style={styles.salonViewCartBtn}
+            activeOpacity={0.85}
+            onPress={() => Alert.alert('Cart & Checkout', 'Proceeding to checkout with verified Urban Company professional!')}
+          >
+            <Text style={styles.salonViewCartBtnText}>View Cart  ›</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   if (!isAuthenticated) {
     return (
-      <SafeAreaProvider style={{ flex: 1, backgroundColor: '#0F172A' }}>
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: '#0F172A' }]}>
-          <ExpoStatusBar style="light" />
-          <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <SafeAreaProvider style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: '#FFFFFF' }]}>
+          <ExpoStatusBar style="dark" />
+          <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
           <LoginAuthModal
             visible={!isAuthenticated}
             onSuccess={handleLoginSuccess}
@@ -4307,10 +5734,10 @@ export default function App() {
 
   if (currentUser?.role === 'partner') {
     return (
-      <SafeAreaProvider style={{ flex: 1, backgroundColor: '#0F172A' }}>
-        <SafeAreaView style={[styles.safeArea, { backgroundColor: '#0F172A' }]}>
-          <ExpoStatusBar style="light" />
-          <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <SafeAreaProvider style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+        <SafeAreaView style={[styles.safeArea, { backgroundColor: '#FFFFFF' }]}>
+          <ExpoStatusBar style="dark" />
+          <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
           <WorkingPartnerDashboard
             currentUser={currentUser}
             onLogout={handleLogout}
@@ -4342,7 +5769,10 @@ export default function App() {
                 address: updatedJob.address || prev.address,
                 phone: updatedJob.phone || prev.phone,
                 otp: updatedJob.otp || prev.otp || '4829',
-                stage: updatedJob.stage || prev.stage
+                stage: updatedJob.stage || prev.stage,
+                status: updatedJob.status || prev.status,
+                prePhoto: updatedJob.prePhoto || prev.prePhoto,
+                postPhoto: updatedJob.postPhoto || prev.postPhoto
               }));
             }}
           />
@@ -4352,120 +5782,115 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider style={{ flex: 1, backgroundColor: '#F04400' }}>
-      <SafeAreaView style={[styles.safeArea, { backgroundColor: '#F04400' }]}>
-      <ExpoStatusBar style="light" />
+    <SafeAreaProvider style={{ flex: 1, backgroundColor: '#FFFFFF' }}>
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: '#FFFFFF' }]}>
+      <ExpoStatusBar style="dark" />
       <StatusBar
-        barStyle="light-content"
-        backgroundColor="#F04400"
+        barStyle="dark-content"
+        backgroundColor="#FFFFFF"
       />
 
-      {/* 1. TOP HEADER: Clean brand header matching Screenshot 1 on Beauty tab */}
-      {currentScreen !== 'home' ? null : activeTab === 'beauty' ? (
-        <View style={styles.beautyTopHeaderClean}>
-          {/* Top Brand Logo */}
-          <View style={styles.beautyBrandTabsRow}>
-            <View style={styles.beautyBrandLogoRow}>
-              <View style={styles.beautyBrandBadge}>
-                <Text style={styles.beautyBrandBadgeText}>FIC</Text>
+      {/* 1. TOP HEADER: Clean Urban Company Premium White Header */}
+      {currentScreen === 'home' && (
+        <View style={styles.ucCleanHeader}>
+          {/* Top Brand & Location Bar */}
+          <View style={styles.ucHeaderTopBar}>
+            <View style={styles.ucBrandAndLocation}>
+              <View style={styles.ucBrandLogoBadge}>
+                <Text style={styles.ucBrandLogoText}>UC</Text>
               </View>
-              <Text style={styles.beautyBrandName}>Forge India Connect</Text>
-            </View>
-          </View>
-
-          {/* Location, Search & Actions Row matching Screenshot 1 */}
-          <View style={styles.beautyHeaderActionRow}>
-            <View style={styles.beautyLocationChip}>
-              <Text style={styles.beautyLocationChipText} numberOfLines={1}>📍 4744+HMQ, Rayakottai ... ▾</Text>
-            </View>
-
-            <View style={styles.beautySearchBarBox}>
-              <Text style={{ fontSize: 13, marginRight: 6 }}>🔍</Text>
-              <TextInput
-                style={styles.beautySearchInput}
-                placeholder="Search 'Ayurvedic'..."
-                placeholderTextColor="#94A3B8"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                clearButtonMode="while-editing"
-              />
-              {searchQuery.length > 0 && (
-                <TouchableOpacity onPress={() => setSearchQuery('')}>
-                  <Text style={styles.clearIcon}>✕</Text>
+              <View style={styles.ucLocationContainer}>
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  style={styles.ucLocationTitleRow}
+                  onPress={() => Alert.alert('Select Location', 'Current Location: Chennai Central - Tamil Nadu\nSaved: Flat 302, Green Park, Rayakottai Rd, Krishnagiri')}
+                >
+                  <Text style={styles.ucLocationPin}>📍</Text>
+                  <Text style={styles.ucLocationName} numberOfLines={1}>Chennai Central - Tamil Nadu</Text>
+                  <Text style={styles.ucLocationArrow}>▾</Text>
                 </TouchableOpacity>
-              )}
+                <Text style={styles.ucLocationSub} numberOfLines={1}>Flat 302, Green Park, Rayakottai Rd</Text>
+              </View>
             </View>
 
-            <TouchableOpacity
-              style={styles.cartIconWrapper}
-              onPress={() => Alert.alert('Cart', `${cartCount || 1} item in cart.`)}
-            >
-              <Text style={styles.cartIconText}>🛒</Text>
-              <View style={styles.cartCountBadge}>
-                <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
-              </View>
-            </TouchableOpacity>
+            {/* Right Action Icons: Coins, Cart & Profile */}
+            <View style={styles.ucHeaderActionsRow}>
+              <TouchableOpacity
+                style={styles.ucCoinsPill}
+                activeOpacity={0.8}
+                onPress={() => handleTabChange('offers')}
+              >
+                <Text style={styles.ucCoinsIcon}>🪙</Text>
+                <Text style={styles.ucCoinsText}>{coinsBalance}</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setShowProfileMenuModal(true)}
-            >
-              <View style={styles.beautyAvatarCircle}>
-                <Text style={styles.beautyAvatarText}>
-                  {(currentUser?.name || 'S').charAt(0).toUpperCase()}
+              <TouchableOpacity
+                style={styles.ucCartButton}
+                activeOpacity={0.8}
+                onPress={() => Alert.alert('Cart', `${cartCount || 1} item in cart.`)}
+              >
+                <Text style={styles.ucCartIcon}>🛒</Text>
+                <View style={styles.ucCartBadge}>
+                  <Text style={styles.ucCartBadgeText}>{cartCount || 1}</Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.ucProfileAvatarBtn}
+                activeOpacity={0.8}
+                onPress={() => handleTabChange('profile')}
+              >
+                <Text style={styles.ucProfileAvatarText}>
+                  {(currentUser?.name || 'Rahul').charAt(0).toUpperCase()}
                 </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : activeTab === 'native' ? (
-        <View style={styles.nativeTopHeader}>
-          <Text style={styles.nativeHeaderTitle}>Native products</Text>
-          <Text style={styles.nativeHeaderSubtitle}>Innovative products. Designed in India for India.</Text>
-        </View>
-      ) : (
-        <View style={styles.topPurpleHeader}>
-          <View style={styles.statusLocationRow}>
-            <View style={styles.locationContainer}>
-              <Text style={styles.timeStatusText}>Forge India Connect</Text>
-              <TouchableOpacity activeOpacity={0.8} style={styles.locationPill}>
-                <Text style={styles.locationName}>Chennai Central - Tamil Nadu</Text>
-                <Text style={styles.dropdownArrow}> ▾</Text>
               </TouchableOpacity>
             </View>
-
-            <TouchableOpacity
-              style={styles.profileAvatarButton}
-              onPress={() => setShowProfileMenuModal(true)}
-            >
-              <View style={styles.profileInnerCircle}>
-                <Text style={styles.profileIconText}>👤</Text>
-              </View>
-            </TouchableOpacity>
           </View>
 
-          <View style={styles.searchBarContainer}>
-            <Text style={styles.searchIcon}>🔍</Text>
+          {/* Search Bar */}
+          <View style={styles.ucSearchBarContainer}>
+            <Text style={styles.ucSearchIcon}>🔍</Text>
             <TextInput
-              style={styles.searchInput}
-              placeholder={
-                activeTab === 'native'
-                  ? 'Search RO purifiers, smart locks...'
-                  : activeTab === 'beauty'
-                  ? 'Search salon, facials, spa...'
-                  : 'Search for a service'
-              }
-              placeholderTextColor="#64748B"
+              style={styles.ucSearchInput}
+              placeholder="Search for 'AC service', 'cleaning', 'salon'..."
+              placeholderTextColor="#94A3B8"
               value={searchQuery}
               onChangeText={setSearchQuery}
               clearButtonMode="while-editing"
             />
             {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Text style={styles.clearIcon}>✕</Text>
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.ucClearIcon}>✕</Text>
               </TouchableOpacity>
             )}
           </View>
+
+          {/* Quick Search Suggestion Chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.ucQuickChipsScroll}
+          >
+            {['AC Service', 'Deep Cleaning', 'Salon for Women', "Men's Haircut", 'Water Purifier', 'Electrician', 'Plumber'].map((chip, idx) => (
+              <TouchableOpacity
+                key={`chip-${idx}`}
+                style={[
+                  styles.ucQuickChip,
+                  searchQuery.toLowerCase().includes(chip.toLowerCase()) && styles.ucQuickChipActive
+                ]}
+                onPress={() => setSearchQuery(chip)}
+              >
+                <Text
+                  style={[
+                    styles.ucQuickChipText,
+                    searchQuery.toLowerCase().includes(chip.toLowerCase()) && styles.ucQuickChipTextActive
+                  ]}
+                >
+                  {chip}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       )}
 
@@ -4477,86 +5902,84 @@ export default function App() {
           renderNativeLocksScreen()
         ) : currentScreen === 'salon-prime' ? (
           renderSalonPrimeScreen()
+        ) : currentScreen === 'category-detail' ? (
+          renderCategoryDetailScreen()
         ) : searchQuery.trim().length > 0 ? (
           renderSearchResultsView()
         ) : (
           <>
             {(activeTab === 'homes' || activeTab === 'uc') && renderHomeContent()}
+            {activeTab === 'categories' && renderCategoriesView()}
+            {activeTab === 'bookings' && renderMyBookingsView()}
+            {(activeTab === 'offers' || activeTab === 'rewards') && renderRewardsView()}
+            {activeTab === 'profile' && renderProfileView()}
             {activeTab === 'native' && renderNativeView()}
             {activeTab === 'beauty' && renderBeautyView()}
           </>
         )}
       </View>
 
-      {/* 21. BOTTOM NAVIGATION BAR (3 SECTIONS: HOMES, NATIVE, BEAUTY) */}
+      {/* 21. BOTTOM NAVIGATION BAR (5 SECTIONS: HOME, CATEGORIES, MY BOOKINGS, OFFERS, PROFILE) */}
       {currentScreen === 'home' && (
         <View style={styles.bottomNavContainer}>
-        {/* Tab 1: Homes */}
-        <TouchableOpacity
-          style={styles.navSectionTab}
-          onPress={() => handleTabChange('homes')}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[
-              styles.navSectionText,
-              (activeTab === 'homes' || activeTab === 'uc') && styles.navSectionActiveText,
-            ]}
+          <TouchableOpacity
+            style={styles.bottomNavItem}
+            onPress={() => handleTabChange('homes')}
+            activeOpacity={0.7}
           >
-            Homes
-          </Text>
-          <View
-            style={[
-              styles.navSectionIndicator,
-              (activeTab === 'homes' || activeTab === 'uc') && styles.navSectionIndicatorActive,
-            ]}
-          />
-        </TouchableOpacity>
+            {(activeTab === 'homes' || activeTab === 'uc') && <View style={styles.bottomActiveIndicator} />}
+            <Text style={[styles.bottomNavIcon, (activeTab === 'homes' || activeTab === 'uc') && styles.bottomNavActiveIcon]}>🏠</Text>
+            <Text style={[styles.bottomNavText, (activeTab === 'homes' || activeTab === 'uc') && styles.bottomNavActiveText]}>Home</Text>
+          </TouchableOpacity>
 
-        {/* Tab 2: Native */}
-        <TouchableOpacity
-          style={styles.navSectionTab}
-          onPress={() => handleTabChange('native')}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[
-              styles.navSectionText,
-              activeTab === 'native' && styles.navSectionActiveText,
-            ]}
+          <TouchableOpacity
+            style={styles.bottomNavItem}
+            onPress={() => handleTabChange('categories')}
+            activeOpacity={0.7}
           >
-            Native
-          </Text>
-          <View
-            style={[
-              styles.navSectionIndicator,
-              activeTab === 'native' && styles.navSectionIndicatorActive,
-            ]}
-          />
-        </TouchableOpacity>
+            {activeTab === 'categories' && <View style={styles.bottomActiveIndicator} />}
+            <Text style={[styles.bottomNavIcon, activeTab === 'categories' && styles.bottomNavActiveIcon]}>🗂️</Text>
+            <Text style={[styles.bottomNavText, activeTab === 'categories' && styles.bottomNavActiveText]}>Categories</Text>
+          </TouchableOpacity>
 
-        {/* Tab 3: Beauty */}
-        <TouchableOpacity
-          style={styles.navSectionTab}
-          onPress={() => handleTabChange('beauty')}
-          activeOpacity={0.7}
-        >
-          <Text
-            style={[
-              styles.navSectionText,
-              activeTab === 'beauty' && styles.navSectionActiveText,
-            ]}
+          <TouchableOpacity
+            style={styles.bottomNavItem}
+            onPress={() => handleTabChange('bookings')}
+            activeOpacity={0.7}
           >
-            Beauty
-          </Text>
-          <View
-            style={[
-              styles.navSectionIndicator,
-              activeTab === 'beauty' && styles.navSectionIndicatorActive,
-            ]}
-          />
-        </TouchableOpacity>
-      </View>
+            {activeTab === 'bookings' && <View style={styles.bottomActiveIndicator} />}
+            <View style={{ position: 'relative' }}>
+              <Text style={[styles.bottomNavIcon, activeTab === 'bookings' && styles.bottomNavActiveIcon]}>📋</Text>
+              <View style={styles.bottomBookingBadge}>
+                <Text style={styles.bottomBookingBadgeText}>1</Text>
+              </View>
+            </View>
+            <Text style={[styles.bottomNavText, activeTab === 'bookings' && styles.bottomNavActiveText]}>Bookings</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.bottomNavItem}
+            onPress={() => handleTabChange('offers')}
+            activeOpacity={0.7}
+          >
+            {(activeTab === 'offers' || activeTab === 'rewards') && <View style={styles.bottomActiveIndicator} />}
+            <View style={{ position: 'relative' }}>
+              <Text style={[styles.bottomNavIcon, (activeTab === 'offers' || activeTab === 'rewards') && styles.bottomNavActiveIcon]}>🏷️</Text>
+              <View style={styles.rewardsBadgeDot} />
+            </View>
+            <Text style={[styles.bottomNavText, (activeTab === 'offers' || activeTab === 'rewards') && styles.bottomNavActiveText]}>Offers</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.bottomNavItem}
+            onPress={() => handleTabChange('profile')}
+            activeOpacity={0.7}
+          >
+            {activeTab === 'profile' && <View style={styles.bottomActiveIndicator} />}
+            <Text style={[styles.bottomNavIcon, activeTab === 'profile' && styles.bottomNavActiveIcon]}>👤</Text>
+            <Text style={[styles.bottomNavText, activeTab === 'profile' && styles.bottomNavActiveText]}>Profile</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* 22. RICH SERVICE & PRODUCT DETAIL MODAL (Direct Web App Specifications) */}
@@ -4779,7 +6202,45 @@ export default function App() {
                         activeOpacity={0.78}
                         onPress={() => {
                           setShowAllServicesModal(false);
-                          handleAddService({ title: item.name, price: item.price, image: item.image });
+                          const itemName = (item.name || '').toLowerCase();
+                          const grpTitle = (group.title || '').toLowerCase();
+
+                          if (grpTitle.includes("women") || itemName.includes("salon for women") || itemName.includes("hair studio")) {
+                            if (itemName.includes("hair studio")) {
+                              setSalonCategoryTab('hair-care');
+                            } else {
+                              setSalonCategoryTab('all');
+                            }
+                            setSalonSearch('');
+                            setCurrentScreen('salon-prime');
+                          } else if (grpTitle.includes("men") || itemName.includes("men") || itemName.includes("beard")) {
+                            openCategoryScreen('mens-salon', itemName.includes('beard') ? 'Hair & Beard' : 'all');
+                          } else if (grpTitle.includes("cleaning") || itemName.includes("clean") || itemName.includes("cockroach") || itemName.includes("termite") || itemName.includes("bug")) {
+                            const sub = itemName.includes("bathroom") ? "Bathroom Cleaning" :
+                                        itemName.includes("kitchen") ? "Kitchen Cleaning" :
+                                        (itemName.includes("cockroach") || itemName.includes("termite") || itemName.includes("bug")) ? "Pest Control" :
+                                        itemName.includes("sofa") ? "Sofa & Carpet" : "Full Home Cleaning";
+                            openCategoryScreen('cleaning-pest', sub);
+                          } else if (grpTitle.includes("appliance") || itemName.includes("ac") || itemName.includes("washer") || itemName.includes("fridge") || itemName.includes("chimney") || itemName.includes("microwave") || itemName.includes("tv") || itemName.includes("laptop")) {
+                            const sub = itemName.includes("ac") ? "AC Service & Repair" :
+                                        itemName.includes("washer") ? "Washing Machine" :
+                                        itemName.includes("fridge") ? "Refrigerator" :
+                                        itemName.includes("chimney") ? "Chimney" :
+                                        itemName.includes("microwave") ? "Microwave" :
+                                        itemName.includes("tv") ? "Television" :
+                                        itemName.includes("laptop") ? "Laptop" : "all";
+                            openCategoryScreen('ac-appliances', sub);
+                          } else if (grpTitle.includes("repair") || itemName.includes("electrician") || itemName.includes("plumber") || itemName.includes("carpenter") || itemName.includes("furniture") || itemName.includes("fan")) {
+                            const sub = itemName.includes("electrician") || itemName.includes("fan") || itemName.includes("light") ? "Electrician" :
+                                        itemName.includes("plumber") ? "Plumber" : "Carpenter";
+                            openCategoryScreen('quick-repairs', sub);
+                          } else if (grpTitle.includes("painting") || itemName.includes("paint") || itemName.includes("waterproof")) {
+                            openCategoryScreen('painting-decor', itemName.includes("waterproof") ? "Waterproofing" : "Full Home Painting");
+                          } else if (itemName.includes("purifier") || itemName.includes("water purifier")) {
+                            openCategoryScreen('native-ro', 'Water Purifier');
+                          } else {
+                            openCategoryScreen('ac-appliances', 'all');
+                          }
                         }}
                       >
                         <View style={styles.allServicesCardImageWrapper}>
@@ -4852,7 +6313,15 @@ export default function App() {
                     activeOpacity={0.75}
                     onPress={() => {
                       setShowApplianceModal(false);
-                      setSearchQuery(item.query);
+                      const sub = item.name.toLowerCase().includes('ac') ? 'AC Service & Repair' :
+                                  item.name.toLowerCase().includes('washer') || item.name.toLowerCase().includes('washing') ? 'Washing Machine' :
+                                  item.name.toLowerCase().includes('refrigerator') || item.name.toLowerCase().includes('fridge') ? 'Refrigerator' :
+                                  item.name.toLowerCase().includes('chimney') ? 'Chimney' :
+                                  item.name.toLowerCase().includes('microwave') ? 'Microwave' :
+                                  item.name.toLowerCase().includes('television') || item.name.toLowerCase().includes('tv') ? 'Television' :
+                                  item.name.toLowerCase().includes('laptop') ? 'Laptop' :
+                                  item.name.toLowerCase().includes('geyser') ? 'Geyser' : 'all';
+                      openCategoryScreen('ac-appliances', sub);
                     }}
                   >
                     <View style={styles.applianceTileBox}>
@@ -4902,7 +6371,9 @@ export default function App() {
                     activeOpacity={0.75}
                     onPress={() => {
                       setShowEPCModal(false);
-                      setSearchQuery(item.query);
+                      const sub = item.name.toLowerCase().includes('plumb') ? 'Plumber' :
+                                  item.name.toLowerCase().includes('carpent') ? 'Carpenter' : 'Electrician';
+                      openCategoryScreen('quick-repairs', sub);
                     }}
                   >
                     <View style={styles.epcIconBox}>
@@ -4962,7 +6433,8 @@ export default function App() {
                   activeOpacity={0.8}
                   onPress={() => {
                     setShowBathroomKitchenModal(false);
-                    setSearchQuery(opt.query);
+                    const sub = opt.title.toLowerCase().includes('kitchen') ? 'Kitchen Cleaning' : 'Bathroom Cleaning';
+                    openCategoryScreen('cleaning-pest', sub);
                   }}
                 >
                   <SafeImage source={opt.image} item={opt} style={styles.bkOptionImg} resizeMode="cover" />
@@ -5011,7 +6483,12 @@ export default function App() {
                     activeOpacity={0.8}
                     onPress={() => {
                       setShowCleaningModal(false);
-                      setSearchQuery(opt.query);
+                      const sub = opt.name.toLowerCase().includes('bathroom') ? 'Bathroom Cleaning' :
+                                  opt.name.toLowerCase().includes('kitchen') ? 'Kitchen Cleaning' :
+                                  opt.name.toLowerCase().includes('sofa') ? 'Sofa & Carpet' :
+                                  opt.name.toLowerCase().includes('cockroach') || opt.name.toLowerCase().includes('pest') ? 'Pest Control' :
+                                  'Full Home Cleaning';
+                      openCategoryScreen('cleaning-pest', sub);
                     }}
                   >
                     <View style={styles.cleaningIconBox}>
@@ -5068,6 +6545,14 @@ export default function App() {
                       <Text style={styles.salonItemPrice}>{item.price}</Text>
                     </View>
                     <View style={styles.salonItemActionCol}>
+                      <View style={styles.salonItemThumbContainer}>
+                        <SafeImage
+                          source={item.image || resolveServiceImage(item)}
+                          item={item}
+                          style={styles.salonItemThumbImage}
+                          resizeMode="cover"
+                        />
+                      </View>
                       <TouchableOpacity
                         style={styles.salonItemAddBtn}
                         activeOpacity={0.8}
@@ -5127,6 +6612,14 @@ export default function App() {
                       <Text style={styles.salonItemPrice}>{item.price}</Text>
                     </View>
                     <View style={styles.salonItemActionCol}>
+                      <View style={styles.salonItemThumbContainer}>
+                        <SafeImage
+                          source={item.image || resolveServiceImage(item)}
+                          item={item}
+                          style={styles.salonItemThumbImage}
+                          resizeMode="cover"
+                        />
+                      </View>
                       <TouchableOpacity
                         style={styles.salonItemAddBtn}
                         activeOpacity={0.8}
@@ -5193,7 +6686,7 @@ export default function App() {
               {/* Action Buttons */}
               <View style={styles.profileMenuActions}>
                 <TouchableOpacity
-                  style={[styles.profileLogoutBtn, { backgroundColor: '#1E293B', marginBottom: 10 }]}
+                  style={[styles.profileLogoutBtn, { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 10 }]}
                   activeOpacity={0.85}
                   onPress={() => {
                     setShowProfileMenuModal(false);
@@ -5205,7 +6698,7 @@ export default function App() {
                     }));
                   }}
                 >
-                  <Text style={[styles.profileLogoutText, { color: '#38BDF8' }]}>
+                  <Text style={[styles.profileLogoutText, { color: '#0284C7' }]}>
                     ⚡ Switch to Worker Portal
                   </Text>
                 </TouchableOpacity>
@@ -5256,6 +6749,7 @@ export default function App() {
           setCheckoutService(null);
         }}
         service={checkoutService}
+        currentUser={currentUser}
         onBookingSuccess={(bookingDetails) => {
           setCartCount((prev) => prev + 1);
           setCoinsBalance((prev) => prev + 50);
@@ -5307,18 +6801,14 @@ export default function App() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    height: Platform.OS === 'web' ? '100vh' : '100%',
-    maxHeight: Platform.OS === 'web' ? '100vh' : undefined,
-    backgroundColor: '#F04400',
+    backgroundColor: '#FFFFFF',
     maxWidth: Platform.OS === 'web' ? 440 : undefined,
     width: '100%',
     alignSelf: 'center',
-    overflow: 'hidden',
   },
   tabContentWrapper: {
     flex: 1,
     width: '100%',
-    overflow: 'hidden',
   },
   container: {
     flex: 1,
@@ -5327,7 +6817,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
 
   // 1. TOP PURPLE BANNER HEADER (Now 60% Fiery Orange #F04400)
@@ -7199,7 +8689,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
 
-  // 21. BOTTOM NAVIGATION BAR (3 SECTIONS: HOMES, NATIVE, BEAUTY)
+  // 21. BOTTOM NAVIGATION BAR (5 SECTIONS: HOMES, CATEGORIES, BOOKINGS, OFFERS, PROFILE)
   bottomNavContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -7207,7 +8697,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopWidth: 1,
     borderTopColor: '#E2E8F0',
-    paddingTop: 8,
+    height: Platform.OS === 'ios' ? 76 : 62,
+    paddingTop: 6,
     paddingBottom: Platform.OS === 'ios' ? 20 : 6,
     elevation: 8,
     shadowColor: '#000000',
@@ -7246,7 +8737,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flex: 1,
-    height: '100%',
+    height: 48,
     position: 'relative',
   },
   bottomNavIcon: {
@@ -7256,7 +8747,7 @@ const styles = StyleSheet.create({
   },
   bottomNavActiveIcon: {
     opacity: 1,
-    transform: [{ scale: 1.1 }],
+    transform: [{ scale: 1.08 }],
   },
   bottomNavText: {
     fontSize: 11,
@@ -7269,11 +8760,11 @@ const styles = StyleSheet.create({
   },
   bottomActiveIndicator: {
     position: 'absolute',
-    top: 0,
+    top: -6,
     width: 24,
     height: 3,
     borderRadius: 2,
-    backgroundColor: '#F04400',
+    backgroundColor: '#0F172A',
   },
   rewardsBadgeDot: {
     position: 'absolute',
@@ -9267,6 +10758,21 @@ const styles = StyleSheet.create({
   salonItemActionCol: {
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
+    minWidth: 88,
+  },
+  salonItemThumbContainer: {
+    width: 84,
+    height: 84,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#F1F5F9',
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  salonItemThumbImage: {
+    width: '100%',
+    height: '100%',
   },
   salonItemAddBtn: {
     backgroundColor: '#D0F030',
@@ -9497,7 +11003,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   trackingBannerAction: {
-    backgroundColor: '#F04400',
+    backgroundColor: '#0F172A',
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
@@ -9506,5 +11012,1061 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
     fontSize: 12,
+  },
+
+  // URBAN COMPANY PREMIUM WHITE REDESIGN STYLES
+  ucCleanHeader: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingTop: Platform.OS === 'android' ? 36 : 8,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  ucHeaderTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  ucBrandAndLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 6,
+  },
+  ucBrandLogoBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  ucBrandLogoText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  ucLocationContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  ucLocationTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ucLocationPin: {
+    fontSize: 13,
+    marginRight: 3,
+  },
+  ucLocationName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    flexShrink: 1,
+    maxWidth: 135,
+  },
+  ucLocationArrow: {
+    fontSize: 12,
+    color: '#64748B',
+    marginLeft: 3,
+  },
+  ucLocationSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 1,
+  },
+  ucHeaderActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingRight: 2,
+  },
+  ucCoinsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  ucCoinsIcon: {
+    fontSize: 12,
+    marginRight: 3,
+  },
+  ucCoinsText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  ucCartButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  ucCartIcon: {
+    fontSize: 15,
+  },
+  ucCartBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#0F172A',
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 3,
+  },
+  ucCartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  ucProfileAvatarBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ucProfileAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  ucSearchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  ucSearchIcon: {
+    fontSize: 15,
+    marginRight: 8,
+  },
+  ucSearchInput: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#0F172A',
+    paddingVertical: 0,
+  },
+  ucClearIcon: {
+    fontSize: 14,
+    color: '#94A3B8',
+    paddingHorizontal: 4,
+  },
+  ucQuickChipsScroll: {
+    flexDirection: 'row',
+    paddingTop: 8,
+    gap: 6,
+  },
+  ucQuickChip: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
+  },
+  ucQuickChipActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  ucQuickChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  ucQuickChipTextActive: {
+    color: '#FFFFFF',
+  },
+  bottomBookingBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: '#0F172A',
+    borderRadius: 9,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+  },
+  bottomBookingBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  serviceCardBadgePill: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  serviceCardBadgePillText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+
+  // CATEGORIES SCREEN STYLES
+  categoriesHeroHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  categoriesHeroTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+    letterSpacing: -0.3,
+  },
+  categoriesHeroSub: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+    lineHeight: 18,
+  },
+  categoryFilterRow: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  categoryFilterPill: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  categoryFilterPillActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  categoryFilterText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  categoryFilterTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  categoryCardsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 12,
+    gap: 10,
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  categoryImageCard: {
+    width: '48%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    overflow: 'hidden',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  categoryCardImgBox: {
+    width: '100%',
+    height: 120,
+    backgroundColor: '#F1F5F9',
+    position: 'relative',
+  },
+  categoryCardImg: {
+    width: '100%',
+    height: '100%',
+  },
+  categoryCardBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(15, 23, 42, 0.85)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  categoryCardBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  categoryCardContent: {
+    padding: 10,
+  },
+  categoryCardRating: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#F59E0B',
+    marginBottom: 2,
+  },
+  categoryCardTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    lineHeight: 17,
+  },
+  categoryCardSubtitle: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+    marginBottom: 8,
+  },
+  categoryCardPriceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  categoryCardPrice: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  categoryCardArrowBtn: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#F1F5F9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  categoryCardArrowText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  fullCatalogCard: {
+    marginHorizontal: 16,
+    marginBottom: 24,
+    backgroundColor: '#0F172A',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  fullCatalogSuper: {
+    color: '#94A3B8',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  fullCatalogTitle: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  fullCatalogSub: {
+    color: '#CBD5E1',
+    fontSize: 11,
+    marginTop: 2,
+  },
+  fullCatalogBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginLeft: 10,
+  },
+  fullCatalogBtnText: {
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+
+  // BOOKINGS SCREEN STYLES
+  bookingsHeaderBox: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 8,
+    backgroundColor: '#FFFFFF',
+  },
+  bookingsHeaderTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  bookingsHeaderSub: {
+    fontSize: 13,
+    color: '#64748B',
+    marginTop: 4,
+  },
+  bookingFilterScroll: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  bookingFilterChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  bookingFilterChipActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  bookingFilterText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  bookingFilterTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  bookingCardOngoing: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#10B981',
+    padding: 16,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  ongoingCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  liveStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+    gap: 5,
+  },
+  liveGreenPulse: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: '#10B981',
+  },
+  liveStatusText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#065F46',
+    letterSpacing: 0.5,
+  },
+  bookingIdText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  ongoingServiceRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  ongoingServiceTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  ongoingSlotText: {
+    fontSize: 12,
+    color: '#475569',
+    marginBottom: 2,
+    fontWeight: '500',
+  },
+  ongoingAddressText: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  ongoingPriceText: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  ongoingSpecialistBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 12,
+    gap: 10,
+  },
+  specialistAvatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  specialistAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  specialistName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  specialistRatingPill: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 4,
+  },
+  specialistRatingText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  specialistSub: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  specialistCallBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  specialistCallIcon: {
+    fontSize: 14,
+  },
+  otpNoticeBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    marginBottom: 14,
+  },
+  otpNoticeLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E40AF',
+  },
+  otpNoticeSub: {
+    fontSize: 10,
+    color: '#3B82F6',
+    marginTop: 1,
+  },
+  otpDisplayBox: {
+    backgroundColor: '#1E40AF',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginLeft: 8,
+  },
+  otpDisplayText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 2,
+  },
+  liveTrackCTAButton: {
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+  },
+  liveTrackCTAIcon: {
+    fontSize: 16,
+  },
+  liveTrackCTAText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+
+  // Completed Bookings
+  bookingCardCompleted: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+  },
+  completedHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  completedBadgePill: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  completedBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  bookingDateText: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  completedBodyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  completedServiceTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 3,
+  },
+  completedSpecialistText: {
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 4,
+  },
+  starRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  starGold: {
+    color: '#F59E0B',
+    fontSize: 12,
+  },
+  ratedText: {
+    fontSize: 11,
+    color: '#64748B',
+    fontWeight: '600',
+  },
+  completedPriceText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  completedActionsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  repeatBookingBtn: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  repeatBookingText: {
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  invoiceBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  invoiceBtnText: {
+    color: '#475569',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+
+  // Cancelled Bookings
+  bookingCardCancelled: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+  },
+  cancelledHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  cancelledBadgePill: {
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 4,
+  },
+  cancelledBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#DC2626',
+  },
+  cancelledBodyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  cancelledServiceTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 3,
+  },
+  refundText: {
+    fontSize: 11,
+    color: '#059669',
+    fontWeight: '500',
+  },
+  cancelledPriceText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#94A3B8',
+    textDecorationLine: 'line-through',
+  },
+  rebookCancelledBtn: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingVertical: 8,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  rebookCancelledText: {
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  // Empty Bookings
+  emptyBookingsBox: {
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginTop: 16,
+  },
+  emptyBookingsTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  emptyBookingsSub: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  bookNewServiceBtn: {
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  bookNewServiceBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // PROFILE SCREEN STYLES
+  profileHeroCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  profileAvatarLarge: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileAvatarLargeText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  profileUserName: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  profilePlusBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  profilePlusBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  profileUserEmail: {
+    fontSize: 12,
+    color: '#64748B',
+  },
+  profileUserPhone: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  profileEditBtn: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  profileEditBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  profileStatsRow: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  profileStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  profileStatNumber: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  profileStatLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  profileStatDivider: {
+    width: 1,
+    height: 24,
+    backgroundColor: '#E2E8F0',
+  },
+  profilePlusBanner: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: '#0F172A',
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  profilePlusBannerSuper: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#F59E0B',
+    letterSpacing: 0.5,
+  },
+  profilePlusBannerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginTop: 1,
+  },
+  profilePlusBannerSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  profileMenuGroup: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+  },
+  profileMenuSectionTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#94A3B8',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  profileMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F8FAFC',
+    gap: 12,
+  },
+  profileMenuIconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#F8FAFC',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  profileMenuIcon: {
+    fontSize: 15,
+  },
+  profileMenuTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  profileMenuSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  profileMenuChevron: {
+    fontSize: 18,
+    color: '#CBD5E1',
+    fontWeight: '600',
+  },
+  switchPartnerModeBtn: {
+    marginHorizontal: 16,
+    marginBottom: 14,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: '#0F172A',
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  switchPartnerModeIcon: {
+    fontSize: 22,
+  },
+  switchPartnerModeTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  switchPartnerModeSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  switchPartnerModeArrow: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  profileLogoutBtn: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  profileLogoutBtnText: {
+    color: '#DC2626',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  profileAppVersionText: {
+    textAlign: 'center',
+    fontSize: 11,
+    color: '#94A3B8',
+    marginBottom: 24,
   },
 });

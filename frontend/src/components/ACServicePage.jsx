@@ -446,24 +446,33 @@ export function ACServicePage({
         title.includes('ac') ||
         title.includes('foam')
       );
-    }).map(s => ({
-      id: s.id,
-      sectionId: 'packages',
-      sectionTitle: s.subcategory || 'Featured Catalogue Services',
-      title: s.title,
-      rating: s.rating ? String(s.rating) : '4.85',
-      reviews: s.reviewsCount || '1.2K reviews',
-      price: s.price,
-      originalPrice: s.originalPrice || Math.round(s.price * 1.25),
-      duration: s.duration || `${s.durationMins || 60} mins`,
-      perUnitNote: 'Verified Admin Catalogue Service',
-      isHero: true,
-      hasGasCheckBadge: true,
-      image: s.image || '/images/hero_ac.jpg',
-      inclusions: s.includedWork && s.includedWork.length > 0
-        ? s.includedWork
-        : ['Comprehensive doorstep inspection and servicing', 'Pre-service diagnostics and safety testing', '30-day service guarantee']
-    }));
+    }).map(s => {
+      const sub = (s.subcategory || '').toLowerCase();
+      const title = (s.title || '').toLowerCase();
+      let sec = 'packages';
+      if (sub.includes('install') || title.includes('install')) sec = 'install';
+      else if (sub.includes('repair') || sub.includes('gas') || title.includes('repair')) sec = 'repair';
+      else if (sub.includes('service') || title.includes('service') || title.includes('clean') || title.includes('jet')) sec = 'service';
+
+      return {
+        id: s.id,
+        sectionId: sec,
+        sectionTitle: s.subcategory || 'Featured Catalogue Services',
+        title: s.title,
+        rating: s.rating ? String(s.rating) : '4.85',
+        reviews: s.reviewsCount || '1.2K reviews',
+        price: s.price,
+        originalPrice: s.originalPrice || Math.round(s.price * 1.25),
+        duration: s.duration || `${s.durationMins || 60} mins`,
+        perUnitNote: 'Verified Admin Catalogue Service',
+        isHero: true,
+        hasGasCheckBadge: true,
+        image: s.image || '/images/hero_ac.jpg',
+        inclusions: s.includedWork && s.includedWork.length > 0
+          ? s.includedWork
+          : ['Comprehensive doorstep inspection and servicing', 'Pre-service diagnostics and safety testing', '30-day service guarantee']
+      };
+    });
 
     return [...dynamicAC, ...AC_SERVICES];
   }, [services]);

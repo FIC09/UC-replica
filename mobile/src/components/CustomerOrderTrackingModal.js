@@ -9,8 +9,10 @@ import {
   TextInput,
   Alert,
   Dimensions,
-  Platform
+  Platform,
+  StatusBar
 } from 'react-native';
+import mobileApi from '../services/apiClient';
 
 const { width } = Dimensions.get('window');
 
@@ -31,9 +33,48 @@ export default function CustomerOrderTrackingModal({
   onReviewSubmitted,
   onUpdateStage
 }) {
-  const currentStage = booking?.stage || 3;
-  const otp = booking?.otp || '4829';
+  const stageFromStatus = (status) => {
+    if (!status) return null;
+    const s = String(status).toLowerCase();
+    if (s.includes('completed')) return 6;
+    if (s.includes('progress')) return 5;
+    if (s.includes('arrived')) return 4;
+    if (s.includes('route') || s.includes('way')) return 3;
+    if (s.includes('assigned')) return 2;
+    if (s.includes('confirm') || s.includes('placed')) return 1;
+    return null;
+  };
+
+  const currentStage = (typeof booking?.stage === 'number' && booking.stage >= 1 && booking.stage <= 6)
+    ? booking.stage
+    : (stageFromStatus(booking?.status) || 2);
+
+  const otp = booking?.otp || booking?.safetyPin || '4829';
   const simulatedEta = 8;
+
+  // Live polling while modal is open to pick up worker stage & status updates in real-time
+  useEffect(() => {
+    if (!visible) return;
+    const bookingId = booking?.id || '9410';
+    const fetchLatestBooking = async () => {
+      try {
+        const res = await mobileApi.getBookingById(bookingId);
+        if (res && res.success && res.booking) {
+          const b = res.booking;
+          const remoteStage = (typeof b.stage === 'number' && b.stage >= 1 && b.stage <= 6)
+            ? b.stage
+            : (stageFromStatus(b.status) || 2);
+          if (remoteStage && onUpdateStage && remoteStage !== booking?.stage) {
+            onUpdateStage(remoteStage);
+          }
+        }
+      } catch (_) {}
+    };
+
+    fetchLatestBooking();
+    const interval = setInterval(fetchLatestBooking, 3000);
+    return () => clearInterval(interval);
+  }, [visible, booking?.id, booking?.stage]);
 
   // Review Modal State (triggers at Stage 6)
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -99,6 +140,7 @@ export default function CustomerOrderTrackingModal({
   return (
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
       <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
         {/* Top Header */}
         <View style={styles.headerBar}>
           <TouchableOpacity onPress={onClose} style={styles.backBtn} activeOpacity={0.7}>
@@ -248,6 +290,43 @@ export default function CustomerOrderTrackingModal({
             })}
           </View>
 
+          {/* Real-time Work Verification Photos from Specialist */}
+          {(booking?.prePhoto || booking?.postPhoto || booking?.beforeWorkPhoto || booking?.afterWorkPhoto) && (
+            <View style={styles.evidenceCard}>
+              <Text style={styles.evidenceTitle}>📸 Specialist Work Proof Photos</Text>
+              <View style={styles.evidenceRow}>
+                {(booking?.prePhoto || booking?.beforeWorkPhoto) && (
+                  <View style={styles.evidenceItem}>
+                    <Text style={styles.evidenceItemTitle}>1. Pre-Service Baseline</Text>
+                    <View style={styles.evidencePhotoBox}>
+                      <Text style={{ fontSize: 24 }}>📷</Text>
+                      <Text style={styles.evidenceName}>
+                        {booking?.prePhoto?.name || booking?.beforeWorkPhoto?.fileName || 'Inspection Photo'}
+                      </Text>
+                      <View style={styles.evidenceTag}>
+                        <Text style={styles.evidenceTagText}>✓ Verified Baseline</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+                {(booking?.postPhoto || booking?.afterWorkPhoto) && (
+                  <View style={styles.evidenceItem}>
+                    <Text style={styles.evidenceItemTitle}>2. Clean Quality Proof</Text>
+                    <View style={styles.evidencePhotoBox}>
+                      <Text style={{ fontSize: 24 }}>✨</Text>
+                      <Text style={styles.evidenceName}>
+                        {booking?.postPhoto?.name || booking?.afterWorkPhoto?.fileName || 'Completed Photo'}
+                      </Text>
+                      <View style={styles.evidenceTag}>
+                        <Text style={styles.evidenceTagText}>✓ Quality Certified</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+              </View>
+            </View>
+          )}
+
           {/* Booking Summary Box */}
           <View style={styles.summaryCard}>
             <Text style={styles.summaryTitle}>Service Details</Text>
@@ -379,31 +458,40 @@ const styles = StyleSheet.create({
   headerBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F04400',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
     paddingHorizontal: 16,
     paddingTop: Platform.OS === 'android' ? 40 : 16,
     paddingBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 2,
   },
   backBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#F1F5F9',
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
   backBtnText: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 20,
     fontWeight: '700',
   },
   headerTitle: {
-    color: '#FFFFFF',
+    color: '#0F172A',
     fontSize: 18,
     fontWeight: '800',
   },
   headerSub: {
-    color: '#FFF8D1',
+    color: '#64748B',
     fontSize: 12,
     fontWeight: '600',
   },
@@ -538,20 +626,29 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
   },
   mapContainer: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#FFFFFF',
     borderRadius: 18,
     padding: 16,
     marginBottom: 18,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 2,
   },
   mapOverlayTop: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
     marginBottom: 16,
   },
   mapStatusText: {
-    color: '#38BDF8',
+    color: '#0284C7',
     fontSize: 13,
     fontWeight: '700',
     textAlign: 'center',
@@ -561,7 +658,7 @@ const styles = StyleSheet.create({
   },
   roadLine: {
     height: 6,
-    backgroundColor: '#334155',
+    backgroundColor: '#E2E8F0',
     borderRadius: 3,
     position: 'relative',
     marginHorizontal: 16,
@@ -582,7 +679,7 @@ const styles = StyleSheet.create({
     marginTop: 18,
   },
   roadLabel: {
-    color: '#94A3B8',
+    color: '#64748B',
     fontSize: 11,
     fontWeight: '600',
   },
@@ -664,6 +761,60 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#94A3B8',
     marginTop: 2,
+  },
+  evidenceCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 16,
+  },
+  evidenceTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+    marginBottom: 12,
+  },
+  evidenceRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  evidenceItem: {
+    flex: 1,
+  },
+  evidenceItemTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: 6,
+  },
+  evidencePhotoBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 12,
+    alignItems: 'center',
+  },
+  evidenceName: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1E293B',
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  evidenceTag: {
+    backgroundColor: '#ECFDF5',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginTop: 6,
+  },
+  evidenceTagText: {
+    color: '#059669',
+    fontSize: 10,
+    fontWeight: '800',
   },
   summaryCard: {
     backgroundColor: '#FFFFFF',
