@@ -912,8 +912,21 @@ router.get('/:id/review', async (req, res) => {
 });
 
 // GET published and approved customer reviews for the public landing page
+let publishedReviewsCache = null;
+let lastReviewsCacheTime = 0;
+const REVIEWS_CACHE_TTL = 5 * 60 * 1000;
+
 router.get('/reviews/published', async (req, res) => {
   try {
+    if (publishedReviewsCache && (Date.now() - lastReviewsCacheTime < REVIEWS_CACHE_TTL)) {
+      return res.json({
+        success: true,
+        count: publishedReviewsCache.length,
+        reviews: publishedReviewsCache,
+        cached: true
+      });
+    }
+
     let reviewsList = [];
     if (mongoose.connection && mongoose.connection.readyState === 1 && Booking) {
       try {
@@ -973,6 +986,9 @@ router.get('/reviews/published', async (req, res) => {
         isLiveApproved: true
       };
     });
+
+    publishedReviewsCache = publicReviews;
+    lastReviewsCacheTime = Date.now();
 
     return res.json({
       success: true,

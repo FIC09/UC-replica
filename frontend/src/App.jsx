@@ -381,7 +381,16 @@ function App() {
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem('uc_user');
-      return saved ? JSON.parse(saved) : null;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.name === 'Super Admin' || parsed.role === 'Super Admin' || parsed.role === 'Super Administrator')) {
+          parsed.name = 'Admin';
+          parsed.role = 'Admin';
+          try { localStorage.setItem('uc_user', JSON.stringify(parsed)); } catch {}
+        }
+        return parsed;
+      }
+      return null;
     } catch {
       return null;
     }

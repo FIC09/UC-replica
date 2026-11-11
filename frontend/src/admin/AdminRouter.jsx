@@ -52,20 +52,20 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
       const stored = localStorage.getItem('uc_admin_user');
       return stored ? JSON.parse(stored) : {
         id: 'ADM-01',
-        name: 'Super Admin',
+        name: 'Admin',
         email: 'admin@urbancompany.com',
-        role: 'Super Administrator',
+        role: 'Administrator',
         department: 'Operations & Platform Control',
-        avatarInitials: 'SA'
+        avatarInitials: 'AD'
       };
     } catch {
       return {
         id: 'ADM-01',
-        name: 'Super Admin',
+        name: 'Admin',
         email: 'admin@urbancompany.com',
-        role: 'Super Administrator',
+        role: 'Administrator',
         department: 'Operations & Platform Control',
-        avatarInitials: 'SA'
+        avatarInitials: 'AD'
       };
     }
   });

@@ -422,81 +422,169 @@ export function Navbar({
                   </button>
                 ) : (
                   <>
-                    <div style={{ padding: '6px 8px 8px', borderBottom: '1px solid #F1F5F9' }}>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {user.name || user.phone || 'My Account'}
-                      </div>
-                      <div style={{ fontSize: '11px', color: '#6B7280', textTransform: 'capitalize' }}>
-                        {user.role || 'Customer'}
-                      </div>
-                    </div>
+                    {(() => {
+                      const isAdmin = Boolean(
+                        user && (
+                          user.role === 'admin' ||
+                          user.role === 'Super Admin' ||
+                          user.role === 'Administrator' ||
+                          user.role === 'Super Administrator' ||
+                          user.name === 'Super Admin' ||
+                          user.name === 'Admin' ||
+                          user.email === 'admin@urbancompany.com' ||
+                          String(user.role || '').toLowerCase().includes('admin')
+                        )
+                      );
+                      const rawName = user.name || user.phone || 'My Account';
+                      const displayName = (rawName === 'Super Admin' || rawName === 'Executive Admin (Ops Lead)' || isAdmin) ? 'Admin' : rawName;
+                      const displayRole = isAdmin ? 'Admin' : (user.role || 'Customer');
 
-                    {onOpenBookings && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowProfileMenu(false);
-                          onOpenBookings();
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '7px 8px',
-                          background: 'none',
-                          color: '#111827',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '12.5px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          textAlign: 'left',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        <span>My Bookings</span>
-                        {bookingsCount > 0 && (
-                          <span style={{
-                            background: '#000000',
-                            color: '#FFFFFF',
-                            borderRadius: '999px',
-                            padding: '1px 6px',
-                            fontSize: '10.5px',
-                            fontWeight: '700'
-                          }}>
-                            {bookingsCount}
-                          </span>
-                        )}
-                      </button>
-                    )}
+                      return (
+                        <>
+                          <div style={{ padding: '6px 8px 8px', borderBottom: '1px solid #F1F5F9' }}>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {displayName}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#6B7280', textTransform: 'capitalize' }}>
+                              {displayRole}
+                            </div>
+                          </div>
 
-                    {onOpenAddresses && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowProfileMenu(false);
-                          onOpenAddresses();
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '7px 8px',
-                          background: 'none',
-                          color: '#111827',
-                          border: 'none',
-                          borderRadius: '6px',
-                          fontSize: '12.5px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          textAlign: 'left'
-                        }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                      >
-                        Manage Addresses
-                      </button>
-                    )}
+                          {isAdmin ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setShowProfileMenu(false);
+                                  if (onOpenAdmin) onOpenAdmin();
+                                  else if (onOpenAdminDashboard) onOpenAdminDashboard();
+                                  else window.location.href = '/admin';
+                                }}
+                                style={{
+                                  width: '100%',
+                                  padding: '7px 8px',
+                                  background: 'none',
+                                  color: '#111827',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  fontSize: '12.5px',
+                                  fontWeight: '600',
+                                  cursor: 'pointer',
+                                  textAlign: 'left',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '8px'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              >
+                                <ShieldCheck size={14} color="#7C3AED" />
+                                <span>Admin Dashboard</span>
+                              </button>
+
+                              {onOpenAdminCatalogue && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowProfileMenu(false);
+                                    onOpenAdminCatalogue();
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '7px 8px',
+                                    background: 'none',
+                                    color: '#111827',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    fontSize: '12.5px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                  <Wrench size={14} color="#4B5563" />
+                                  <span>Services Catalogue</span>
+                                </button>
+                              )}
+                            </>
+                          ) : (
+                            <>
+                              {onOpenBookings && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowProfileMenu(false);
+                                    onOpenBookings();
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '7px 8px',
+                                    background: 'none',
+                                    color: '#111827',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    fontSize: '12.5px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                  <span>My Bookings</span>
+                                  {bookingsCount > 0 && (
+                                    <span style={{
+                                      background: '#000000',
+                                      color: '#FFFFFF',
+                                      borderRadius: '999px',
+                                      padding: '1px 6px',
+                                      fontSize: '10.5px',
+                                      fontWeight: '700'
+                                    }}>
+                                      {bookingsCount}
+                                    </span>
+                                  )}
+                                </button>
+                              )}
+
+                              {onOpenAddresses && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowProfileMenu(false);
+                                    onOpenAddresses();
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '7px 8px',
+                                    background: 'none',
+                                    color: '#111827',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    fontSize: '12.5px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    textAlign: 'left'
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                  Manage Addresses
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </>
+                      );
+                    })()}
 
                     <button
                       type="button"

@@ -10,11 +10,11 @@ let mockAdmins = [
   {
     _id: 'adm-super-01',
     id: 'adm-super-01',
-    name: 'Super Admin',
+    name: 'Admin',
     email: 'admin@urbancompany.com',
     // bcrypt hash of 'admin123'
     password: '$2a$10$wE445G2h1mR2zQy3s9y00.vEcv1Ew0P1GzLpTj3bHkXy5v4aJb9qK',
-    role: 'Super Admin',
+    role: 'Admin',
     assignedZone: 'All India',
     department: 'Platform Governance & Executive',
     status: 'Active',

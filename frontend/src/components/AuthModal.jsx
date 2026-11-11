@@ -86,12 +86,12 @@ export function AuthModal({
     },
     admin: {
       role: 'admin',
-      label: 'Administrator',
+      label: 'Admin',
       icon: ShieldCheck,
       color: '#7C3AED',
       email: 'admin@urbancompany.com',
       password: 'admin123',
-      name: 'Executive Admin (Ops Lead)',
+      name: 'Admin',
       phone: '+91 99999 99999',
       desc: 'Access Operations Hub, weather surge toggle (+₹49), broadcast alerts, & catalogue CRUD.',
       targetDashboard: 'Admin Dashboard'
@@ -205,11 +205,11 @@ export function AuthModal({
       localStorage.setItem('uc_admin_auth', 'true');
       const adminData = {
         id: userObj.id || userObj._id || 'ADM-01',
-        name: userObj.name || 'Super Admin',
+        name: (userObj.name === 'Super Admin' || !userObj.name) ? 'Admin' : userObj.name,
         email: userObj.email || 'admin@urbancompany.com',
-        role: 'Super Administrator',
+        role: 'Admin',
         department: 'Operations & Platform Control',
-        avatarInitials: 'SA'
+        avatarInitials: 'AD'
       };
       sessionStorage.setItem('uc_admin_user', JSON.stringify(adminData));
       localStorage.setItem('uc_admin_user', JSON.stringify(adminData));

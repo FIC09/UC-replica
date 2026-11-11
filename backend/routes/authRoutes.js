@@ -388,9 +388,9 @@ router.post('/unified-login', async (req, res) => {
       admin = {
         id: 'adm-super-01',
         _id: 'adm-super-01',
-        name: cleanInput.includes('ops') ? 'Operations Manager' : 'Super Admin',
+        name: cleanInput.includes('ops') ? 'Operations Manager' : 'Admin',
         email: cleanInput.includes('ops') ? 'ops@urbancompany.com' : 'admin@urbancompany.com',
-        role: cleanInput.includes('ops') ? 'Operations Manager' : 'Super Admin',
+        role: cleanInput.includes('ops') ? 'Operations Manager' : 'Admin',
         assignedZone: 'All India',
         department: 'Operations',
         status: 'Active'
