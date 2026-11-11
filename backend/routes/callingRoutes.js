@@ -25,6 +25,230 @@ router.get('/ice-servers', async (req, res) => {
   }
 });
 
+// POST Real-time VoIP Call: Start outgoing internet call
+router.post('/start', async (req, res) => {
+  try {
+    const {
+      bookingId,
+      callerId,
+      callerRole = 'customer',
+      callerName,
+      callerPhone,
+      receiverId,
+      receiverRole,
+      receiverName,
+      receiverPhone
+    } = req.body;
+
+    if (!bookingId) {
+      return res.status(400).json({ success: false, message: 'bookingId is required' });
+    }
+
+    const cleanBookingId = String(bookingId).replace(/^#/, '').trim();
+    const bare = cleanBookingId.replace(/^(UC|JOB|LEAD)[-_]?/i, '');
+    const callId = `call_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+    // End any stale active calls on this booking (older than 2 minutes or unclosed)
+    await CallSession.updateMany(
+      {
+        $or: [
+          { bookingId: cleanBookingId },
+          { bookingId: `UC-${bare}` },
+          { bookingId: `JOB-${bare}` },
+          { bookingId: bare }
+        ],
+        status: { $in: ['initiated', 'ringing', 'connected'] }
+      },
+      { $set: { status: 'ended', endedAt: new Date(), disconnectReason: 'superseded_by_new_call' } }
+    );
+
+    const session = await CallSession.create({
+      callId,
+      bookingId: cleanBookingId,
+      callerId: String(callerId || callerPhone || 'cust-user'),
+      callerRole: callerRole === 'worker' ? 'professional' : callerRole,
+      callerName: callerName || (callerRole === 'customer' ? 'Customer' : 'Specialist'),
+      receiverId: String(receiverId || receiverPhone || 'worker-user'),
+      receiverRole: receiverRole === 'worker' ? 'professional' : (receiverRole || (callerRole === 'customer' ? 'professional' : 'customer')),
+      receiverName: receiverName || (callerRole === 'customer' ? 'Specialist' : 'Customer'),
+      status: 'ringing',
+      callType: 'webrtc_audio',
+      startedAt: new Date(),
+      metadata: {
+        callerPhone,
+        receiverPhone,
+        bookingRef: cleanBookingId
+      }
+    });
+
+    console.log(`📞 [VoIP Call Started] ${callId} on Booking #${cleanBookingId} (${session.callerName} -> ${session.receiverName})`);
+    res.json({ success: true, callId, session });
+  } catch (error) {
+    console.error('VoIP call start error:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET Real-time VoIP Call: Check for active/incoming call on booking
+router.get('/active/:bookingId', async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const cleanBookingId = String(bookingId).replace(/^#/, '').trim();
+    const bare = cleanBookingId.replace(/^(UC|JOB|LEAD)[-_]?/i, '');
+    const ninetySecondsAgo = new Date(Date.now() - 90 * 1000);
+
+    const session = await CallSession.findOne({
+      $or: [
+        { bookingId: cleanBookingId },
+        { bookingId: `UC-${bare}` },
+        { bookingId: `JOB-${bare}` },
+        { bookingId: bare }
+      ],
+      status: { $in: ['initiated', 'ringing', 'connected'] },
+      startedAt: { $gte: ninetySecondsAgo }
+    }).sort({ startedAt: -1 });
+
+    res.json({ success: true, activeCall: session || null });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST Real-time VoIP Call: Accept or Decline call
+router.post('/respond', async (req, res) => {
+  try {
+    const { callId, action } = req.body; // action: 'accept' | 'decline'
+    if (!callId) {
+      return res.status(400).json({ success: false, message: 'callId is required' });
+    }
+
+    if (action === 'accept') {
+      const session = await CallSession.findOneAndUpdate(
+        { callId },
+        { $set: { status: 'connected', connectedAt: new Date() } },
+        { new: true }
+      );
+      console.log(`📞 [VoIP Call Connected] ${callId}`);
+      return res.json({ success: true, session });
+    } else {
+      const session = await CallSession.findOneAndUpdate(
+        { callId },
+        { $set: { status: 'rejected', endedAt: new Date(), disconnectReason: 'declined_by_receiver' } },
+        { new: true }
+      );
+      console.log(`📞 [VoIP Call Declined] ${callId}`);
+      return res.json({ success: true, session });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST Real-time VoIP Call: End call
+router.post('/end', async (req, res) => {
+  try {
+    const { callId, durationSeconds, reason = 'normal_hangup' } = req.body;
+    if (!callId) {
+      return res.status(400).json({ success: false, message: 'callId is required' });
+    }
+
+    const existing = await CallSession.findOne({ callId });
+    const now = new Date();
+    let calculatedDuration = durationSeconds;
+    if (!calculatedDuration && existing?.connectedAt) {
+      calculatedDuration = Math.round((now.getTime() - new Date(existing.connectedAt).getTime()) / 1000);
+    }
+
+    const session = await CallSession.findOneAndUpdate(
+      { callId },
+      {
+        $set: {
+          status: 'ended',
+          endedAt: now,
+          durationSeconds: Math.max(0, calculatedDuration || 0),
+          disconnectReason: reason
+        }
+      },
+      { new: true }
+    );
+    console.log(`📞 [VoIP Call Ended] ${callId} (Duration: ${session?.durationSeconds || 0}s, Reason: ${reason})`);
+    res.json({ success: true, session });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// In-memory real-time signaling buffer for WebRTC exchange
+const webrtcSignalBuffer = new Map();
+
+// POST WebRTC Signaling: SDP Offer / Answer / ICE Candidates
+router.post('/signal', async (req, res) => {
+  try {
+    const { callId, senderRole, type, payload } = req.body;
+    if (!callId || !type || !payload) {
+      return res.status(400).json({ success: false, message: 'callId, type, and payload are required' });
+    }
+
+    if (!webrtcSignalBuffer.has(callId)) {
+      webrtcSignalBuffer.set(callId, []);
+    }
+
+    const signalItem = {
+      id: `sig_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      callId,
+      senderRole,
+      type,
+      payload,
+      timestamp: Date.now()
+    };
+
+    const list = webrtcSignalBuffer.get(callId);
+    list.push(signalItem);
+
+    if (list.length > 60) {
+      webrtcSignalBuffer.set(callId, list.slice(-60));
+    }
+
+    res.json({ success: true, signalId: signalItem.id });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET WebRTC Signaling: Retrieve peer signals
+router.get('/signals/:callId', async (req, res) => {
+  try {
+    const { callId } = req.params;
+    const { since = 0, role } = req.query;
+    const sinceNum = parseInt(since, 10) || 0;
+
+    const list = webrtcSignalBuffer.get(callId) || [];
+    const signals = list.filter(s => {
+      const isNew = s.timestamp > sinceNum;
+      const isFromPeer = !role || s.senderRole !== role;
+      return isNew && isFromPeer;
+    });
+
+    res.json({ success: true, count: signals.length, signals });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET Real-time VoIP Call: Single call status polling
+router.get('/call/:callId', async (req, res) => {
+  try {
+    const { callId } = req.params;
+    const session = await CallSession.findOne({ callId });
+    if (!session) {
+      return res.status(404).json({ success: false, message: 'Call session not found' });
+    }
+    res.json({ success: true, session });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // POST Validate participant authorization for booking voice call
 router.post('/validate', async (req, res) => {
   try {

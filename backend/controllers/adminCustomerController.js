@@ -56,7 +56,10 @@ export async function getCustomers(req, res) {
     let allBookings = [];
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       try {
-        allBookings = await Booking.find().sort({ createdAt: -1 }).lean();
+        allBookings = await Booking.find()
+          .select('-structuredChecklists -beforeWorkPhoto -afterWorkPhoto')
+          .sort({ createdAt: -1 })
+          .lean();
       } catch (e) {
         console.warn('Booking.find in getCustomers error:', e.message);
       }
@@ -322,7 +325,10 @@ export async function getCustomerDetail(req, res) {
         searchQueries.push({ userPhone: new RegExp(cleanDigits) });
       }
 
-      customerBookings = await Booking.find({ $or: searchQueries }).sort({ createdAt: -1 }).lean();
+      customerBookings = await Booking.find({ $or: searchQueries })
+        .select('-structuredChecklists -beforeWorkPhoto -afterWorkPhoto')
+        .sort({ createdAt: -1 })
+        .lean();
     } catch (e) {
       console.warn('Booking.find in getCustomerDetail:', e.message);
     }

@@ -4,7 +4,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 async function request(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
   const controller = new AbortController();
-  const timeoutMs = options.timeout || 15000;
+  const timeoutMs = options.timeout || 30000;
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   const config = {
@@ -31,6 +31,17 @@ async function request(endpoint, options = {}) {
         throw fetchErr;
       }
     }
+
+    // Transparent direct backend retry if Vite proxy returns 502/503/504 Bad Gateway
+    if (res && res.status >= 502 && res.status <= 504 && API_BASE.startsWith('/')) {
+      try {
+        const directRes = await fetch(`http://127.0.0.1:5000/api${endpoint}`, config);
+        if (directRes && directRes.status < 500) {
+          res = directRes;
+        }
+      } catch (_) {}
+    }
+
     clearTimeout(timeoutId);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
@@ -78,7 +89,27 @@ export const servicesApi = {
 
 // 3. Bookings API
 export const bookingsApi = {
-  getAll: (phone) => request(`/bookings${phone ? `?phone=${encodeURIComponent(phone)}` : ''}`),
+  getAll: (paramsOrPhone) => {
+    if (typeof paramsOrPhone === 'string') {
+      const cleanPhone = paramsOrPhone.trim();
+      return request(`/bookings${cleanPhone && cleanPhone !== '[object Object]' ? `?phone=${encodeURIComponent(cleanPhone)}` : ''}`);
+    }
+    if (typeof paramsOrPhone === 'object' && paramsOrPhone !== null) {
+      const q = new URLSearchParams();
+      if (paramsOrPhone.phone && typeof paramsOrPhone.phone === 'string' && paramsOrPhone.phone !== '[object Object]') {
+        q.set('phone', paramsOrPhone.phone);
+      }
+      if (paramsOrPhone.customerId && typeof paramsOrPhone.customerId === 'string') {
+        q.set('customerId', paramsOrPhone.customerId);
+      }
+      if (paramsOrPhone.userEmail && typeof paramsOrPhone.userEmail === 'string') {
+        q.set('userEmail', paramsOrPhone.userEmail);
+      }
+      const qs = q.toString();
+      return request(`/bookings${qs ? `?${qs}` : ''}`);
+    }
+    return request('/bookings');
+  },
   getById: (id) => request(`/bookings/${id}`),
   create: (bookingData) => request('/bookings', { method: 'POST', body: bookingData }),
   update: (id, fields) => request(`/bookings/${id}`, { method: 'PUT', body: fields }),
@@ -87,7 +118,13 @@ export const bookingsApi = {
 
 // 4. Addresses API
 export const addressesApi = {
-  getAll: (phone) => request(`/addresses${phone ? `?phone=${encodeURIComponent(phone)}` : ''}`),
+  getAll: (paramsOrPhone) => {
+    if (typeof paramsOrPhone === 'string') {
+      const clean = paramsOrPhone.trim();
+      return request(`/addresses${clean && clean !== '[object Object]' ? `?phone=${encodeURIComponent(clean)}` : ''}`);
+    }
+    return request('/addresses');
+  },
   create: (addressData) => request('/addresses', { method: 'POST', body: addressData }),
   update: (id, fields) => request(`/addresses/${id}`, { method: 'PUT', body: fields }),
   setDefault: (id) => request(`/addresses/${id}/default`, { method: 'PUT' }),

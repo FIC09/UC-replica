@@ -581,6 +581,10 @@ bookingSchema.pre('save', function (next) {
 bookingSchema.index({ location: '2dsphere' });
 bookingSchema.index({ status: 1, assignmentStatus: 1 });
 bookingSchema.index({ 'offeredTo.proId': 1, offerStatus: 1 });
+bookingSchema.index({ createdAt: -1 });
+bookingSchema.index({ deletedByCustomer: 1, createdAt: -1 });
+bookingSchema.index({ userPhone: 1, deletedByCustomer: 1 });
+bookingSchema.index({ customerId: 1, deletedByCustomer: 1 });
 
 export const Booking = mongoose.model('Booking', bookingSchema);
 export default Booking;

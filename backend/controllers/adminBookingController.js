@@ -41,7 +41,10 @@ export async function getBookings(req, res) {
     let dbBookings = [];
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       try {
-        dbBookings = await Booking.find().sort({ createdAt: -1 }).lean();
+        dbBookings = await Booking.find()
+          .select('-structuredChecklists -beforeWorkPhoto -afterWorkPhoto')
+          .sort({ createdAt: -1 })
+          .lean();
       } catch (err) {
         console.warn('Booking.find in getBookings:', err.message);
       }

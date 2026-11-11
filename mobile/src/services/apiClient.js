@@ -206,6 +206,88 @@ class MobileApiClient {
     });
   }
 
+  // Upload technician pre-work or post-work live selfie directly to Cloudinary
+  uploadTechnicianSelfie(bookingId, { phase, imageBase64, workerName, workerId }) {
+    const cleanId = String(bookingId || '').replace(/^[#\s]+/, '').trim();
+    return this.request(`/bookings/${encodeURIComponent(cleanId)}/technician-selfie`, {
+      method: 'POST',
+      body: JSON.stringify({ phase, imageBase64, workerName, workerId })
+    });
+  }
+
+  // Real-Time In-App Chat
+  getChatMessages(bookingId) {
+    const cleanId = String(bookingId || '').replace(/^#/, '').trim();
+    return this.request(`/chat/conversation/${encodeURIComponent(cleanId)}`);
+  }
+
+  sendChatMessage({ bookingId, senderId, senderRole = 'customer', senderName, messageText }) {
+    const cleanId = String(bookingId || '').replace(/^#/, '').trim();
+    return this.request('/chat/messages', {
+      method: 'POST',
+      body: JSON.stringify({
+        bookingId: cleanId,
+        senderId,
+        senderRole,
+        senderName,
+        messageText
+      })
+    });
+  }
+
+  // Real-Time In-App Internet VoIP Calling
+  startCall({ bookingId, callerId, callerRole = 'customer', callerName, callerPhone, receiverId, receiverRole, receiverName, receiverPhone }) {
+    const cleanId = String(bookingId || '').replace(/^#/, '').trim();
+    return this.request('/calling/start', {
+      method: 'POST',
+      body: JSON.stringify({
+        bookingId: cleanId,
+        callerId,
+        callerRole,
+        callerName,
+        callerPhone,
+        receiverId,
+        receiverRole,
+        receiverName,
+        receiverPhone
+      })
+    });
+  }
+
+  getActiveCall(bookingId) {
+    const cleanId = String(bookingId || '').replace(/^#/, '').trim();
+    return this.request(`/calling/active/${encodeURIComponent(cleanId)}`);
+  }
+
+  respondCall({ callId, action }) {
+    return this.request('/calling/respond', {
+      method: 'POST',
+      body: JSON.stringify({ callId, action })
+    });
+  }
+
+  endCall({ callId, durationSeconds, reason }) {
+    return this.request('/calling/end', {
+      method: 'POST',
+      body: JSON.stringify({ callId, durationSeconds, reason })
+    });
+  }
+
+  getCallStatus(callId) {
+    return this.request(`/calling/call/${encodeURIComponent(callId)}`);
+  }
+
+  sendWebRtcSignal({ callId, senderRole, type, payload }) {
+    return this.request('/calling/signal', {
+      method: 'POST',
+      body: JSON.stringify({ callId, senderRole, type, payload })
+    });
+  }
+
+  getWebRtcSignals({ callId, role, since = 0 }) {
+    return this.request(`/calling/signals/${encodeURIComponent(callId)}?role=${encodeURIComponent(role || '')}&since=${since}`);
+  }
+
   // Promotions & Coupons
   getPromotions() {
     return this.request('/promotions');
@@ -227,10 +309,10 @@ class MobileApiClient {
   async sendEmailOtp({ email, name, role = 'customer', phone }) {
     const cleanEmail = (email || '').trim().toLowerCase();
     const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    let backendSuccess = false;
+    let finalOtp = generatedOtp;
     let message = '';
 
-    // 1. Attempt dispatch via authoritative backend route
+    // 1. Dispatch via authoritative backend route (Brevo SMTP)
     try {
       const res = await this.request('/auth/send-registration-otp', {
         method: 'POST',
@@ -238,59 +320,24 @@ class MobileApiClient {
           email: cleanEmail,
           name: name || (role === 'partner' ? 'Working Partner' : 'Customer'),
           phone: phone || '+91 98201 44521',
-          purpose: role === 'partner' ? 'worker' : 'customer'
+          purpose: role === 'partner' ? 'worker' : 'customer',
+          otp: generatedOtp
         })
       });
-      if (res && res.success) {
-        backendSuccess = true;
+      if (res) {
+        if (res.otp) finalOtp = res.otp;
         message = res.message;
       }
     } catch (e) {
-      // Non-blocking fallback
-    }
-
-    // 2. Direct Brevo REST API email dispatch (runs on mobile client with network)
-    const brevoApiKey = process.env.EXPO_PUBLIC_BREVO_SMTP_KEY || 'xsmtpsib-c6631c60c4656c1ba3be795c6f60f1a94fa9a47c45ecc92add4e4f83827b7d6d-lSfZ8ZsyTNeXjIGh';
-    const brevoSenderEmail = process.env.EXPO_PUBLIC_BREVO_SENDER_EMAIL || 'forgeindiaconnectfic@gmail.com';
-    const brevoSenderName = process.env.EXPO_PUBLIC_BREVO_SENDER_NAME || 'Forge India Connect';
-    try {
-      const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
-        method: 'POST',
-        headers: {
-          'api-key': brevoApiKey,
-          'Content-Type': 'application/json',
-          Accept: 'application/json'
-        },
-        body: JSON.stringify({
-          sender: { name: brevoSenderName, email: brevoSenderEmail },
-          to: [{ email: cleanEmail, name: name || (role === 'partner' ? 'Working Partner' : 'Customer') }],
-          subject: `${generatedOtp} is your Forge India Connect verification code`,
-          htmlContent: `
-            <div style="font-family: Arial, sans-serif; padding: 24px; max-width: 520px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #FFFFFF;">
-              <div style="background-color: #F04400; padding: 16px; border-radius: 8px; text-align: center; margin-bottom: 20px;">
-                <h1 style="color: #FFFFFF; margin: 0; font-size: 20px;">Forge India Connect</h1>
-                <p style="color: #FFE6DB; margin: 4px 0 0; font-size: 13px;">${role === 'partner' ? 'Working Partner & Professional Portal' : 'Customer Services Portal'}</p>
-              </div>
-              <p style="font-size: 15px; color: #1E293B;">Hello,</p>
-              <p style="font-size: 14px; color: #475569; line-height: 1.5;">Your 6-digit email verification code for Forge India Connect is:</p>
-              <div style="background: #FFF8D1; border: 2px dashed #F04400; padding: 18px; text-align: center; border-radius: 8px; margin: 20px 0;">
-                <span style="font-size: 36px; font-weight: 800; letter-spacing: 8px; color: #0F172A;">${generatedOtp}</span>
-              </div>
-              <p style="font-size: 13px; color: #64748B;">⏱️ Valid for 10 minutes. Please enter this code in your mobile app to access your ${role === 'partner' ? 'Working Partner Dashboard' : 'Customer Dashboard'}.</p>
-              <hr style="border: none; border-top: 1px solid #E2E8F0; margin: 20px 0;" />
-              <p style="font-size: 11px; color: #94A3B8; text-align: center;">© 2026 Forge India Connect Technologies Pvt Ltd. All rights reserved.</p>
-            </div>
-          `
-        })
-      });
-      if (brevoRes.ok) {
-        backendSuccess = true;
+      if (e.data && e.data.otp) finalOtp = e.data.otp;
+      if (e.message && e.message.includes('525')) {
+        throw e;
       }
-    } catch (_) {}
+    }
 
     return {
       success: true,
-      otp: generatedOtp,
+      otp: finalOtp,
       email: cleanEmail,
       message: message || `A 6-digit verification code has been dispatched to ${cleanEmail}. Please check your inbox.`
     };

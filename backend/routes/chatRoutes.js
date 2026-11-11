@@ -764,4 +764,34 @@ router.get('/conversation/:bookingId', async (req, res) => {
   }
 });
 
+// DELETE /conversation/:bookingId/clean-mismatches - Remove mismatched / mock test messages
+router.delete('/conversation/:bookingId/clean-mismatches', async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const conversation = await getOrCreateConversation(bookingId);
+    const result = await ChatMessage.deleteMany({
+      conversationId: conversation.id,
+      $or: [
+        { messageText: { $regex: /Ananya/i } },
+        { senderName: { $regex: /Ananya/i } }
+      ]
+    });
+    res.json({ success: true, deletedCount: result.deletedCount });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /conversation/:bookingId/reset - Reset conversation messages for clean testing
+router.delete('/conversation/:bookingId/reset', async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const conversation = await getOrCreateConversation(bookingId);
+    await ChatMessage.deleteMany({ conversationId: conversation.id });
+    res.json({ success: true, message: 'Conversation cleared' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;

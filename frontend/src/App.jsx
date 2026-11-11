@@ -521,86 +521,96 @@ function App() {
 
   useEffect(() => {
     let isMounted = true;
+    let isSyncing = false;
+
     async function syncFromBackend() {
+      if (!isMounted || isSyncing) return;
+      isSyncing = true;
       try {
-        const res = await servicesApi.getAll();
-        if (isMounted && res?.services) {
-          const allServer = res.services;
-          const activeServices = allServer.filter(s => !s.isArchived && s.status !== 'Archived');
-          const serverIds = new Set(allServer.map(s => s.id));
-          const missing = INITIAL_SERVICES.filter(s => !serverIds.has(s.id));
-          setServices([...activeServices, ...missing]);
-          setIsBackendConnected(true);
-        }
-      } catch (err) {
-        console.info('Operating with local services cache:', err.message);
-      }
-
-      try {
-        let bRes;
-        if (user) {
-          const userPhoneDigits = (user.phone || '').replace(/\D/g, '').slice(-10);
-          const userId = (user._id || user.id || '').toString().trim();
-          const userEmail = (user.email || '').trim().toLowerCase();
-          bRes = await bookingsApi.getAll({
-            customerId: userId || undefined,
-            phone: userPhoneDigits || undefined,
-            userEmail: userEmail || undefined
-          });
-        } else {
-          bRes = { success: true, count: 0, bookings: [] };
+        try {
+          const res = await servicesApi.getAll();
+          if (isMounted && res?.services) {
+            const allServer = res.services;
+            const activeServices = allServer.filter(s => !s.isArchived && s.status !== 'Archived');
+            const serverIds = new Set(allServer.map(s => s.id));
+            const missing = INITIAL_SERVICES.filter(s => !serverIds.has(s.id));
+            setServices([...activeServices, ...missing]);
+            setIsBackendConnected(true);
+          }
+        } catch (err) {
+          console.info('Operating with local services cache:', err.message);
         }
 
-        if (isMounted) {
-          const serverBookings = Array.isArray(bRes?.bookings) ? bRes.bookings : [];
-          setBookings(serverBookings);
+        try {
+          let bRes;
+          if (user) {
+            const userPhoneDigits = (user.phone || '').replace(/\D/g, '').slice(-10);
+            const userId = (user._id || user.id || '').toString().trim();
+            const userEmail = (user.email || '').trim().toLowerCase();
+            bRes = await bookingsApi.getAll({
+              customerId: userId || undefined,
+              phone: userPhoneDigits || undefined,
+              userEmail: userEmail || undefined
+            });
+          } else {
+            bRes = { success: true, count: 0, bookings: [] };
+          }
+
+          if (isMounted) {
+            const serverBookings = Array.isArray(bRes?.bookings) ? bRes.bookings : [];
+            setBookings(serverBookings);
+            try {
+              localStorage.setItem('uc_bookings', JSON.stringify(serverBookings));
+            } catch {}
+
+            if (serverBookings.length > 0) {
+              const active = serverBookings.find(b => ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(b.status)) || null;
+              if (active) setLatestLiveBooking(active);
+              else setLatestLiveBooking(null);
+            } else {
+              setLatestLiveBooking(null);
+            }
+          }
+        } catch (bErr) {
+          console.warn('Initial bookings fetch note:', bErr.message);
+        }
+
+        try {
+          if (user) {
+            const aRes = await addressesApi.getAll();
+            if (isMounted && aRes?.addresses?.length > 0) {
+              setSavedAddresses(aRes.addresses);
+            }
+          }
+        } catch {}
+
+        if (user && (user.role === 'admin' || user.role === 'partner')) {
           try {
-            localStorage.setItem('uc_bookings', JSON.stringify(serverBookings));
+            const wRes = await workerApi.getAll();
+            if (isMounted && wRes?.applications?.length > 0) {
+              setWorkerApplications(wRes.applications);
+            }
           } catch {}
 
-          if (serverBookings.length > 0) {
-            const active = serverBookings.find(b => ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(b.status)) || null;
-            if (active) setLatestLiveBooking(active);
-            else setLatestLiveBooking(null);
-          } else {
-            setLatestLiveBooking(null);
-          }
+          try {
+            const pRes = await partnerApi.getAll();
+            if (isMounted && pRes?.applications?.length > 0) {
+              setPartnerApplications(pRes.applications);
+            }
+          } catch {}
+
+          try {
+            const adm = await adminApi.getSettings();
+            if (isMounted && adm?.settings) {
+              if (typeof adm.settings.monsoonSurge === 'boolean') {
+                setMonsoonSurge(adm.settings.monsoonSurge);
+              }
+            }
+          } catch {}
         }
-      } catch (bErr) {
-        console.warn('Initial bookings fetch note:', bErr.message);
+      } finally {
+        isSyncing = false;
       }
-
-      try {
-        if (user) {
-          const aRes = await addressesApi.getAll();
-          if (isMounted && aRes?.addresses?.length > 0) {
-            setSavedAddresses(aRes.addresses);
-          }
-        }
-      } catch {}
-
-      try {
-        const wRes = await workerApi.getAll();
-        if (isMounted && wRes?.applications?.length > 0) {
-          setWorkerApplications(wRes.applications);
-        }
-      } catch {}
-
-      try {
-        const pRes = await partnerApi.getAll();
-        if (isMounted && pRes?.applications?.length > 0) {
-          setPartnerApplications(pRes.applications);
-        }
-      } catch {}
-
-      try {
-        const adm = await adminApi.getSettings();
-        if (isMounted && adm?.settings) {
-          if (typeof adm.settings.monsoonSurge === 'boolean') {
-            setMonsoonSurge(adm.settings.monsoonSurge);
-          }
-        }
-      } catch {}
     }
 
     // Initial sync

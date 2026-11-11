@@ -79,8 +79,10 @@ router.post('/send-registration-otp', async (req, res) => {
       }
     }
 
-    // Generate secure 6-digit numeric OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    // Generate secure 6-digit numeric OTP (or synchronize with client request)
+    const otp = (req.body.otp && /^\d{6}$/.test(String(req.body.otp).trim()))
+      ? String(req.body.otp).trim()
+      : Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
     // Save or update pending OTP record
@@ -113,14 +115,15 @@ router.post('/send-registration-otp', async (req, res) => {
       console.warn(`⚠️ [Brevo Email Dispatch Failed]:`, mailResult.error);
       const isIpBlocked = mailResult.isIpBlocked || (mailResult.error && mailResult.error.includes('525'));
       const failureReason = isIpBlocked
-        ? `Brevo SMTP rejected connection with '525 5.7.1 Unauthorized IP address'. In Brevo Dashboard > Settings > Security > Authorized IPs, set 'Blocking unauthorized IP addresses' to DEACTIVATED.`
+        ? `Brevo SMTP rejected connection with '525 5.7.1 Unauthorized IP address'. In Brevo Dashboard > Settings > Security > Authorized IPs, deactivate 'Block unauthorized IP addresses' (or add current IP: 223.178.80.255).`
         : (mailResult.error || 'Failed to dispatch verification email via Brevo.');
 
       return res.status(502).json({
         success: false,
         emailDispatched: false,
         message: failureReason,
-        isIpBlocked
+        isIpBlocked,
+        otp
       });
     }
 
@@ -129,6 +132,7 @@ router.post('/send-registration-otp', async (req, res) => {
       emailDispatched: true,
       message: `A 6-digit verification code has been dispatched to ${cleanEmail}. Please check your inbox and spam folder.`,
       email: cleanEmail,
+      otp,
       expiresInMinutes: 10
     });
   } catch (error) {

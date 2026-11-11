@@ -44,13 +44,7 @@ export const CLOUD_API_URL = process.env.EXPO_PUBLIC_CLOUD_API_URL || 'https://u
  */
 export function getMetroApiUrl() {
   if (Platform.OS === 'web') {
-    if (typeof window !== 'undefined' && window.location) {
-      const port = window.location.port;
-      if (port === '8081') {
-        return `${window.location.protocol}//${window.location.host}/api`;
-      }
-      return `http://localhost:${LOCAL_PORT}/api`;
-    }
+    return `http://localhost:${LOCAL_PORT}/api`;
   }
 
   const hostUri =
@@ -64,23 +58,22 @@ export function getMetroApiUrl() {
     return `${proto}//${hostUri}/api`;
   }
 
-  return `http://${LOCAL_DEV_IP}:8081/api`;
+  return `http://${LOCAL_DEV_IP}:${LOCAL_PORT}/api`;
 }
-
-export const VITE_PROXY_URL = `http://${LOCAL_DEV_IP}:5173/api`;
 
 /**
  * Resolves the primary active backend API URL:
  * 1. Checks EXPO_PUBLIC_API_URL environment variable override
- * 2. Connects through the active Metro proxy URL (since Metro is guaranteed reachable by the active bundle)
+ * 2. Connects directly to backend API (localhost:5000)
  * 3. Falls back to direct LAN IP
  */
 export function getBaseApiUrl() {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
-  const metro = getMetroApiUrl();
-  if (metro) return metro;
+  if (Platform.OS === 'web') {
+    return `http://localhost:${LOCAL_PORT}/api`;
+  }
   return LAN_API_URL;
 }
 
@@ -88,18 +81,14 @@ export function getBaseApiUrl() {
  * Returns prioritized list of candidate URLs for seamless failover.
  */
 export function getCandidateApiUrls() {
-  const metroUrl = getMetroApiUrl();
-  const lanUrl = LAN_API_URL;
   const directLocalhost = `http://localhost:${LOCAL_PORT}/api`;
   const direct127 = `http://127.0.0.1:${LOCAL_PORT}/api`;
-  const viteProxy = VITE_PROXY_URL;
+  const lanUrl = LAN_API_URL;
 
   const candidates = [
-    metroUrl,
-    lanUrl,
-    direct127,
     directLocalhost,
-    viteProxy
+    direct127,
+    lanUrl
   ];
   return Array.from(new Set(candidates.filter(Boolean)));
 }

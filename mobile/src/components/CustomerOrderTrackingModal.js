@@ -13,6 +13,8 @@ import {
   StatusBar
 } from 'react-native';
 import mobileApi from '../services/apiClient';
+import LiveOrderChatModal from './LiveOrderChatModal';
+import LiveVoIPCallModal from './LiveVoIPCallModal';
 
 const { width } = Dimensions.get('window');
 
@@ -33,6 +35,19 @@ export default function CustomerOrderTrackingModal({
   onReviewSubmitted,
   onUpdateStage
 }) {
+  const [liveBooking, setLiveBooking] = useState(booking);
+
+  useEffect(() => {
+    if (booking) {
+      setLiveBooking((prev) => ({ ...(prev || {}), ...booking }));
+    }
+  }, [booking?.id, booking?.stage, booking?.status, booking?.assignedPartner]);
+
+  const effectiveBooking = liveBooking || booking;
+  const rawId = effectiveBooking?.id || effectiveBooking?.bookingRef || effectiveBooking?.bookingReference || '9410';
+  const cleanDisplayId = String(rawId).replace(/^[#\s]+/, '');
+  const displayOrderRef = cleanDisplayId.startsWith('UC-') ? cleanDisplayId : `UC-${cleanDisplayId.replace(/^(JOB|LEAD)[-_]?/i, '')}`;
+
   const stageFromStatus = (status) => {
     if (!status) return null;
     const s = String(status).toLowerCase();
@@ -41,40 +56,205 @@ export default function CustomerOrderTrackingModal({
     if (s.includes('arrived')) return 4;
     if (s.includes('route') || s.includes('way')) return 3;
     if (s.includes('assigned')) return 2;
-    if (s.includes('confirm') || s.includes('placed')) return 1;
+    if (s.includes('confirm') || s.includes('placed') || s.includes('pending')) return 1;
     return null;
   };
 
-  const currentStage = (typeof booking?.stage === 'number' && booking.stage >= 1 && booking.stage <= 6)
-    ? booking.stage
-    : (stageFromStatus(booking?.status) || 2);
+  const initialCalculatedStage = (typeof effectiveBooking?.stage === 'number' && effectiveBooking.stage >= 1 && effectiveBooking.stage <= 6)
+    ? effectiveBooking.stage
+    : (stageFromStatus(effectiveBooking?.status) || 1);
 
-  const otp = booking?.otp || booking?.safetyPin || '4829';
+  const [internalStage, setInternalStage] = useState(initialCalculatedStage);
+
+  const assignedProName =
+    effectiveBooking?.assignedPartner ||
+    effectiveBooking?.assignedProfessional?.name ||
+    (effectiveBooking?.technician?.name && effectiveBooking?.technician?.name !== 'Unassigned' ? effectiveBooking?.technician?.name : '') ||
+    (initialCalculatedStage >= 2 ? 'Vikram Salvi' : '');
+  const hasAssignedPro = Boolean(assignedProName && assignedProName.trim().length > 0 && assignedProName !== 'Unassigned') || initialCalculatedStage >= 2 || internalStage >= 2;
+  const proTrade =
+    effectiveBooking?.assignedProfessional?.trade ||
+    effectiveBooking?.technician?.trade ||
+    effectiveBooking?.service ||
+    'Master Specialist';
+  const proRating =
+    effectiveBooking?.assignedProfessional?.rating ||
+    effectiveBooking?.technician?.rating ||
+    4.94;
+
+  useEffect(() => {
+    const candidateStage = (typeof effectiveBooking?.stage === 'number' && effectiveBooking.stage >= 1 && effectiveBooking.stage <= 6)
+      ? effectiveBooking.stage
+      : (stageFromStatus(effectiveBooking?.status) || null);
+    if (candidateStage && candidateStage !== internalStage) {
+      setInternalStage(candidateStage);
+    }
+  }, [effectiveBooking?.stage, effectiveBooking?.status]);
+
+  const currentStage = (typeof internalStage === 'number' && internalStage >= 1 && internalStage <= 6)
+    ? internalStage
+    : initialCalculatedStage;
+
+  const otp = effectiveBooking?.otp || effectiveBooking?.safetyPin || '4829';
   const simulatedEta = 8;
+
+  const trackingStages = [
+    {
+      id: 1,
+      title: 'Confirmed',
+      sub: hasAssignedPro ? 'Order confirmed & specialist assigned' : 'Order received • Awaiting admin assignment',
+      icon: '✅'
+    },
+    {
+      id: 2,
+      title: 'Specialist Assigned',
+      sub: hasAssignedPro ? `${assignedProName} (${proTrade})` : 'Awaiting admin specialist assignment',
+      icon: '👷'
+    },
+    {
+      id: 3,
+      title: 'On The Way',
+      sub: hasAssignedPro ? `${assignedProName} driving to doorstep (~8 mins away)` : 'Specialist en route to doorstep',
+      icon: '🛵'
+    },
+    {
+      id: 4,
+      title: 'Arrived at Doorstep',
+      sub: hasAssignedPro ? `${assignedProName} is at your gate / door` : 'Specialist at your gate / door',
+      icon: '📍'
+    },
+    {
+      id: 5,
+      title: 'Service In Progress',
+      sub: `${effectiveBooking?.service || 'Doorstep service'} underway`,
+      icon: '⚡'
+    },
+    {
+      id: 6,
+      title: 'Service Completed',
+      sub: 'Quality verified & sanitized',
+      icon: '🎉'
+    }
+  ];
 
   // Live polling while modal is open to pick up worker stage & status updates in real-time
   useEffect(() => {
     if (!visible) return;
-    const bookingId = booking?.id || '9410';
+    let isCancelled = false;
+
     const fetchLatestBooking = async () => {
       try {
-        const res = await mobileApi.getBookingById(bookingId);
-        if (res && res.success && res.booking) {
+        const targetId = effectiveBooking?.id || booking?.id || '9410';
+        const cleanTarget = String(targetId).replace(/^[#\s]+/, '').replace(/^JOB-/, '');
+        let res = await mobileApi.getBookingById(cleanTarget);
+        if (!res || !res.success || !res.booking) {
+          const listRes = await mobileApi.getBookings();
+          if (listRes && listRes.success && Array.isArray(listRes.bookings) && listRes.bookings.length > 0) {
+            const match = listRes.bookings.find(b => b.id === cleanTarget || b.bookingReference === cleanTarget);
+            if (match) res = { success: true, booking: match };
+          }
+        }
+        if (!isCancelled && res && res.success && res.booking) {
           const b = res.booking;
+          setLiveBooking((prev) => ({ ...(prev || {}), ...b }));
           const remoteStage = (typeof b.stage === 'number' && b.stage >= 1 && b.stage <= 6)
             ? b.stage
             : (stageFromStatus(b.status) || 2);
-          if (remoteStage && onUpdateStage && remoteStage !== booking?.stage) {
-            onUpdateStage(remoteStage);
+          if (remoteStage) {
+            setInternalStage(remoteStage);
+            if (onUpdateStage && remoteStage !== booking?.stage) {
+              onUpdateStage(remoteStage);
+            }
           }
         }
       } catch (_) {}
     };
 
     fetchLatestBooking();
-    const interval = setInterval(fetchLatestBooking, 3000);
-    return () => clearInterval(interval);
-  }, [visible, booking?.id, booking?.stage]);
+    const interval = setInterval(fetchLatestBooking, 1500);
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
+  }, [visible, booking?.id, effectiveBooking?.id]);
+
+  // Live In-App Chat Modal State
+  const [showChatModal, setShowChatModal] = useState(false);
+
+  // Real-time Internet VoIP Calling State
+  const [showVoipCallModal, setShowVoipCallModal] = useState(false);
+  const [voipCallData, setVoipCallData] = useState(null);
+  const [isVoipIncoming, setIsVoipIncoming] = useState(false);
+
+  // Initiate Internet Call to Assigned Specialist
+  const handleStartCall = async () => {
+    if (!hasAssignedPro) {
+      Alert.alert(
+        'Specialist Assignment Pending',
+        'A certified specialist is currently being allocated by dispatch. Voice calling will activate as soon as assignment is confirmed.'
+      );
+      return;
+    }
+
+    const bookingRef = displayOrderRef;
+    const callPayload = {
+      bookingId: bookingRef,
+      callerRole: 'customer',
+      callerName: effectiveBooking?.customer || effectiveBooking?.userName || 'Rahul Sharma',
+      callerPhone: effectiveBooking?.phone || '+91 98201 44521',
+      receiverRole: 'professional',
+      receiverName: assignedProName,
+      receiverPhone: effectiveBooking?.technician?.phone || '+91 98450 77123',
+      service: effectiveBooking?.service || 'Doorstep Service'
+    };
+
+    try {
+      const res = await mobileApi.startCall(callPayload);
+      const callId = res?.callId || res?.session?.callId || `call_${Date.now()}`;
+      setVoipCallData({
+        ...callPayload,
+        callId
+      });
+      setIsVoipIncoming(false);
+      setShowVoipCallModal(true);
+    } catch (err) {
+      console.warn('VoIP Call Start Error:', err.message);
+      setVoipCallData({
+        ...callPayload,
+        callId: `call_${Date.now()}`
+      });
+      setIsVoipIncoming(false);
+      setShowVoipCallModal(true);
+    }
+  };
+
+  // Real-time listener for incoming internet calls from worker
+  useEffect(() => {
+    if (!visible || !hasAssignedPro) return;
+
+    const checkIncomingVoip = async () => {
+      try {
+        if (!showVoipCallModal) {
+          const res = await mobileApi.getActiveCall(displayOrderRef);
+          if (res && res.success && res.activeCall && res.activeCall.status === 'ringing') {
+            if (res.activeCall.callerRole === 'professional' || res.activeCall.callerRole === 'worker') {
+              setVoipCallData({
+                ...res.activeCall,
+                callId: res.activeCall.callId,
+                bookingId: displayOrderRef,
+                service: effectiveBooking?.service
+              });
+              setIsVoipIncoming(true);
+              setShowVoipCallModal(true);
+            }
+          }
+        }
+      } catch (_) {}
+    };
+
+    const poller = setInterval(checkIncomingVoip, 1800);
+    return () => clearInterval(poller);
+  }, [visible, displayOrderRef, showVoipCallModal, hasAssignedPro]);
 
   // Review Modal State (triggers at Stage 6)
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -148,7 +328,7 @@ export default function CustomerOrderTrackingModal({
           </TouchableOpacity>
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.headerTitle} numberOfLines={1}>Live Specialist Tracking</Text>
-            <Text style={styles.headerSub}>Order #UC-{booking?.id || '9410'}</Text>
+            <Text style={styles.headerSub}>Order #{displayOrderRef}</Text>
           </View>
           <View style={styles.livePill}>
             <View style={styles.liveDot} />
@@ -157,28 +337,60 @@ export default function CustomerOrderTrackingModal({
         </View>
 
         <ScrollView style={styles.scrollBody} showsVerticalScrollIndicator={false}>
-          {/* Technician Profile Card */}
-          <View style={styles.proCard}>
-            <View style={styles.proAvatarBox}>
-              <Text style={styles.proAvatarText}>V</Text>
-            </View>
-            <View style={{ flex: 1, marginLeft: 14 }}>
-              <View style={styles.proNameRow}>
-                <Text style={styles.proName}>Vikram Salvi</Text>
-                <View style={styles.proRatingBadge}>
-                  <Text style={styles.proRatingText}>★ 4.94</Text>
-                </View>
+          {/* Technician Profile Card / Awaiting Assignment Card */}
+          {hasAssignedPro ? (
+            <View style={styles.proCard}>
+              <View style={styles.proAvatarBox}>
+                <Text style={styles.proAvatarText}>{(assignedProName || 'P').charAt(0).toUpperCase()}</Text>
               </View>
-              <Text style={styles.proTrade}>Master AC Specialist & Electrician</Text>
-              <Text style={styles.proVehicle}>Honda Activa 6G • MH 02 CD 4821</Text>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <View style={styles.proNameRow}>
+                  <Text style={styles.proName}>{assignedProName}</Text>
+                  <View style={styles.proRatingBadge}>
+                    <Text style={styles.proRatingText}>★ {proRating}</Text>
+                  </View>
+                </View>
+                <Text style={styles.proTrade}>{proTrade}</Text>
+                <Text style={styles.proVehicle}>Specialist assigned by dispatch</Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                <TouchableOpacity
+                  style={styles.chatProBtn}
+                  onPress={() => setShowChatModal(true)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.chatProBtnText}>💬 Chat</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.callProBtn}
+                  onPress={handleStartCall}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.callProBtnText}>📞 Call</Text>
+                </TouchableOpacity>
+              </View>
             </View>
-            <TouchableOpacity
-              style={styles.callProBtn}
-              onPress={() => Alert.alert('Calling Specialist', 'Connecting call to Vikram Salvi (+91 98200 12345)...')}
-            >
-              <Text style={styles.callProBtnText}>📞 Call</Text>
-            </TouchableOpacity>
-          </View>
+          ) : (
+            <View style={[styles.proCard, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A', borderWidth: 1 }]}>
+              <View style={[styles.proAvatarBox, { backgroundColor: '#FEF3C7' }]}>
+                <Text style={{ fontSize: 24 }}>⏳</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 14 }}>
+                <View style={styles.proNameRow}>
+                  <Text style={[styles.proName, { color: '#92400E' }]}>Allocating Specialist...</Text>
+                  <View style={[styles.proRatingBadge, { backgroundColor: '#FEF3C7' }]}>
+                    <Text style={[styles.proRatingText, { color: '#B45309' }]}>AWAITING</Text>
+                  </View>
+                </View>
+                <Text style={[styles.proTrade, { color: '#B45309', marginTop: 2 }]}>
+                  Dispatch team is allocating a certified specialist in Krishnagiri.
+                </Text>
+                <Text style={[styles.proVehicle, { color: '#78350F', marginTop: 2 }]}>
+                  Specialist details, call, and live tracking activate once assigned.
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* Customer Safety OTP Box */}
           <View style={styles.otpCard}>
@@ -193,60 +405,21 @@ export default function CustomerOrderTrackingModal({
             </View>
           </View>
 
-          {/* Live Map / Navigation Simulation Box */}
-          <View style={styles.mapContainer}>
-            <View style={styles.mapOverlayTop}>
-              <Text style={styles.mapStatusText}>
-                {currentStage === 3 ? `🛵 Arriving in ~${simulatedEta} mins (1.2 km away)` :
-                 currentStage === 4 ? '📍 Specialist has arrived at your door!' :
-                 currentStage === 5 ? '⚡ Service currently in progress' :
-                 currentStage === 6 ? '🎉 Service completed' : 'Specialist preparing equipment'}
-              </Text>
-            </View>
-
-            {/* Stylized Simulated Route Graphic */}
-            <View style={styles.simRouteBox}>
-              <View style={styles.roadLine}>
-                <View
-                  style={[
-                    styles.scooterMarker,
-                    {
-                      left:
-                        currentStage === 1 ? '10%' :
-                        currentStage === 2 ? '25%' :
-                        currentStage === 3 ? '55%' :
-                        currentStage === 4 ? '85%' : '90%'
-                    }
-                  ]}
-                >
-                  <Text style={{ fontSize: 24 }}>🛵</Text>
-                </View>
-                <View style={styles.destinationMarker}>
-                  <Text style={{ fontSize: 24 }}>🏠</Text>
-                </View>
-              </View>
-              <View style={styles.roadLabelsRow}>
-                <Text style={styles.roadLabel}>Sector Hub (Bandra)</Text>
-                <Text style={styles.roadLabel}>Sea Face Apts (Your Home)</Text>
-              </View>
-            </View>
-
-            {/* When worker marks completed, allow customer to view/rate */}
-            {currentStage === 6 && !hasReviewed && (
-              <TouchableOpacity
-                style={styles.customerRateBtn}
-                onPress={() => setShowReviewModal(true)}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.customerRateBtnText}>⭐ Rate Specialist & Service</Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          {/* When worker marks completed, allow customer to view/rate */}
+          {currentStage === 6 && !hasReviewed && (
+            <TouchableOpacity
+              style={styles.customerRateBtn}
+              onPress={() => setShowReviewModal(true)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.customerRateBtnText}>⭐ Rate Specialist & Service</Text>
+            </TouchableOpacity>
+          )}
 
           {/* 6 Stage Timeline Checklist */}
           <View style={styles.timelineSection}>
             <Text style={styles.timelineTitle}>Order Progress</Text>
-            {TRACKING_STAGES.map((st, idx) => {
+            {trackingStages.map((st, idx) => {
               const isPast = st.id < currentStage;
               const isCurrent = st.id === currentStage;
 
@@ -445,6 +618,22 @@ export default function CustomerOrderTrackingModal({
             </View>
           </View>
         </Modal>
+
+        {/* Real-time In-App Chat Modal */}
+        <LiveOrderChatModal
+          visible={showChatModal}
+          onClose={() => setShowChatModal(false)}
+          booking={effectiveBooking}
+          userRole="customer"
+        />
+
+        {/* Real-time Internet VoIP Voice Call Modal */}
+        <LiveVoIPCallModal
+          visible={showVoipCallModal}
+          onClose={() => setShowVoipCallModal(false)}
+          callData={voipCallData}
+          isIncoming={isVoipIncoming}
+        />
       </View>
     </Modal>
   );
@@ -580,6 +769,20 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 3,
   },
+  chatProBtn: {
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer'
+  },
+  chatProBtnText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
+  },
   callProBtn: {
     backgroundColor: '#EFF6FF',
     paddingHorizontal: 14,
@@ -587,6 +790,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     borderColor: '#BFDBFE',
+    cursor: 'pointer'
   },
   callProBtnText: {
     color: '#2563EB',

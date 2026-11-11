@@ -5,6 +5,15 @@ import { getPlatformSettings } from '../controllers/adminSettingsController.js';
 
 const router = express.Router();
 
+let servicesCache = null;
+let lastCacheTime = 0;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes TTL with instant invalidation on admin edits
+
+export function invalidateServicesCache() {
+  servicesCache = null;
+  lastCacheTime = 0;
+}
+
 // Helper to resolve query by id or _id
 function buildServiceQuery(paramId) {
   if (!paramId) return { id: '' };
@@ -43,7 +52,16 @@ router.get('/', async (req, res) => {
       query.status = { $ne: 'Archived' };
     }
 
+    const hasFilter = Boolean(category || categoryTab || search || req.query.includeArchived);
+    if (!hasFilter && servicesCache && (Date.now() - lastCacheTime < CACHE_TTL_MS)) {
+      return res.json({ success: true, count: servicesCache.length, services: servicesCache, cached: true });
+    }
+
     const services = await Service.find(query).sort({ createdAt: -1 }).lean();
+    if (!hasFilter) {
+      servicesCache = services;
+      lastCacheTime = Date.now();
+    }
     res.json({ success: true, count: services.length, services });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -80,6 +98,7 @@ router.post('/sync-all', async (req, res) => {
       );
       synced++;
     }
+    invalidateServicesCache();
     res.json({ success: true, count: synced, message: `Successfully synced ${synced} services into database.` });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -107,6 +126,7 @@ router.post('/', async (req, res) => {
     }
 
     const newService = await Service.create(serviceData);
+    invalidateServicesCache();
     res.status(201).json({ success: true, service: newService });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -135,6 +155,7 @@ router.put('/:id', async (req, res) => {
       updated = await Service.create(updateData);
     }
 
+    invalidateServicesCache();
     res.json({ success: true, service: updated });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -151,6 +172,7 @@ router.put('/:id/archive', async (req, res) => {
       { $set: { status: 'Archived', isArchived: true, archivedAt: new Date() } },
       { new: true }
     );
+    invalidateServicesCache();
     res.json({ success: true, service: updated, message: `Service ${paramId} soft-archived` });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -167,6 +189,7 @@ router.put('/:id/restore', async (req, res) => {
       { $set: { status: 'Active', isArchived: false } },
       { new: true }
     );
+    invalidateServicesCache();
     res.json({ success: true, service: updated, message: `Service ${paramId} restored to Active` });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -179,6 +202,7 @@ router.delete('/:id', async (req, res) => {
     const paramId = req.params.id;
     const query = buildServiceQuery(paramId);
     const deleted = await Service.findOneAndDelete(query);
+    invalidateServicesCache();
     res.json({ success: true, message: `Service ${paramId} deleted successfully` });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

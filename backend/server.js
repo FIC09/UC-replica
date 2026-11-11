@@ -152,6 +152,7 @@ app.use('/api/addresses', addressRoutes);
 app.use('/api/worker-applications', workerRoutes);
 app.use('/api/partner-applications', partnerRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/promotions', couponRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/professional', professionalRoutes);
 app.use('/api/partner', partnerApiRoutes);

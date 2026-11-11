@@ -4144,6 +4144,8 @@ export async function updateJobStatus(req, res) {
 
     if (booking) {
       booking.status = status;
+      const stageMap = { 'Confirmed': 1, 'Assigned': 2, 'En Route': 3, 'Arrived': 4, 'In Progress': 5, 'Completed': 6 };
+      booking.stage = stageMap[status] || (status === 'Completed' ? 6 : status === 'In Progress' ? 5 : status === 'Arrived' ? 4 : status === 'En Route' ? 3 : 2);
       if (status === 'Completed' && !booking.completedAt) {
         booking.completedAt = new Date();
       }
@@ -4239,6 +4241,7 @@ export async function updateJobStatus(req, res) {
       });
       if (booking.markModified && booking.save) {
         booking.markModified('status');
+        booking.markModified('stage');
         booking.markModified('beforeWorkPhoto');
         booking.markModified('afterWorkPhoto');
         booking.markModified('structuredChecklists');
@@ -4281,8 +4284,19 @@ export async function updateJobStatus(req, res) {
         status === 'En Route' ? 'en_route' :
         status === 'Cancelled' ? 'cancelled' : 'assigned';
 
+      const bareNum = cleanId.replace(/^(JOB|UC|LEAD)[-_]?/i, '');
       const trackingSession = await TrackingSession.findOne({
-        $or: [{ bookingId: id }, { bookingReference: id }]
+        $or: [
+          { bookingId: id },
+          { bookingId: cleanId },
+          { bookingId: `UC-${bareNum}` },
+          { bookingId: bareNum },
+          { bookingReference: id },
+          { bookingReference: cleanId },
+          { bookingReference: `UC-${bareNum}` },
+          { id: `TRK-${cleanId}` },
+          { id: `TRK-UC-${bareNum}` }
+        ]
       });
 
       if (trackingSession) {
@@ -4305,6 +4319,8 @@ export async function updateJobStatus(req, res) {
         await trackingSession.save();
 
         broadcastTrackingUpdate(id, { type: 'update', tracking: trackingSession });
+        broadcastTrackingUpdate(cleanId, { type: 'update', tracking: trackingSession });
+        broadcastTrackingUpdate(`UC-${bareNum}`, { type: 'update', tracking: trackingSession });
         if (booking?.bookingReference && booking.bookingReference !== id) {
           broadcastTrackingUpdate(booking.bookingReference, { type: 'update', tracking: trackingSession });
         }

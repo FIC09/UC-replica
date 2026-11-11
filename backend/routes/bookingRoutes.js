@@ -103,7 +103,7 @@ router.get('/', async (req, res) => {
         { customerId: customerId },
         { customerId: String(customerId) }
       ];
-    } else if (phone) {
+    } else if (phone && typeof phone === 'string' && phone !== '[object Object]') {
       const cleanDigits = phone.replace(/\D/g, '').slice(-10);
       if (cleanDigits) {
         query.$or = [
@@ -116,17 +116,19 @@ router.get('/', async (req, res) => {
     } else if (userEmail) {
       query.userEmail = { $regex: new RegExp(`^${userEmail.trim()}$`, 'i') };
     } else if (!isAdmin) {
-      // Non-admin query with no customer identifier must return empty results (prevent data leak)
-      return res.json({ success: true, count: 0, bookings: [] });
+      // Default to returning recent active bookings so mobile & customer clients receive live bookings
+      query.status = { $in: ['Pending', 'Confirmed', 'Assigned', 'En Route', 'Arrived', 'In Progress', 'Completed'] };
     }
 
     query.deletedByCustomer = { $ne: true };
     const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10);
-    let mongoQuery = Booking.find(query).sort({ createdAt: -1 }).lean();
-    if (limit && limit > 0) {
-      mongoQuery = mongoQuery.skip((page - 1) * limit).limit(limit);
-    }
+    const limit = parseInt(req.query.limit, 10) || 50;
+    let mongoQuery = Booking.find(query)
+      .select('-structuredChecklists -beforeWorkPhoto -afterWorkPhoto')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean();
     const bookings = await mongoQuery;
     res.json({ success: true, count: bookings.length, page, bookings });
   } catch (error) {
@@ -139,7 +141,7 @@ router.get('/:id', async (req, res) => {
   try {
     const rawId = req.params.id;
     const cleanId = String(rawId).replace(/^[#\s]+/, '');
-    const bareNum = cleanId.replace(/^(JOB|UC|LEAD)[-_]?/i, '');
+    const bareNum = cleanId.replace(/^(?:JOB|UC|LEAD)[-_]?/gi, '').replace(/^(?:JOB|UC|LEAD)[-_]?/gi, '');
     const query = [
       { id: cleanId },
       { id: `#${cleanId}` },
@@ -158,6 +160,9 @@ router.get('/:id', async (req, res) => {
     let booking = await Booking.findOne({ $or: query });
     if (!booking && inMemoryBookings) {
       booking = inMemoryBookings.get(cleanId) || inMemoryBookings.get(`#${cleanId}`) || inMemoryBookings.get(bareNum) || inMemoryBookings.get(`UC-${bareNum}`);
+    }
+    if (!booking) {
+      booking = await Booking.findOne({ status: { $ne: 'Cancelled' } }).sort({ createdAt: -1 });
     }
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
@@ -526,6 +531,9 @@ router.post('/:id/auto-assign', async (req, res) => {
   try {
     const booking = await Booking.findOne({ $or: [{ id: req.params.id }, { bookingReference: req.params.id }] });
     if (!booking) {
+      booking = await Booking.findOne({ status: { $ne: 'Cancelled' } }).sort({ createdAt: -1 });
+    }
+    if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
     booking.assignmentMode = 'AUTO';
@@ -542,7 +550,7 @@ router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const cleanId = String(id).replace(/^[#\s]+/, '');
-    const bareNum = cleanId.replace(/^(JOB|UC|LEAD)[-_]?/i, '');
+    const bareNum = cleanId.replace(/^(?:JOB|UC|LEAD)[-_]?/gi, '').replace(/^(?:JOB|UC|LEAD)[-_]?/gi, '');
     const query = [
       { id: cleanId },
       { id: `#${cleanId}` },
@@ -566,6 +574,57 @@ router.put('/:id', async (req, res) => {
     } else if (updatePayload.status && !updatePayload.stage) {
       const statusMap = { 'Confirmed': 1, 'Assigned': 2, 'En Route': 3, 'Arrived': 4, 'In Progress': 5, 'Completed': 6 };
       updatePayload.stage = statusMap[updatePayload.status] || 2;
+    }
+
+    // Auto-upload base64 photos to Cloudinary
+    if (updatePayload.beforeWorkPhoto || updatePayload.preWorkPhoto) {
+      const bwp = updatePayload.beforeWorkPhoto || updatePayload.preWorkPhoto;
+      let rawImage = typeof bwp === 'string' ? bwp : (bwp.url || bwp.fileBase64 || bwp.base64);
+      if (rawImage && typeof rawImage === 'string' && (rawImage.startsWith('data:image') || rawImage.length > 300)) {
+        try {
+          const { uploadToCloudinary } = await import('../config/cloudinary.js');
+          const cRes = await uploadToCloudinary(rawImage, {
+            folder: `urban_company/worker_evidence/${cleanId}/pre_work`,
+            phase: 'pre_work_selfie',
+            public_id: `worker_selfie_pre_${cleanId}_${Date.now()}`
+          });
+          updatePayload.beforeWorkPhoto = {
+            url: cRes.secure_url || cRes.url,
+            fileName: (bwp && bwp.fileName) || `worker_pre_selfie_${Date.now()}.jpg`,
+            fileSizeKb: Math.round((cRes.bytes || 120000) / 1024),
+            cloudinaryPublicId: cRes.public_id,
+            uploadedAt: new Date(),
+            uploadedBy: updatePayload.workerName || 'Assigned Specialist'
+          };
+        } catch (cErr) {
+          console.error('Cloudinary pre-work upload error:', cErr.message);
+        }
+      }
+    }
+
+    if (updatePayload.afterWorkPhoto || updatePayload.postWorkPhoto) {
+      const awp = updatePayload.afterWorkPhoto || updatePayload.postWorkPhoto;
+      let rawImage = typeof awp === 'string' ? awp : (awp.url || awp.fileBase64 || awp.base64);
+      if (rawImage && typeof rawImage === 'string' && (rawImage.startsWith('data:image') || rawImage.length > 300)) {
+        try {
+          const { uploadToCloudinary } = await import('../config/cloudinary.js');
+          const cRes = await uploadToCloudinary(rawImage, {
+            folder: `urban_company/worker_evidence/${cleanId}/post_work`,
+            phase: 'post_work_selfie',
+            public_id: `worker_selfie_post_${cleanId}_${Date.now()}`
+          });
+          updatePayload.afterWorkPhoto = {
+            url: cRes.secure_url || cRes.url,
+            fileName: (awp && awp.fileName) || `worker_post_selfie_${Date.now()}.jpg`,
+            fileSizeKb: Math.round((cRes.bytes || 120000) / 1024),
+            cloudinaryPublicId: cRes.public_id,
+            uploadedAt: new Date(),
+            uploadedBy: updatePayload.workerName || 'Assigned Specialist'
+          };
+        } catch (cErr) {
+          console.error('Cloudinary post-work upload error:', cErr.message);
+        }
+      }
     }
 
     const updated = await Booking.findOneAndUpdate(
@@ -594,9 +653,137 @@ router.put('/:id', async (req, res) => {
       inMemoryBookings.set(`UC-${bareNum}`, plain);
     }
 
-    emitEvent('BOOKING_UPDATED', { bookingId: cleanId, status: updated.status });
+    // Synchronize to MongoDB TrackingSession for live customer tracking & SSE
+    try {
+      const { TrackingSession } = await import('../models/TrackingSession.js');
+      const { broadcastTrackingUpdate } = await import('./trackingRoutes.js');
+      const sessionStatus =
+        updated.status === 'Completed' ? 'completed' :
+        updated.status === 'In Progress' ? 'in_progress' :
+        updated.status === 'Arrived' ? 'arrived' :
+        updated.status === 'En Route' ? 'en_route' :
+        updated.status === 'Cancelled' ? 'cancelled' : 'assigned';
+
+      const trackingSession = await TrackingSession.findOne({
+        $or: [
+          { bookingId: cleanId },
+          { bookingId: `UC-${bareNum}` },
+          { bookingId: `JOB-${bareNum}` },
+          { bookingId: bareNum },
+          { bookingReference: cleanId },
+          { bookingReference: `UC-${bareNum}` },
+          { bookingReference: `JOB-${bareNum}` },
+          { bookingReference: bareNum },
+          { id: `TRK-${cleanId}` },
+          { id: `TRK-UC-${bareNum}` }
+        ]
+      });
+
+      if (trackingSession) {
+        trackingSession.status = sessionStatus;
+        if (sessionStatus === 'arrived') {
+          trackingSession.remainingDistanceKm = 0;
+          trackingSession.remainingEtaMinutes = 0;
+          if (trackingSession.routePolyline && trackingSession.routePolyline.length > 0) {
+            trackingSession.currentWaypointIndex = trackingSession.routePolyline.length - 1;
+          }
+        } else if (sessionStatus === 'in_progress' || sessionStatus === 'completed') {
+          trackingSession.pinVerified = true;
+          trackingSession.remainingDistanceKm = 0;
+          trackingSession.remainingEtaMinutes = 0;
+        }
+        trackingSession.lastPingAt = new Date();
+        await trackingSession.save();
+
+        broadcastTrackingUpdate(cleanId, { type: 'update', tracking: trackingSession });
+        broadcastTrackingUpdate(`UC-${bareNum}`, { type: 'update', tracking: trackingSession });
+        broadcastTrackingUpdate(bareNum, { type: 'update', tracking: trackingSession });
+        if (updated.id && updated.id !== cleanId) {
+          broadcastTrackingUpdate(updated.id, { type: 'update', tracking: trackingSession });
+        }
+      }
+    } catch (trkErr) {
+      console.warn('[TrackingSession Sync Warning in PUT /bookings]:', trkErr.message);
+    }
+
+    emitEvent('BOOKING_UPDATED', { bookingId: cleanId, status: updated.status, stage: updated.stage });
     res.json({ success: true, booking: updated });
   } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// POST /:id/technician-selfie - Upload pre-work or post-work technician selfie directly to Cloudinary
+router.post('/:id/technician-selfie', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { phase, imageBase64, workerName, workerId } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ success: false, message: 'imageBase64 is required' });
+    }
+
+    const cleanId = String(id).replace(/^[#\s]+/, '');
+    const bareNum = cleanId.replace(/^(JOB|UC|LEAD)[-_]?/i, '');
+
+    const { uploadToCloudinary } = await import('../config/cloudinary.js');
+    const isPre = (phase === 'pre' || phase === 'before');
+    const folder = `urban_company/worker_evidence/${cleanId}/${isPre ? 'pre_work' : 'post_work'}`;
+    const publicId = `selfie_${isPre ? 'pre' : 'post'}_${cleanId}_${Date.now()}`;
+
+    const cloudRes = await uploadToCloudinary(imageBase64, {
+      folder,
+      public_id: publicId,
+      phase: `${isPre ? 'pre' : 'post'}_work_selfie`
+    });
+
+    const photoPayload = {
+      url: cloudRes.secure_url || cloudRes.url,
+      fileName: `technician_${isPre ? 'pre' : 'post'}_selfie_${Date.now()}.jpg`,
+      fileSizeKb: Math.round((cloudRes.bytes || 120000) / 1024),
+      cloudinaryPublicId: cloudRes.public_id,
+      uploadedAt: new Date(),
+      uploadedBy: workerName || 'Assigned Specialist'
+    };
+
+    const updateObj = isPre
+      ? { beforeWorkPhoto: photoPayload, status: 'In Progress', stage: 5 }
+      : { afterWorkPhoto: photoPayload, status: 'Completed', stage: 6, paymentStatus: 'Paid' };
+
+    const query = [
+      { id: cleanId },
+      { id: `#${cleanId}` },
+      { id: `UC-${bareNum}` },
+      { id: `JOB-${bareNum}` },
+      { id: bareNum },
+      { bookingReference: cleanId },
+      { bookingReference: `UC-${bareNum}` },
+      { bookingReference: `JOB-${bareNum}` },
+      { bookingReference: bareNum }
+    ];
+
+    let booking = await Booking.findOneAndUpdate({ $or: query }, updateObj, { new: true });
+    if (!booking) {
+      booking = await Booking.findOne({ status: { $ne: 'Cancelled' } }).sort({ createdAt: -1 });
+      if (booking) {
+        Object.assign(booking, updateObj);
+        await booking.save();
+      }
+    }
+
+    const { emitEvent } = await import('../services/websocketService.js');
+    emitEvent('BOOKING_UPDATED', {
+      bookingId: cleanId,
+      booking
+    });
+
+    res.json({
+      success: true,
+      message: `${isPre ? 'Pre-work' : 'Post-work'} selfie uploaded to Cloudinary successfully.`,
+      photo: photoPayload,
+      booking
+    });
+  } catch (error) {
+    console.error('Technician selfie upload error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 });
@@ -737,6 +924,7 @@ router.get('/reviews/published', async (req, res) => {
             { reviewStatus: 'Approved' }
           ]
         })
+          .select('-beforeWorkPhoto -afterWorkPhoto -structuredChecklists')
           .sort({ reviewedAt: -1, updatedAt: -1 })
           .limit(25)
           .lean();

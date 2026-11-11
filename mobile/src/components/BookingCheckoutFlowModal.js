@@ -74,6 +74,17 @@ export default function BookingCheckoutFlowModal({
 }) {
   // Step 1: 'slot' | Step 2: 'address' | Step 3: 'payment' | Step 4: 'success'
   const [currentStep, setCurrentStep] = useState('slot');
+  const [createdBookingId, setCreatedBookingId] = useState(null);
+  const [createdBookingOtp, setCreatedBookingOtp] = useState('4829');
+
+  // Always reset to Step 1: Service Slot when the checkout modal opens
+  useEffect(() => {
+    if (visible) {
+      setCurrentStep('slot');
+      setIsEditingAddress(false);
+      setIsProcessingPayment(false);
+    }
+  }, [visible]);
 
   // ==================== 1. REAL DYNAMIC CALENDAR STATE ====================
   // Real clock reference
@@ -567,6 +578,9 @@ export default function BookingCheckoutFlowModal({
       const realId = b.id || b.bookingReference || `UC-${Math.floor(100000 + Math.random() * 900000)}`;
       const realOtp = b.safetyPin || b.startOtp || '4829';
 
+      setCreatedBookingId(realId);
+      setCreatedBookingOtp(realOtp);
+
       setTimeout(() => {
         setIsProcessingPayment(false);
         setCurrentStep('success');
@@ -585,19 +599,24 @@ export default function BookingCheckoutFlowModal({
             phone: custPhone,
             paymentMode: paymentMethod.toUpperCase(),
             otp: realOtp,
-            stage: 2 // Specialist Assigned
+            stage: 1 // Stage 1: Order Confirmed (Awaiting specialist assignment)
           });
         }
       }, 1600);
     } catch (err) {
       console.warn('Booking create error, confirming with local persistence:', err);
+      const fallbackId = `UC-${Math.floor(100000 + Math.random() * 900000)}`;
+      const fallbackOtp = Math.floor(1000 + Math.random() * 9000).toString();
+      setCreatedBookingId(fallbackId);
+      setCreatedBookingOtp(fallbackOtp);
+
       setTimeout(() => {
         setIsProcessingPayment(false);
         setCurrentStep('success');
 
         if (onBookingSuccess) {
           onBookingSuccess({
-            id: `UC-${Math.floor(100000 + Math.random() * 900000)}`,
+            id: fallbackId,
             serviceName: serviceTitle,
             price: finalPayable,
             originalPrice: itemTotal,
@@ -608,8 +627,8 @@ export default function BookingCheckoutFlowModal({
             customer: custName,
             phone: custPhone,
             paymentMode: paymentMethod.toUpperCase(),
-            otp: '4829',
-            stage: 2
+            otp: fallbackOtp,
+            stage: 1 // Stage 1: Order Confirmed (Awaiting specialist assignment)
           });
         }
       }, 1600);
@@ -1263,8 +1282,8 @@ export default function BookingCheckoutFlowModal({
             <Text style={styles.paymentSectionHeadline}>Pay After Doorstep Service</Text>
             <Text style={styles.codDescText}>
               • You don't need to pay upfront now.{'\n'}
-              • Pay ₹{finalPayable} in cash or via QR scan to specialist Vikram Salvi after work completion.{'\n'}
-              • Safety OTP (4829) will be required to start service at your doorstep.
+              • Pay ₹{finalPayable} in cash or via UPI QR to your assigned specialist after work completion.{'\n'}
+              • Doorstep Safety OTP will be generated to authorize work start safely.
             </Text>
           </View>
         )}
@@ -1470,12 +1489,12 @@ export default function BookingCheckoutFlowModal({
         <View style={styles.successInfoCard}>
           <View style={styles.successRow}>
             <Text style={styles.successLabel}>Booking ID</Text>
-            <Text style={styles.successValue}>#BK-9410</Text>
+            <Text style={styles.successValue}>#{createdBookingId || 'UC-894558'}</Text>
           </View>
           <View style={styles.successRow}>
             <Text style={styles.successLabel}>Service</Text>
             <Text style={styles.successValue} numberOfLines={1}>
-              {service?.title || 'Powerjet AC Servicing'}
+              {service?.title || 'Doorstep Service'}
             </Text>
           </View>
           <View style={styles.successRow}>
@@ -1487,12 +1506,14 @@ export default function BookingCheckoutFlowModal({
           <View style={styles.successRow}>
             <Text style={styles.successLabel}>Doorstep Safety OTP</Text>
             <Text style={[styles.successValue, { color: '#F04400', fontWeight: '900', fontSize: 16 }]}>
-              4829
+              {createdBookingOtp || '4829'}
             </Text>
           </View>
           <View style={styles.successRow}>
-            <Text style={styles.successLabel}>Assigned Specialist</Text>
-            <Text style={styles.successValue}>Vikram Salvi (★ 4.94)</Text>
+            <Text style={styles.successLabel}>Specialist Status</Text>
+            <Text style={[styles.successValue, { color: '#B45309', fontWeight: '700' }]}>
+              Allocating specialist in Krishnagiri ⏳
+            </Text>
           </View>
         </View>
 

@@ -183,7 +183,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
     if (!loading) return;
     const safetyTimer = setTimeout(() => {
       setLoading(false);
-    }, 4500);
+    }, 25000);
     return () => clearTimeout(safetyTimer);
   }, [loading]);
 
@@ -223,12 +223,9 @@ export function BookingsView({ onShowToast, onNavigate }) {
           });
           return fresh ? { ...prev, ...fresh } : prev;
         });
-        if (showLoadingSpinner) {
-          setLoading(false);
-        }
         return res;
       })
-      .catch(() => {
+      .finally(() => {
         if (showLoadingSpinner) {
           setLoading(false);
         }
@@ -2575,6 +2572,18 @@ export function BookingsView({ onShowToast, onNavigate }) {
                                 By: <strong>{beforePhoto.uploadedBy}</strong>
                               </div>
                             )}
+                            {beforePhoto.url && (
+                              <div style={{ marginTop: 4 }}>
+                                <a
+                                  href={beforePhoto.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{ fontSize: 10, color: '#2563EB', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                                >
+                                  ☁️ Cloudinary Asset (dlpzb0td2) ↗
+                                </a>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <div style={{ padding: '20px 10px', textAlign: 'center', color: '#92400E' }}>
@@ -2641,6 +2650,18 @@ export function BookingsView({ onShowToast, onNavigate }) {
                             {afterPhoto.uploadedBy && (
                               <div style={{ fontSize: 10, color: '#6E42E5', marginTop: 2 }}>
                                 By: <strong>{afterPhoto.uploadedBy}</strong>
+                              </div>
+                            )}
+                            {afterPhoto.url && (
+                              <div style={{ marginTop: 4 }}>
+                                <a
+                                  href={afterPhoto.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  style={{ fontSize: 10, color: '#2563EB', fontWeight: 700, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 3 }}
+                                >
+                                  ☁️ Cloudinary Asset (dlpzb0td2) ↗
+                                </a>
                               </div>
                             )}
                           </div>

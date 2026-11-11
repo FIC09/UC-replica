@@ -30,13 +30,24 @@ export function broadcastTrackingUpdate(bookingId, data) {
 // Handler for fetching active tracking session for a booking
 async function getTrackingSessionHandler(req, res) {
   try {
-    const bookingId = req.params.bookingId || req.params.id;
+    const rawBookingId = req.params.bookingId || req.params.id;
+    const cleanId = String(rawBookingId || '').replace(/^[#\s]+/, '');
+    const bareNum = cleanId.replace(/^(JOB|UC|LEAD)[-_]?/i, '');
+    const idVariants = [rawBookingId, cleanId, `UC-${bareNum}`, `JOB-${bareNum}`, bareNum].filter(Boolean);
+
     let session = await TrackingSession.findOne({
-      $or: [{ bookingId }, { bookingReference: bookingId }]
+      $or: [
+        { bookingId: { $in: idVariants } },
+        { bookingReference: { $in: idVariants } },
+        { id: { $in: idVariants.map(v => `TRK-${v}`) } }
+      ]
     });
 
     const booking = await Booking.findOne({
-      $or: [{ id: bookingId }, { bookingReference: bookingId }]
+      $or: [
+        { id: { $in: idVariants } },
+        { bookingReference: { $in: idVariants } }
+      ]
     });
 
     if (!session) {
@@ -59,8 +70,8 @@ async function getTrackingSessionHandler(req, res) {
         id: `TRK-${booking.id}`,
         bookingId: booking.id,
         bookingReference: booking.bookingReference || booking.id,
-        workerId: booking.assignedProfessional?.id || (isAssigned ? 'PRO-KRI-101' : ''),
-        workerName: proAssigned,
+        workerId: booking.assignedProfessional?.id || (isAssigned ? 'PRO-KRI-101' : 'PRO-PENDING'),
+        workerName: proAssigned || 'Specialist Allocation in Progress',
         workerPhone: booking.assignedProfessional?.phone || '',
         workerTrade: booking.assignedProfessional?.trade || booking.serviceName || 'Home Service Specialist',
         workerRating: booking.assignedProfessional?.rating || 4.95,

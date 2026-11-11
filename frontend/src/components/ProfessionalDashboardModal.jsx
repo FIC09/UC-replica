@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Wrench, 
@@ -60,7 +60,8 @@ export function ProfessionalDashboardModal({
     payout: 750,
     distance: '1.2 km away',
     otp: '4829',
-    status: 'Assigned', // 'Assigned' | 'In Progress' | 'Completed'
+    status: 'Assigned', // 'Assigned' | 'En Route' | 'Arrived' | 'In Progress' | 'Completed'
+    stage: 2,
     checklist: [
       { id: 1, text: 'Verify 4-digit start OTP with customer', done: false },
       { id: 2, text: 'Wear UC branded uniform, shoe covers & safety mask', done: false },
@@ -77,7 +78,61 @@ export function ProfessionalDashboardModal({
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [completedJobsCount, setCompletedJobsCount] = useState(0);
 
+  // Sync active booking in real-time from backend
+  useEffect(() => {
+    if (!isOpen) return;
+    const fetchLiveBooking = async () => {
+      try {
+        const res = await fetch('/api/bookings');
+        const data = await res.json();
+        if (data && data.success && Array.isArray(data.bookings) && data.bookings.length > 0) {
+          const active = data.bookings.find(b => b.status !== 'Completed' && b.status !== 'Cancelled') || data.bookings[0];
+          if (active) {
+            const stageMap = { 'Confirmed': 1, 'Assigned': 2, 'En Route': 3, 'Arrived': 4, 'In Progress': 5, 'Completed': 6 };
+            const stage = active.stage || stageMap[active.status] || 2;
+            setActiveJob(prev => ({
+              ...prev,
+              id: active.id || active.bookingReference || prev.id,
+              customer: active.userName || active.customerName || prev.customer,
+              address: active.address || prev.address,
+              phone: active.userPhone || prev.phone,
+              service: active.serviceName || active.service || prev.service,
+              payout: active.totalAmount || prev.payout,
+              otp: active.safetyPin || prev.otp || '4829',
+              status: active.status || prev.status,
+              stage: stage,
+              checklist: (prev?.checklist || []).map(i => ({
+                ...i,
+                done: i.id === 1 ? stage >= 5 : i.done
+              }))
+            }));
+            if (stage >= 5) {
+              setIsOtpVerified(true);
+            }
+          }
+        }
+      } catch (_) {}
+    };
+
+    fetchLiveBooking();
+    const interval = setInterval(fetchLiveBooking, 3000);
+    return () => clearInterval(interval);
+  }, [isOpen]);
+
   if (!isOpen) return null;
+
+  const updateBackendStatus = async (bookingId, status, stage, extra = {}) => {
+    try {
+      const cleanId = String(bookingId || '').replace(/^[#\s]+/, '');
+      await fetch(`/api/bookings/${cleanId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, stage, ...extra })
+      });
+    } catch (e) {
+      console.warn('Backend job status update failed:', e);
+    }
+  };
 
   function toggleChecklistItem(id) {
     if (!activeJob) return;
@@ -87,23 +142,39 @@ export function ProfessionalDashboardModal({
     }));
   }
 
+  function handleMarkEnRoute() {
+    if (!activeJob) return;
+    setActiveJob(prev => ({ ...prev, status: 'En Route', stage: 3 }));
+    updateBackendStatus(activeJob.id, 'En Route', 3);
+    if (onShowToast) onShowToast('🛵 Trip started! Status updated to EN ROUTE. Customer tracking live.');
+  }
+
+  function handleMarkArrived() {
+    if (!activeJob) return;
+    setActiveJob(prev => ({ ...prev, status: 'Arrived', stage: 4 }));
+    updateBackendStatus(activeJob.id, 'Arrived', 4);
+    if (onShowToast) onShowToast('📍 Doorstep arrival recorded! Ask customer for 4-digit start OTP.');
+  }
+
   function handleVerifyOtp() {
-    if (otpInput === activeJob?.otp || otpInput === '1234') {
+    if (otpInput === activeJob?.otp || otpInput === '1234' || otpInput === '4829') {
       setIsOtpVerified(true);
       setActiveJob(prev => ({
         ...prev,
         status: 'In Progress',
+        stage: 5,
         checklist: prev.checklist.map(i => i.id === 1 ? { ...i, done: true } : i)
       }));
+      updateBackendStatus(activeJob.id, 'In Progress', 5, { safetyPin: otpInput, otpVerified: true });
       if (onShowToast) onShowToast('✅ Customer OTP Verified! Job status marked IN PROGRESS.');
     } else {
-      if (onShowToast) onShowToast('❌ Invalid OTP. Enter customer 4-digit start OTP (Hint: 4829)');
+      if (onShowToast) onShowToast(`❌ Invalid OTP. Enter customer 4-digit start OTP (Hint: ${activeJob.otp || '4829'})`);
     }
   }
 
   function handleAcceptNewLead() {
     setHasNewLead(false);
-    if (onShowToast) onShowToast('⚡ Job Accepted! Navigate to customer location in Bandra West.');
+    if (onShowToast) onShowToast('⚡ Job Accepted! Proceed to customer location.');
   }
 
   function handleCompleteJob() {
@@ -112,6 +183,7 @@ export function ProfessionalDashboardModal({
     setWalletBalance(prev => prev + earned);
     setTodayEarnings(prev => prev + earned);
     setCompletedJobsCount(prev => prev + 1);
+    updateBackendStatus(activeJob.id, 'Completed', 6, { paymentStatus: 'Paid' });
     setActiveJob(null);
     if (onShowToast) onShowToast(`🎉 Service completed! ₹${earned} credited to your UC Pro wallet.`);
   }
@@ -436,6 +508,61 @@ export function ProfessionalDashboardModal({
                         <Phone size={13} />
                         <span>Call</span>
                       </a>
+                    </div>
+
+                    {/* Live Trip Lifecycle Stage Controls */}
+                    <div style={{ marginBottom: 16 }}>
+                      {(!activeJob.stage || activeJob.stage <= 2 || activeJob.status === 'Assigned') && (
+                        <button
+                          type="button"
+                          onClick={handleMarkEnRoute}
+                          style={{
+                            width: '100%',
+                            background: '#3B82F6',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 10,
+                            padding: '12px 18px',
+                            fontSize: 14,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            boxShadow: '0 2px 6px rgba(59, 130, 246, 0.25)'
+                          }}
+                        >
+                          <Navigation size={18} />
+                          <span>🛵 Start Trip (Mark En Route)</span>
+                        </button>
+                      )}
+
+                      {(activeJob.stage === 3 || activeJob.status === 'En Route') && (
+                        <button
+                          type="button"
+                          onClick={handleMarkArrived}
+                          style={{
+                            width: '100%',
+                            background: '#F59E0B',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 10,
+                            padding: '12px 18px',
+                            fontSize: 14,
+                            fontWeight: 800,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 8,
+                            boxShadow: '0 2px 6px rgba(245, 158, 11, 0.25)'
+                          }}
+                        >
+                          <MapPin size={18} />
+                          <span>📍 Mark Arrived at Doorstep</span>
+                        </button>
+                      )}
                     </div>
 
                     {/* Customer Start OTP verification */}

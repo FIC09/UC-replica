@@ -27,9 +27,9 @@ function createBrevoTransporter(port = SMTP_PORT) {
       user: SMTP_USER,
       pass: SMTP_PASS
     },
-    connectionTimeout: 2500,
-    greetingTimeout: 2000,
-    socketTimeout: 3000,
+    connectionTimeout: 8000,
+    greetingTimeout: 6000,
+    socketTimeout: 10000,
     tls: {
       rejectUnauthorized: false
     }
@@ -71,8 +71,8 @@ export async function testSmtpConnection() {
 export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
   const recipientName = toName || 'Valued Customer';
   const fromEmail = getSenderEmail();
-  const mailSubject = `${otp} is your Forge India Connect verification code`;
-  const mailText = `Hello ${recipientName},\n\nYour 6-digit account verification code for Forge India Connect is: ${otp}\n\nThis code is valid for 10 minutes. Please do not share this OTP with anyone.\n\nThank you,\nForge India Connect Team`;
+  const mailSubject = `${otp} is your urban account verification code`;
+  const mailText = `Hello ${recipientName},\n\nYour 6-digit account verification code for urban is: ${otp}\n\nThis code is valid for 10 minutes. Please enter this code in your mobile app to complete your account setup.\n\nThank you,\nurban Doorstep Services Team`;
   const mailHtml = `
       <!DOCTYPE html>
       <html>
@@ -89,14 +89,14 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
                 <!-- Header -->
                 <tr>
                   <td style="background-color: #0F172A; padding: 24px 32px; text-align: center;">
-                    <div style="display: inline-block; background-color: #6E42E5; color: #FFFFFF; font-weight: 900; font-size: 16px; padding: 4px 12px; border-radius: 8px; letter-spacing: -0.5px; margin-bottom: 8px;">
-                      FIC
+                    <div style="display: inline-block; background-color: #FFD91A; color: #0F172A; font-weight: 900; font-size: 16px; padding: 6px 14px; border-radius: 8px; letter-spacing: -0.5px; margin-bottom: 8px;">
+                      UC
                     </div>
-                    <h1 style="margin: 0; color: #FFFFFF; font-size: 20px; font-weight: 700; letter-spacing: -0.2px;">
-                      Forge India Connect
+                    <h1 style="margin: 0; color: #FFFFFF; font-size: 22px; font-weight: 800; letter-spacing: -0.2px;">
+                      urban
                     </h1>
                     <p style="margin: 4px 0 0; color: #94A3B8; font-size: 12.5px;">
-                      India's Verified Doorstep Home Services Platform
+                      India's Trusted Doorstep Home & Beauty Services
                     </p>
                   </td>
                 </tr>
@@ -109,29 +109,29 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
                     </h2>
                     <p style="margin: 0 0 20px; color: #475569; font-size: 14.5px; line-height: 1.6;">
                       Hello <strong>${recipientName}</strong>,<br>
-                      Welcome to Forge India Connect! Please use the following One-Time Password (OTP) to complete your account registration and verify your email.
+                      Welcome to <strong>urban</strong>! Please use the following One-Time Password (OTP) to complete your customer account registration in the mobile app.
                     </p>
 
                     <!-- OTP Box -->
-                    <div style="background: #F4F0FF; border: 2px dashed #6E42E5; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
-                      <span style="font-size: 12px; font-weight: 800; color: #6E42E5; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px;">
-                        Your One-Time Password
+                    <div style="background: #FFFBEB; border: 2px dashed #F59E0B; border-radius: 12px; padding: 22px; text-align: center; margin: 24px 0;">
+                      <span style="font-size: 12px; font-weight: 800; color: #B45309; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 6px;">
+                        Your Registration OTP
                       </span>
-                      <div style="font-size: 36px; font-weight: 900; color: #0F172A; letter-spacing: 8px; font-family: 'Courier New', Courier, monospace;">
+                      <div style="font-size: 38px; font-weight: 900; color: #0F172A; letter-spacing: 8px; font-family: 'Courier New', Courier, monospace;">
                         ${otp}
                       </div>
-                      <span style="font-size: 12px; color: #64748B; display: block; margin-top: 8px;">
+                      <span style="font-size: 12px; color: #92400E; display: block; margin-top: 8px; font-weight: 600;">
                         ⏱️ Valid for 10 minutes only
                       </span>
                     </div>
 
                     <p style="margin: 0 0 16px; color: #64748B; font-size: 13px; line-height: 1.5;">
-                      If you did not initiate this registration request, please ignore this email. No account will be created without this verification code.
+                      If you did not initiate this registration request, please ignore this email. Your account remains completely safe.
                     </p>
                     
                     <div style="border-top: 1px solid #E2E8F0; margin-top: 24px; padding-top: 20px;">
                       <p style="margin: 0; color: #059669; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px;">
-                        🛡️ 100% Verified Quality • Aadhaar KYC Verified Specialists • 30-Day Guarantee
+                        🛡️ 100% Verified Quality • Background Checked Specialists • 30-Day Guarantee
                       </p>
                     </div>
                   </td>
@@ -141,8 +141,8 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
                 <tr>
                   <td style="background-color: #F8FAFC; border-top: 1px solid #E2E8F0; padding: 16px 32px; text-align: center;">
                     <p style="margin: 0; color: #94A3B8; font-size: 11.5px;">
-                      © 2026 Forge India Connect Technologies India Pvt. Ltd. All rights reserved.<br>
-                      Rayakottai Road, Krishnagiri, Tamil Nadu 635001
+                      © 2026 urban Doorstep Services India Pvt. Ltd. All rights reserved.<br>
+                      Rayakottai Road, Krishnagiri, Tamil Nadu - 635001
                     </p>
                   </td>
                 </tr>
@@ -247,8 +247,8 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
   };
 
   const smtpDeliveryPromise = (async () => {
-    // Attempt configured port (default 2525), then 587
-    const candidatePorts = [SMTP_PORT, 2525, 587].filter((v, i, a) => a.indexOf(v) === i);
+    // Attempt configured port (default 2525), then 587, 465
+    const candidatePorts = [SMTP_PORT, 587, 2525, 465].filter((v, i, a) => a.indexOf(v) === i);
     let lastError = null;
     for (const port of candidatePorts) {
       try {
@@ -272,20 +272,20 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
       success: false,
       error: lastError?.message || 'SMTP delivery failed on candidate ports',
       isIpBlocked,
-      clientIp: '223.178.86.143'
+      clientIp: '223.178.80.255'
     };
   })();
 
-  // Guarantee that this function never hangs the server response for more than 8 seconds
+  // Guarantee that this function never hangs the server response for more than 10 seconds
   const timeoutPromise = new Promise((resolve) => {
     setTimeout(() => {
       resolve({
         success: false,
-        error: 'SMTP connection timed out: Brevo mail server did not respond within 8 seconds',
+        error: 'SMTP connection timed out: Brevo mail server did not respond within 10 seconds',
         isIpBlocked: false,
-        clientIp: '223.178.86.143'
+        clientIp: '223.178.80.255'
       });
-    }, 8000);
+    }, 10000);
   });
 
   return Promise.race([smtpDeliveryPromise, timeoutPromise]);

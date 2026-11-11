@@ -22,6 +22,9 @@ import LoginAuthModal from './src/components/LoginAuthModal';
 import WorkingPartnerDashboard from './src/components/WorkingPartnerDashboard';
 import CustomerOrderTrackingModal from './src/components/CustomerOrderTrackingModal';
 import BookingCheckoutFlowModal from './src/components/BookingCheckoutFlowModal';
+import LiveOrderChatModal from './src/components/LiveOrderChatModal';
+import CartViewModal from './src/components/CartViewModal';
+import LiveVoIPCallModal from './src/components/LiveVoIPCallModal';
 
 const { width } = Dimensions.get('window');
 
@@ -2338,6 +2341,7 @@ export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [showProfileMenuModal, setShowProfileMenuModal] = useState(false);
+  const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
 
   const handleLoginSuccess = (userProfile) => {
     setIsAuthenticated(true);
@@ -2345,8 +2349,13 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    setShowLogoutConfirmModal(false);
+    setShowProfileMenuModal(false);
+    setShowTrackingModal(false);
+    setShowCustomerChatModal(false);
     setIsAuthenticated(false);
     setCurrentUser(null);
+    setActiveTab('homes');
   };
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -2355,28 +2364,242 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('homes');
   const [bookingFilter, setBookingFilter] = useState('all');
   const [selectedCategoryTab, setSelectedCategoryTab] = useState('all');
-  const [cartCount, setCartCount] = useState(0);
+  const [showCartModal, setShowCartModal] = useState(false);
+  const [cartItems, setCartItems] = useState([
+    {
+      id: 'srv-pipeline-1',
+      title: 'pipe line services',
+      category: 'AC & Appliance Repair',
+      price: 690,
+      originalPrice: 863,
+      duration: '60 mins',
+      qty: 1
+    },
+    {
+      id: 'srv-powerjet-1',
+      title: 'PowerJet AC Servicing',
+      category: 'AC & Appliance Repair',
+      price: 499,
+      originalPrice: 799,
+      duration: '45 mins',
+      qty: 1
+    },
+    {
+      id: 'srv-antirust-1',
+      title: 'Anti-rust Deep AC Foam Jet',
+      category: 'AC & Appliance Repair',
+      price: 499,
+      originalPrice: 799,
+      duration: '45 mins',
+      qty: 1
+    },
+    {
+      id: 'srv-coil-clean-1',
+      title: 'AC Indoor Coil Deep Cleaning',
+      category: 'AC & Appliance Repair',
+      price: 308,
+      originalPrice: 735,
+      duration: '30 mins',
+      qty: 1
+    }
+  ]);
+
+  const totalCartCount = cartItems.reduce((acc, it) => acc + (it.qty || 1), 0);
+  const cartCount = totalCartCount;
+  const totalCartPrice = cartItems.reduce((acc, it) => acc + (it.price || 0) * (it.qty || 1), 0);
+  const totalCartOrigPrice = cartItems.reduce(
+    (acc, it) => acc + (it.originalPrice || Math.round((it.price || 0) * 1.3)) * (it.qty || 1),
+    0
+  );
+
+  const addToCart = (service) => {
+    if (!service) return;
+    const cleanPrice = typeof service.price === 'number'
+      ? service.price
+      : parseInt(String(service.price || '499').replace(/[^0-9]/g, ''), 10) || 499;
+    const cleanOrigPrice = service.originalPrice
+      ? (typeof service.originalPrice === 'number' ? service.originalPrice : parseInt(String(service.originalPrice).replace(/[^0-9]/g, ''), 10) || Math.round(cleanPrice * 1.3))
+      : Math.round(cleanPrice * 1.3);
+
+    const srvId = service.id || service._id || `srv-${Date.now()}`;
+    const srvTitle = service.title || service.name || 'Doorstep Service';
+
+    setCartItems((prev) => {
+      const idx = prev.findIndex((item) => item.id === srvId || item.title === srvTitle);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], qty: (copy[idx].qty || 1) + 1 };
+        return copy;
+      } else {
+        return [
+          ...prev,
+          {
+            id: srvId,
+            title: srvTitle,
+            category: service.category || 'Doorstep Services',
+            price: cleanPrice,
+            originalPrice: cleanOrigPrice,
+            image: service.image || null,
+            duration: service.duration || '45 mins',
+            qty: 1
+          }
+        ];
+      }
+    });
+  };
+
+  const updateCartQty = (id, delta) => {
+    setCartItems((prev) =>
+      prev
+        .map((item) => {
+          if (item.id === id) {
+            const nextQty = (item.qty || 1) + delta;
+            return nextQty > 0 ? { ...item, qty: nextQty } : null;
+          }
+          return item;
+        })
+        .filter(Boolean)
+    );
+  };
+
+  const removeCartItem = (id) => {
+    setCartItems((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
+  const handleProceedToCheckoutFromCart = () => {
+    setShowCartModal(false);
+    if (cartItems.length === 0) return;
+    const primaryItem = cartItems[0];
+    const combinedCheckoutService = {
+      id: `cart-${Date.now()}`,
+      title: cartItems.length === 1 ? primaryItem.title : `${primaryItem.title} (+${cartItems.length - 1} more)`,
+      category: primaryItem.category || 'Home Services',
+      price: totalCartPrice + (totalCartPrice > 0 ? 49 : 0),
+      originalPrice: totalCartOrigPrice + (totalCartPrice > 0 ? 49 : 0),
+      items: cartItems.map((item) => ({
+        id: item.id,
+        title: item.title,
+        name: item.title,
+        price: (item.price || 0) * (item.qty || 1),
+        qty: item.qty || 1
+      }))
+    };
+    setCheckoutService(combinedCheckoutService);
+    setShowCheckoutFlow(true);
+  };
 
   // Live Tracking & Reviews State (syncs customer and partner views)
   const [showTrackingModal, setShowTrackingModal] = useState(false);
+  const [showCustomerChatModal, setShowCustomerChatModal] = useState(false);
   const [partnerReviews, setPartnerReviews] = useState([]);
   const [activeCustomerBooking, setActiveCustomerBooking] = useState({
     id: '9410',
     service: 'All in All AC',
     price: 3524,
     otp: '4829',
-    stage: 2, // Specialist Assigned
+    stage: 1, // Stage 1: Confirmed (Awaiting specialist assignment)
     address: 'Flat 302, Green Park, Rayakottai Road, Krishnagiri - 635122',
     customer: 'Rahul Sharma',
     phone: '+91 98200 12345',
     slot: 'Today, 04:00 PM - 05:00 PM',
-    technician: {
-      name: 'Vikram Salvi',
-      rating: 4.94,
-      phone: '+91 98765 43210',
-      vehicle: 'MH-02-CB-4912'
-    }
+    status: 'Confirmed',
+    assignedPartner: '',
+    technician: null
   });
+
+  const [showVoipCallModal, setShowVoipCallModal] = useState(false);
+  const [voipCallData, setVoipCallData] = useState(null);
+  const [isVoipIncoming, setIsVoipIncoming] = useState(false);
+
+  // Real-time WebRTC Voice Calling for Customer
+  const handleStartVoipCall = async (booking) => {
+    const target = booking || activeCustomerBooking;
+    if (!target) return;
+
+    const rawId = target.id || target.bookingRef || 'UC-397386';
+    const cleanId = String(rawId).startsWith('UC-') ? rawId : `UC-${String(rawId).replace(/^(JOB|LEAD)[-_]?/i, '')}`;
+    const proName = target.assignedPartner || target.technician?.name || target.partner || 'Vikram Salvi';
+    const customerName = currentUser?.name || target.customer || 'Rahul Sharma';
+
+    const payload = {
+      bookingId: cleanId,
+      callerId: currentUser?._id || currentUser?.id || 'cust-user',
+      callerRole: 'customer',
+      callerName: customerName,
+      callerPhone: currentUser?.phone || target.phone || '+91 98200 12345',
+      receiverId: target.technician?.id || 'worker-user',
+      receiverRole: 'worker',
+      receiverName: proName,
+      receiverPhone: target.technician?.phone || '+91 98200 54321',
+      service: target.service || 'Doorstep Service'
+    };
+
+    try {
+      const res = await mobileApi.startCall(payload);
+      setVoipCallData({
+        callId: res?.callId || `call_${Date.now()}`,
+        bookingId: cleanId,
+        callerRole: 'customer',
+        callerName: customerName,
+        receiverRole: 'worker',
+        receiverName: proName,
+        service: target.service || 'Doorstep Service'
+      });
+      setIsVoipIncoming(false);
+      setShowVoipCallModal(true);
+    } catch (err) {
+      console.warn('VoIP startCall fallback:', err.message);
+      setVoipCallData({
+        callId: `call_${Date.now()}`,
+        bookingId: cleanId,
+        callerRole: 'customer',
+        callerName: customerName,
+        receiverRole: 'worker',
+        receiverName: proName,
+        service: target.service || 'Doorstep Service'
+      });
+      setIsVoipIncoming(false);
+      setShowVoipCallModal(true);
+    }
+  };
+
+  // Live polling for incoming VoIP calls from specialist
+  useEffect(() => {
+    if (!isAuthenticated || !activeCustomerBooking?.id) return;
+    const cleanId = String(activeCustomerBooking.id).startsWith('UC-')
+      ? activeCustomerBooking.id
+      : `UC-${String(activeCustomerBooking.id).replace(/^(JOB|LEAD)[-_]?/i, '')}`;
+
+    const poller = setInterval(async () => {
+      try {
+        if (!showVoipCallModal) {
+          const res = await mobileApi.getActiveCall(cleanId);
+          if (res && res.success && res.activeCall) {
+            const call = res.activeCall;
+            if ((call.status === 'ringing' || call.status === 'initiated') && call.callerRole !== 'customer') {
+              setVoipCallData({
+                callId: call.callId,
+                bookingId: call.bookingId,
+                callerName: call.callerName || 'Certified Specialist',
+                callerRole: call.callerRole || 'worker',
+                receiverName: call.receiverName || currentUser?.name || 'Customer',
+                receiverRole: 'customer',
+                service: activeCustomerBooking.service || 'Doorstep Service'
+              });
+              setIsVoipIncoming(true);
+              setShowVoipCallModal(true);
+            }
+          }
+        }
+      } catch (_) {}
+    }, 2000);
+
+    return () => clearInterval(poller);
+  }, [isAuthenticated, activeCustomerBooking?.id, showVoipCallModal, currentUser?.name]);
 
   // Partner Hot Leads Queue (live synchronized between customer bookings and worker portal)
   const [partnerLeads, setPartnerLeads] = useState([
@@ -2483,58 +2706,96 @@ export default function App() {
     }
   };
 
+  const applyBookingUpdate = (latest) => {
+    if (!latest) return;
+    const stageMap = { 'Pending': 1, 'Confirmed': 1, 'Assigned': 2, 'En Route': 3, 'Arrived': 4, 'In Progress': 5, 'Completed': 6 };
+    const stageFromStatus = (status) => {
+      if (!status) return null;
+      const s = String(status).toLowerCase();
+      if (s.includes('completed')) return 6;
+      if (s.includes('progress')) return 5;
+      if (s.includes('arrived')) return 4;
+      if (s.includes('route') || s.includes('way')) return 3;
+      if (s.includes('assigned')) return 2;
+      if (s.includes('confirm') || s.includes('placed') || s.includes('pending')) return 1;
+      return null;
+    };
+    const rawStage = (typeof latest.stage === 'number' && latest.stage >= 1 && latest.stage <= 6)
+      ? latest.stage
+      : (stageFromStatus(latest.status) || stageMap[latest.status] || 1);
+
+    const effectiveAssignedName =
+      (latest.assignedPartner && latest.assignedPartner.trim() && latest.assignedPartner !== 'Unassigned')
+        ? latest.assignedPartner.trim()
+        : (latest.assignedProfessional?.name && latest.assignedProfessional.name !== 'Unassigned')
+        ? latest.assignedProfessional.name.trim()
+        : (rawStage >= 2 ? 'Vikram Salvi' : '');
+    const hasAssignedPro = Boolean(effectiveAssignedName) || rawStage >= 2;
+
+    const resolvedStage = rawStage;
+
+    const rawRef = latest.bookingRef || latest.bookingReference || latest.id || latest._id || 'UC-956844';
+    const cleanRef = String(rawRef).startsWith('UC-') ? rawRef : `UC-${String(rawRef).replace(/^(JOB|LEAD)[-_]?/i, '')}`;
+
+    setActiveCustomerBooking((prev) => ({
+      ...prev,
+      id: cleanRef,
+      bookingRef: cleanRef,
+      service: latest.serviceName || latest.service || prev.service,
+      price: latest.totalAmount || (latest.pricing && latest.pricing.finalTotal) || latest.price || prev.price,
+      customer: latest.customerName || latest.userName || prev.customer,
+      address: (latest.address && latest.address.street) || (typeof latest.address === 'string' ? latest.address : prev.address),
+      phone: latest.customerPhone || latest.userPhone || prev.phone,
+      otp: latest.safetyPin || prev.otp || '4510',
+      status: latest.status || prev.status,
+      assignedPartner: effectiveAssignedName,
+      partner: effectiveAssignedName,
+      technician: hasAssignedPro ? {
+        name: effectiveAssignedName || 'Vikram Salvi',
+        rating: latest.assignedProfessional?.rating || 4.94,
+        trade: latest.assignedProfessional?.trade || latest.serviceName || 'Master Specialist',
+        phone: latest.assignedProfessional?.phone || '+91 98200 12345'
+      } : null,
+      stage: resolvedStage,
+      prePhoto: latest.beforeWorkPhoto || prev.prePhoto,
+      postPhoto: latest.afterWorkPhoto || prev.postPhoto
+    }));
+  };
+
   // Auto connect to backend and sync all live web app products & bookings in real-time
   const syncActiveBooking = async () => {
     try {
+      const activeId = activeCustomerBooking?.id;
+      if (activeId && activeId !== '9410') {
+        const cleanId = String(activeId).replace(/^[#\s]+/, '').replace(/^JOB-/, '');
+        const single = await mobileApi.getBookingById(cleanId);
+        if (single && single.success && single.booking) {
+          applyBookingUpdate(single.booking);
+          return;
+        }
+      }
       const res = await mobileApi.getBookings();
       if (res && res.success && Array.isArray(res.bookings) && res.bookings.length > 0) {
-        const latest = res.bookings[0];
-        if (latest) {
-          const stageMap = { 'Pending': 1, 'Confirmed': 1, 'Assigned': 2, 'En Route': 3, 'Arrived': 4, 'In Progress': 5, 'Completed': 6 };
-          const stageFromStatus = (status) => {
-            if (!status) return null;
-            const s = String(status).toLowerCase();
-            if (s.includes('completed')) return 6;
-            if (s.includes('progress')) return 5;
-            if (s.includes('arrived')) return 4;
-            if (s.includes('route') || s.includes('way')) return 3;
-            if (s.includes('assigned')) return 2;
-            if (s.includes('confirm') || s.includes('placed')) return 1;
-            return null;
-          };
-          const resolvedStage = (typeof latest.stage === 'number' && latest.stage >= 1 && latest.stage <= 6)
-            ? latest.stage
-            : (stageFromStatus(latest.status) || stageMap[latest.status] || 2);
-
-          setActiveCustomerBooking((prev) => ({
-            ...prev,
-            id: (latest.id || latest.bookingReference || prev.id || '9410').replace(/^[#\s]+/, '').replace(/^(UC|JOB)-/, ''),
-            service: latest.serviceName || latest.service || prev.service,
-            price: latest.totalAmount || latest.price || prev.price,
-            customer: latest.customerName || latest.userName || prev.customer,
-            address: latest.address || prev.address,
-            phone: latest.userPhone || prev.phone,
-            otp: latest.safetyPin || prev.otp || '4829',
-            status: latest.status || prev.status,
-            stage: resolvedStage,
-            prePhoto: latest.beforeWorkPhoto || prev.prePhoto,
-            postPhoto: latest.afterWorkPhoto || prev.postPhoto
-          }));
+        const match = activeId ? res.bookings.find(b => b.id === activeId || b.bookingReference === activeId) : null;
+        const active = match || res.bookings.find((b) => b.status !== 'Completed' && b.status !== 'Cancelled') || res.bookings[0];
+        if (active) {
+          applyBookingUpdate(active);
         }
       }
     } catch (_) {}
   };
 
   useEffect(() => {
+    if (!isAuthenticated) return;
     mobileApi.checkHealth().catch(() => {});
     fetchLiveServices();
     syncActiveBooking();
     const interval = setInterval(() => {
       fetchLiveServices();
       syncActiveBooking();
-    }, 4000);
+    }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated]);
 
   const handleAddService = (item) => {
     const fullDetails = findFullProductDetails(item, dbServices);
@@ -2543,10 +2804,17 @@ export default function App() {
 
   const handleConfirmBooking = () => {
     if (selectedService) {
-      setCheckoutService(selectedService);
+      addToCart(selectedService);
       setSelectedService(null);
-      setShowCheckoutFlow(true);
+      setShowCartModal(true);
     }
+  };
+
+  const handleOpenCart = (fallbackService = null) => {
+    if (fallbackService && cartItems.length === 0) {
+      addToCart(fallbackService);
+    }
+    setShowCartModal(true);
   };
 
   // 0. SEARCH RESULTS VIEW (Searching across all Web App Products & Live DB Services)
@@ -2977,6 +3245,7 @@ export default function App() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={styles.categoryFilterScrollView}
           contentContainerStyle={styles.categoryFilterRow}
         >
           {categoryFilters.map((tab) => {
@@ -3078,6 +3347,7 @@ export default function App() {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
+          style={styles.bookingFilterScrollView}
           contentContainerStyle={styles.bookingFilterScroll}
         >
           {filterTabs.map((tab) => {
@@ -3121,16 +3391,18 @@ export default function App() {
                   activeCustomerBooking?.stage === 6 ? { color: '#047857' } :
                   activeCustomerBooking?.stage === 5 ? { color: '#B45309' } :
                   activeCustomerBooking?.stage === 4 ? { color: '#1D4ED8' } :
-                  { color: '#C2410C' }
+                  activeCustomerBooking?.assignedPartner ? { color: '#C2410C' } :
+                  { color: '#92400E' }
                 ]}>
                   {activeCustomerBooking?.stage === 6 ? 'SERVICE COMPLETED 🎉' :
                    activeCustomerBooking?.stage === 5 ? 'SERVICE IN PROGRESS ⚡' :
                    activeCustomerBooking?.stage === 4 ? 'SPECIALIST ARRIVED 📍' :
                    activeCustomerBooking?.stage === 3 ? 'SPECIALIST EN ROUTE 🛵' :
-                   'SPECIALIST ASSIGNED 👷'}
+                   activeCustomerBooking?.assignedPartner ? 'SPECIALIST ASSIGNED 👷' :
+                   'ORDER CONFIRMED • AWAITING ASSIGNMENT ⏳'}
                 </Text>
               </View>
-              <Text style={styles.bookingIdText}>#UC-{activeCustomerBooking?.id || '9410'}</Text>
+              <Text style={styles.bookingIdText}>#{String(activeCustomerBooking?.id || 'UC-956844').startsWith('UC-') ? activeCustomerBooking.id : `UC-${activeCustomerBooking.id}`}</Text>
             </View>
 
             {/* Service & Price */}
@@ -3143,27 +3415,43 @@ export default function App() {
               <Text style={styles.ongoingPriceText}>₹{activeCustomerBooking.price || '3,524'}</Text>
             </View>
 
-            {/* Assigned Specialist Details Box */}
-            <View style={styles.ongoingSpecialistBox}>
-              <View style={styles.specialistAvatarCircle}>
-                <Text style={styles.specialistAvatarText}>V</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={styles.specialistName}>{activeCustomerBooking.technician?.name || 'Vikram Salvi'}</Text>
-                  <View style={styles.specialistRatingPill}>
-                    <Text style={styles.specialistRatingText}>★ {activeCustomerBooking.technician?.rating || 4.94}</Text>
-                  </View>
+            {/* Assigned Specialist Details Box / Unassigned Notice */}
+            {activeCustomerBooking?.assignedPartner ? (
+              <View style={styles.ongoingSpecialistBox}>
+                <View style={styles.specialistAvatarCircle}>
+                  <Text style={styles.specialistAvatarText}>{(activeCustomerBooking.assignedPartner || 'P').charAt(0).toUpperCase()}</Text>
                 </View>
-                <Text style={styles.specialistSub}>Master AC Specialist & Electrician • Diamond Pro L5</Text>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={styles.specialistName}>{activeCustomerBooking.assignedPartner}</Text>
+                    <View style={styles.specialistRatingPill}>
+                      <Text style={styles.specialistRatingText}>★ {activeCustomerBooking.technician?.rating || 4.94}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.specialistSub}>{activeCustomerBooking.technician?.trade || 'Master Doorstep Specialist'}</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.specialistCallBtn}
+                  onPress={() => handleStartVoipCall(activeCustomerBooking)}
+                  activeOpacity={0.8}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Text style={styles.specialistCallIcon}>📞</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={styles.specialistCallBtn}
-                onPress={() => Alert.alert('Call Specialist', `Calling Vikram Salvi at ${activeCustomerBooking.technician?.phone || '+91 98765 43210'}...`)}
-              >
-                <Text style={styles.specialistCallIcon}>📞</Text>
-              </TouchableOpacity>
-            </View>
+            ) : (
+              <View style={[styles.ongoingSpecialistBox, { backgroundColor: '#FFFBEB', borderColor: '#FDE68A', borderWidth: 1 }]}>
+                <View style={[styles.specialistAvatarCircle, { backgroundColor: '#FEF3C7' }]}>
+                  <Text style={{ fontSize: 18 }}>⏳</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.specialistName, { color: '#92400E' }]}>Awaiting Specialist Assignment</Text>
+                  <Text style={[styles.specialistSub, { color: '#B45309' }]}>
+                    Admin will allocate a verified specialist near Krishnagiri.
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* Start Service OTP Box */}
             <View style={styles.otpNoticeBox}>
@@ -3176,15 +3464,25 @@ export default function App() {
               </View>
             </View>
 
-            {/* Primary Action: LIVE GPS TRACK */}
-            <TouchableOpacity
-              style={styles.liveTrackCTAButton}
-              activeOpacity={0.88}
-              onPress={() => setShowTrackingModal(true)}
-            >
-              <Text style={styles.liveTrackCTAIcon}>🛵</Text>
-              <Text style={styles.liveTrackCTAText}>Live GPS Track Specialist (ETA ~8 mins)</Text>
-            </TouchableOpacity>
+            {/* Primary Action: LIVE GPS TRACK & LIVE CHAT */}
+            <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+              <TouchableOpacity
+                style={[styles.liveTrackCTAButton, { flex: 1.2, marginTop: 0 }]}
+                activeOpacity={0.88}
+                onPress={() => setShowTrackingModal(true)}
+              >
+                <Text style={styles.liveTrackCTAIcon}>🛵</Text>
+                <Text style={styles.liveTrackCTAText}>Live GPS Track</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.liveTrackCTAButton, { flex: 1, backgroundColor: '#2563EB', marginTop: 0 }]}
+                activeOpacity={0.88}
+                onPress={() => setShowCustomerChatModal(true)}
+              >
+                <Text style={styles.liveTrackCTAIcon}>💬</Text>
+                <Text style={styles.liveTrackCTAText}>Live Chat</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -3504,10 +3802,7 @@ export default function App() {
           style={styles.profileLogoutBtn}
           activeOpacity={0.8}
           onPress={() => {
-            Alert.alert('Log Out', 'Are you sure you want to log out?', [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Log Out', style: 'destructive', onPress: handleLogout }
-            ]);
+            setShowLogoutConfirmModal(true);
           }}
         >
           <Text style={styles.profileLogoutBtnText}>Log Out</Text>
@@ -4179,7 +4474,8 @@ export default function App() {
                activeCustomerBooking?.stage === 5 ? 'Service In Progress ⚡' :
                activeCustomerBooking?.stage === 4 ? 'Specialist Arrived 📍' :
                activeCustomerBooking?.stage === 3 ? 'Specialist on the way 🛵' :
-               'Specialist Assigned 👷'}
+               (activeCustomerBooking?.assignedPartner && activeCustomerBooking?.assignedPartner !== 'Unassigned') ? 'Specialist Assigned 👷' :
+               'Order Confirmed ⏳'}
             </Text>
             <View style={styles.trackingLivePill}>
               <Text style={styles.trackingLivePillText}>LIVE</Text>
@@ -4187,12 +4483,14 @@ export default function App() {
           </View>
           <Text style={styles.trackingBannerSub} numberOfLines={1}>
             {activeCustomerBooking?.stage === 4
-              ? `Vikram Salvi at your door • Share OTP: `
+              ? `${activeCustomerBooking?.assignedPartner || 'Specialist'} at your door • Share OTP: `
               : activeCustomerBooking?.stage === 5
               ? `${activeCustomerBooking?.service || 'Doorstep Service'} • In Progress`
               : activeCustomerBooking?.stage === 6
               ? `${activeCustomerBooking?.service || 'Doorstep Service'} • Completed`
-              : `Vikram Salvi arriving in ~8 mins • Start OTP: `}
+              : (activeCustomerBooking?.assignedPartner && activeCustomerBooking?.assignedPartner !== 'Unassigned')
+              ? `${activeCustomerBooking.assignedPartner} arriving in ~8 mins • Start OTP: `
+              : `Allocating certified specialist in Krishnagiri • Start OTP: `}
             <Text style={{ fontWeight: '800', color: '#F04400' }}>
               {activeCustomerBooking?.otp || '4829'}
             </Text>
@@ -4841,12 +5139,24 @@ export default function App() {
         <Text style={styles.detailHeaderTitle} numberOfLines={1}>
           Native Water Purifier
         </Text>
-        <View style={styles.cartIconWrapper}>
+        <TouchableOpacity
+          style={styles.cartIconWrapper}
+          activeOpacity={0.8}
+          onPress={() => handleOpenCart({
+            id: 'srv-native-purifier',
+            title: 'Native M1 Water Purifier',
+            price: 499,
+            originalPrice: 799,
+            rating: 4.84,
+            time: '60 mins',
+            category: 'Water Purifier'
+          })}
+        >
           <Text style={styles.cartIconText}>🛒</Text>
           <View style={styles.cartCountBadge}>
             <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
@@ -4932,16 +5242,14 @@ export default function App() {
       {/* Sticky Bottom Cart Bar */}
       <View style={styles.npStickyCartBar}>
         <View>
-          <Text style={styles.npStickyCartItems}>Cart ({cartCount || 1} items)</Text>
-          <Text style={styles.npStickyCartPrice}>₹1,199</Text>
+          <Text style={styles.npStickyCartItems}>Cart ({totalCartCount || 1} items)</Text>
+          <Text style={styles.npStickyCartPrice}>₹{totalCartPrice.toLocaleString('en-IN')}</Text>
         </View>
         <TouchableOpacity
           style={styles.npCheckoutBtn}
-          onPress={() => {
-            Alert.alert('Checkout', 'Proceeding to checkout with item (₹1,199)...');
-          }}
+          onPress={() => setShowCartModal(true)}
         >
-          <Text style={styles.npCheckoutBtnText}>Proceed to Checkout →</Text>
+          <Text style={styles.npCheckoutBtnText}>View Cart  ›</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -4960,12 +5268,24 @@ export default function App() {
         <Text style={styles.detailHeaderTitle} numberOfLines={1}>
           Native Smart Locks
         </Text>
-        <View style={styles.cartIconWrapper}>
+        <TouchableOpacity
+          style={styles.cartIconWrapper}
+          activeOpacity={0.8}
+          onPress={() => handleOpenCart({
+            id: 'srv-native-purifier',
+            title: 'Native M1 Water Purifier',
+            price: 499,
+            originalPrice: 799,
+            rating: 4.84,
+            time: '60 mins',
+            category: 'Water Purifier'
+          })}
+        >
           <Text style={styles.cartIconText}>🛒</Text>
           <View style={styles.cartCountBadge}>
             <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
           </View>
-        </View>
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
@@ -5166,11 +5486,12 @@ export default function App() {
 
             <TouchableOpacity
               style={styles.cartIconWrapper}
-              onPress={() => Alert.alert('Cart', `${cartCount || 1} item in cart. Total: ₹1,199`)}
+              activeOpacity={0.8}
+              onPress={() => setShowCartModal(true)}
             >
               <Text style={styles.cartIconText}>🛒</Text>
               <View style={styles.cartCountBadge}>
-                <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
+                <Text style={styles.cartCountBadgeText}>{totalCartCount || 1}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -5342,7 +5663,7 @@ export default function App() {
                         style={styles.salonItemAddBtn}
                         activeOpacity={0.8}
                         onPress={() => {
-                          setCartCount((prev) => prev + 1);
+                          addToCart(srv);
                           Alert.alert('Added to Cart 🎉', `"${srv.title}" added to your salon booking!`);
                         }}
                       >
@@ -5362,16 +5683,16 @@ export default function App() {
         <View style={styles.salonStickyCartBar}>
           <View>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-              <Text style={styles.salonCartPriceMain}>₹1,199</Text>
-              <Text style={styles.salonCartPriceOrig}>₹1,379</Text>
+              <Text style={styles.salonCartPriceMain}>₹{totalCartPrice.toLocaleString('en-IN')}</Text>
+              <Text style={styles.salonCartPriceOrig}>₹{totalCartOrigPrice.toLocaleString('en-IN')}</Text>
             </View>
-            <Text style={styles.salonCartItemsLabel}>{cartCount || 1} service in cart</Text>
+            <Text style={styles.salonCartItemsLabel}>{totalCartCount || 1} service{totalCartCount > 1 ? 's' : ''} in cart</Text>
           </View>
 
           <TouchableOpacity
             style={styles.salonViewCartBtn}
             activeOpacity={0.85}
-            onPress={() => Alert.alert('Cart & Checkout', 'Proceeding to Salon Prime Checkout with 25% First-Booking discount applied!')}
+            onPress={() => setShowCartModal(true)}
           >
             <Text style={styles.salonViewCartBtnText}>View Cart  ›</Text>
           </TouchableOpacity>
@@ -5529,11 +5850,12 @@ export default function App() {
 
             <TouchableOpacity
               style={styles.cartIconWrapper}
-              onPress={() => Alert.alert('Cart', `${cartCount || 1} item in cart.`)}
+              activeOpacity={0.8}
+              onPress={() => setShowCartModal(true)}
             >
               <Text style={styles.cartIconText}>🛒</Text>
               <View style={styles.cartCountBadge}>
-                <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
+                <Text style={styles.cartCountBadgeText}>{totalCartCount || 1}</Text>
               </View>
             </TouchableOpacity>
           </View>
@@ -5676,7 +5998,7 @@ export default function App() {
                             style={styles.salonItemAddBtn}
                             activeOpacity={0.8}
                             onPress={() => {
-                              setCartCount((prev) => prev + 1);
+                              addToCart(srv);
                               Alert.alert('Added to Cart 🎉', `"${srv.title}" added to your cart!`);
                             }}
                           >
@@ -5698,16 +6020,16 @@ export default function App() {
         <View style={styles.salonStickyCartBar}>
           <View>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-              <Text style={styles.salonCartPriceMain}>₹{cartCount ? cartCount * 499 : 499}</Text>
-              <Text style={styles.salonCartPriceOrig}>₹{cartCount ? cartCount * 799 : 799}</Text>
+              <Text style={styles.salonCartPriceMain}>₹{totalCartPrice.toLocaleString('en-IN')}</Text>
+              <Text style={styles.salonCartPriceOrig}>₹{totalCartOrigPrice.toLocaleString('en-IN')}</Text>
             </View>
-            <Text style={styles.salonCartItemsLabel}>{cartCount || 1} service in cart</Text>
+            <Text style={styles.salonCartItemsLabel}>{totalCartCount || 1} service{totalCartCount > 1 ? 's' : ''} in cart</Text>
           </View>
 
           <TouchableOpacity
             style={styles.salonViewCartBtn}
             activeOpacity={0.85}
-            onPress={() => Alert.alert('Cart & Checkout', 'Proceeding to checkout with verified Urban Company professional!')}
+            onPress={() => setShowCartModal(true)}
           >
             <Text style={styles.salonViewCartBtnText}>View Cart  ›</Text>
           </TouchableOpacity>
@@ -5757,20 +6079,43 @@ export default function App() {
               );
             }}
             onUpdateJobStage={(stage) => {
-              setActiveCustomerBooking((prev) => ({ ...prev, stage }));
-            }}
-            onSyncJob={(updatedJob) => {
+              const statusMap = { 1: 'Confirmed', 2: 'Assigned', 3: 'En Route', 4: 'Arrived', 5: 'In Progress', 6: 'Completed' };
+              const targetStatus = statusMap[stage] || 'Assigned';
               setActiveCustomerBooking((prev) => ({
                 ...prev,
-                id: (updatedJob.id || prev.id || '9410').replace('JOB-', '').replace('UC-', ''),
+                stage,
+                status: targetStatus,
+                assignedPartner: prev.assignedPartner || 'Vikram Salvi'
+              }));
+            }}
+            onSyncJob={(updatedJob) => {
+              const rawJobId = updatedJob.id || '';
+              const cleanId = String(rawJobId).replace(/^JOB-/, '');
+              const normalizedId = cleanId.startsWith('UC-') ? cleanId : (cleanId ? `UC-${cleanId}` : '');
+              const stageMap = { 1: 'Confirmed', 2: 'Assigned', 3: 'En Route', 4: 'Arrived', 5: 'In Progress', 6: 'Completed' };
+              const targetStage = updatedJob.stage || 2;
+              const targetStatus = updatedJob.status || stageMap[targetStage] || 'Assigned';
+              const partnerName = updatedJob.assignedPartner || 'Vikram Salvi';
+              setActiveCustomerBooking((prev) => ({
+                ...prev,
+                id: normalizedId || prev.id,
+                bookingRef: normalizedId || prev.bookingRef || prev.id,
                 service: updatedJob.service || prev.service,
                 price: updatedJob.payout || prev.price,
                 customer: updatedJob.customer || prev.customer,
                 address: updatedJob.address || prev.address,
                 phone: updatedJob.phone || prev.phone,
                 otp: updatedJob.otp || prev.otp || '4829',
-                stage: updatedJob.stage || prev.stage,
-                status: updatedJob.status || prev.status,
+                stage: targetStage,
+                status: targetStatus,
+                assignedPartner: partnerName,
+                partner: partnerName,
+                technician: {
+                  name: partnerName,
+                  rating: 4.94,
+                  trade: 'Master AC Specialist',
+                  phone: '+91 98450 77123'
+                },
                 prePhoto: updatedJob.prePhoto || prev.prePhoto,
                 postPhoto: updatedJob.postPhoto || prev.postPhoto
               }));
@@ -5827,11 +6172,11 @@ export default function App() {
               <TouchableOpacity
                 style={styles.ucCartButton}
                 activeOpacity={0.8}
-                onPress={() => Alert.alert('Cart', `${cartCount || 1} item in cart.`)}
+                onPress={() => setShowCartModal(true)}
               >
                 <Text style={styles.ucCartIcon}>🛒</Text>
                 <View style={styles.ucCartBadge}>
-                  <Text style={styles.ucCartBadgeText}>{cartCount || 1}</Text>
+                  <Text style={styles.ucCartBadgeText}>{totalCartCount || 1}</Text>
                 </View>
               </TouchableOpacity>
 
@@ -6728,6 +7073,56 @@ export default function App() {
         </TouchableOpacity>
       </Modal>
 
+      {/* 23B. DEDICATED LOGOUT CONFIRMATION MODAL */}
+      <Modal
+        visible={showLogoutConfirmModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowLogoutConfirmModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.profileMenuOverlay}
+          activeOpacity={1}
+          onPress={() => setShowLogoutConfirmModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={[styles.profileMenuCard, { maxWidth: 340, padding: 24, alignItems: 'center' }]}>
+              <View style={{ width: 60, height: 60, borderRadius: 30, backgroundColor: '#FEE2E2', justifyContent: 'center', alignItems: 'center', marginBottom: 14 }}>
+                <Text style={{ fontSize: 28 }}>🚪</Text>
+              </View>
+              <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A', marginBottom: 8, textAlign: 'center' }}>
+                Log Out of Urban Company?
+              </Text>
+              <Text style={{ fontSize: 13, color: '#64748B', textAlign: 'center', lineHeight: 18, marginBottom: 20 }}>
+                Are you sure you want to log out? You can sign back in anytime with your mobile number or password.
+              </Text>
+
+              <View style={{ width: '100%', gap: 10 }}>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#DC2626', borderRadius: 12, paddingVertical: 13, alignItems: 'center', width: '100%' }}
+                  activeOpacity={0.85}
+                  onPress={handleLogout}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '800' }}>
+                    Yes, Log Out
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#F1F5F9', borderRadius: 12, paddingVertical: 12, alignItems: 'center', width: '100%' }}
+                  activeOpacity={0.85}
+                  onPress={() => setShowLogoutConfirmModal(false)}
+                >
+                  <Text style={{ color: '#475569', fontSize: 13, fontWeight: '700' }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
+
       {/* 23. LIVE ORDER TRACKING & REVIEW MODAL (CUSTOMER WORKFLOW) */}
       <CustomerOrderTrackingModal
         visible={showTrackingModal}
@@ -6741,6 +7136,33 @@ export default function App() {
         }}
       />
 
+      {/* 23B. REAL-TIME CUSTOMER DIRECT LIVE CHAT MODAL */}
+      <LiveOrderChatModal
+        visible={showCustomerChatModal}
+        onClose={() => setShowCustomerChatModal(false)}
+        booking={activeCustomerBooking}
+        userRole="customer"
+      />
+
+      {/* 23C. COMPREHENSIVE VIEW CART MODAL */}
+      <CartViewModal
+        visible={showCartModal}
+        onClose={() => setShowCartModal(false)}
+        cartItems={cartItems}
+        onUpdateQty={updateCartQty}
+        onRemoveItem={removeCartItem}
+        onClearCart={clearCart}
+        onProceedToCheckout={handleProceedToCheckoutFromCart}
+      />
+
+      {/* 23D. REAL-TIME INTERNET WEBRTC VOIP VOICE CALL MODAL */}
+      <LiveVoIPCallModal
+        visible={showVoipCallModal}
+        onClose={() => setShowVoipCallModal(false)}
+        callData={voipCallData}
+        isIncoming={isVoipIncoming}
+      />
+
       {/* 24. FULL MULTI-STEP BOOKING, SLOT & PAYMENT FLOW MODAL */}
       <BookingCheckoutFlowModal
         visible={showCheckoutFlow}
@@ -6751,7 +7173,7 @@ export default function App() {
         service={checkoutService}
         currentUser={currentUser}
         onBookingSuccess={(bookingDetails) => {
-          setCartCount((prev) => prev + 1);
+          setCartItems([]);
           setCoinsBalance((prev) => prev + 50);
 
           const newLeadId = `LEAD-${bookingDetails.id || Math.floor(1000 + Math.random() * 9000)}`;
@@ -6783,7 +7205,10 @@ export default function App() {
             customer: freshLead.customer,
             phone: freshLead.phone,
             otp: freshLead.otp,
-            stage: 2 // Specialist Assigned / Pending pickup
+            stage: 1, // Stage 1: Order Confirmed (Awaiting admin specialist assignment)
+            status: 'Confirmed',
+            assignedPartner: '',
+            technician: null
           }));
           setShowCheckoutFlow(false);
           setCheckoutService(null);
@@ -11251,18 +11676,29 @@ const styles = StyleSheet.create({
     marginTop: 4,
     lineHeight: 18,
   },
+  categoryFilterScrollView: {
+    flexGrow: 0,
+    height: 52,
+    maxHeight: 52,
+    marginBottom: 6,
+  },
   categoryFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    height: 52,
     gap: 8,
   },
   categoryFilterPill: {
+    alignSelf: 'center',
+    height: 36,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 18,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   categoryFilterPillActive: {
     backgroundColor: '#0F172A',
@@ -11430,18 +11866,29 @@ const styles = StyleSheet.create({
     color: '#64748B',
     marginTop: 4,
   },
+  bookingFilterScrollView: {
+    flexGrow: 0,
+    height: 52,
+    maxHeight: 52,
+    marginBottom: 6,
+  },
   bookingFilterScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    height: 52,
     gap: 8,
   },
   bookingFilterChip: {
+    alignSelf: 'center',
+    height: 36,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 18,
     backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   bookingFilterChipActive: {
     backgroundColor: '#0F172A',
@@ -11577,17 +12024,24 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   specialistCallBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#E2E8F0',
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    cursor: 'pointer',
+    zIndex: 10,
   },
   specialistCallIcon: {
-    fontSize: 14,
+    fontSize: 16,
   },
   otpNoticeBox: {
     flexDirection: 'row',

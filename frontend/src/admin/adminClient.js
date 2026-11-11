@@ -66,7 +66,7 @@ async function ensureAdminLoggedIn() {
 
 async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 8000);
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   try {
     let url = `${API_BASE}${endpoint}`;
     let token = getAdminAuthToken();
@@ -96,6 +96,21 @@ async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
       } else {
         throw fetchErr;
       }
+    }
+
+    // Direct fallback if Vite proxy returns 502/503/504 Bad Gateway
+    if (res && res.status >= 502 && res.status <= 504 && rawBase.startsWith('/')) {
+      try {
+        const fallbackUrl = `http://127.0.0.1:5000/api/admin${endpoint}`;
+        const directRes = await fetch(fallbackUrl, {
+          ...options,
+          headers,
+          signal: options.signal || controller.signal
+        });
+        if (directRes && directRes.status < 500) {
+          res = directRes;
+        }
+      } catch (_) {}
     }
 
     // Auto-authenticate with demo admin credentials if token is missing or expired

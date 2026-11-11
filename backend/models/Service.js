@@ -162,4 +162,8 @@ const serviceSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+serviceSchema.index({ createdAt: -1 });
+serviceSchema.index({ category: 1, isArchived: 1 });
+serviceSchema.index({ isArchived: 1, status: 1 });
+
 export const Service = mongoose.model('Service', serviceSchema);
