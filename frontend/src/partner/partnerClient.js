@@ -4,8 +4,8 @@ const API_BASE = '/api/partner';
 
 class PartnerClient {
   constructor() {
-    this.token = sessionStorage.getItem('uc_partner_token') || localStorage.getItem('uc_partner_token') || 'simulated-partner-jwt-token';
-    this.partnerId = localStorage.getItem('uc_partner_id') || 'PTR-90142';
+    this.token = sessionStorage.getItem('uc_partner_token') || localStorage.getItem('uc_partner_token') || '';
+    this.partnerId = localStorage.getItem('uc_partner_id') || '';
   }
 
   setAuth(token, partnerData, staffData) {
@@ -90,38 +90,11 @@ class PartnerClient {
     localStorage.removeItem('uc_partner_id');
   }
 
-  async ensureAuthenticated() {
-    if (this.token && this.token !== 'simulated-partner-jwt-token') return this.token;
-    try {
-      const res = await fetch(`${API_BASE}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ emailOrPhone: 'partner@urbancompany.com', password: 'partner123' })
-      });
-      if (res.ok) {
-        const data = await res.json().catch(() => ({}));
-        if (data.token) {
-          this.setAuth(data.token, data.partner, data.staff);
-          return data.token;
-        }
-      }
-    } catch (e) {
-      console.warn('Partner auto-auth note:', e.message);
-    }
-    return null;
-  }
-
   async request(endpoint, options = {}) {
-    if (!this.token || this.token === 'simulated-partner-jwt-token') {
-      if (endpoint !== '/login' && endpoint !== '/register') {
-        await this.ensureAuthenticated();
-      }
-    }
-
     let headers = {
       'Content-Type': 'application/json',
       ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}),
-      'x-partner-id': this.partnerId || 'PTR-90142',
+      ...(this.partnerId ? { 'x-partner-id': this.partnerId } : {}),
       ...(options.headers || {})
     };
 
@@ -133,20 +106,8 @@ class PartnerClient {
         headers
       });
 
-      if (res.status === 401 && !options._retriedAuth && endpoint !== '/login') {
-        const refreshedToken = await this.ensureAuthenticated();
-        if (refreshedToken) {
-          headers = {
-            ...headers,
-            Authorization: `Bearer ${refreshedToken}`,
-            'x-partner-id': this.partnerId || 'PTR-90142'
-          };
-          res = await fetch(url, {
-            ...options,
-            _retriedAuth: true,
-            headers
-          });
-        }
+      if (res.status === 401 && endpoint !== '/login') {
+        this.logout();
       }
 
       const data = await res.json().catch(() => ({}));

@@ -19,6 +19,7 @@ import trackingRoutes from './routes/trackingRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import callingRoutes from './routes/callingRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 import { startAssignmentWatchdog } from './services/assignmentEngine.js';
 import { testSmtpConnection } from './services/emailService.js';
@@ -160,6 +161,7 @@ app.use('/api/tracking', trackingRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/calling', callingRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Public API endpoint for approved customer reviews displayed on the main landing page
 app.get('/api/reviews', async (req, res) => {

@@ -70,7 +70,7 @@ export async function verifyProfessionalAuth(req, res, next) {
       pro = await WorkerApplication.findOne({ $or: queryConditions });
     }
 
-    // If still not found and proId exists (including PRO-8841)
+    // If still not found and proId exists
     if (!pro && proId) {
       pro = await WorkerApplication.findOne({
         $or: [
@@ -80,13 +80,6 @@ export async function verifyProfessionalAuth(req, res, next) {
           { applicationNumber: (proId || '').toUpperCase() },
           { email: (proId || '').toLowerCase() }
         ]
-      });
-    }
-
-    // If still not found, look up any active/approved professional from MongoDB
-    if (!pro) {
-      pro = await WorkerApplication.findOne({
-        status: { $in: ['Approved', 'Active'] }
       });
     }
 

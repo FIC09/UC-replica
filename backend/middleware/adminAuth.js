@@ -27,23 +27,6 @@ export async function requireAdminAuth(req, res, next) {
     }
 
     if (!token) {
-      // In local development, seamlessly fallback to default Super Admin
-      let admin = null;
-      try {
-        admin = await Admin.findOne({ email: 'admin@urbancompany.com' });
-      } catch {}
-      if (admin) {
-        req.admin = {
-          id: admin._id.toString(),
-          name: admin.name,
-          email: admin.email,
-          role: admin.role,
-          assignedZone: admin.assignedZone,
-          department: admin.department,
-          permissions: PERMISSION_MATRIX[admin.role] || {}
-        };
-        return next();
-      }
       return res.status(401).json({
         success: false,
         error: 'Authentication required. No administrator bearer token provided.'
@@ -55,26 +38,9 @@ export async function requireAdminAuth(req, res, next) {
     try {
       decoded = jwt.verify(token, secret);
     } catch (err) {
-      // If token expired or invalid in dev, fall back gracefully to super admin
-      let admin = null;
-      try {
-        admin = await Admin.findOne({ email: 'admin@urbancompany.com' });
-      } catch {}
-      if (admin) {
-        req.admin = {
-          id: admin._id.toString(),
-          name: admin.name,
-          email: admin.email,
-          role: admin.role,
-          assignedZone: admin.assignedZone,
-          department: admin.department,
-          permissions: PERMISSION_MATRIX[admin.role] || {}
-        };
-        return next();
-      }
       return res.status(401).json({
         success: false,
-        error: 'Administrator session expired. Please sign in again.'
+        error: 'Administrator session expired or invalid. Please sign in again.'
       });
     }
 

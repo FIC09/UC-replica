@@ -40,10 +40,8 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return sessionStorage.getItem('uc_admin_auth') === 'true' ||
-           localStorage.getItem('uc_admin_auth') === 'true' ||
-           Boolean(sessionStorage.getItem('uc_admin_token')) ||
-           Boolean(localStorage.getItem('uc_admin_token'));
+    const token = sessionStorage.getItem('uc_admin_token') || localStorage.getItem('uc_admin_token');
+    return Boolean(token && token !== 'simulated-admin-jwt-token');
   });
   const [isAuthInitialized, setIsAuthInitialized] = useState(false);
 
@@ -166,7 +164,7 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
         }
       } catch {
         if (isMounted) {
-          setIsAuthenticated(true);
+          setIsAuthenticated(false);
           setIsAuthInitialized(true);
         }
       }

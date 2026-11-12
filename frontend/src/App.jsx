@@ -54,6 +54,8 @@ import { AdminRouter } from './admin/AdminRouter';
 import { ProfessionalRouter } from './professional/ProfessionalRouter';
 import { professionalClient } from './professional/professionalClient';
 import { PartnerRouter } from './partner/PartnerRouter';
+import SecurityBoundaryDenied from './components/SecurityBoundaryDenied';
+import webNotificationService from './utils/webNotificationService';
 import {
   PartnerDashboardModal
 } from './components/PartnerDashboardModal';
@@ -400,6 +402,10 @@ function App() {
     try {
       if (user) {
         localStorage.setItem('uc_user', JSON.stringify(user));
+        webNotificationService.requestPermissionAndRegister(
+          user.id || user.phone || user.email,
+          user.role || 'customer'
+        ).catch(() => {});
       } else {
         localStorage.removeItem('uc_user');
       }
@@ -637,6 +643,9 @@ function App() {
           const type = event?.data?.type;
           if (type === 'CATALOGUE_UPDATED' || type === 'BOOKING_CREATED' || type === 'BOOKING_UPDATED') {
             syncFromBackend();
+            if (type === 'BOOKING_UPDATED' && event.data?.status) {
+              webNotificationService.showNotification('🛵 Urban Company Service Alert', `Booking #${event.data.bookingId || ''} status updated to: ${event.data.status}`);
+            }
           }
         };
       }
@@ -1269,20 +1278,65 @@ function App() {
   }, [customerBookings, user]);
 
   useEffect(() => {
+    function triggerCrossTabLogout() {
+      setUser(null);
+      setSavedAddresses([]);
+      setIsAdminAuthenticated(false);
+      setIsAdminRoute(false);
+      setIsProfessionalRoute(false);
+      setIsPartnerRoute(false);
+      try {
+        sessionStorage.removeItem('uc_admin_auth');
+        sessionStorage.removeItem('uc_admin_token');
+        sessionStorage.removeItem('uc_admin_user');
+      } catch {}
+      if (window.location.pathname.startsWith('/admin') ||
+          window.location.pathname.startsWith('/partner') ||
+          window.location.pathname.startsWith('/professional')) {
+        window.location.href = '/';
+      }
+      showToast('🔒 Session logged out from another tab.');
+    }
+
     function handleAuthEvent(e) {
       if (e.detail?.user === null) {
-        setUser(null);
+        triggerCrossTabLogout();
       } else if (e.detail?.user) {
         setUser(e.detail.user);
       }
     }
     function handleStorageEvent(e) {
-      if ((e.key === 'uc_user' || e.key === 'uc_auth_user') && !e.newValue) {
-        setUser(null);
+      if (e.key === 'uc_auth_sync_event') {
+        try {
+          const payload = JSON.parse(e.newValue);
+          if (payload?.type === 'AUTH_LOGOUT') {
+            triggerCrossTabLogout();
+          } else if (payload?.type === 'AUTH_LOGIN' && payload.user) {
+            setUser(payload.user);
+          }
+        } catch {}
+      } else if ((e.key === 'uc_user' || e.key === 'uc_auth_user') && !e.newValue) {
+        triggerCrossTabLogout();
       } else if ((e.key === 'uc_user' || e.key === 'uc_auth_user') && e.newValue) {
         try { setUser(JSON.parse(e.newValue)); } catch {}
       }
     }
+
+    let authBc = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        authBc = new BroadcastChannel('uc_sync_channel');
+        authBc.onmessage = (event) => {
+          const type = event?.data?.type;
+          if (type === 'AUTH_LOGOUT') {
+            triggerCrossTabLogout();
+          } else if (type === 'AUTH_LOGIN' && event.data?.user) {
+            setUser(event.data.user);
+          }
+        };
+      }
+    } catch (_) {}
+
     window.addEventListener('uc:auth-changed', handleAuthEvent);
     window.addEventListener('uc_auth_event', handleAuthEvent);
     window.addEventListener('storage', handleStorageEvent);
@@ -1290,6 +1344,9 @@ function App() {
       window.removeEventListener('uc:auth-changed', handleAuthEvent);
       window.removeEventListener('uc_auth_event', handleAuthEvent);
       window.removeEventListener('storage', handleStorageEvent);
+      if (authBc) {
+        try { authBc.close(); } catch (_) {}
+      }
     };
   }, []);
 
@@ -1565,7 +1622,20 @@ function App() {
       localStorage.removeItem('uc_pro_token');
       localStorage.removeItem('uc_pro_id');
       localStorage.removeItem('uc_pro_user');
+      localStorage.setItem('uc_auth_sync_event', JSON.stringify({ type: 'AUTH_LOGOUT', timestamp: Date.now() }));
     } catch {}
+
+    // Broadcast logout across all open browser tabs
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const syncChannel = new BroadcastChannel('uc_sync_channel');
+        syncChannel.postMessage({ type: 'AUTH_LOGOUT', timestamp: Date.now() });
+        syncChannel.close();
+      }
+    } catch (_) {}
+
+    window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: null } }));
+
     setIsAdminRoute(false);
     setIsProfessionalRoute(false);
     setIsPartnerRoute(false);
@@ -1826,6 +1896,21 @@ function App() {
 
   // Dedicated Full-Page Admin Dashboard Routing (/admin/*)
   if (isAdminRoute) {
+    const activeRole = (user?.role || '').toLowerCase();
+    // Security boundary: If logged in as customer or another non-admin role, block cross-portal access
+    if (user && activeRole !== 'admin' && activeRole !== 'administrator') {
+      return (
+        <SecurityBoundaryDenied
+          requiredRole="Administrator Operations Portal"
+          currentUser={user}
+          onLogout={handleLogout}
+          onReturn={() => {
+            setIsAdminRoute(false);
+            navigateToView('home');
+          }}
+        />
+      );
+    }
     return (
       <AdminRouter
         onLogout={handleLogout}
@@ -1839,6 +1924,21 @@ function App() {
 
   // Dedicated Full-Page Professional / Worker Dashboard Routing (/professional/*)
   if (isProfessionalRoute) {
+    const activeRole = (user?.role || '').toLowerCase();
+    // Security boundary: Customers cannot access the professional worker operations console
+    if (user && (activeRole === 'customer' || activeRole === 'user')) {
+      return (
+        <SecurityBoundaryDenied
+          requiredRole="Service Professional Portal"
+          currentUser={user}
+          onLogout={handleLogout}
+          onReturn={() => {
+            setIsProfessionalRoute(false);
+            navigateToView('home');
+          }}
+        />
+      );
+    }
     return (
       <ProfessionalRouter
         onLogout={handleLogout}
@@ -1852,6 +1952,21 @@ function App() {
 
   // Dedicated Full-Page Business Partner Dashboard Routing (/partner/*)
   if (isPartnerRoute) {
+    const activeRole = (user?.role || '').toLowerCase();
+    // Security boundary: Customers cannot access enterprise agency/partner console
+    if (user && (activeRole === 'customer' || activeRole === 'user')) {
+      return (
+        <SecurityBoundaryDenied
+          requiredRole="Business Partner Portal"
+          currentUser={user}
+          onLogout={handleLogout}
+          onReturn={() => {
+            setIsPartnerRoute(false);
+            navigateToView('home');
+          }}
+        />
+      );
+    }
     return (
       <PartnerRouter
         onLogout={handleLogout}
@@ -2773,13 +2888,15 @@ function App() {
         onOpenPartnerDashboard={handleOpenPartnerPortal}
         onLogin={(loggedInUser) => {
           setUser(loggedInUser);
-          // Instantly broadcast new customer registration across all tabs to Admin Dashboard
+          // Instantly broadcast auth & session sync across all browser tabs
           try {
             const syncChannel = new BroadcastChannel('uc_sync_channel');
+            syncChannel.postMessage({ type: 'AUTH_LOGIN', user: loggedInUser, timestamp: Date.now() });
             syncChannel.postMessage({ type: 'CUSTOMER_CREATED', customer: loggedInUser, timestamp: Date.now() });
             syncChannel.close();
           } catch (e) {}
           try {
+            localStorage.setItem('uc_auth_sync_event', JSON.stringify({ type: 'AUTH_LOGIN', user: loggedInUser, timestamp: Date.now() }));
             localStorage.setItem('uc_last_customer_event', JSON.stringify({ type: 'CUSTOMER_CREATED', customer: loggedInUser, timestamp: Date.now() }));
           } catch (e) {}
 

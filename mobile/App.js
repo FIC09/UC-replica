@@ -2342,6 +2342,43 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [showProfileMenuModal, setShowProfileMenuModal] = useState(false);
   const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [editProfileForm, setEditProfileForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: ''
+  });
+
+  const handleOpenEditProfile = () => {
+    setEditProfileForm({
+      name: currentUser?.name || 'Rahul Sharma',
+      email: currentUser?.email || 'customer@forgeindia.in',
+      phone: currentUser?.phone || '+91 98200 12345',
+      address: 'Flat 302, Green Park, Rayakottai Rd, Krishnagiri'
+    });
+    setShowEditProfileModal(true);
+  };
+
+  const handleSaveProfile = () => {
+    const trimmedName = (editProfileForm.name || '').trim();
+    if (!trimmedName) {
+      Alert.alert('Name Required', 'Please enter your full name.');
+      return;
+    }
+    const trimmedEmail = (editProfileForm.email || '').trim();
+    const trimmedPhone = (editProfileForm.phone || '').trim();
+
+    setCurrentUser((prev) => ({
+      ...(prev || {}),
+      name: trimmedName,
+      email: trimmedEmail || (prev?.email || 'customer@forgeindia.in'),
+      phone: trimmedPhone || (prev?.phone || '+91 98200 12345')
+    }));
+
+    setShowEditProfileModal(false);
+    Alert.alert('Profile Saved ✓', `Your details have been updated successfully in real-time:\n\n• Name: ${trimmedName}\n• Email: ${trimmedEmail || 'customer@forgeindia.in'}\n• Phone: ${trimmedPhone || '+91 98200 12345'}`);
+  };
 
   const handleLoginSuccess = (userProfile) => {
     setIsAuthenticated(true);
@@ -2644,6 +2681,10 @@ export default function App() {
   const [checkoutService, setCheckoutService] = useState(null);
 
   const handleTabChange = (tab) => {
+    if (tab === 'offers' || tab === 'rewards') {
+      setActiveTab('homes');
+      return;
+    }
     setActiveTab(tab);
     setSearchQuery('');
     setCurrentScreen('home');
@@ -3635,7 +3676,8 @@ export default function App() {
           </View>
           <TouchableOpacity
             style={styles.profileEditBtn}
-            onPress={() => Alert.alert('Edit Profile', 'Profile editing options.')}
+            onPress={handleOpenEditProfile}
+            activeOpacity={0.8}
           >
             <Text style={styles.profileEditBtnText}>Edit</Text>
           </TouchableOpacity>
@@ -3655,30 +3697,11 @@ export default function App() {
           <TouchableOpacity
             style={styles.profileStatItem}
             activeOpacity={0.8}
-            onPress={() => handleTabChange('offers')}
-          >
-            <Text style={styles.profileStatNumber}>🪙 {coinsBalance}</Text>
-            <Text style={styles.profileStatLabel}>UC Coins</Text>
-          </TouchableOpacity>
-          <View style={styles.profileStatDivider} />
-          <TouchableOpacity
-            style={styles.profileStatItem}
-            activeOpacity={0.8}
             onPress={() => Alert.alert('Saved Addresses', '1. Flat 302, Green Park, Rayakottai Rd (Home)\n2. Brigade Tech Gardens, Bangalore (Work)')}
           >
             <Text style={styles.profileStatNumber}>2</Text>
             <Text style={styles.profileStatLabel}>Addresses</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* UC Plus Banner */}
-        <View style={styles.profilePlusBanner}>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.profilePlusBannerSuper}>URBAN COMPANY PLUS VIP</Text>
-            <Text style={styles.profilePlusBannerTitle}>Active VIP Membership</Text>
-            <Text style={styles.profilePlusBannerSub}>Saving 15% extra on every booking • Renews Dec 2026</Text>
-          </View>
-          <Text style={{ fontSize: 28 }}>👑</Text>
         </View>
 
         {/* Account Menu Items List */}
@@ -3723,20 +3746,6 @@ export default function App() {
             <View style={{ flex: 1 }}>
               <Text style={styles.profileMenuTitle}>Payment Methods & Wallet</Text>
               <Text style={styles.profileMenuSub}>Saved UPI, credit/debit cards & refunds</Text>
-            </View>
-            <Text style={styles.profileMenuChevron}>›</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.profileMenuItem}
-            onPress={() => handleTabChange('offers')}
-          >
-            <View style={styles.profileMenuIconBox}>
-              <Text style={styles.profileMenuIcon}>🪙</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.profileMenuTitle}>Rewards & Scratch Cards</Text>
-              <Text style={styles.profileMenuSub}>350 Coins available • 2 mystery cards to scratch</Text>
             </View>
             <Text style={styles.profileMenuChevron}>›</Text>
           </TouchableOpacity>
@@ -6163,7 +6172,7 @@ export default function App() {
               <TouchableOpacity
                 style={styles.ucCoinsPill}
                 activeOpacity={0.8}
-                onPress={() => handleTabChange('offers')}
+                onPress={() => Alert.alert('Available UC Coins', `🪙 ${coinsBalance} Coins (= ₹${coinsBalance})\n\nCoins are auto-applied at checkout for instant discounts on your bookings!`)}
               >
                 <Text style={styles.ucCoinsIcon}>🪙</Text>
                 <Text style={styles.ucCoinsText}>{coinsBalance}</Text>
@@ -6256,7 +6265,6 @@ export default function App() {
             {(activeTab === 'homes' || activeTab === 'uc') && renderHomeContent()}
             {activeTab === 'categories' && renderCategoriesView()}
             {activeTab === 'bookings' && renderMyBookingsView()}
-            {(activeTab === 'offers' || activeTab === 'rewards') && renderRewardsView()}
             {activeTab === 'profile' && renderProfileView()}
             {activeTab === 'native' && renderNativeView()}
             {activeTab === 'beauty' && renderBeautyView()}
@@ -6264,7 +6272,7 @@ export default function App() {
         )}
       </View>
 
-      {/* 21. BOTTOM NAVIGATION BAR (5 SECTIONS: HOME, CATEGORIES, MY BOOKINGS, OFFERS, PROFILE) */}
+      {/* 21. BOTTOM NAVIGATION BAR (HOME, CATEGORIES, MY BOOKINGS, PROFILE) */}
       {currentScreen === 'home' && (
         <View style={styles.bottomNavContainer}>
           <TouchableOpacity
@@ -6300,19 +6308,6 @@ export default function App() {
               </View>
             </View>
             <Text style={[styles.bottomNavText, activeTab === 'bookings' && styles.bottomNavActiveText]}>Bookings</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.bottomNavItem}
-            onPress={() => handleTabChange('offers')}
-            activeOpacity={0.7}
-          >
-            {(activeTab === 'offers' || activeTab === 'rewards') && <View style={styles.bottomActiveIndicator} />}
-            <View style={{ position: 'relative' }}>
-              <Text style={[styles.bottomNavIcon, (activeTab === 'offers' || activeTab === 'rewards') && styles.bottomNavActiveIcon]}>🏷️</Text>
-              <View style={styles.rewardsBadgeDot} />
-            </View>
-            <Text style={[styles.bottomNavText, (activeTab === 'offers' || activeTab === 'rewards') && styles.bottomNavActiveText]}>Offers</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -7121,6 +7116,196 @@ export default function App() {
             </View>
           </TouchableWithoutFeedback>
         </TouchableOpacity>
+      </Modal>
+
+      {/* 23C. EDIT CUSTOMER PROFILE MODAL */}
+      <Modal
+        visible={showEditProfileModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowEditProfileModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={() => setShowEditProfileModal(false)}
+          />
+          <View style={[styles.modalCard, { maxHeight: '88%', paddingBottom: 24 }]}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A' }}>
+                  Edit Profile
+                </Text>
+                <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                  Update your name, contact email and phone number
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowEditProfileModal(false)}
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={{ fontSize: 14, color: '#64748B', fontWeight: '700' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* Avatar Preview */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center' }}>
+                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '800' }}>
+                    {(editProfileForm.name || 'R').charAt(0).toUpperCase()}
+                  </Text>
+                </View>
+                <View style={{ marginLeft: 12, flex: 1 }}>
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: '#0F172A' }}>
+                    {editProfileForm.name || 'Customer Name'}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>
+                    Active Customer Account • Standard Verification
+                  </Text>
+                </View>
+              </View>
+
+              {/* Full Name Input */}
+              <View style={{ marginBottom: 14 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
+                  Full Name
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    borderWidth: 1.5,
+                    borderColor: '#E2E8F0',
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    height: 44,
+                    fontSize: 14,
+                    color: '#0F172A',
+                    fontWeight: '600'
+                  }}
+                  value={editProfileForm.name}
+                  onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, name: text }))}
+                  placeholder="e.g. Rahul Sharma"
+                  placeholderTextColor="#94A3B8"
+                  autoCapitalize="words"
+                />
+              </View>
+
+              {/* Email Address Input */}
+              <View style={{ marginBottom: 14 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
+                  Email Address
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    borderWidth: 1.5,
+                    borderColor: '#E2E8F0',
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    height: 44,
+                    fontSize: 14,
+                    color: '#0F172A',
+                    fontWeight: '600'
+                  }}
+                  value={editProfileForm.email}
+                  onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, email: text }))}
+                  placeholder="e.g. rahul@forgeindia.in"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                />
+              </View>
+
+              {/* Phone Number Input */}
+              <View style={{ marginBottom: 14 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
+                  Direct Phone Number
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    borderWidth: 1.5,
+                    borderColor: '#E2E8F0',
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    height: 44,
+                    fontSize: 14,
+                    color: '#0F172A',
+                    fontWeight: '600'
+                  }}
+                  value={editProfileForm.phone}
+                  onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, phone: text }))}
+                  placeholder="e.g. +91 98200 12345"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              {/* Delivery Address Input */}
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
+                  Default Service Address
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    borderWidth: 1.5,
+                    borderColor: '#E2E8F0',
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    paddingTop: 10,
+                    height: 60,
+                    fontSize: 13,
+                    color: '#0F172A',
+                    fontWeight: '500',
+                    textAlignVertical: 'top'
+                  }}
+                  value={editProfileForm.address}
+                  onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, address: text }))}
+                  placeholder="Flat, street or locality"
+                  placeholderTextColor="#94A3B8"
+                  multiline
+                />
+              </View>
+
+              {/* Action Buttons */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#0F172A',
+                  borderRadius: 12,
+                  paddingVertical: 14,
+                  alignItems: 'center',
+                  marginBottom: 10,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 4,
+                  elevation: 2
+                }}
+                activeOpacity={0.85}
+                onPress={handleSaveProfile}
+              >
+                <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '800' }}>
+                  Save Profile Changes ✓
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ paddingVertical: 10, alignItems: 'center' }}
+                activeOpacity={0.7}
+                onPress={() => setShowEditProfileModal(false)}
+              >
+                <Text style={{ color: '#64748B', fontSize: 13, fontWeight: '600' }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
       </Modal>
 
       {/* 23. LIVE ORDER TRACKING & REVIEW MODAL (CUSTOMER WORKFLOW) */}

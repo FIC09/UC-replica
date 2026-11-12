@@ -39,14 +39,13 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (sessionStorage.getItem('uc_pro_token') || localStorage.getItem('uc_pro_token')) {
+    const token = sessionStorage.getItem('uc_pro_token') || localStorage.getItem('uc_pro_token');
+    if (token && token !== 'simulated-pro-jwt-token') {
       return true;
     }
     try {
       const u = JSON.parse(localStorage.getItem('uc_user'));
-      if (u && (u.role === 'professional' || (u.email && u.email.includes('pro')))) {
-        const pro = professionalClient.getStoredUser();
-        professionalClient.setAuth('simulated-pro-jwt-token', pro);
+      if (u && u.role === 'professional' && u.token) {
         return true;
       }
     } catch {}
@@ -200,6 +199,16 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
     localStorage.removeItem('uc_open_portal');
     setIsAuthenticated(false);
     window.dispatchEvent(new CustomEvent('uc:auth-changed', { detail: { user: null } }));
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const syncChannel = new BroadcastChannel('uc_sync_channel');
+        syncChannel.postMessage({ type: 'AUTH_LOGOUT', timestamp: Date.now() });
+        syncChannel.close();
+      }
+    } catch (_) {}
+    try {
+      localStorage.setItem('uc_auth_sync_event', JSON.stringify({ type: 'AUTH_LOGOUT', timestamp: Date.now() }));
+    } catch (_) {}
     window.location.href = '/';
   }, []);
 

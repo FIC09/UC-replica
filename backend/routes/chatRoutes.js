@@ -18,6 +18,7 @@ import {
 } from '../services/chatService.js';
 import { query } from '../config/postgres.js';
 import { emitEvent } from '../services/websocketService.js';
+import { sendBookingPushEvent } from '../services/pushNotificationService.js';
 
 const router = express.Router();
 
@@ -356,6 +357,18 @@ router.post('/conversations/:conversationId/messages', async (req, res) => {
       conversationId,
       message: newMsg
     });
+
+    // Send instant push notification to recipient
+    try {
+      sendBookingPushEvent({
+        id: conversation.bookingId,
+        bookingRef: conversation.bookingId
+      }, 'CHAT_MESSAGE', {
+        recipientId,
+        senderName: newMsg.senderName,
+        text: newMsg.messageText || (messageType === 'image' ? '📷 Sent a photo attachment' : 'New chat message')
+      }).catch(() => {});
+    } catch (_) {}
 
     res.status(201).json({
       success: true,

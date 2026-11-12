@@ -15,54 +15,7 @@ function getAdminAuthToken() {
   }
 }
 
-let adminLoginPromise = null;
-
-async function ensureAdminLoggedIn() {
-  if (adminLoginPromise) return adminLoginPromise;
-  adminLoginPromise = (async () => {
-    try {
-      let loginRes;
-      try {
-        loginRes = await fetch(`${API_BASE}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: 'admin@urbancompany.com', password: 'admin123' })
-        });
-      } catch (e) {
-        if (rawBase.startsWith('/')) {
-          loginRes = await fetch(`http://127.0.0.1:5000/api/admin/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: 'admin@urbancompany.com', password: 'admin123' })
-          });
-        } else {
-          throw e;
-        }
-      }
-
-      if (loginRes.ok) {
-        const authData = await loginRes.json().catch(() => ({}));
-        if (authData.token) {
-          sessionStorage.setItem('uc_admin_token', authData.token);
-          localStorage.setItem('uc_admin_token', authData.token);
-          sessionStorage.setItem('uc_admin_auth', 'true');
-          localStorage.setItem('uc_admin_auth', 'true');
-          if (authData.admin) {
-            sessionStorage.setItem('uc_admin_user', JSON.stringify(authData.admin));
-            localStorage.setItem('uc_admin_user', JSON.stringify(authData.admin));
-          }
-          return authData.token;
-        }
-      }
-    } catch (err) {
-      console.warn('Auto admin login failed:', err);
-    } finally {
-      adminLoginPromise = null;
-    }
-    return null;
-  })();
-  return adminLoginPromise;
-}
+// No auto-login backdoor. Authentication must be explicitly performed by user.
 
 async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
   const controller = new AbortController();
@@ -113,33 +66,12 @@ async function fetchWithFallback(endpoint, options = {}, emptyFallback = null) {
       } catch (_) {}
     }
 
-    // Auto-authenticate with demo admin credentials if token is missing or expired
-    if (res.status === 401 && !options._retriedAuth) {
-      token = await ensureAdminLoggedIn();
-      if (token) {
-        const retryHeaders = {
-          ...options.headers,
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        };
-        try {
-          res = await fetch(url, {
-            ...options,
-            _retriedAuth: true,
-            signal: options.signal || controller.signal,
-            headers: retryHeaders
-          });
-        } catch {
-          if (rawBase.startsWith('/')) {
-            res = await fetch(`http://127.0.0.1:5000/api/admin${endpoint}`, {
-              ...options,
-              _retriedAuth: true,
-              signal: options.signal || controller.signal,
-              headers: retryHeaders
-            });
-          }
-        }
-      }
+    // If unauthorized, clear invalid admin token
+    if (res.status === 401) {
+      sessionStorage.removeItem('uc_admin_token');
+      localStorage.removeItem('uc_admin_token');
+      sessionStorage.removeItem('uc_admin_auth');
+      localStorage.removeItem('uc_admin_auth');
     }
 
     clearTimeout(timeoutId);

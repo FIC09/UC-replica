@@ -287,13 +287,23 @@ router.post('/verify-registration-otp', async (req, res) => {
       ]
     });
 
+    let hashedPassword = '';
+    if (password && typeof password === 'string' && password.trim() !== '') {
+      try {
+        const salt = await bcrypt.genSalt(10);
+        hashedPassword = await bcrypt.hash(password.trim(), salt);
+      } catch (_) {
+        hashedPassword = password.trim();
+      }
+    }
+
     if (user) {
       user.name = finalName;
       user.email = cleanEmail;
       user.city = targetCity;
       user.locality = targetLocality;
       user.status = 'Active';
-      if (password) user.password = password;
+      if (hashedPassword) user.password = hashedPassword;
       if (isPlusMember !== undefined) user.hasUCPlus = Boolean(isPlusMember);
       await user.save();
     } else {
@@ -313,7 +323,7 @@ router.post('/verify-registration-otp', async (req, res) => {
         name: finalName,
         phone: finalPhone,
         email: cleanEmail,
-        password: password || '',
+        password: hashedPassword,
         city: targetCity,
         locality: targetLocality,
         hasUCPlus: Boolean(isPlusMember),
@@ -610,6 +620,8 @@ router.post('/unified-login', async (req, res) => {
       customer = await User.findOne({
         $or: [
           { email: cleanInput },
+          { email: rawInput },
+          { email: { $regex: new RegExp(`^${cleanInput.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } },
           { phone: rawInput },
           ...(cleanDigits.length >= 8 ? [{ phone: `+91 ${cleanDigits.slice(-10)}` }, { phone: cleanDigits.slice(-10) }] : [])
         ]
@@ -618,13 +630,34 @@ router.post('/unified-login', async (req, res) => {
 
     if (customer) {
       let isCustPwdMatch = false;
-      if (customer.password) {
+      if (customer.password && typeof customer.password === 'string' && customer.password.trim() !== '') {
         if (customer.password.startsWith('$2a$') || customer.password.startsWith('$2b$')) {
           isCustPwdMatch = await bcrypt.compare(password, customer.password).catch(() => false);
         } else {
           isCustPwdMatch = (customer.password === password);
+          if (isCustPwdMatch) {
+            try {
+              const salt = await bcrypt.genSalt(10);
+              customer.password = await bcrypt.hash(password, salt);
+              await customer.save();
+            } catch (_) {}
+          }
+        }
+      } else {
+        // Customer account exists but password was never set (e.g. created via quick booking, phone login, or OTP)
+        // Automatically save their chosen password now so they can log in seamlessly
+        try {
+          const salt = await bcrypt.genSalt(10);
+          customer.password = await bcrypt.hash(password, salt);
+          await customer.save();
+          isCustPwdMatch = true;
+        } catch (_) {
+          customer.password = password;
+          await customer.save().catch(() => {});
+          isCustPwdMatch = true;
         }
       }
+
       const isMasterCustPwd = (password === 'customer123' || password === 'customer' || password === 'demo' || password === 'password123');
       
       if (isCustPwdMatch || isMasterCustPwd) {
@@ -668,6 +701,12 @@ router.post('/unified-login', async (req, res) => {
       const custPhone = cleanDigits.length >= 10 ? `+91 ${cleanDigits.slice(-10)}` : '+91 98200 12345';
       const custName = (req.body.name || '').trim() || 'Customer';
       let dbCust = null;
+      let hashedPwd = password;
+      try {
+        const salt = await bcrypt.genSalt(10);
+        hashedPwd = await bcrypt.hash(password, salt);
+      } catch (_) {}
+
       try {
         dbCust = await User.findOneAndUpdate(
           { email: custEmail },
@@ -676,10 +715,10 @@ router.post('/unified-login', async (req, res) => {
               name: custName,
               email: custEmail,
               phone: custPhone,
-              role: 'customer',
+              role: 'user',
               hasUCPlus: true,
               city: 'Krishnagiri',
-              password: password
+              password: hashedPwd
             }
           },
           { upsert: true, new: true, setDefaultsOnInsert: true }
@@ -778,9 +817,19 @@ router.post('/login', async (req, res) => {
 // 4. Standard Register user (Supports direct or OTP-verified flow)
 router.post('/register', async (req, res) => {
   try {
-    const { name, phone, email, city, locality, address, isPlusMember, otp } = req.body;
+    const { name, phone, email, city, locality, address, isPlusMember, otp, password } = req.body;
     if (!phone || !name) {
       return res.status(400).json({ success: false, message: 'Name and Phone are required' });
+    }
+
+    let hashedPassword = '';
+    if (password && typeof password === 'string' && password.trim() !== '') {
+      try {
+        const salt = await bcrypt.genSalt(10);
+        hashedPassword = await bcrypt.hash(password.trim(), salt);
+      } catch (_) {
+        hashedPassword = password.trim();
+      }
     }
 
     const phoneCheck = validateIndianMobile(phone);
@@ -826,6 +875,7 @@ router.post('/register', async (req, res) => {
       if (cleanEmail) existing.email = cleanEmail;
       if (city) existing.city = targetCity;
       if (locality) existing.locality = targetLocality;
+      if (hashedPassword) existing.password = hashedPassword;
       if (isPlusMember !== undefined) existing.hasUCPlus = Boolean(isPlusMember);
       
       if (address && address.trim()) {
@@ -863,6 +913,7 @@ router.post('/register', async (req, res) => {
       name: name.trim(),
       phone: finalPhone.startsWith('+91') ? finalPhone : `+91 ${cleanDigits}`,
       email: cleanEmail || `${name.trim().toLowerCase().replace(/\s+/g, '.')}@example.com`,
+      password: hashedPassword,
       city: targetCity,
       locality: targetLocality,
       hasUCPlus: Boolean(isPlusMember),

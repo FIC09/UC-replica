@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   Image
 } from 'react-native';
 import mobileApi from '../services/apiClient';
+import mobileNotificationService from '../services/notificationService';
 import LiveOrderChatModal from './LiveOrderChatModal';
 import LiveVoIPCallModal from './LiveVoIPCallModal';
 
@@ -43,6 +44,7 @@ export default function WorkingPartnerDashboard({
   const [completedCount, setCompletedCount] = useState(3);
   const [toastMessage, setToastMessage] = useState(null);
   const [showChatModal, setShowChatModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Active Job state synchronized with shared booking
   const [activeJob, setActiveJob] = useState(() => {
@@ -93,18 +95,25 @@ export default function WorkingPartnerDashboard({
       5: 'In Progress',
       6: 'Completed'
     };
-    setActiveJob((prev) => ({
-      ...prev,
-      id: sharedBooking.id ? (String(sharedBooking.id).startsWith('UC-') || String(sharedBooking.id).startsWith('JOB-') ? String(sharedBooking.id) : `UC-${sharedBooking.id}`) : (prev?.id || 'UC-9410'),
-      customer: sharedBooking.customer || prev?.customer || 'Rahul Sharma',
-      address: sharedBooking.address || prev?.address || 'Flat 302, Green Park, Rayakottai Road, Krishnagiri - 635122',
-      phone: sharedBooking.phone || prev?.phone || '+91 98200 12345',
-      service: sharedBooking.service || prev?.service || 'All in All AC',
-      payout: sharedBooking.price || prev?.payout || 3524,
-      otp: sharedBooking.otp || prev?.otp || '4829',
-      status: sharedBooking.status || stageToStatus[stageNum] || prev?.status || 'Assigned',
-      stage: stageNum
-    }));
+    setActiveJob((prev) => {
+      // Ensure one-way progression: never allow an older sharedBooking state to regress activeJob!
+      const currentStage = prev?.stage || 2;
+      const finalStage = Math.max(currentStage, stageNum);
+      const finalStatus = (currentStage > stageNum && prev?.status) ? prev.status : (sharedBooking.status || stageToStatus[finalStage] || 'Assigned');
+
+      return {
+        ...prev,
+        id: sharedBooking.id ? (String(sharedBooking.id).startsWith('UC-') || String(sharedBooking.id).startsWith('JOB-') ? String(sharedBooking.id) : `UC-${sharedBooking.id}`) : (prev?.id || 'UC-9410'),
+        customer: sharedBooking.customer || prev?.customer || 'Rahul Sharma',
+        address: sharedBooking.address || prev?.address || 'Flat 302, Green Park, Rayakottai Road, Krishnagiri - 635122',
+        phone: sharedBooking.phone || prev?.phone || '+91 98200 12345',
+        service: sharedBooking.service || prev?.service || 'All in All AC',
+        payout: sharedBooking.price || prev?.payout || 3524,
+        otp: sharedBooking.otp || prev?.otp || '4829',
+        status: finalStatus,
+        stage: finalStage
+      };
+    });
     if (stageNum >= 5) {
       setIsOtpVerified(true);
     }
@@ -184,6 +193,10 @@ export default function WorkingPartnerDashboard({
   const [selfieModalPhase, setSelfieModalPhase] = useState('pre'); // 'pre' | 'post'
   const [capturedSelfieUri, setCapturedSelfieUri] = useState(null);
   const [isUploadingSelfie, setIsUploadingSelfie] = useState(false);
+  const [isLiveCameraActive, setIsLiveCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  const liveVideoRef = useRef(null);
+  const liveStreamRef = useRef(null);
 
   // Photo Uploading State
   const [preServicePhoto, setPreServicePhoto] = useState(null);
@@ -194,6 +207,23 @@ export default function WorkingPartnerDashboard({
   // Live GPS Tracking Simulation State
   const [simStep, setSimStep] = useState(2); // 1 to 4
   const [gpsEta, setGpsEta] = useState(8);
+
+  // Real-Time Push Notification Engine Initialization for Android & Web
+  useEffect(() => {
+    mobileNotificationService.initialize({
+      userId: currentUser?.id || 'PRO-8841',
+      role: 'worker',
+      onNotification: (notif) => {
+        const title = notif.request?.content?.title || notif.title || 'Service Notification';
+        const body = notif.request?.content?.body || notif.body || '';
+        showToast(`🔔 ${title}: ${body}`);
+      }
+    });
+
+    return () => {
+      mobileNotificationService.cleanup();
+    };
+  }, [currentUser?.id]);
 
   // Fetch real active booking from database on mount if sharedBooking is missing or empty
   useEffect(() => {
@@ -210,18 +240,24 @@ export default function WorkingPartnerDashboard({
             'Completed': 6
           };
           const stageNum = liveBooking.stage || stageMap[liveBooking.status] || 2;
-          setActiveJob(prev => ({
-            ...prev,
-            id: liveBooking.bookingRef || liveBooking.id || liveBooking._id,
-            customer: liveBooking.customerName || prev?.customer,
-            phone: liveBooking.customerPhone || prev?.phone,
-            address: (liveBooking.address && liveBooking.address.street) || (typeof liveBooking.address === 'string' ? liveBooking.address : prev?.address),
-            service: liveBooking.serviceName || prev?.service,
-            payout: (liveBooking.pricing && liveBooking.pricing.finalTotal) || liveBooking.totalAmount || prev?.payout,
-            otp: liveBooking.safetyPin || prev?.otp || '4510',
-            status: liveBooking.status || prev?.status || 'Assigned',
-            stage: stageNum
-          }));
+          setActiveJob(prev => {
+            const currentStage = prev?.stage || 2;
+            if (currentStage > stageNum) {
+              return prev; // Never regress!
+            }
+            return {
+              ...prev,
+              id: liveBooking.bookingRef || liveBooking.id || liveBooking._id,
+              customer: liveBooking.customerName || prev?.customer,
+              phone: liveBooking.customerPhone || prev?.phone,
+              address: (liveBooking.address && liveBooking.address.street) || (typeof liveBooking.address === 'string' ? liveBooking.address : prev?.address),
+              service: liveBooking.serviceName || prev?.service,
+              payout: (liveBooking.pricing && liveBooking.pricing.finalTotal) || liveBooking.totalAmount || prev?.payout,
+              otp: liveBooking.safetyPin || prev?.otp || '4510',
+              status: liveBooking.status || prev?.status || 'Assigned',
+              stage: stageNum
+            };
+          });
           if (stageNum >= 5) setIsOtpVerified(true);
         }
       }
@@ -383,10 +419,28 @@ export default function WorkingPartnerDashboard({
   };
 
   // 1. MANUAL STAGE PROGRESSION WORKFLOW:
+  // Strictly one-way progress:
   // Step 2: Assigned -> Step 3: En Route -> Step 4: Arrived -> Step 5: In Progress -> Step 6: Completed
   // Manual dispatch: strictly manual updates pushed directly to MongoDB Atlas
   const handleManualStageUpdate = (targetStage, targetStatus) => {
     if (!activeJob) return;
+
+    const currentStage = activeJob.stage || (
+      activeJob.status === 'Completed' ? 6 :
+      activeJob.status === 'In Progress' ? 5 :
+      activeJob.status === 'Arrived' ? 4 :
+      activeJob.status === 'En Route' ? 3 : 2
+    );
+
+    // Strictly one-way: prevent regression or re-triggering completed/current stages
+    if (targetStage <= currentStage) {
+      Alert.alert(
+        'Step Already Completed 🔒',
+        'Service workflow is strictly one-way. Previous and completed steps cannot be clicked or re-selected.'
+      );
+      return;
+    }
+
     const stageMap = {
       2: { status: 'Assigned', title: 'Assigned' },
       3: { status: 'En Route', title: 'En Route' },
@@ -534,6 +588,122 @@ export default function WorkingPartnerDashboard({
     }
   };
 
+  const stopLiveCamera = () => {
+    if (liveStreamRef.current) {
+      try {
+        liveStreamRef.current.getTracks().forEach(track => track.stop());
+      } catch (_) {}
+      liveStreamRef.current = null;
+    }
+    setIsLiveCameraActive(false);
+  };
+
+  const startLiveCamera = async () => {
+    setCameraError(null);
+    setCapturedSelfieUri(null);
+    stopLiveCamera();
+
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.mediaDevices?.getUserMedia) {
+      try {
+        let stream = null;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
+            audio: false
+          });
+        } catch (_) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: { ideal: 'user' } },
+              audio: false
+            });
+          } catch (__) {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: true,
+              audio: false
+            });
+          }
+        }
+
+        liveStreamRef.current = stream;
+        setIsLiveCameraActive(true);
+
+        setTimeout(() => {
+          if (liveVideoRef.current) {
+            liveVideoRef.current.srcObject = stream;
+            liveVideoRef.current.play().catch(e => console.warn('Camera video play error:', e));
+          }
+        }, 120);
+      } catch (err) {
+        console.warn('Live camera error:', err);
+        setCameraError(err.message || 'Camera permission not granted. Please allow camera access in browser settings.');
+      }
+    } else {
+      setCameraError('Live camera stream not supported in this browser environment.');
+    }
+  };
+
+  const snapLiveSelfie = () => {
+    try {
+      if (liveVideoRef.current) {
+        const video = liveVideoRef.current;
+        const width = video.videoWidth || 640;
+        const height = video.videoHeight || 480;
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        // Mirror horizontally so the selfie appears naturally as seen in front-camera mirror
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, width, height);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        // Professional timestamp watermark stamp
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+        ctx.fillRect(0, height - 60, width, 60);
+
+        ctx.fillStyle = '#10B981';
+        ctx.beginPath();
+        ctx.arc(20, height - 30, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 14px sans-serif';
+        ctx.fillText('URBAN COMPANY • LIVE TECHNICIAN VERIFICATION', 36, height - 34);
+
+        ctx.font = '11px sans-serif';
+        ctx.fillStyle = '#94A3B8';
+        const phaseLabel = selfieModalPhase === 'pre' ? 'DOORSTEP PRE-WORK' : 'SERVICE COMPLETED';
+        const dateStr = new Date().toLocaleDateString();
+        const timeStr = new Date().toLocaleTimeString();
+        ctx.fillText(`${phaseLabel} • ${dateStr} ${timeStr} • ID: ${currentUser?.id || 'PRO-8841'}`, 36, height - 16);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        setCapturedSelfieUri(dataUrl);
+        stopLiveCamera();
+        showToast('📸 Live selfie captured!');
+        return;
+      }
+    } catch (e) {
+      console.warn('Snap error:', e);
+    }
+    handleCaptureSampleSelfie();
+    stopLiveCamera();
+  };
+
+  useEffect(() => {
+    if (!showSelfieModal) {
+      stopLiveCamera();
+    } else if (!capturedSelfieUri) {
+      startLiveCamera();
+    }
+    return () => {
+      stopLiveCamera();
+    };
+  }, [showSelfieModal]);
+
   const handleCaptureSampleSelfie = () => {
     try {
       if (typeof document !== 'undefined') {
@@ -569,22 +739,17 @@ export default function WorkingPartnerDashboard({
 
         const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
         setCapturedSelfieUri(dataUrl);
+        stopLiveCamera();
         return;
       }
     } catch (_) {}
     // Generic fallback URI
     setCapturedSelfieUri('https://res.cloudinary.com/dlpzb0td2/image/upload/v1710000000/urban_company/worker_sample.jpg');
+    stopLiveCamera();
   };
 
   const handleTriggerNativeCamera = () => {
-    if (Platform.OS === 'web' && typeof document !== 'undefined') {
-      const input = document.getElementById('technician-selfie-camera-file');
-      if (input) {
-        input.click();
-        return;
-      }
-    }
-    handleCaptureSampleSelfie();
+    startLiveCamera();
   };
 
   // Photo Upload Handler with presets
@@ -712,180 +877,226 @@ export default function WorkingPartnerDashboard({
         </View>
       )}
 
-      {/* 1. Header Bar matching Web Application & Screenshot */}
-      <View style={styles.headerBar}>
-        <View style={styles.headerTopRow}>
-          <TouchableOpacity
-            style={styles.sidebarToggleBtn}
-            onPress={() => setIsSidebarOpen(true)}
-            activeOpacity={0.7}
-            accessibilityLabel="Open Navigation Menu"
-          >
-            <Text style={styles.sidebarToggleText}>☰</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.avatarBox}
-            onPress={() => setIsSidebarOpen(true)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.avatarInitial}>{proName.charAt(0).toUpperCase()}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.headerInfoCol}
-            onPress={() => setIsSidebarOpen(true)}
-            activeOpacity={0.8}
-          >
-            <View style={styles.nameRow}>
-              <Text style={styles.headerName} numberOfLines={1}>{proName}</Text>
-              <View style={styles.ratingBadge}>
-                <Text style={styles.ratingBadgeText}>★ 4.94</Text>
-              </View>
+      {/* 1. TOP HEADER: Clean Urban Company Premium White Header (Matching Customer App) */}
+      <View style={styles.ucCleanHeader}>
+        {/* Top Brand & Location Bar */}
+        <View style={styles.ucHeaderTopBar}>
+          <View style={styles.ucBrandAndLocation}>
+            <View style={styles.ucBrandLogoBadge}>
+              <Text style={styles.ucBrandLogoText}>UC</Text>
             </View>
-            <Text style={styles.headerTrade} numberOfLines={1}>{proTrade}</Text>
-            <Text style={styles.headerEmail} numberOfLines={1}>
-              {proEmail} • ID: PRO-8841 • Diamond Pro L5
-            </Text>
-          </TouchableOpacity>
+            <View style={styles.ucLocationContainer}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                style={styles.ucLocationTitleRow}
+                onPress={() => Alert.alert('Assigned Hub & Cluster', '📍 Krishnagiri Central Hub\nCluster: Rayakottai Zone (Near GPS Verified)\nCoverage: 5.0 km radius')}
+              >
+                <Text style={styles.ucLocationPin}>📍</Text>
+                <Text style={styles.ucLocationName} numberOfLines={1}>Krishnagiri Hub • Rayakottai</Text>
+                <Text style={styles.ucLocationArrow}>▾</Text>
+              </TouchableOpacity>
+              <Text style={styles.ucLocationSub} numberOfLines={1}>
+                {activeJob?.address ? `Active: ${activeJob.address}` : 'Flat 302, Green Park, Rayakottai Rd'}
+              </Text>
+            </View>
+          </View>
+
+          {/* Right Action Icons: Wallet Balance, Online/Offline Pill & Profile Avatar */}
+          <View style={styles.ucHeaderActionsRow}>
+            <TouchableOpacity
+              style={styles.ucCoinsPill}
+              activeOpacity={0.8}
+              onPress={() => setActiveTab('wallet')}
+            >
+              <Text style={styles.ucCoinsIcon}>💰</Text>
+              <Text style={styles.ucCoinsText}>₹{walletBalance}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.onlinePill, isOnline ? styles.onlineActive : styles.onlineInactive]}
+              onPress={() => {
+                setIsOnline(!isOnline);
+                showToast(isOnline ? '⚪ You are now OFFLINE' : '🟢 You are now ONLINE & receiving jobs');
+              }}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.statusDot, { backgroundColor: isOnline ? '#10B981' : '#94A3B8' }]} />
+              <Text style={[styles.onlinePillText, { color: isOnline ? '#065F46' : '#64748B' }]}>{isOnline ? 'Online' : 'Offline'}</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.ucProfileAvatarBtn}
+              activeOpacity={0.8}
+              onPress={() => setActiveTab('profile')}
+            >
+              <Text style={styles.ucProfileAvatarText}>
+                {proName.charAt(0).toUpperCase()}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
-        {/* Status Toggle & Top Action Buttons */}
-        <View style={styles.headerControlRow}>
-          <TouchableOpacity
-            style={[styles.onlinePill, isOnline ? styles.onlineActive : styles.onlineInactive]}
-            onPress={() => {
-              setIsOnline(!isOnline);
-              showToast(isOnline ? '⚪ You are now OFFLINE' : '🟢 You are now ONLINE & receiving jobs');
-            }}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.statusDot, { backgroundColor: isOnline ? '#10B981' : '#94A3B8' }]} />
-            <Text style={[styles.onlinePillText, { color: isOnline ? '#065F46' : '#64748B' }]}>{isOnline ? 'Online' : 'Offline'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.headerCustomerSwitchBtn}
-            activeOpacity={0.85}
-            onPress={handleSwitchCustomerWithSync}
-          >
-            <Text style={styles.headerCustomerSwitchIcon}>👤</Text>
-            <Text style={styles.headerCustomerSwitchText}>Customer App ›</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.headerLogoutIconBtn}
-            activeOpacity={0.8}
-            onPress={onLogout}
-          >
-            <Text style={styles.logoutIconSymbol}>⏻</Text>
-            <Text style={styles.headerLogoutText}>Logout</Text>
-          </TouchableOpacity>
+        {/* Search Bar */}
+        <View style={styles.ucSearchBarContainer}>
+          <Text style={styles.ucSearchIcon}>🔍</Text>
+          <TextInput
+            style={styles.ucSearchInput}
+            placeholder="Search for 'active job', 'leads', 'payout', 'photos'..."
+            placeholderTextColor="#94A3B8"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            clearButtonMode="while-editing"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Text style={styles.ucClearIcon}>✕</Text>
+            </TouchableOpacity>
+          )}
         </View>
-      </View>
 
-      {/* 2. Top Metric Stats Row */}
-      <View style={styles.metricRow}>
-        <TouchableOpacity
-          style={styles.metricCard}
-          onPress={() => setActiveTab('earnings')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.metricLabel}>Today's Earnings</Text>
-          <Text style={styles.metricValue}>₹{todayEarnings}</Text>
-          <Text style={styles.metricSub}>{completedCount} jobs done</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.metricCard}
-          onPress={() => setActiveTab('wallet')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.metricLabel}>Wallet Balance</Text>
-          <Text style={[styles.metricValue, { color: '#10B981' }]}>₹{walletBalance}</Text>
-          <Text style={styles.metricSub}>Instant withdrawable</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.metricCard}
-          onPress={() => setActiveTab('quality')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.metricLabel}>Rating & SLA</Text>
-          <Text style={styles.metricValue}>★ 4.94</Text>
-          <Text style={styles.metricSub}>98.4% on time</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* 3. Horizontal Scrollable Navigation Sub-Tabs */}
-      <View style={styles.navTabsWrapper}>
+        {/* Quick Suggestion Chips */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.navTabsScroll}
+          contentContainerStyle={styles.ucQuickChipsScroll}
         >
-          <TouchableOpacity
-            style={[styles.navTabItem, activeTab === 'jobs' && styles.navTabActive]}
-            onPress={() => setActiveTab('jobs')}
-          >
-            <Text style={[styles.navTabText, activeTab === 'jobs' && styles.navTabActiveText]}>
-              Active Dispatch ({activeJob && activeJob.status !== 'Completed' ? '1' : '0'})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.navTabItem, activeTab === 'live-tracking' && styles.navTabActive]}
-            onPress={() => setActiveTab('live-tracking')}
-          >
-            <Text style={[styles.navTabText, activeTab === 'live-tracking' && styles.navTabActiveText]}>
-              📡 Live Operations
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.navTabItem, activeTab === 'leads' && styles.navTabActive]}
-            onPress={() => setActiveTab('leads')}
-          >
-            <Text style={[styles.navTabText, activeTab === 'leads' && styles.navTabActiveText]}>
-              Hot Leads ({availableLeads.length})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.navTabItem, activeTab === 'photos' && styles.navTabActive]}
-            onPress={() => setActiveTab('photos')}
-          >
-            <Text style={[styles.navTabText, activeTab === 'photos' && styles.navTabActiveText]}>
-              📸 Work Photos
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.navTabItem, activeTab === 'wallet' && styles.navTabActive]}
-            onPress={() => setActiveTab('wallet')}
-          >
-            <Text style={[styles.navTabText, activeTab === 'wallet' && styles.navTabActiveText]}>
-              Wallet & Payouts (₹{walletBalance})
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.navTabItem, activeTab === 'quality' && styles.navTabActive]}
-            onPress={() => setActiveTab('quality')}
-          >
-            <Text style={[styles.navTabText, activeTab === 'quality' && styles.navTabActiveText]}>
-              Reviews ({allReviews.length})
-            </Text>
-          </TouchableOpacity>
+          {[
+            { label: 'Active Job', tab: 'jobs' },
+            { label: `Hot Leads (${availableLeads.length})`, tab: 'leads' },
+            { label: `Today: ₹${todayEarnings}`, tab: 'earnings' },
+            { label: `Wallet: ₹${walletBalance}`, tab: 'wallet' },
+            { label: '★ 4.94 SLA', tab: 'quality' },
+            { label: '📸 Work Photos', tab: 'photos' },
+            { label: '📡 Live GPS', tab: 'live-tracking' },
+          ].map((chip, idx) => (
+            <TouchableOpacity
+              key={`worker-chip-${idx}`}
+              style={[
+                styles.ucQuickChip,
+                activeTab === chip.tab && styles.ucQuickChipActive
+              ]}
+              onPress={() => {
+                setActiveTab(chip.tab);
+                setSearchQuery('');
+              }}
+            >
+              <Text
+                style={[
+                  styles.ucQuickChipText,
+                  activeTab === chip.tab && styles.ucQuickChipTextActive
+                ]}
+              >
+                {chip.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
       </View>
 
-      {/* 4. Tab Content Body */}
+      {/* 2. Main Content Body */}
       <ScrollView
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollInner}
         showsVerticalScrollIndicator={false}
       >
+        {/* ==================== CUSTOMER-STYLE LIVE ORDER TRACKING HERO BANNER ==================== */}
+        {activeJob && activeJob.status !== 'Completed' && (
+          <TouchableOpacity
+            style={styles.customerTrackingBanner}
+            activeOpacity={0.88}
+            onPress={() => setActiveTab('jobs')}
+          >
+            <View style={styles.trackingBannerIconBox}>
+              <Text style={styles.trackingBannerIcon}>🛵</Text>
+            </View>
+            <View style={{ flex: 1, paddingRight: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                <Text style={styles.trackingBannerTitle}>
+                  {`Active Dispatch #${activeJob.id} • ${activeJob.status?.toUpperCase()}`}
+                </Text>
+                <View style={styles.trackingLivePill}>
+                  <Text style={styles.trackingLivePillText}>LIVE</Text>
+                </View>
+              </View>
+              <Text style={styles.trackingBannerSub} numberOfLines={1}>
+                {`${activeJob.service} • Customer: ${activeJob.customer} • Payout: ₹${activeJob.payout}`}
+              </Text>
+            </View>
+            <View style={styles.trackingBannerAction}>
+              <Text style={styles.trackingBannerActionText}>Manage ›</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+
+        {/* ==================== FESTIVE ROOFTOP CAROUSEL BANNER (CUSTOMER STYLE) ==================== */}
+        <View style={styles.festiveContainer}>
+          <View style={styles.festiveHeaderBar}>
+            <Text style={styles.festiveDiyasLeft}>🪔 🏮</Text>
+            <Text style={styles.festiveTitle}>HAPPY DIWALI • PARTNER PRO</Text>
+            <Text style={styles.festiveDiyasRight}>🏮 🪔</Text>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.festiveCardsScroll}
+          >
+            {/* Highlight Card 1: Today's Earnings */}
+            <TouchableOpacity
+              style={styles.workerFestiveMetricCard}
+              onPress={() => setActiveTab('earnings')}
+              activeOpacity={0.85}
+            >
+              <View style={styles.workerFestiveTag}>
+                <Text style={styles.workerFestiveTagText}>TODAY'S PAYOUT</Text>
+              </View>
+              <View style={styles.workerFestiveBody}>
+                <Text style={styles.workerFestiveValue}>₹{todayEarnings}</Text>
+                <Text style={styles.workerFestiveSub}>{completedCount} jobs completed</Text>
+                <Text style={styles.workerFestiveAction}>View Ledger →</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Highlight Card 2: Wallet Balance */}
+            <TouchableOpacity
+              style={[styles.workerFestiveMetricCard, { borderColor: '#10B981' }]}
+              onPress={() => setActiveTab('wallet')}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.workerFestiveTag, { backgroundColor: '#10B981' }]}>
+                <Text style={[styles.workerFestiveTagText, { color: '#FFFFFF' }]}>INSTANT WALLET</Text>
+              </View>
+              <View style={styles.workerFestiveBody}>
+                <Text style={[styles.workerFestiveValue, { color: '#10B981' }]}>₹{walletBalance}</Text>
+                <Text style={styles.workerFestiveSub}>Instant Bank Transfer</Text>
+                <Text style={[styles.workerFestiveAction, { color: '#10B981' }]}>Withdraw Now →</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Highlight Card 3: Rating & SLA */}
+            <TouchableOpacity
+              style={[styles.workerFestiveMetricCard, { borderColor: '#3B82F6' }]}
+              onPress={() => setActiveTab('quality')}
+              activeOpacity={0.85}
+            >
+              <View style={[styles.workerFestiveTag, { backgroundColor: '#3B82F6' }]}>
+                <Text style={[styles.workerFestiveTagText, { color: '#FFFFFF' }]}>DIAMOND PRO</Text>
+              </View>
+              <View style={styles.workerFestiveBody}>
+                <Text style={[styles.workerFestiveValue, { color: '#0F172A' }]}>★ 4.94</Text>
+                <Text style={styles.workerFestiveSub}>98.4% On-time SLA</Text>
+                <Text style={[styles.workerFestiveAction, { color: '#3B82F6' }]}>Check Reviews →</Text>
+              </View>
+            </TouchableOpacity>
+          </ScrollView>
+        </View>
+
+        {/* Section Heading: Doorstep Services / Active Tasks */}
+        <View style={styles.doorstepSectionHeader}>
+          <Text style={styles.doorstepSectionTitle}>Active Partner Operations</Text>
+          <Text style={styles.doorstepSectionSub}>Real-time dispatches, live customer tracking & SLAs</Text>
+        </View>
+
         {/* ==================== TAB 1: ACTIVE DISPATCH JOB ==================== */}
         {activeTab === 'jobs' && (
           <View style={styles.tabSection}>
@@ -910,9 +1121,9 @@ export default function WorkingPartnerDashboard({
                     <Text style={styles.detailValue}>{activeJob.customer}</Text>
                   </View>
 
-                  <View style={styles.detailRow}>
-                    <Text style={styles.detailLabel}>Address:</Text>
-                    <Text style={[styles.detailValue, { flex: 1, textAlign: 'right' }]}>
+                  <View style={[styles.detailRow, { alignItems: 'flex-start' }]}>
+                    <Text style={[styles.detailLabel, { marginTop: 2 }]}>Address:</Text>
+                    <Text style={[styles.detailValue, { flex: 1, textAlign: 'right', marginLeft: 8 }]}>
                       📍 {activeJob.address}
                     </Text>
                   </View>
@@ -1025,60 +1236,89 @@ export default function WorkingPartnerDashboard({
                   {(activeJob.stage === 6 || activeJob.status === 'Completed') && (
                     <View style={styles.completedSuccessCard}>
                       <Text style={styles.completedSuccessTitle}>✓ Service Completed & Payment Settled</Text>
-                      <TouchableOpacity
-                        style={styles.reopenStepBtn}
-                        onPress={() => handleManualStageUpdate(5, 'In Progress')}
-                        activeOpacity={0.8}
-                      >
-                        <Text style={styles.reopenStepBtnText}>🔄 Reopen Dispatch (Back to In Progress)</Text>
-                      </TouchableOpacity>
+                      <Text style={[styles.completedSuccessTitle, { fontSize: 12, fontWeight: '600', color: '#15803D', marginTop: 4 }]}>
+                        Workflow finalized. Payout credited to worker wallet.
+                      </Text>
                     </View>
                   )}
 
-                  {/* Manual Override Quick Stepper Bar */}
+                  {/* Strictly One-Way Progression Stepper Bar */}
                   <View style={styles.quickStepSelectorContainer}>
-                    <Text style={styles.quickStepLabel}>Manual Step Selector (Tap any step to set):</Text>
+                    <Text style={styles.quickStepLabel}>One-Way Progress Stepper (Completed steps are locked):</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.quickStepScroll}>
-                      <TouchableOpacity
-                        style={[styles.quickStepPill, (activeJob.stage <= 2 || activeJob.status === 'Assigned') && styles.quickStepPillActive]}
-                        onPress={() => handleManualStageUpdate(2, 'Assigned')}
-                      >
-                        <Text style={[styles.quickStepPillText, (activeJob.stage <= 2 || activeJob.status === 'Assigned') && styles.quickStepPillTextActive]}>
-                          📋 2. Assigned
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.quickStepPill, (activeJob.stage === 3 || activeJob.status === 'En Route') && styles.quickStepPillActive]}
-                        onPress={() => handleManualStageUpdate(3, 'En Route')}
-                      >
-                        <Text style={[styles.quickStepPillText, (activeJob.stage === 3 || activeJob.status === 'En Route') && styles.quickStepPillTextActive]}>
-                          🛵 3. En Route
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.quickStepPill, (activeJob.stage === 4 || activeJob.status === 'Arrived') && styles.quickStepPillActive]}
-                        onPress={() => handleManualStageUpdate(4, 'Arrived')}
-                      >
-                        <Text style={[styles.quickStepPillText, (activeJob.stage === 4 || activeJob.status === 'Arrived') && styles.quickStepPillTextActive]}>
-                          📍 4. Arrived
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.quickStepPill, (activeJob.stage === 5 || activeJob.status === 'In Progress') && styles.quickStepPillActive]}
-                        onPress={() => handleManualStageUpdate(5, 'In Progress')}
-                      >
-                        <Text style={[styles.quickStepPillText, (activeJob.stage === 5 || activeJob.status === 'In Progress') && styles.quickStepPillTextActive]}>
-                          ⚡ 5. In Progress
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.quickStepPill, (activeJob.stage === 6 || activeJob.status === 'Completed') && styles.quickStepPillActive]}
-                        onPress={() => handleManualStageUpdate(6, 'Completed')}
-                      >
-                        <Text style={[styles.quickStepPillText, (activeJob.stage === 6 || activeJob.status === 'Completed') && styles.quickStepPillTextActive]}>
-                          🎉 6. Completed
-                        </Text>
-                      </TouchableOpacity>
+                      {[
+                        { stage: 2, status: 'Assigned', label: '2. Assigned' },
+                        { stage: 3, status: 'En Route', label: '3. En Route' },
+                        { stage: 4, status: 'Arrived', label: '4. Arrived' },
+                        { stage: 5, status: 'In Progress', label: '5. In Progress' },
+                        { stage: 6, status: 'Completed', label: '6. Completed' }
+                      ].map((step) => {
+                        const currentStage = activeJob?.stage || (
+                          activeJob?.status === 'Completed' ? 6 :
+                          activeJob?.status === 'In Progress' ? 5 :
+                          activeJob?.status === 'Arrived' ? 4 :
+                          activeJob?.status === 'En Route' ? 3 : 2
+                        );
+                        const isCompleted = step.stage < currentStage;
+                        const isCurrent = step.stage === currentStage;
+                        const isNext = step.stage === currentStage + 1;
+                        const isLocked = step.stage > currentStage + 1;
+
+                        const handleStepPress = () => {
+                          if (isCompleted) {
+                            Alert.alert('Step Completed ✓', `Step "${step.label}" has already been completed. Service progress is strictly one-way.`);
+                            return;
+                          }
+                          if (isCurrent) {
+                            return;
+                          }
+                          if (isNext) {
+                            if (step.stage === 3) handleMarkEnRoute();
+                            else if (step.stage === 4) handleMarkArrived();
+                            else if (step.stage === 5) {
+                              if (!isOtpVerified) {
+                                Alert.alert('Customer Start OTP Required 🔑', 'Ask customer for their 4-digit start OTP and enter it in the OTP box below before beginning work.');
+                              } else {
+                                setCapturedSelfieUri(null);
+                                setSelfieModalPhase('pre');
+                                setShowSelfieModal(true);
+                              }
+                            } else if (step.stage === 6) {
+                              handleCompleteJob();
+                            } else {
+                              handleManualStageUpdate(step.stage, step.status);
+                            }
+                          }
+                        };
+
+                        return (
+                          <TouchableOpacity
+                            key={step.stage}
+                            disabled={isCompleted || isCurrent || isLocked}
+                            style={[
+                              styles.quickStepPill,
+                              isCompleted && styles.quickStepPillCompleted,
+                              isCurrent && styles.quickStepPillActive,
+                              isNext && styles.quickStepPillNext,
+                              isLocked && styles.quickStepPillLocked
+                            ]}
+                            onPress={handleStepPress}
+                            activeOpacity={isNext ? 0.75 : 1}
+                          >
+                            <Text
+                              style={[
+                                styles.quickStepPillText,
+                                isCompleted && styles.quickStepPillTextCompleted,
+                                isCurrent && styles.quickStepPillTextActive,
+                                isNext && styles.quickStepPillTextNext,
+                                isLocked && styles.quickStepPillTextLocked
+                              ]}
+                            >
+                              {isCompleted ? `✓ ${step.label}` : isCurrent ? `● ${step.label}` : isNext ? `👉 ${step.label}` : `🔒 ${step.label}`}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </ScrollView>
                   </View>
                 </View>
@@ -1113,7 +1353,7 @@ export default function WorkingPartnerDashboard({
                           onPress={handleVerifyStartOtp}
                           activeOpacity={0.8}
                         >
-                          <Text style={styles.verifyBtnText}>Verify OTP & Take Selfie 📸</Text>
+                          <Text style={styles.verifyBtnText} numberOfLines={1}>Verify OTP & Take Selfie 📸</Text>
                         </TouchableOpacity>
                       </View>
                     )}
@@ -1493,8 +1733,8 @@ export default function WorkingPartnerDashboard({
           </View>
         )}
 
-        {/* ==================== TAB 8: QUALITY & REVIEWS ==================== */}
-        {activeTab === 'quality' && (
+        {/* ==================== TAB 8: QUALITY & REVIEWS / PROFILE ==================== */}
+        {(activeTab === 'quality' || activeTab === 'profile') && (
           <View style={styles.tabSection}>
             <View style={styles.sectionHeaderBox}>
               <Text style={styles.sectionTitle}>⭐ Customer Reviews & Rating</Text>
@@ -1701,8 +1941,70 @@ export default function WorkingPartnerDashboard({
           </View>
         )}
 
-        <View style={{ height: 60 }} />
+        <View style={{ height: 80 }} />
       </ScrollView>
+
+      {/* ==================== CUSTOMER-STYLE BOTTOM NAVIGATION BAR ==================== */}
+      <View style={styles.bottomNavContainer}>
+        <TouchableOpacity
+          style={styles.bottomNavItem}
+          onPress={() => {
+            setActiveTab('jobs');
+            setSearchQuery('');
+          }}
+          activeOpacity={0.7}
+        >
+          {activeTab === 'jobs' && <View style={styles.bottomActiveIndicator} />}
+          <Text style={[styles.bottomNavIcon, activeTab === 'jobs' && styles.bottomNavActiveIcon]}>🏠</Text>
+          <Text style={[styles.bottomNavText, activeTab === 'jobs' && styles.bottomNavActiveText]}>Dispatches</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.bottomNavItem}
+          onPress={() => {
+            setActiveTab('leads');
+            setSearchQuery('');
+          }}
+          activeOpacity={0.7}
+        >
+          {activeTab === 'leads' && <View style={styles.bottomActiveIndicator} />}
+          <View style={{ position: 'relative' }}>
+            <Text style={[styles.bottomNavIcon, activeTab === 'leads' && styles.bottomNavActiveIcon]}>⚡</Text>
+            {availableLeads.length > 0 && (
+              <View style={styles.bottomBookingBadge}>
+                <Text style={styles.bottomBookingBadgeText}>{availableLeads.length}</Text>
+              </View>
+            )}
+          </View>
+          <Text style={[styles.bottomNavText, activeTab === 'leads' && styles.bottomNavActiveText]}>Hot Leads</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.bottomNavItem}
+          onPress={() => {
+            setActiveTab('wallet');
+            setSearchQuery('');
+          }}
+          activeOpacity={0.7}
+        >
+          {activeTab === 'wallet' && <View style={styles.bottomActiveIndicator} />}
+          <Text style={[styles.bottomNavIcon, activeTab === 'wallet' && styles.bottomNavActiveIcon]}>💰</Text>
+          <Text style={[styles.bottomNavText, activeTab === 'wallet' && styles.bottomNavActiveText]}>Earnings</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.bottomNavItem}
+          onPress={() => {
+            setActiveTab('quality');
+            setSearchQuery('');
+          }}
+          activeOpacity={0.7}
+        >
+          {(activeTab === 'quality' || activeTab === 'profile') && <View style={styles.bottomActiveIndicator} />}
+          <Text style={[styles.bottomNavIcon, (activeTab === 'quality' || activeTab === 'profile') && styles.bottomNavActiveIcon]}>👤</Text>
+          <Text style={[styles.bottomNavText, (activeTab === 'quality' || activeTab === 'profile') && styles.bottomNavActiveText]}>Profile</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* ==================== MANDATORY LIVE TECHNICIAN SELFIE CAMERA MODAL ==================== */}
       <Modal
@@ -1710,7 +2012,10 @@ export default function WorkingPartnerDashboard({
         animationType="slide"
         transparent={true}
         onRequestClose={() => {
-          if (!isUploadingSelfie) setShowSelfieModal(false);
+          if (!isUploadingSelfie) {
+            stopLiveCamera();
+            setShowSelfieModal(false);
+          }
         }}
       >
         <View style={styles.selfieModalOverlay}>
@@ -1728,7 +2033,13 @@ export default function WorkingPartnerDashboard({
                 </Text>
               </View>
               {!isUploadingSelfie && (
-                <TouchableOpacity onPress={() => setShowSelfieModal(false)} style={styles.selfieCloseBtn}>
+                <TouchableOpacity
+                  onPress={() => {
+                    stopLiveCamera();
+                    setShowSelfieModal(false);
+                  }}
+                  style={styles.selfieCloseBtn}
+                >
                   <Text style={styles.selfieCloseText}>✕</Text>
                 </TouchableOpacity>
               )}
@@ -1738,27 +2049,6 @@ export default function WorkingPartnerDashboard({
             <View style={styles.cloudinaryBadgeRow}>
               <Text style={styles.cloudinaryBadgeText}>☁️ Cloudinary Verified Vault: dlpzb0td2</Text>
             </View>
-
-            {/* Hidden Front Camera File Input for Web / iOS Safari / Android */}
-            {Platform.OS === 'web' && (
-              <input
-                id="technician-selfie-camera-file"
-                type="file"
-                accept="image/*"
-                capture="user"
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const file = e.target.files && e.target.files[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                      setCapturedSelfieUri(reader.result);
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }}
-              />
-            )}
 
             {/* Viewfinder / Captured Photo Preview */}
             <View style={styles.selfieViewfinderBox}>
@@ -1770,26 +2060,76 @@ export default function WorkingPartnerDashboard({
                   </View>
                   <TouchableOpacity
                     style={styles.retakeBtn}
-                    onPress={() => setCapturedSelfieUri(null)}
+                    onPress={() => {
+                      setCapturedSelfieUri(null);
+                      startLiveCamera();
+                    }}
                     disabled={isUploadingSelfie}
                   >
-                    <Text style={styles.retakeBtnText}>🔄 Retake Photo</Text>
+                    <Text style={styles.retakeBtnText}>🔄 Retake Live Selfie</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : isLiveCameraActive ? (
+                <View style={styles.liveCameraContainer}>
+                  {Platform.OS === 'web' && (
+                    <video
+                      ref={liveVideoRef}
+                      autoPlay
+                      playsInline
+                      muted
+                      style={{
+                        width: '100%',
+                        height: 230,
+                        objectFit: 'cover',
+                        borderRadius: 12,
+                        transform: 'scaleX(-1)',
+                        backgroundColor: '#000000'
+                      }}
+                    />
+                  )}
+                  <View style={styles.liveCameraOverlay}>
+                    <View style={styles.livePulsingRow}>
+                      <View style={styles.livePulsingDot} />
+                      <Text style={styles.livePulsingText}>LIVE WEBCAM ACTIVE</Text>
+                    </View>
+                    <View style={styles.faceGuideFrame} />
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.snapSelfieBtn}
+                    onPress={snapLiveSelfie}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.snapSelfieBtnText}>📸 Snap Live Selfie</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.closeLiveFeedBtn}
+                    onPress={stopLiveCamera}
+                  >
+                    <Text style={styles.closeLiveFeedText}>✕ Pause Camera Feed</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <View style={styles.selfieCameraPromptBox}>
-                  <Text style={{ fontSize: 48, marginBottom: 8 }}>🤳</Text>
-                  <Text style={styles.selfiePromptTitle}>Camera Selfie Required</Text>
+                  <Text style={{ fontSize: 44, marginBottom: 8 }}>📹</Text>
+                  <Text style={styles.selfiePromptTitle}>Live Camera Required</Text>
                   <Text style={styles.selfiePromptSub}>
-                    Hold camera at eye level. Ensure your face and technician uniform are clearly visible.
+                    Open your device's live front camera to take a real-time verification selfie.
                   </Text>
+
+                  {cameraError && (
+                    <View style={styles.cameraErrorBanner}>
+                      <Text style={styles.cameraErrorText}>⚠️ {cameraError}</Text>
+                    </View>
+                  )}
 
                   <TouchableOpacity
                     style={styles.launchCameraBtn}
-                    onPress={handleTriggerNativeCamera}
+                    onPress={startLiveCamera}
                     activeOpacity={0.85}
                   >
-                    <Text style={styles.launchCameraBtnText}>📷 Open Front Camera & Take Selfie</Text>
+                    <Text style={styles.launchCameraBtnText}>📹 Open Live Camera & Take Selfie</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -2345,10 +2685,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
     borderRadius: 20,
     gap: 6,
     borderWidth: 1,
+    height: 32,
+    justifyContent: 'center',
   },
   onlineActive: {
     backgroundColor: '#ECFDF5',
@@ -2377,10 +2718,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#FEF2F2',
     borderWidth: 1,
     borderColor: '#FEE2E2',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 14,
+    paddingHorizontal: 10,
+    borderRadius: 20,
     gap: 4,
+    height: 32,
+    justifyContent: 'center',
   },
   logoutIconSymbol: {
     color: '#DC2626',
@@ -2398,10 +2740,11 @@ const styles = StyleSheet.create({
     backgroundColor: '#EFF6FF',
     borderWidth: 1,
     borderColor: '#BFDBFE',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 14,
-    gap: 4,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    gap: 5,
+    height: 32,
+    justifyContent: 'center',
   },
   headerCustomerSwitchIcon: {
     fontSize: 11,
@@ -2410,6 +2753,19 @@ const styles = StyleSheet.create({
     color: '#1D4ED8',
     fontSize: 11,
     fontWeight: '700',
+  },
+  headerNotifBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerNotifIcon: {
+    fontSize: 13,
   },
   viewInCustomerTrackingBtn: {
     flexDirection: 'row',
@@ -2473,6 +2829,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.04,
     shadowRadius: 3,
     elevation: 1,
+    justifyContent: 'space-between',
+    minHeight: 84,
   },
   metricLabel: {
     color: '#64748B',
@@ -2627,14 +2985,15 @@ const styles = StyleSheet.create({
   },
   customerActionRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    marginTop: 6,
-    marginBottom: 8,
+    marginTop: 8,
+    marginBottom: 10,
   },
   chatCustomerBtn: {
     flex: 1,
+    height: 42,
     backgroundColor: '#2563EB',
-    paddingVertical: 10,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2650,11 +3009,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   callCustomerBtn: {
-    backgroundColor: '#F1F5F9',
+    height: 42,
+    backgroundColor: '#F8FAFC',
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingHorizontal: 18,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
@@ -2748,6 +3107,8 @@ const styles = StyleSheet.create({
   quickStepScroll: {
     flexDirection: 'row',
     gap: 6,
+    paddingRight: 16,
+    paddingBottom: 4,
   },
   quickStepPill: {
     backgroundColor: '#FFFFFF',
@@ -2761,6 +3122,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#0F172A',
     borderColor: '#0F172A',
   },
+  quickStepPillCompleted: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  quickStepPillNext: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#3B82F6',
+    borderWidth: 1.5,
+  },
+  quickStepPillLocked: {
+    backgroundColor: '#F8FAFC',
+    borderColor: '#E2E8F0',
+    opacity: 0.65,
+  },
   quickStepPillText: {
     color: '#475569',
     fontSize: 11,
@@ -2769,6 +3144,18 @@ const styles = StyleSheet.create({
   quickStepPillTextActive: {
     color: '#FFFFFF',
     fontWeight: '800',
+  },
+  quickStepPillTextCompleted: {
+    color: '#16A34A',
+    fontWeight: '700',
+  },
+  quickStepPillTextNext: {
+    color: '#1D4ED8',
+    fontWeight: '800',
+  },
+  quickStepPillTextLocked: {
+    color: '#94A3B8',
+    fontWeight: '600',
   },
   skipOtpBtn: {
     marginTop: 8,
@@ -2818,11 +3205,11 @@ const styles = StyleSheet.create({
   },
   otpSection: {
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   otpHeaderTitle: {
     color: '#0284C7',
@@ -2850,37 +3237,50 @@ const styles = StyleSheet.create({
   },
   otpInputRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
   },
   otpInput: {
-    flex: 1,
+    width: 90,
+    height: 44,
     backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#CBD5E1',
     color: '#0F172A',
-    paddingHorizontal: 12,
-    fontSize: 14,
+    paddingHorizontal: 8,
+    fontSize: 16,
     fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 2,
   },
   verifyBtn: {
+    flex: 1,
+    height: 44,
     backgroundColor: '#10B981',
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 8,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 3,
+    elevation: 2,
   },
   verifyBtnText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
+    textAlign: 'center',
   },
   photoUploadSection: {
     backgroundColor: '#F8FAFC',
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: '#E2E8F0',
-    marginBottom: 14,
+    marginBottom: 16,
   },
   photoSectionTitle: {
     color: '#0F172A',
@@ -2892,6 +3292,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     marginTop: 2,
     marginBottom: 10,
+    lineHeight: 15,
   },
   photoGrid: {
     flexDirection: 'row',
@@ -2908,13 +3309,15 @@ const styles = StyleSheet.create({
   },
   uploadPlaceholder: {
     backgroundColor: '#FFFFFF',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderStyle: 'dashed',
     borderColor: '#CBD5E1',
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 18,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    minHeight: 115,
   },
   uploadBtnText: {
     color: '#0284C7',
@@ -2931,8 +3334,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 10,
     alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1,
     borderColor: '#10B981',
+    minHeight: 115,
   },
   photoName: {
     color: '#0F172A',
@@ -4230,6 +4635,95 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textDecorationLine: 'underline',
   },
+  liveCameraContainer: {
+    width: '100%',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  liveCameraOverlay: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    right: 8,
+    height: 215,
+    pointerEvents: 'none',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  livePulsingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    alignSelf: 'flex-start',
+  },
+  livePulsingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#10B981',
+    marginRight: 6,
+  },
+  livePulsingText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  faceGuideFrame: {
+    width: 130,
+    height: 150,
+    borderRadius: 65,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderStyle: 'dashed',
+    marginBottom: 10,
+  },
+  snapSelfieBtn: {
+    backgroundColor: '#10B981',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    width: '100%',
+    marginTop: 10,
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  snapSelfieBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13.5,
+    fontWeight: '900',
+  },
+  closeLiveFeedBtn: {
+    paddingVertical: 6,
+    marginTop: 4,
+  },
+  closeLiveFeedText: {
+    color: '#64748B',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  cameraErrorBanner: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    padding: 8,
+    borderRadius: 8,
+    width: '100%',
+    marginBottom: 10,
+  },
+  cameraErrorText: {
+    color: '#DC2626',
+    fontSize: 11,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
   uploadSelfieSubmitBtn: {
     backgroundColor: '#10B981',
     paddingVertical: 14,
@@ -4252,5 +4746,413 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     textAlign: 'center',
+  },
+
+  // ==================== URBAN COMPANY CUSTOMER-STYLE COMPONENTS FOR WORKER ====================
+  ucCleanHeader: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 14,
+    paddingTop: Platform.OS === 'android' ? 36 : 8,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  ucHeaderTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  ucBrandAndLocation: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 6,
+  },
+  ucBrandLogoBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  ucBrandLogoText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  ucLocationContainer: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  ucLocationTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  ucLocationPin: {
+    fontSize: 13,
+    marginRight: 3,
+  },
+  ucLocationName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+    flexShrink: 1,
+    maxWidth: 140,
+  },
+  ucLocationArrow: {
+    fontSize: 12,
+    color: '#64748B',
+    marginLeft: 3,
+  },
+  ucLocationSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 1,
+  },
+  ucHeaderActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingRight: 2,
+  },
+  ucCoinsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  ucCoinsIcon: {
+    fontSize: 12,
+    marginRight: 3,
+  },
+  ucCoinsText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#92400E',
+  },
+  ucProfileAvatarBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#0F172A',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ucProfileAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  partnerTopUtilityRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  partnerInfoBadges: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sidebarMenuBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  sidebarMenuText: {
+    color: '#0F172A',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  ucSearchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F1F5F9',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  ucSearchIcon: {
+    fontSize: 15,
+    marginRight: 8,
+  },
+  ucSearchInput: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#0F172A',
+    paddingVertical: 0,
+  },
+  ucClearIcon: {
+    fontSize: 14,
+    color: '#94A3B8',
+    paddingHorizontal: 4,
+  },
+  ucQuickChipsScroll: {
+    flexDirection: 'row',
+    paddingTop: 8,
+    gap: 6,
+  },
+  ucQuickChip: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+  },
+  ucQuickChipActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  ucQuickChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  ucQuickChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+
+  // Customer Live Order Tracking Banner for Worker
+  customerTrackingBanner: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 6,
+    backgroundColor: '#FFF7ED',
+    borderWidth: 1.5,
+    borderColor: '#FED7AA',
+    borderRadius: 14,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#F04400',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  trackingBannerIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#FFEDD5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  trackingBannerIcon: {
+    fontSize: 20,
+  },
+  trackingBannerTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#9A3412',
+  },
+  trackingLivePill: {
+    backgroundColor: '#22C55E',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 4,
+  },
+  trackingLivePillText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  trackingBannerSub: {
+    fontSize: 11.5,
+    color: '#7C2D12',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  trackingBannerAction: {
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  trackingBannerActionText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+  },
+
+  // Festive Rooftop Banner (Customer Style)
+  festiveContainer: {
+    backgroundColor: '#D03800',
+    paddingTop: 12,
+    paddingBottom: 14,
+    marginTop: 10,
+  },
+  festiveHeaderBar: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  festiveDiyasLeft: {
+    fontSize: 14,
+    marginRight: 8,
+  },
+  festiveDiyasRight: {
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  festiveTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFD91A',
+    letterSpacing: 1.5,
+  },
+  festiveCardsScroll: {
+    paddingHorizontal: 14,
+    paddingBottom: 4,
+    gap: 10,
+  },
+  workerFestiveMetricCard: {
+    width: 145,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#FFD91A',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  workerFestiveTag: {
+    backgroundColor: '#FFD91A',
+    paddingVertical: 3,
+    alignItems: 'center',
+  },
+  workerFestiveTagText: {
+    color: '#000000',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  workerFestiveBody: {
+    padding: 10,
+  },
+  workerFestiveValue: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  workerFestiveSub: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  workerFestiveAction: {
+    fontSize: 10,
+    color: '#D03800',
+    fontWeight: '800',
+    marginTop: 6,
+  },
+
+  doorstepSectionHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 4,
+  },
+  doorstepSectionTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  doorstepSectionSub: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 2,
+  },
+
+  // Bottom Navigation Bar (Customer Style)
+  bottomNavContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#E2E8F0',
+    height: Platform.OS === 'ios' ? 76 : 62,
+    paddingTop: 6,
+    paddingBottom: Platform.OS === 'ios' ? 20 : 6,
+    elevation: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+  },
+  bottomNavItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flex: 1,
+    height: 48,
+    position: 'relative',
+  },
+  bottomNavIcon: {
+    fontSize: 20,
+    marginBottom: 2,
+    opacity: 0.45,
+  },
+  bottomNavActiveIcon: {
+    opacity: 1,
+    transform: [{ scale: 1.08 }],
+  },
+  bottomNavText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#64748B',
+  },
+  bottomNavActiveText: {
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  bottomActiveIndicator: {
+    position: 'absolute',
+    top: -6,
+    width: 24,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: '#0F172A',
+  },
+  bottomBookingBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: '#0F172A',
+    borderRadius: 9,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+  },
+  bottomBookingBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '800',
   },
 });

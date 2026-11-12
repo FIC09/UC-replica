@@ -39,12 +39,13 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
   });
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    if (sessionStorage.getItem('uc_partner_token') || localStorage.getItem('uc_partner_token')) {
+    const token = sessionStorage.getItem('uc_partner_token') || localStorage.getItem('uc_partner_token');
+    if (token && token !== 'simulated-partner-jwt-token') {
       return true;
     }
     try {
       const u = JSON.parse(localStorage.getItem('uc_user'));
-      if (u && (u.role === 'partner' || (u.email && u.email.includes('partner')))) {
+      if (u && u.role === 'partner' && u.token) {
         return true;
       }
     } catch {}
