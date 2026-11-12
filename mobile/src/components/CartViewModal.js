@@ -278,11 +278,11 @@ export default function CartViewModal({
                 </View>
               </View>
 
-              {/* Urban Company Assurance Card */}
+              {/* Forge India Connect Assurance Card */}
               <View style={styles.assuranceCard}>
                 <Text style={styles.assuranceIcon}>🛡️</Text>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.assuranceTitle}>Urban Company 100% Assurance</Text>
+                  <Text style={styles.assuranceTitle}>Forge India Connect 100% Assurance</Text>
                   <Text style={styles.assurancePoint}>• 30-Day service warranty & free rework guarantee</Text>
                   <Text style={styles.assurancePoint}>• Background-verified specialist with safety kit</Text>
                   <Text style={styles.assurancePoint}>• Free cancellation up to 2 hours before chosen slot</Text>

@@ -248,11 +248,13 @@ export default function LoginAuthModal({
               <Text style={styles.roleDescription}>
                 {authMode === 'signin'
                   ? 'Enter your registered email and password to access your dashboard.'
-                  : 'Register your email and set a password. A 6-digit real-time OTP will be sent to your inbox.'}
+                  : step === 'otp'
+                    ? `Enter the 6-digit verification code sent to ${email || 'your email'}.`
+                    : 'Register your email and set a password. A 6-digit real-time OTP will be sent to your inbox.'}
               </Text>
             </View>
 
-            {statusMessage ? (
+            {statusMessage && step !== 'otp' ? (
               <View style={styles.statusBox}>
                 <Text style={styles.statusText}>{statusMessage}</Text>
               </View>
@@ -262,14 +264,6 @@ export default function LoginAuthModal({
             {step === 'otp' ? (
               /* OTP VERIFICATION STEP (During Create Account) */
               <View style={styles.formSection}>
-                <View style={styles.otpNoticeBox}>
-                  <Text style={styles.otpNoticeTitle}>Check Your Email Inbox</Text>
-                  <Text style={styles.otpNoticeEmail}>Dispatched to: {email}</Text>
-                  <Text style={styles.otpNoticeSub}>
-                    Please enter the 6-digit verification code sent to your inbox. Valid for 10 minutes.
-                  </Text>
-                </View>
-
                 <Text style={styles.inputLabel}>Enter 6-Digit Verification OTP *</Text>
                 <TextInput
                   style={styles.otpBigInput}

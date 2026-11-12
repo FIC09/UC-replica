@@ -177,7 +177,7 @@ export function WorkerReviewPage({ bookingId, onNavigateHome }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <ShieldCheck size={18} color="#059669" />
           <span style={{ fontSize: 13, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.01em' }}>
-            Urban Company Verified Feedback
+            Forge India Connect Verified Feedback
           </span>
         </div>
       </div>

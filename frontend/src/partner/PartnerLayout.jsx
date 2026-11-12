@@ -4,9 +4,11 @@ import {
   FileText, AlertTriangle, Bell, 
   BarChart3, ShieldCheck, History, Settings, ChevronLeft, 
   ChevronRight, LogOut, Menu, X, CheckCircle2, Shield, RotateCcw,
-  Briefcase, Users, Calendar, Radio
+  Briefcase, Users, Calendar, Radio, PhoneCall
 } from 'lucide-react';
 import { partnerClient } from './partnerClient';
+import { useWebRtcVoiceCall } from '../utils/useWebRtcVoiceCall';
+import { WebRtcCallModal } from '../components/WebRtcCallModal';
 
 export function PartnerLayout({
   children,
@@ -20,6 +22,12 @@ export function PartnerLayout({
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Real-time VoIP Calling for Worker Portal (Receives calls from Customers & dials out)
+  const webrtcVoice = useWebRtcVoiceCall({
+    currentUserRole: 'professional',
+    currentUserId: staff?.id || partner?.id || 'pro-specialist-1'
+  });
 
   const navGroups = [
     {
@@ -449,6 +457,26 @@ export function PartnerLayout({
           </div>
         </main>
       </div>
+
+      {/* Real-time WebRTC Voice Calling Interface (Worker Receives & Answers Calls) */}
+      <WebRtcCallModal
+        callState={webrtcVoice.callState}
+        callStatusText={webrtcVoice.callStatusText}
+        callError={webrtcVoice.callError}
+        callSeconds={webrtcVoice.callSeconds}
+        formattedCallTime={webrtcVoice.formattedCallTime}
+        isMuted={webrtcVoice.isMuted}
+        isSpeaker={webrtcVoice.isSpeaker}
+        activeCall={webrtcVoice.activeCall}
+        incomingCall={webrtcVoice.incomingCall}
+        onAccept={webrtcVoice.acceptCall}
+        onReject={webrtcVoice.rejectCall}
+        onToggleMute={webrtcVoice.toggleMute}
+        onToggleSpeaker={webrtcVoice.toggleSpeaker}
+        onEndCall={webrtcVoice.endCall}
+        peerName={webrtcVoice.incomingCall?.callerName || webrtcVoice.activeCall?.peerName || 'Customer'}
+        peerRole="Service Customer"
+      />
 
       <style>{`
         @media (max-width: 899px) {

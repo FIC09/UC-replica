@@ -272,7 +272,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
             <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
               <span>⚠️</span> Strict Compliance Notice
             </div>
-            Registration or document submission does not automatically approve a professional. Worker privileges (job dispatches, live duty status, wallet withdrawals) remain locked until verified by an Urban Company compliance officer.
+            Registration or document submission does not automatically approve a professional. Worker privileges (job dispatches, live duty status, wallet withdrawals) remain locked until verified by a Forge India Connect compliance officer.
           </div>
 
           <div style={{

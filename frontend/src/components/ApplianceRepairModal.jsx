@@ -21,7 +21,7 @@ export function ApplianceRepairModal({ isOpen, onClose, onSelectAppliance }) {
 
   if (!isOpen) return null;
 
-  // 9 Appliance items exactly matching the official Urban Company modal screenshot
+  // 9 Appliance items exactly matching the official Forge India Connect modal screenshot
   const APPLIANCES = [
     {
       id: 'ac',

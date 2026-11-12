@@ -31,7 +31,7 @@ export function LaptopServicePage({
   const [selectedDetailItem, setSelectedDetailItem] = useState(null);
   const [isWarrantyModalOpen, setIsWarrantyModalOpen] = useState(false);
 
-  // Catalogue of Laptop services matching official Urban Company screenshot
+  // Catalogue of Laptop services matching official Forge India Connect screenshot
   const LAPTOP_SERVICES = [
     {
       id: 'laptop-desktop-service',
@@ -216,7 +216,7 @@ export function LaptopServicePage({
           justifyContent: 'space-between',
           gap: 16
         }}>
-          {/* Left: Back Arrow + Urban Company Logo */}
+          {/* Left: Back Arrow + Forge India Connect Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div 
               onClick={onBackHome}
@@ -1070,7 +1070,7 @@ export function LaptopServicePage({
                   <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
                     Forge Service Warranty
                   </h3>
-                  <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>Urban Company Certified Protection</p>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>Forge India Connect Certified Protection</p>
                 </div>
               </div>
               <button 

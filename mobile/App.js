@@ -12,7 +12,8 @@ import {
   Platform,
   Image,
   Modal,
-  Alert
+  Alert,
+  Linking
 } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
@@ -641,7 +642,7 @@ const FESTIVE_CARDS = [
   },
   {
     id: 'festive-4',
-    title: 'Diwali lights & decor',
+    title: 'Home lighting & decor',
     tag: 'Festive Deal',
     image: IMAGES.decorAbstractFrame,
     bgColor: '#000000',
@@ -2343,6 +2344,71 @@ export default function App() {
   const [showProfileMenuModal, setShowProfileMenuModal] = useState(false);
   const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showSafetyModal, setShowSafetyModal] = useState(false);
+  const [showHelpSupportModal, setShowHelpSupportModal] = useState(false);
+  const [showAddressesModal, setShowAddressesModal] = useState(false);
+  const [showPaymentMethodsModal, setShowPaymentMethodsModal] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState(null);
+
+  const [savedAddresses, setSavedAddresses] = useState([
+    {
+      id: 'addr-1',
+      title: 'Home',
+      tag: 'Default',
+      fullAddress: 'Flat 302, Green Park, Rayakottai Road, Krishnagiri, Tamil Nadu - 635001',
+      isDefault: true,
+      icon: '🏠'
+    },
+    {
+      id: 'addr-2',
+      title: 'Work / Office',
+      tag: 'Office',
+      fullAddress: 'Brigade Tech Gardens, Outer Ring Road, Bangalore, Karnataka - 560037',
+      isDefault: false,
+      icon: '🏢'
+    },
+    {
+      id: 'addr-3',
+      title: "Parents' House",
+      tag: 'Family',
+      fullAddress: 'No. 45, Gandhi Street, T. Nagar, Chennai, Tamil Nadu - 600017',
+      isDefault: false,
+      icon: '🏡'
+    }
+  ]);
+
+  const [savedPaymentMethods, setSavedPaymentMethods] = useState([
+    {
+      id: 'pay-1',
+      type: 'upi',
+      title: 'Google Pay / PhonePe UPI',
+      detail: '9820012345@okhdfcbank',
+      isDefault: true,
+      icon: '📱'
+    },
+    {
+      id: 'pay-2',
+      type: 'card',
+      title: 'HDFC Regalia Credit Card',
+      detail: '•••• •••• •••• 4112  |  Exp 08/28',
+      isDefault: false,
+      icon: '💳'
+    },
+    {
+      id: 'pay-3',
+      type: 'card',
+      title: 'ICICI Platinum Debit Card',
+      detail: '•••• •••• •••• 8892  |  Exp 11/27',
+      isDefault: false,
+      icon: '💳'
+    }
+  ]);
+  const [walletBalance, setWalletBalance] = useState(350);
+  const [showAddAddressForm, setShowAddAddressForm] = useState(false);
+  const [newAddressTitle, setNewAddressTitle] = useState('');
+  const [newAddressText, setNewAddressText] = useState('');
+  const [showAddPaymentForm, setShowAddPaymentForm] = useState(false);
+  const [newUpiInput, setNewUpiInput] = useState('');
   const [editProfileForm, setEditProfileForm] = useState({
     name: '',
     email: '',
@@ -2376,6 +2442,13 @@ export default function App() {
       phone: trimmedPhone || (prev?.phone || '+91 98200 12345')
     }));
 
+    mobileApi.updateProfile({
+      id: currentUser?._id || currentUser?.id,
+      email: trimmedEmail || currentUser?.email,
+      name: trimmedName,
+      phone: trimmedPhone || currentUser?.phone
+    }).catch((e) => console.warn('Could not sync profile to backend:', e?.message));
+
     setShowEditProfileModal(false);
     Alert.alert('Profile Saved ✓', `Your details have been updated successfully in real-time:\n\n• Name: ${trimmedName}\n• Email: ${trimmedEmail || 'customer@forgeindia.in'}\n• Phone: ${trimmedPhone || '+91 98200 12345'}`);
   };
@@ -2402,44 +2475,7 @@ export default function App() {
   const [bookingFilter, setBookingFilter] = useState('all');
   const [selectedCategoryTab, setSelectedCategoryTab] = useState('all');
   const [showCartModal, setShowCartModal] = useState(false);
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 'srv-pipeline-1',
-      title: 'pipe line services',
-      category: 'AC & Appliance Repair',
-      price: 690,
-      originalPrice: 863,
-      duration: '60 mins',
-      qty: 1
-    },
-    {
-      id: 'srv-powerjet-1',
-      title: 'PowerJet AC Servicing',
-      category: 'AC & Appliance Repair',
-      price: 499,
-      originalPrice: 799,
-      duration: '45 mins',
-      qty: 1
-    },
-    {
-      id: 'srv-antirust-1',
-      title: 'Anti-rust Deep AC Foam Jet',
-      category: 'AC & Appliance Repair',
-      price: 499,
-      originalPrice: 799,
-      duration: '45 mins',
-      qty: 1
-    },
-    {
-      id: 'srv-coil-clean-1',
-      title: 'AC Indoor Coil Deep Cleaning',
-      category: 'AC & Appliance Repair',
-      price: 308,
-      originalPrice: 735,
-      duration: '30 mins',
-      qty: 1
-    }
-  ]);
+  const [cartItems, setCartItems] = useState([]);
 
   const totalCartCount = cartItems.reduce((acc, it) => acc + (it.qty || 1), 0);
   const cartCount = totalCartCount;
@@ -2611,29 +2647,33 @@ export default function App() {
       ? activeCustomerBooking.id
       : `UC-${String(activeCustomerBooking.id).replace(/^(JOB|LEAD)[-_]?/i, '')}`;
 
+    let isPolling = false;
     const poller = setInterval(async () => {
+      if (isPolling || showVoipCallModal) return;
+      isPolling = true;
       try {
-        if (!showVoipCallModal) {
-          const res = await mobileApi.getActiveCall(cleanId);
-          if (res && res.success && res.activeCall) {
-            const call = res.activeCall;
-            if ((call.status === 'ringing' || call.status === 'initiated') && call.callerRole !== 'customer') {
-              setVoipCallData({
-                callId: call.callId,
-                bookingId: call.bookingId,
-                callerName: call.callerName || 'Certified Specialist',
-                callerRole: call.callerRole || 'worker',
-                receiverName: call.receiverName || currentUser?.name || 'Customer',
-                receiverRole: 'customer',
-                service: activeCustomerBooking.service || 'Doorstep Service'
-              });
-              setIsVoipIncoming(true);
-              setShowVoipCallModal(true);
-            }
+        const res = await mobileApi.getActiveCall(cleanId);
+        if (res && res.success && res.activeCall) {
+          const call = res.activeCall;
+          if ((call.status === 'ringing' || call.status === 'initiated') && call.callerRole !== 'customer') {
+            setVoipCallData({
+              callId: call.callId,
+              bookingId: call.bookingId,
+              callerName: call.callerName || 'Certified Specialist',
+              callerRole: call.callerRole || 'worker',
+              receiverName: call.receiverName || currentUser?.name || 'Customer',
+              receiverRole: 'customer',
+              service: activeCustomerBooking.service || 'Doorstep Service'
+            });
+            setIsVoipIncoming(true);
+            setShowVoipCallModal(true);
           }
         }
       } catch (_) {}
-    }, 2000);
+      finally {
+        isPolling = false;
+      }
+    }, 4000);
 
     return () => clearInterval(poller);
   }, [isAuthenticated, activeCustomerBooking?.id, showVoipCallModal, currentUser?.name]);
@@ -2831,11 +2871,26 @@ export default function App() {
     mobileApi.checkHealth().catch(() => {});
     fetchLiveServices();
     syncActiveBooking();
-    const interval = setInterval(() => {
+
+    let isSyncing = false;
+    const bookingInterval = setInterval(async () => {
+      if (isSyncing) return;
+      isSyncing = true;
+      try {
+        await syncActiveBooking();
+      } finally {
+        isSyncing = false;
+      }
+    }, 8000);
+
+    const servicesInterval = setInterval(() => {
       fetchLiveServices();
-      syncActiveBooking();
-    }, 3000);
-    return () => clearInterval(interval);
+    }, 60000);
+
+    return () => {
+      clearInterval(bookingInterval);
+      clearInterval(servicesInterval);
+    };
   }, [isAuthenticated]);
 
   const handleAddService = (item) => {
@@ -3094,13 +3149,13 @@ export default function App() {
           activeOpacity={0.88}
           onPress={() => {
             setScratchedCardId('card-1');
-            Alert.alert('Coupon Revealed! 🎉', 'You unlocked FLAT ₹150 OFF on AC Repair & Cleaning!\nUse code: DIWALI150');
+            Alert.alert('Coupon Revealed! 🎉', 'You unlocked FLAT ₹150 OFF on AC Repair & Cleaning!\nUse code: SAVE150');
           }}
         >
           <Text style={styles.scratchCardIcon}>🎁</Text>
-          <Text style={styles.scratchCardTitle}>Diwali Surprise</Text>
+          <Text style={styles.scratchCardTitle}>Special Reward</Text>
           <Text style={styles.scratchCardSub}>
-            {scratchedCardId === 'card-1' ? 'CODE: DIWALI150\n(Flat ₹150 OFF)' : 'Tap to Scratch'}
+            {scratchedCardId === 'card-1' ? 'CODE: SAVE150\n(Flat ₹150 OFF)' : 'Tap to Scratch'}
           </Text>
         </TouchableOpacity>
 
@@ -3668,7 +3723,7 @@ export default function App() {
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 }}>
               <Text style={styles.profileUserName}>{currentUser?.name || 'Rahul Sharma'}</Text>
               <View style={styles.profilePlusBadge}>
-                <Text style={styles.profilePlusBadgeText}>👑 UC PLUS</Text>
+                <Text style={styles.profilePlusBadgeText}>👑 FIC PLUS</Text>
               </View>
             </View>
             <Text style={styles.profileUserEmail}>{currentUser?.email || 'customer@forgeindia.in'}</Text>
@@ -3697,9 +3752,9 @@ export default function App() {
           <TouchableOpacity
             style={styles.profileStatItem}
             activeOpacity={0.8}
-            onPress={() => Alert.alert('Saved Addresses', '1. Flat 302, Green Park, Rayakottai Rd (Home)\n2. Brigade Tech Gardens, Bangalore (Work)')}
+            onPress={() => setShowAddressesModal(true)}
           >
-            <Text style={styles.profileStatNumber}>2</Text>
+            <Text style={styles.profileStatNumber}>{savedAddresses.length}</Text>
             <Text style={styles.profileStatLabel}>Addresses</Text>
           </TouchableOpacity>
         </View>
@@ -3724,7 +3779,8 @@ export default function App() {
 
           <TouchableOpacity
             style={styles.profileMenuItem}
-            onPress={() => Alert.alert('Saved Addresses', '1. Home: Flat 302, Green Park, Rayakottai Rd, Krishnagiri\n2. Work: Brigade Tech Gardens, Outer Ring Rd, Bangalore')}
+            activeOpacity={0.7}
+            onPress={() => setShowAddressesModal(true)}
           >
             <View style={styles.profileMenuIconBox}>
               <Text style={styles.profileMenuIcon}>📍</Text>
@@ -3738,7 +3794,8 @@ export default function App() {
 
           <TouchableOpacity
             style={styles.profileMenuItem}
-            onPress={() => Alert.alert('Payment Methods', '• Saved Cards: HDFC Regalia Visa ending in 4112\n• UPI: 9820012345@okhdfcbank (Default)\n• UC Wallet Balance: ₹350')}
+            activeOpacity={0.7}
+            onPress={() => setShowPaymentMethodsModal(true)}
           >
             <View style={styles.profileMenuIconBox}>
               <Text style={styles.profileMenuIcon}>💳</Text>
@@ -3757,13 +3814,14 @@ export default function App() {
 
           <TouchableOpacity
             style={styles.profileMenuItem}
-            onPress={() => Alert.alert('UC Insurance & Protection', 'Every service booking comes with standard ₹10,000 damage protection guarantee.')}
+            activeOpacity={0.7}
+            onPress={() => setShowSafetyModal(true)}
           >
             <View style={styles.profileMenuIconBox}>
               <Text style={styles.profileMenuIcon}>🛡️</Text>
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.profileMenuTitle}>UC Safety & Insurance Guarantee</Text>
+              <Text style={styles.profileMenuTitle}>FIC Safety & Insurance Guarantee</Text>
               <Text style={styles.profileMenuSub}>100% background checked & ₹10,000 cover</Text>
             </View>
             <Text style={styles.profileMenuChevron}>›</Text>
@@ -3771,7 +3829,8 @@ export default function App() {
 
           <TouchableOpacity
             style={styles.profileMenuItem}
-            onPress={() => Alert.alert('24x7 Help Center', 'Customer Support Hotline: 1800-123-4567\nWhatsApp Support: +91 91234 56789\nAverage wait time: < 1 min')}
+            activeOpacity={0.7}
+            onPress={() => setShowHelpSupportModal(true)}
           >
             <View style={styles.profileMenuIconBox}>
               <Text style={styles.profileMenuIcon}>💬</Text>
@@ -3784,28 +3843,6 @@ export default function App() {
           </TouchableOpacity>
         </View>
 
-        {/* Working Partner Mode Switcher Button */}
-        <TouchableOpacity
-          style={styles.switchPartnerModeBtn}
-          activeOpacity={0.88}
-          onPress={() => {
-            setCurrentUser((prev) => ({
-              ...(prev || {}),
-              role: 'partner',
-              name: prev?.name && prev?.name !== 'Customer' && prev?.name !== 'Rahul Sharma' ? prev.name : 'Vikram Salvi',
-              email: prev?.email || 'partner@forgeindia.in',
-              trade: 'Master AC Specialist & Electrician'
-            }));
-          }}
-        >
-          <Text style={styles.switchPartnerModeIcon}>👷</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.switchPartnerModeTitle}>Switch to Working Partner Portal</Text>
-            <Text style={styles.switchPartnerModeSub}>View assigned jobs, hot leads queue & dispatch tracker</Text>
-          </View>
-          <Text style={styles.switchPartnerModeArrow}>→</Text>
-        </TouchableOpacity>
-
         {/* Log Out */}
         <TouchableOpacity
           style={styles.profileLogoutBtn}
@@ -3817,7 +3854,7 @@ export default function App() {
           <Text style={styles.profileLogoutBtnText}>Log Out</Text>
         </TouchableOpacity>
 
-        <Text style={styles.profileAppVersionText}>Urban Company Mobile v4.18.2 • Chennai</Text>
+        <Text style={styles.profileAppVersionText}>Forge India Connect Mobile v4.18.2 • Chennai</Text>
       </ScrollView>
     );
   };
@@ -4510,53 +4547,6 @@ export default function App() {
         </View>
       </TouchableOpacity>
 
-      {/* 1. FESTIVE DIWALI ROOFTOP CAROUSEL BANNER (At Top of Homes) */}
-      <View style={styles.festiveContainer}>
-        <View style={styles.festiveHeaderBar}>
-          <Text style={styles.festiveDiyasLeft}>🪔 🏮</Text>
-          <Text style={styles.festiveTitle}>HAPPY DIWALI</Text>
-          <Text style={styles.festiveDiyasRight}>🏮 🪔</Text>
-        </View>
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.festiveCardsScroll}
-        >
-          {FESTIVE_CARDS.map((card, idx) => (
-            <TouchableOpacity
-              key={card.id}
-              activeOpacity={0.9}
-              style={[
-                styles.festiveCard,
-                idx === 0 && { marginLeft: 16 },
-                idx === FESTIVE_CARDS.length - 1 && { marginRight: 16 }
-              ]}
-              onPress={() => handleAddService({ title: card.title, price: '₹399' })}
-            >
-              {card.tag && (
-                <View style={styles.festiveTag}>
-                  <Text style={styles.festiveTagText}>{card.tag}</Text>
-                </View>
-              )}
-
-              <SafeImage source={card.image} item={card} style={styles.festiveCardImage} />
-
-              <View style={styles.festiveCardFooter}>
-                <Text style={styles.festiveCardTitle} numberOfLines={1}>
-                  {card.title}
-                </Text>
-              </View>
-
-              <View style={styles.cornerDotTL} />
-              <View style={styles.cornerDotTR} />
-              <View style={styles.cornerDotBL} />
-              <View style={styles.cornerDotBR} />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
       {/* 2. HOMES HERO: "Home services at your doorstep" + "What are you looking for?" + 4-Mosaic (Screenshot 1) */}
       <View style={styles.webHeroSection}>
         <Text style={styles.doorstepHeadline}>
@@ -5151,20 +5141,14 @@ export default function App() {
         <TouchableOpacity
           style={styles.cartIconWrapper}
           activeOpacity={0.8}
-          onPress={() => handleOpenCart({
-            id: 'srv-native-purifier',
-            title: 'Native M1 Water Purifier',
-            price: 499,
-            originalPrice: 799,
-            rating: 4.84,
-            time: '60 mins',
-            category: 'Water Purifier'
-          })}
+          onPress={() => setShowCartModal(true)}
         >
           <Text style={styles.cartIconText}>🛒</Text>
-          <View style={styles.cartCountBadge}>
-            <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
-          </View>
+          {totalCartCount > 0 && (
+            <View style={styles.cartCountBadge}>
+              <Text style={styles.cartCountBadgeText}>{totalCartCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -5249,18 +5233,20 @@ export default function App() {
       </ScrollView>
 
       {/* Sticky Bottom Cart Bar */}
-      <View style={styles.npStickyCartBar}>
-        <View>
-          <Text style={styles.npStickyCartItems}>Cart ({totalCartCount || 1} items)</Text>
-          <Text style={styles.npStickyCartPrice}>₹{totalCartPrice.toLocaleString('en-IN')}</Text>
+      {totalCartCount > 0 && (
+        <View style={styles.npStickyCartBar}>
+          <View>
+            <Text style={styles.npStickyCartItems}>Cart ({totalCartCount} item{totalCartCount > 1 ? 's' : ''})</Text>
+            <Text style={styles.npStickyCartPrice}>₹{totalCartPrice.toLocaleString('en-IN')}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.npCheckoutBtn}
+            onPress={() => setShowCartModal(true)}
+          >
+            <Text style={styles.npCheckoutBtnText}>View Cart  ›</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.npCheckoutBtn}
-          onPress={() => setShowCartModal(true)}
-        >
-          <Text style={styles.npCheckoutBtnText}>View Cart  ›</Text>
-        </TouchableOpacity>
-      </View>
+      )}
     </View>
   );
 
@@ -5280,20 +5266,14 @@ export default function App() {
         <TouchableOpacity
           style={styles.cartIconWrapper}
           activeOpacity={0.8}
-          onPress={() => handleOpenCart({
-            id: 'srv-native-purifier',
-            title: 'Native M1 Water Purifier',
-            price: 499,
-            originalPrice: 799,
-            rating: 4.84,
-            time: '60 mins',
-            category: 'Water Purifier'
-          })}
+          onPress={() => setShowCartModal(true)}
         >
           <Text style={styles.cartIconText}>🛒</Text>
-          <View style={styles.cartCountBadge}>
-            <Text style={styles.cartCountBadgeText}>{cartCount || 1}</Text>
-          </View>
+          {totalCartCount > 0 && (
+            <View style={styles.cartCountBadge}>
+              <Text style={styles.cartCountBadgeText}>{totalCartCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -5499,9 +5479,11 @@ export default function App() {
               onPress={() => setShowCartModal(true)}
             >
               <Text style={styles.cartIconText}>🛒</Text>
-              <View style={styles.cartCountBadge}>
-                <Text style={styles.cartCountBadgeText}>{totalCartCount || 1}</Text>
-              </View>
+              {totalCartCount > 0 && (
+                <View style={styles.cartCountBadge}>
+                  <Text style={styles.cartCountBadgeText}>{totalCartCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -5689,23 +5671,25 @@ export default function App() {
         </ScrollView>
 
         {/* Sticky Floating View Cart Bottom Bar matching Screenshot 2 */}
-        <View style={styles.salonStickyCartBar}>
-          <View>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-              <Text style={styles.salonCartPriceMain}>₹{totalCartPrice.toLocaleString('en-IN')}</Text>
-              <Text style={styles.salonCartPriceOrig}>₹{totalCartOrigPrice.toLocaleString('en-IN')}</Text>
+        {totalCartCount > 0 && (
+          <View style={styles.salonStickyCartBar}>
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                <Text style={styles.salonCartPriceMain}>₹{totalCartPrice.toLocaleString('en-IN')}</Text>
+                <Text style={styles.salonCartPriceOrig}>₹{totalCartOrigPrice.toLocaleString('en-IN')}</Text>
+              </View>
+              <Text style={styles.salonCartItemsLabel}>{totalCartCount} service{totalCartCount > 1 ? 's' : ''} in cart</Text>
             </View>
-            <Text style={styles.salonCartItemsLabel}>{totalCartCount || 1} service{totalCartCount > 1 ? 's' : ''} in cart</Text>
-          </View>
 
-          <TouchableOpacity
-            style={styles.salonViewCartBtn}
-            activeOpacity={0.85}
-            onPress={() => setShowCartModal(true)}
-          >
-            <Text style={styles.salonViewCartBtnText}>View Cart  ›</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.salonViewCartBtn}
+              activeOpacity={0.85}
+              onPress={() => setShowCartModal(true)}
+            >
+              <Text style={styles.salonViewCartBtnText}>View Cart  ›</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   };
@@ -5863,9 +5847,11 @@ export default function App() {
               onPress={() => setShowCartModal(true)}
             >
               <Text style={styles.cartIconText}>🛒</Text>
-              <View style={styles.cartCountBadge}>
-                <Text style={styles.cartCountBadgeText}>{totalCartCount || 1}</Text>
-              </View>
+              {totalCartCount > 0 && (
+                <View style={styles.cartCountBadge}>
+                  <Text style={styles.cartCountBadgeText}>{totalCartCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -6026,23 +6012,25 @@ export default function App() {
         </ScrollView>
 
         {/* Sticky Floating View Cart Bottom Bar */}
-        <View style={styles.salonStickyCartBar}>
-          <View>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-              <Text style={styles.salonCartPriceMain}>₹{totalCartPrice.toLocaleString('en-IN')}</Text>
-              <Text style={styles.salonCartPriceOrig}>₹{totalCartOrigPrice.toLocaleString('en-IN')}</Text>
+        {totalCartCount > 0 && (
+          <View style={styles.salonStickyCartBar}>
+            <View>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                <Text style={styles.salonCartPriceMain}>₹{totalCartPrice.toLocaleString('en-IN')}</Text>
+                <Text style={styles.salonCartPriceOrig}>₹{totalCartOrigPrice.toLocaleString('en-IN')}</Text>
+              </View>
+              <Text style={styles.salonCartItemsLabel}>{totalCartCount} service{totalCartCount > 1 ? 's' : ''} in cart</Text>
             </View>
-            <Text style={styles.salonCartItemsLabel}>{totalCartCount || 1} service{totalCartCount > 1 ? 's' : ''} in cart</Text>
-          </View>
 
-          <TouchableOpacity
-            style={styles.salonViewCartBtn}
-            activeOpacity={0.85}
-            onPress={() => setShowCartModal(true)}
-          >
-            <Text style={styles.salonViewCartBtnText}>View Cart  ›</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.salonViewCartBtn}
+              activeOpacity={0.85}
+              onPress={() => setShowCartModal(true)}
+            >
+              <Text style={styles.salonViewCartBtnText}>View Cart  ›</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     );
   };
@@ -6151,7 +6139,7 @@ export default function App() {
           <View style={styles.ucHeaderTopBar}>
             <View style={styles.ucBrandAndLocation}>
               <View style={styles.ucBrandLogoBadge}>
-                <Text style={styles.ucBrandLogoText}>UC</Text>
+                <Text style={styles.ucBrandLogoText}>FIC</Text>
               </View>
               <View style={styles.ucLocationContainer}>
                 <TouchableOpacity
@@ -6167,26 +6155,19 @@ export default function App() {
               </View>
             </View>
 
-            {/* Right Action Icons: Coins, Cart & Profile */}
+            {/* Right Action Icons: Cart & Profile */}
             <View style={styles.ucHeaderActionsRow}>
-              <TouchableOpacity
-                style={styles.ucCoinsPill}
-                activeOpacity={0.8}
-                onPress={() => Alert.alert('Available UC Coins', `🪙 ${coinsBalance} Coins (= ₹${coinsBalance})\n\nCoins are auto-applied at checkout for instant discounts on your bookings!`)}
-              >
-                <Text style={styles.ucCoinsIcon}>🪙</Text>
-                <Text style={styles.ucCoinsText}>{coinsBalance}</Text>
-              </TouchableOpacity>
-
               <TouchableOpacity
                 style={styles.ucCartButton}
                 activeOpacity={0.8}
                 onPress={() => setShowCartModal(true)}
               >
                 <Text style={styles.ucCartIcon}>🛒</Text>
-                <View style={styles.ucCartBadge}>
-                  <Text style={styles.ucCartBadgeText}>{totalCartCount || 1}</Text>
-                </View>
+                {totalCartCount > 0 && (
+                  <View style={styles.ucCartBadge}>
+                    <Text style={styles.ucCartBadgeText}>{totalCartCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -7026,24 +7007,6 @@ export default function App() {
               {/* Action Buttons */}
               <View style={styles.profileMenuActions}>
                 <TouchableOpacity
-                  style={[styles.profileLogoutBtn, { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 10 }]}
-                  activeOpacity={0.85}
-                  onPress={() => {
-                    setShowProfileMenuModal(false);
-                    setCurrentUser((prev) => ({
-                      ...(prev || {}),
-                      name: 'Vikram Salvi',
-                      email: 'partner@forgeindia.in',
-                      role: 'partner'
-                    }));
-                  }}
-                >
-                  <Text style={[styles.profileLogoutText, { color: '#0284C7' }]}>
-                    ⚡ Switch to Worker Portal
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
                   style={styles.profileLogoutBtn}
                   activeOpacity={0.85}
                   onPress={() => {
@@ -7121,191 +7084,919 @@ export default function App() {
       {/* 23C. EDIT CUSTOMER PROFILE MODAL */}
       <Modal
         visible={showEditProfileModal}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setShowEditProfileModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            activeOpacity={1}
-            onPress={() => setShowEditProfileModal(false)}
-          />
-          <View style={[styles.modalCard, { maxHeight: '88%', paddingBottom: 24 }]}>
-            {/* Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A' }}>
-                  Edit Profile
-                </Text>
-                <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
-                  Update your name, contact email and phone number
-                </Text>
+        <TouchableOpacity
+          style={styles.applianceModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowEditProfileModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={[styles.applianceModalCard, { maxHeight: '90%', padding: 20 }]}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A' }}>
+                    Edit Profile
+                  </Text>
+                  <Text style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                    Update your name, contact email and phone number
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowEditProfileModal(false)}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={{ fontSize: 14, color: '#64748B', fontWeight: '700' }}>✕</Text>
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                onPress={() => setShowEditProfileModal(false)}
-                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' }}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Text style={{ fontSize: 14, color: '#64748B', fontWeight: '700' }}>✕</Text>
-              </TouchableOpacity>
+
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {/* Avatar Preview */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#E2E8F0' }}>
+                  <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '800' }}>
+                      {(editProfileForm.name || 'R').charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={{ marginLeft: 12, flex: 1 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '800', color: '#0F172A' }}>
+                      {editProfileForm.name || 'Customer Name'}
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>
+                      Active Customer Account • Standard Verification
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Full Name Input */}
+                <View style={{ marginBottom: 14 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
+                    Full Name
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: '#F8FAFC',
+                      borderWidth: 1.5,
+                      borderColor: '#E2E8F0',
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      height: 44,
+                      fontSize: 14,
+                      color: '#0F172A',
+                      fontWeight: '600'
+                    }}
+                    value={editProfileForm.name}
+                    onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, name: text }))}
+                    placeholder="e.g. Rahul Sharma"
+                    placeholderTextColor="#94A3B8"
+                    autoCapitalize="words"
+                  />
+                </View>
+
+                {/* Email Address Input */}
+                <View style={{ marginBottom: 14 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
+                    Email Address
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: '#F8FAFC',
+                      borderWidth: 1.5,
+                      borderColor: '#E2E8F0',
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      height: 44,
+                      fontSize: 14,
+                      color: '#0F172A',
+                      fontWeight: '600'
+                    }}
+                    value={editProfileForm.email}
+                    onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, email: text }))}
+                    placeholder="e.g. rahul@forgeindia.in"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                {/* Phone Number Input */}
+                <View style={{ marginBottom: 14 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
+                    Direct Phone Number
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: '#F8FAFC',
+                      borderWidth: 1.5,
+                      borderColor: '#E2E8F0',
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      height: 44,
+                      fontSize: 14,
+                      color: '#0F172A',
+                      fontWeight: '600'
+                    }}
+                    value={editProfileForm.phone}
+                    onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, phone: text }))}
+                    placeholder="e.g. +91 98200 12345"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="phone-pad"
+                  />
+                </View>
+
+                {/* Delivery Address Input */}
+                <View style={{ marginBottom: 20 }}>
+                  <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
+                    Default Service Address
+                  </Text>
+                  <TextInput
+                    style={{
+                      backgroundColor: '#F8FAFC',
+                      borderWidth: 1.5,
+                      borderColor: '#E2E8F0',
+                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      paddingTop: 10,
+                      height: 60,
+                      fontSize: 13,
+                      color: '#0F172A',
+                      fontWeight: '500',
+                      textAlignVertical: 'top'
+                    }}
+                    value={editProfileForm.address}
+                    onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, address: text }))}
+                    placeholder="Flat, street or locality"
+                    placeholderTextColor="#94A3B8"
+                    multiline
+                  />
+                </View>
+
+                {/* Action Buttons */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#0F172A',
+                    borderRadius: 12,
+                    paddingVertical: 14,
+                    alignItems: 'center',
+                    marginBottom: 10,
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 4,
+                    elevation: 2
+                  }}
+                  activeOpacity={0.85}
+                  onPress={handleSaveProfile}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '800' }}>
+                    Save Profile Changes ✓
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{ paddingVertical: 10, alignItems: 'center' }}
+                  activeOpacity={0.7}
+                  onPress={() => setShowEditProfileModal(false)}
+                >
+                  <Text style={{ color: '#64748B', fontSize: 13, fontWeight: '600' }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
             </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
 
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-              {/* Avatar Preview */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#E2E8F0' }}>
-                <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: '#0F172A', justifyContent: 'center', alignItems: 'center' }}>
-                  <Text style={{ color: '#FFFFFF', fontSize: 18, fontWeight: '800' }}>
-                    {(editProfileForm.name || 'R').charAt(0).toUpperCase()}
+      {/* 23C-1. FIC SAFETY & INSURANCE GUARANTEE MODAL */}
+      <Modal
+        visible={showSafetyModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowSafetyModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.applianceModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowSafetyModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={[styles.applianceModalCard, { maxHeight: '90%', padding: 20 }]}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#EFF6FF', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 22 }}>🛡️</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 17, fontWeight: '800', color: '#0F172A' }}>
+                      Safety & Insurance Guarantee
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>
+                      Backed by Forge India Connect Protection Plan
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowSafetyModal(false)}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={{ fontSize: 14, color: '#64748B', fontWeight: '700' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Coverage Highlight Card */}
+                <View style={{ backgroundColor: '#0F172A', borderRadius: 16, padding: 18, marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ backgroundColor: '#10B981', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 }}>
+                      <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '800', letterSpacing: 0.5 }}>ACTIVE ON ALL BOOKINGS</Text>
+                    </View>
+                    <Text style={{ color: '#94A3B8', fontSize: 11, fontWeight: '600' }}>Policy #FIC-INS-2026</Text>
+                  </View>
+                  <Text style={{ fontSize: 24, fontWeight: '800', color: '#FFFFFF', marginBottom: 4 }}>
+                    ₹10,000 Cover
+                  </Text>
+                  <Text style={{ fontSize: 13, color: '#CBD5E1', lineHeight: 18 }}>
+                    Full coverage against accidental property damage, appliance breakage or premise harm during verified service visits.
                   </Text>
                 </View>
-                <View style={{ marginLeft: 12, flex: 1 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: '#0F172A' }}>
-                    {editProfileForm.name || 'Customer Name'}
+
+                {/* 4 Pillars of Safety */}
+                <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A', marginBottom: 10 }}>
+                  Our 4 Safety & Trust Pillars
+                </Text>
+
+                <View style={{ gap: 10, marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'flex-start', gap: 12 }}>
+                    <Text style={{ fontSize: 20 }}>👮</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A', marginBottom: 2 }}>
+                        100% Police & KYC Background Checked
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#64748B', lineHeight: 16 }}>
+                        Every partner undergoes national police verification, government Aadhaar KYC, and past employment validation.
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'flex-start', gap: 12 }}>
+                    <Text style={{ fontSize: 20 }}>🧼</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A', marginBottom: 2 }}>
+                        Sterile Single-Use Kits & Toolkits
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#64748B', lineHeight: 16 }}>
+                        Pre-packaged sealed consumables, sanitized professional tools, shoe covers, and safety gear used for each visit.
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'flex-start', gap: 12 }}>
+                    <Text style={{ fontSize: 20 }}>⚡</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A', marginBottom: 2 }}>
+                        48-Hour Cashless Claim Settlement
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#64748B', lineHeight: 16 }}>
+                        Hassle-free 1-tap claim filing with direct repair dispatch or instant IMPS bank reimbursement to your account.
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', backgroundColor: '#F8FAFC', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#E2E8F0', alignItems: 'flex-start', gap: 12 }}>
+                    <Text style={{ fontSize: 20 }}>🔒</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A', marginBottom: 2 }}>
+                        Zero Contact Secure Payment Escrow
+                      </Text>
+                      <Text style={{ fontSize: 11, color: '#64748B', lineHeight: 16 }}>
+                        Payment is held securely in escrow and only released to the professional after your 4-digit completion approval.
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Action Helpline */}
+                <TouchableOpacity
+                  style={{ backgroundColor: '#2563EB', borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginBottom: 10 }}
+                  activeOpacity={0.85}
+                  onPress={() => Linking.openURL('tel:18001234567').catch(() => {})}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '800' }}>
+                    📞 Call Claims Desk (1800-123-4567)
                   </Text>
-                  <Text style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>
-                    Active Customer Account • Standard Verification
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{ paddingVertical: 10, alignItems: 'center' }}
+                  activeOpacity={0.7}
+                  onPress={() => setShowSafetyModal(false)}
+                >
+                  <Text style={{ color: '#64748B', fontSize: 13, fontWeight: '700' }}>
+                    Close
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* 23C-2. 24x7 CUSTOMER HELP & SUPPORT MODAL */}
+      <Modal
+        visible={showHelpSupportModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowHelpSupportModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.applianceModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowHelpSupportModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={[styles.applianceModalCard, { maxHeight: '90%', padding: 20 }]}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#F0FDF4', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 22 }}>💬</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 17, fontWeight: '800', color: '#0F172A' }}>
+                      24x7 Help & Support
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>
+                      Dedicated assistance for bookings, billing & safety
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowHelpSupportModal(false)}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={{ fontSize: 14, color: '#64748B', fontWeight: '700' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Quick Contact Grid */}
+                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 16 }}>
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: '#EFF6FF', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#BFDBFE', alignItems: 'center' }}
+                    activeOpacity={0.8}
+                    onPress={() => Linking.openURL('tel:18001234567').catch(() => {})}
+                  >
+                    <Text style={{ fontSize: 22, marginBottom: 4 }}>📞</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#1E40AF' }}>Call Support</Text>
+                    <Text style={{ fontSize: 10, color: '#3B82F6', fontWeight: '600', marginTop: 2 }}>1800-123-4567</Text>
+                    <Text style={{ fontSize: 9, color: '#10B981', fontWeight: '700', marginTop: 2 }}>Wait: &lt; 1 min</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={{ flex: 1, backgroundColor: '#F0FDF4', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#BBF7D0', alignItems: 'center' }}
+                    activeOpacity={0.8}
+                    onPress={() => Linking.openURL('https://wa.me/919123456789').catch(() => {})}
+                  >
+                    <Text style={{ fontSize: 22, marginBottom: 4 }}>🟢</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#166534' }}>WhatsApp Chat</Text>
+                    <Text style={{ fontSize: 10, color: '#16A34A', fontWeight: '600', marginTop: 2 }}>+91 91234 56789</Text>
+                    <Text style={{ fontSize: 9, color: '#16A34A', fontWeight: '700', marginTop: 2 }}>Instant Online</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Active Ticket Status */}
+                <View style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F172A' }}>Latest Support Ticket #FIC-8821</Text>
+                    <View style={{ backgroundColor: '#DCFCE7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                      <Text style={{ color: '#166534', fontSize: 10, fontWeight: '700' }}>Resolved ✓</Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 11, color: '#64748B' }}>
+                    Service checklist and technician confirmation verification complete.
                   </Text>
                 </View>
+
+                {/* Frequently Asked Questions */}
+                <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A', marginBottom: 10 }}>
+                  Frequently Asked Questions
+                </Text>
+
+                {[
+                  {
+                    id: 1,
+                    q: 'How do I reschedule or cancel a booking?',
+                    a: 'You can reschedule or cancel for free up to 2 hours before the scheduled slot directly from the Bookings tab. No cancellation fee will be charged.'
+                  },
+                  {
+                    id: 2,
+                    q: 'How does the ₹10,000 Insurance Cover work?',
+                    a: 'Every service on Forge India Connect automatically includes ₹10,000 property protection cover against accidental damages during technician visits.'
+                  },
+                  {
+                    id: 3,
+                    q: 'How do refunds and wallet credits work?',
+                    a: 'Refunds for cancelled bookings are credited instantly to your FIC Wallet, or within 2-4 business hours to your original UPI or bank method.'
+                  },
+                  {
+                    id: 4,
+                    q: 'Are all Forge India Connect partners verified?',
+                    a: 'Yes, 100% of our partners undergo mandatory police background verification, Aadhaar KYC validation, and hands-on technical skill evaluation.'
+                  },
+                  {
+                    id: 5,
+                    q: 'How can I contact my assigned technician?',
+                    a: 'Once a booking is assigned, tap "Call Partner" or "Chat" in the Bookings tab to start an instant VoIP voice call or live chat.'
+                  }
+                ].map((faq) => {
+                  const isOpen = expandedFaq === faq.id;
+                  return (
+                    <TouchableOpacity
+                      key={`faq-${faq.id}`}
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: isOpen ? '#2563EB' : '#E2E8F0',
+                        padding: 12,
+                        marginBottom: 8
+                      }}
+                      activeOpacity={0.8}
+                      onPress={() => setExpandedFaq(isOpen ? null : faq.id)}
+                    >
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A', flex: 1, paddingRight: 8 }}>
+                          {faq.q}
+                        </Text>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: isOpen ? '#2563EB' : '#94A3B8' }}>
+                          {isOpen ? '▲' : '▼'}
+                        </Text>
+                      </View>
+                      {isOpen && (
+                        <Text style={{ fontSize: 12, color: '#475569', marginTop: 8, lineHeight: 18, borderTopWidth: 1, borderTopColor: '#F1F5F9', paddingTop: 8 }}>
+                          {faq.a}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#0F172A', borderRadius: 12, paddingVertical: 13, alignItems: 'center', marginTop: 10, marginBottom: 8 }}
+                  activeOpacity={0.85}
+                  onPress={() => setShowHelpSupportModal(false)}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '800' }}>
+                    Close Help Center
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* 23C-3. SAVED ADDRESSES MODAL */}
+      <Modal
+        visible={showAddressesModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowAddressesModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.applianceModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowAddressesModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={[styles.applianceModalCard, { maxHeight: '90%', padding: 20 }]}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#FEF3C7', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 22 }}>📍</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 17, fontWeight: '800', color: '#0F172A' }}>
+                      Saved Delivery Addresses
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>
+                      Manage delivery locations for doorstep appointments
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowAddressesModal(false)}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={{ fontSize: 14, color: '#64748B', fontWeight: '700' }}>✕</Text>
+                </TouchableOpacity>
               </View>
 
-              {/* Full Name Input */}
-              <View style={{ marginBottom: 14 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
-                  Full Name
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {savedAddresses.map((addr) => (
+                  <View
+                    key={addr.id}
+                    style={{
+                      backgroundColor: addr.isDefault ? '#F8FAFC' : '#FFFFFF',
+                      borderRadius: 14,
+                      borderWidth: 1.5,
+                      borderColor: addr.isDefault ? '#0F172A' : '#E2E8F0',
+                      padding: 14,
+                      marginBottom: 10
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <Text style={{ fontSize: 18 }}>{addr.icon}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A' }}>
+                          {addr.title}
+                        </Text>
+                        {addr.isDefault && (
+                          <View style={{ backgroundColor: '#0F172A', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                            <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '700' }}>DEFAULT</Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+
+                    <Text style={{ fontSize: 12, color: '#475569', lineHeight: 18, marginBottom: 10 }}>
+                      {addr.fullAddress}
+                    </Text>
+
+                    {!addr.isDefault && (
+                      <TouchableOpacity
+                        style={{ alignSelf: 'flex-start', paddingVertical: 5, paddingHorizontal: 12, borderRadius: 6, backgroundColor: '#EFF6FF', borderWidth: 1, borderColor: '#BFDBFE' }}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          setSavedAddresses((prev) =>
+                            prev.map((a) => ({ ...a, isDefault: a.id === addr.id }))
+                          );
+                        }}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: '#1E40AF' }}>
+                          Set as Default Address
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+
+                {/* Inline Add Address Form Toggle */}
+                {showAddAddressForm ? (
+                  <View style={{ backgroundColor: '#F8FAFC', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#CBD5E1', marginBottom: 12 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#0F172A', marginBottom: 8 }}>
+                      Add New Address
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderWidth: 1,
+                        borderColor: '#CBD5E1',
+                        borderRadius: 8,
+                        paddingHorizontal: 10,
+                        height: 38,
+                        fontSize: 13,
+                        color: '#0F172A',
+                        marginBottom: 8
+                      }}
+                      placeholder="Address Label (e.g. Vacation Home, Office)"
+                      placeholderTextColor="#94A3B8"
+                      value={newAddressTitle}
+                      onChangeText={setNewAddressTitle}
+                    />
+                    <TextInput
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderWidth: 1,
+                        borderColor: '#CBD5E1',
+                        borderRadius: 8,
+                        paddingHorizontal: 10,
+                        paddingTop: 8,
+                        height: 60,
+                        fontSize: 13,
+                        color: '#0F172A',
+                        marginBottom: 10,
+                        textAlignVertical: 'top'
+                      }}
+                      placeholder="Full Address & Landmark"
+                      placeholderTextColor="#94A3B8"
+                      value={newAddressText}
+                      onChangeText={setNewAddressText}
+                      multiline
+                    />
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity
+                        style={{ flex: 1, backgroundColor: '#0F172A', borderRadius: 8, paddingVertical: 10, alignItems: 'center' }}
+                        activeOpacity={0.85}
+                        onPress={() => {
+                          if (!newAddressText.trim()) return;
+                          const newId = `addr-${Date.now()}`;
+                          setSavedAddresses((prev) => [
+                            ...prev,
+                            {
+                              id: newId,
+                              title: newAddressTitle.trim() || 'New Location',
+                              tag: 'Custom',
+                              fullAddress: newAddressText.trim(),
+                              isDefault: false,
+                              icon: '📍'
+                            }
+                          ]);
+                          setNewAddressTitle('');
+                          setNewAddressText('');
+                          setShowAddAddressForm(false);
+                        }}
+                      >
+                        <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>Save Address</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ paddingHorizontal: 14, borderRadius: 8, backgroundColor: '#E2E8F0', justifyContent: 'center' }}
+                        activeOpacity={0.8}
+                        onPress={() => setShowAddAddressForm(false)}
+                      >
+                        <Text style={{ color: '#475569', fontSize: 12, fontWeight: '700' }}>Cancel</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      backgroundColor: '#F1F5F9',
+                      borderRadius: 12,
+                      paddingVertical: 12,
+                      marginBottom: 12
+                    }}
+                    activeOpacity={0.8}
+                    onPress={() => setShowAddAddressForm(true)}
+                  >
+                    <Text style={{ fontSize: 16 }}>＋</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                      Add New Delivery Address
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={{ backgroundColor: '#0F172A', borderRadius: 12, paddingVertical: 13, alignItems: 'center' }}
+                  activeOpacity={0.85}
+                  onPress={() => setShowAddressesModal(false)}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '800' }}>
+                    Done
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* 23C-4. PAYMENT METHODS & WALLET MODAL */}
+      <Modal
+        visible={showPaymentMethodsModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowPaymentMethodsModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.applianceModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowPaymentMethodsModal(false)}
+        >
+          <TouchableWithoutFeedback>
+            <View style={[styles.applianceModalCard, { maxHeight: '90%', padding: 20 }]}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                  <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: '#E0E7FF', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ fontSize: 22 }}>💳</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 17, fontWeight: '800', color: '#0F172A' }}>
+                      Payment Methods & Wallet
+                    </Text>
+                    <Text style={{ fontSize: 12, color: '#64748B', marginTop: 1 }}>
+                      Encrypted 256-bit secure checkout & refunds
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setShowPaymentMethodsModal(false)}
+                  style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: '#F1F5F9', justifyContent: 'center', alignItems: 'center' }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={{ fontSize: 14, color: '#64748B', fontWeight: '700' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                {/* FIC Wallet Card */}
+                <View style={{ backgroundColor: '#0F172A', borderRadius: 16, padding: 18, marginBottom: 16 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <Text style={{ color: '#94A3B8', fontSize: 12, fontWeight: '700' }}>FIC SECURE WALLET</Text>
+                    <View style={{ backgroundColor: '#10B981', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+                      <Text style={{ color: '#FFFFFF', fontSize: 10, fontWeight: '800' }}>READY</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: '#94A3B8', fontSize: 11 }}>Available Balance</Text>
+                  <Text style={{ color: '#FFFFFF', fontSize: 26, fontWeight: '800', marginBottom: 8 }}>
+                    ₹{walletBalance}
+                  </Text>
+                  <Text style={{ color: '#CBD5E1', fontSize: 11, lineHeight: 16, marginBottom: 12 }}>
+                    1-click instant checkout on all repairs, salon and cleaning services with zero OTP wait time.
+                  </Text>
+                  <TouchableOpacity
+                    style={{ backgroundColor: '#FFFFFF', borderRadius: 8, paddingVertical: 8, alignItems: 'center' }}
+                    activeOpacity={0.85}
+                    onPress={() => setWalletBalance((prev) => prev + 500)}
+                  >
+                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '800' }}>
+                      ＋ Top Up ₹500 into Wallet
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Saved UPI & Cards */}
+                <Text style={{ fontSize: 14, fontWeight: '800', color: '#0F172A', marginBottom: 10 }}>
+                  Saved Payment Methods
                 </Text>
-                <TextInput
+
+                {savedPaymentMethods.map((method) => (
+                  <View
+                    key={method.id}
+                    style={{
+                      backgroundColor: method.isDefault ? '#F8FAFC' : '#FFFFFF',
+                      borderRadius: 12,
+                      borderWidth: 1.5,
+                      borderColor: method.isDefault ? '#0F172A' : '#E2E8F0',
+                      padding: 12,
+                      marginBottom: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 12
+                    }}
+                  >
+                    <Text style={{ fontSize: 22 }}>{method.icon}</Text>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                          {method.title}
+                        </Text>
+                        {method.isDefault && (
+                          <View style={{ backgroundColor: '#0F172A', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 3 }}>
+                            <Text style={{ color: '#FFFFFF', fontSize: 9, fontWeight: '700' }}>DEFAULT</Text>
+                          </View>
+                        )}
+                      </View>
+                      <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                        {method.detail}
+                      </Text>
+                    </View>
+                    {!method.isDefault && (
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSavedPaymentMethods((prev) =>
+                            prev.map((m) => ({ ...m, isDefault: m.id === method.id }))
+                          );
+                        }}
+                        style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#F1F5F9' }}
+                      >
+                        <Text style={{ fontSize: 10, fontWeight: '700', color: '#475569' }}>Make Default</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                ))}
+
+                {/* Inline Add UPI Form Toggle */}
+                {showAddPaymentForm ? (
+                  <View style={{ backgroundColor: '#F8FAFC', padding: 14, borderRadius: 14, borderWidth: 1, borderColor: '#CBD5E1', marginBottom: 12 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#0F172A', marginBottom: 8 }}>
+                      Add UPI ID
+                    </Text>
+                    <TextInput
+                      style={{
+                        backgroundColor: '#FFFFFF',
+                        borderWidth: 1,
+                        borderColor: '#CBD5E1',
+                        borderRadius: 8,
+                        paddingHorizontal: 10,
+                        height: 38,
+                        fontSize: 13,
+                        color: '#0F172A',
+                        marginBottom: 10
+                      }}
+                      placeholder="e.g. mobile@okhdfcbank, name@upi"
+                      placeholderTextColor="#94A3B8"
+                      value={newUpiInput}
+                      onChangeText={setNewUpiInput}
+                      autoCapitalize="none"
+                    />
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity
+                        style={{ flex: 1, backgroundColor: '#0F172A', borderRadius: 8, paddingVertical: 10, alignItems: 'center' }}
+                        activeOpacity={0.85}
+                        onPress={() => {
+                          if (!newUpiInput.trim()) return;
+                          const newId = `pay-${Date.now()}`;
+                          setSavedPaymentMethods((prev) => [
+                            ...prev,
+                            {
+                              id: newId,
+                              type: 'upi',
+                              title: 'UPI Payment ID',
+                              detail: newUpiInput.trim(),
+                              isDefault: false,
+                              icon: '📱'
+                            }
+                          ]);
+                          setNewUpiInput('');
+                          setShowAddPaymentForm(false);
+                        }}
+                      >
+                        <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>Save UPI ID</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{ paddingHorizontal: 14, borderRadius: 8, backgroundColor: '#E2E8F0', justifyContent: 'center' }}
+                        activeOpacity={0.8}
+                        onPress={() => setShowAddPaymentForm(false)}
+                      >
+                        <Text style={{ color: '#475569', fontSize: 12, fontWeight: '700' }}>Cancel</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      backgroundColor: '#F1F5F9',
+                      borderRadius: 12,
+                      paddingVertical: 12,
+                      marginBottom: 12
+                    }}
+                    activeOpacity={0.8}
+                    onPress={() => setShowAddPaymentForm(true)}
+                  >
+                    <Text style={{ fontSize: 16 }}>＋</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                      Add New UPI ID / Payment Method
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <View
                   style={{
                     backgroundColor: '#F8FAFC',
-                    borderWidth: 1.5,
+                    borderRadius: 12,
+                    borderWidth: 1,
                     borderColor: '#E2E8F0',
-                    borderRadius: 10,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    fontSize: 14,
-                    color: '#0F172A',
-                    fontWeight: '600'
+                    padding: 12,
+                    marginBottom: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12
                   }}
-                  value={editProfileForm.name}
-                  onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, name: text }))}
-                  placeholder="e.g. Rahul Sharma"
-                  placeholderTextColor="#94A3B8"
-                  autoCapitalize="words"
-                />
-              </View>
+                >
+                  <Text style={{ fontSize: 22 }}>💵</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A' }}>
+                      Pay After Service (Cash / Doorstep QR)
+                    </Text>
+                    <Text style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
+                      Pay only after inspecting and approving the work completed.
+                    </Text>
+                  </View>
+                </View>
 
-              {/* Email Address Input */}
-              <View style={{ marginBottom: 14 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
-                  Email Address
-                </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: '#F8FAFC',
-                    borderWidth: 1.5,
-                    borderColor: '#E2E8F0',
-                    borderRadius: 10,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    fontSize: 14,
-                    color: '#0F172A',
-                    fontWeight: '600'
-                  }}
-                  value={editProfileForm.email}
-                  onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, email: text }))}
-                  placeholder="e.g. rahul@forgeindia.in"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                />
-              </View>
-
-              {/* Phone Number Input */}
-              <View style={{ marginBottom: 14 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
-                  Direct Phone Number
-                </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: '#F8FAFC',
-                    borderWidth: 1.5,
-                    borderColor: '#E2E8F0',
-                    borderRadius: 10,
-                    paddingHorizontal: 12,
-                    height: 44,
-                    fontSize: 14,
-                    color: '#0F172A',
-                    fontWeight: '600'
-                  }}
-                  value={editProfileForm.phone}
-                  onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, phone: text }))}
-                  placeholder="e.g. +91 98200 12345"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="phone-pad"
-                />
-              </View>
-
-              {/* Delivery Address Input */}
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: '#334155', marginBottom: 6 }}>
-                  Default Service Address
-                </Text>
-                <TextInput
-                  style={{
-                    backgroundColor: '#F8FAFC',
-                    borderWidth: 1.5,
-                    borderColor: '#E2E8F0',
-                    borderRadius: 10,
-                    paddingHorizontal: 12,
-                    paddingTop: 10,
-                    height: 60,
-                    fontSize: 13,
-                    color: '#0F172A',
-                    fontWeight: '500',
-                    textAlignVertical: 'top'
-                  }}
-                  value={editProfileForm.address}
-                  onChangeText={(text) => setEditProfileForm((prev) => ({ ...prev, address: text }))}
-                  placeholder="Flat, street or locality"
-                  placeholderTextColor="#94A3B8"
-                  multiline
-                />
-              </View>
-
-              {/* Action Buttons */}
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#0F172A',
-                  borderRadius: 12,
-                  paddingVertical: 14,
-                  alignItems: 'center',
-                  marginBottom: 10,
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 2
-                }}
-                activeOpacity={0.85}
-                onPress={handleSaveProfile}
-              >
-                <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '800' }}>
-                  Save Profile Changes ✓
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{ paddingVertical: 10, alignItems: 'center' }}
-                activeOpacity={0.7}
-                onPress={() => setShowEditProfileModal(false)}
-              >
-                <Text style={{ color: '#64748B', fontSize: 13, fontWeight: '600' }}>
-                  Cancel
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </View>
-        </View>
+                <TouchableOpacity
+                  style={{ backgroundColor: '#0F172A', borderRadius: 12, paddingVertical: 13, alignItems: 'center' }}
+                  activeOpacity={0.85}
+                  onPress={() => setShowPaymentMethodsModal(false)}
+                >
+                  <Text style={{ color: '#FFFFFF', fontSize: 14, fontWeight: '800' }}>
+                    Close
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </TouchableWithoutFeedback>
+        </TouchableOpacity>
       </Modal>
 
       {/* 23. LIVE ORDER TRACKING & REVIEW MODAL (CUSTOMER WORKFLOW) */}

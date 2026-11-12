@@ -179,7 +179,7 @@ export function Footer({
                     }}
                     style={{ color: '#4B5563' }}
                   >
-                    Urban Pro Worker Portal
+                    Forge India Specialist Portal
                   </a>
                 </li>
                 <li>

@@ -36,7 +36,7 @@ export function RefrigeratorServicePage({
   const [optionsModalService, setOptionsModalService] = useState(null);
   const [isWarrantyModalOpen, setIsWarrantyModalOpen] = useState(false);
 
-  // Catalogue of Refrigerator services matching official Urban Company Screenshots 1 & 2
+  // Catalogue of Refrigerator services matching official Forge India Connect Screenshots 1 & 2
   const REFRIGERATOR_SERVICES = [
     // =========================================================================
     // 1. REFRIGERATOR CHECK-UP (Screenshot 2)
@@ -169,7 +169,7 @@ export function RefrigeratorServicePage({
         'Nitrogen pressure leak detection and copper capillary brazing',
         'Complete system vacuum evacuation to eliminate moisture',
         'Precision weighed genuine R600a / R134a eco-friendly refrigerant recharge',
-        '180 days Urban Company warranty on gas charging'
+        '180 days Forge India Connect warranty on gas charging'
       ],
       exclusions: [
         'Major compressor replacement charged as per parts rate card'
@@ -295,7 +295,7 @@ export function RefrigeratorServicePage({
           justifyContent: 'space-between',
           gap: 16
         }}>
-          {/* Left: Back Arrow + Urban Company Logo */}
+          {/* Left: Back Arrow + Forge India Connect Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div 
               onClick={onBackHome}
@@ -317,7 +317,7 @@ export function RefrigeratorServicePage({
                 UC
               </div>
               <span style={{ fontSize: 17, fontWeight: 800, color: '#000000', letterSpacing: -0.4 }}>
-                Urban Company
+                Forge India Connect
               </span>
             </div>
           </div>
@@ -1770,7 +1770,7 @@ export function RefrigeratorServicePage({
                 <ShieldCheck size={28} color="#6E42E5" style={{ flexShrink: 0 }} />
                 <div>
                   <h5 style={{ fontSize: 13, fontWeight: 800, color: '#0F172A', margin: '0 0 2px' }}>
-                    Urban Company 180 Days Warranty
+                    Forge India Connect 180 Days Warranty
                   </h5>
                   <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>
                     Genuine spare parts with up to 180 days warranty &amp; 30-day service protection.
@@ -1869,7 +1869,7 @@ export function RefrigeratorServicePage({
 
             <div style={{ padding: '20px', fontSize: 13, color: '#334155', lineHeight: 1.55 }}>
               <p style={{ margin: '0 0 14px' }}>
-                Urban Company offers a comprehensive repair warranty on all refrigerator services:
+                Forge India Connect offers a comprehensive repair warranty on all refrigerator services:
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -1948,14 +1948,14 @@ export function RefrigeratorServicePage({
               UC
             </div>
             <span style={{ fontSize: 20, fontWeight: 900, color: '#FFFFFF', letterSpacing: -0.5 }}>
-              Urban Company
+              Forge India Connect
             </span>
           </div>
           <p style={{ fontSize: 13, color: '#94A3B8', margin: 0, maxWidth: 600, lineHeight: 1.6 }}>
-            Urban Company is India&apos;s largest home services platform. Over 1.9 Million customers trust us for verified, warranty-backed Refrigerator repair and servicing.
+            Forge India Connect is India&apos;s largest home services platform. Over 1.9 Million customers trust us for verified, warranty-backed Refrigerator repair and servicing.
           </p>
           <div style={{ fontSize: 12, color: '#64748B', borderTop: '1px solid #1E293B', paddingTop: 16 }}>
-            © 2026 Urban Company. All rights reserved.
+            © 2026 Forge India Connect. All rights reserved.
           </div>
         </div>
       </footer>

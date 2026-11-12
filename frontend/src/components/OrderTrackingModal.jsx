@@ -1151,7 +1151,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                         Service Finished Successfully!
                       </h3>
                       <p style={{ fontSize: 12.5, color: '#047857', margin: '0 0 14px 0' }}>
-                        Area thoroughly sanitized. Thank you for choosing Urban Company.
+                        Area thoroughly sanitized. Thank you for choosing Forge India Connect.
                       </p>
 
                       {/* Rating Stars & Written Feedback */}
@@ -1533,7 +1533,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
                         </div>
                       ))
                     ) : (
-                      <div style={{ fontSize: 12.5, color: '#64748B' }}>Urban Company Service Package</div>
+                      <div style={{ fontSize: 12.5, color: '#64748B' }}>Forge India Connect Service Package</div>
                     )}
 
                     <div style={{ borderTop: '1px dashed #CBD5E1', marginTop: 12, paddingTop: 10, display: 'flex', justifyContent: 'space-between' }}>

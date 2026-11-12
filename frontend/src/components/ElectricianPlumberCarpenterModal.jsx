@@ -786,7 +786,7 @@ export function ElectricianPlumberCarpenterModal({
               }}>
                 <ShieldCheck size={16} color="#10B981" style={{ flexShrink: 0 }} />
                 <span>
-                  <strong>Urban Company Guarantee:</strong> 30-day service warranty, verified background-checked pros & upfront transparent pricing.
+                  <strong>Forge India Connect Guarantee:</strong> 30-day service warranty, verified background-checked pros & upfront transparent pricing.
                 </span>
               </div>
             </div>

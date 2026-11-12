@@ -14,7 +14,7 @@ let mockLocations = [
     monthlyGMV: 0,
     workingHours: { start: '08:00', end: '21:00', timezone: 'Asia/Kolkata (IST, UTC+05:30)' },
     slotCapacityPerHour: 35,
-    holidays: ['26 Jan 2027 (Republic Day)', '15 Aug 2027 (Independence Day)', '24 Oct 2027 (Diwali)'],
+    holidays: ['26 Jan 2027 (Republic Day)', '15 Aug 2027 (Independence Day)', '24 Oct 2027 (Festival Holiday)'],
     hubs: [
       { name: 'Bandra West Central Hub', locality: 'Bandra West', address: 'Plot 14, Perry Road', activePros: 140 },
       { name: 'Andheri East Technology Depot', locality: 'Andheri East', address: 'MIDC Cross Road', activePros: 210 },

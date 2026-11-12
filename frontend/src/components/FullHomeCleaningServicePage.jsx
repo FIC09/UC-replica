@@ -389,7 +389,7 @@ export function FullHomeCleaningServicePage({
         }}>
           {/* Left: Brand Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {/* Urban Company Logo */}
+            {/* Forge India Connect Logo */}
             <div 
               onClick={onBackHome}
               style={{
@@ -716,7 +716,7 @@ export function FullHomeCleaningServicePage({
             }}>
               <ShieldCheck size={18} color="#059669" style={{ flexShrink: 0 }} />
               <span>
-                <strong>Urban Company Full Home Assurance:</strong> 100% background-checked team, industrial grade rotary scrubbers & Diversey chemicals.
+                <strong>Forge India Connect Full Home Assurance:</strong> 100% background-checked team, industrial grade rotary scrubbers & Diversey chemicals.
               </span>
             </div>
           </div>

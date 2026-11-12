@@ -391,7 +391,7 @@ export function BathroomCleaningServicePage({
         }}>
           {/* Left: Brand Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {/* Urban Company Logo exactly matching screenshot */}
+            {/* Forge India Connect Logo exactly matching screenshot */}
             <div 
               onClick={onBackHome}
               style={{
@@ -424,7 +424,7 @@ export function BathroomCleaningServicePage({
                 letterSpacing: '-0.5px',
                 lineHeight: 1.1
               }}>
-                Urban Company
+                Forge India Connect
               </div>
             </div>
           </div>
@@ -735,7 +735,7 @@ export function BathroomCleaningServicePage({
             }}>
               <ShieldCheck size={18} color="#059669" style={{ flexShrink: 0 }} />
               <span>
-                <strong>Urban Company Promise:</strong> Safe & odorless Diversey Taski chemicals with 100% shine guarantee.
+                <strong>Forge India Connect Promise:</strong> Safe & odorless Diversey Taski chemicals with 100% shine guarantee.
               </span>
             </div>
           </div>

@@ -26,7 +26,7 @@ let mockContent = {
     { id: 'b1', title: 'AC Servicing Rush 2026', subtitle: 'Waterjet jet cleaning with 30-day leak warranty', tag: 'Bestseller', displayOrder: 1, image: '/images/ac_repair_subcat_card.png', link: '/ac-service-page', status: 'Published' },
     { id: 'b2', title: 'Bathroom & Kitchen Glow', subtitle: 'Hospital grade chemicals and motorized scrubbing', tag: 'Deep Clean', displayOrder: 2, image: '/images/bathroom_cleaning_subcat_card.png', link: '/bathroom-cleaning-page', status: 'Published' },
     { id: 'b3', title: 'Native RO Purifier 2-Year Filter Life', subtitle: 'Zero maintenance cost for 2 years', tag: 'Innovation', displayOrder: 3, image: '/images/water_purifier/native_brands_grid.png', link: '/native-purifier-page', status: 'Published' },
-    { id: 'b4', title: 'Diwali Painting & Home Deep Restoration', subtitle: 'Book early slots before festive surge', tag: 'Upcoming', displayOrder: 4, image: '/images/ac_repair_subcat_card.png', link: '/painting', status: 'Draft' }
+    { id: 'b4', title: 'Full Home Painting & Deep Restoration', subtitle: 'Book early slots before seasonal surge', tag: 'Upcoming', displayOrder: 4, image: '/images/ac_repair_subcat_card.png', link: '/painting', status: 'Draft' }
   ],
   faqs: [
     { id: 'faq-1', question: 'How are Urban Company professionals verified?', answer: 'Every professional undergoes a 7-step background check, Aadhaar/PAN identity verification, police verification, and doorstep SOP training.', displayOrder: 1, status: 'Published' },

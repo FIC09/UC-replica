@@ -113,7 +113,7 @@ router.post('/test', async (req, res) => {
     const { token, userId, role = 'customer' } = req.body;
 
     const payload = {
-      title: '🔔 Urban Company Live Notification Test',
+      title: '🔔 Forge India Connect Live Notification Test',
       body: `Push notification pipeline is operational! Sent at ${new Date().toLocaleTimeString()}`,
       data: { type: 'TEST_PUSH', timestamp: Date.now() },
       channelId: 'default'
@@ -166,7 +166,7 @@ router.get('/status', async (req, res) => {
 
     return res.json({
       success: true,
-      service: 'Urban Company Push Notification Dispatcher',
+      service: 'Forge India Connect Push Notification Dispatcher',
       gateway: 'Expo Push Service / Android FCM v1 API',
       devices: {
         total: totalDevices,

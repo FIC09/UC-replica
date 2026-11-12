@@ -16,14 +16,14 @@ const DEFAULT_COUPONS = [
     isActive: true,
   },
   {
-    code: 'DIWALI25',
+    code: 'FORGE25',
     discount: 25,
     discountAmount: 25,
     type: 'percentage',
-    minOrder: 499,
+    minOrder: 399,
     maxDiscount: null,
-    description: 'Special 25% Diwali discount on orders above ₹499',
-    desc: 'Special 25% Diwali discount on orders above ₹499',
+    description: 'Special 25% discount on orders above ₹399',
+    desc: 'Special 25% discount on orders above ₹399',
     isActive: true,
   },
   {

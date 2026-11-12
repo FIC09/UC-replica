@@ -265,7 +265,7 @@ export function AboutUsPage({
             >
               <img
                 src="/images/about/about_hero.png"
-                alt="Urban Company Service Tech Blueprint"
+                alt="Forge India Connect Service Tech Blueprint"
                 style={{
                   position: 'absolute',
                   width: '215%',
@@ -438,7 +438,7 @@ export function AboutUsPage({
               </div>
             </div>
 
-            {/* Right Visual Showcase Collage (Official Urban Company Verticals Grid) */}
+            {/* Right Visual Showcase Collage (Official Forge India Connect Verticals Grid) */}
             <div
               style={{
                 width: '100%',
@@ -453,7 +453,7 @@ export function AboutUsPage({
             >
               <img
                 src="/images/about/about_business.jpg"
-                alt="Urban Company Business Verticals & Showcase"
+                alt="Forge India Connect Business Verticals & Showcase"
                 style={{
                   position: 'absolute',
                   width: '201%',

@@ -7,6 +7,43 @@ import { query } from '../config/postgres.js';
 
 const router = express.Router();
 
+// High-speed In-Memory Active VoIP Call Cache for 0ms multi-device synchronization
+const activeVoipCalls = new Map();
+
+// Helper to sanitize & register active call in memory
+function registerActiveCall(session) {
+  if (!session || !session.callId) return;
+  const data = typeof session.toObject === 'function' ? session.toObject() : { ...session };
+  const cleanBookingId = String(data.bookingId || '').replace(/^#/, '').trim();
+  const bare = cleanBookingId.replace(/^(UC|JOB|LEAD)[-_]?/i, '');
+
+  activeVoipCalls.set(data.callId, data);
+  if (cleanBookingId) activeVoipCalls.set(cleanBookingId, data);
+  if (bare) {
+    activeVoipCalls.set(bare, data);
+    activeVoipCalls.set(`UC-${bare}`, data);
+    activeVoipCalls.set(`JOB-${bare}`, data);
+  }
+  activeVoipCalls.set('latest', data);
+}
+
+function updateActiveCallStatus(callId, newStatus, extra = {}) {
+  const existing = activeVoipCalls.get(callId) || activeVoipCalls.get('latest');
+  if (existing) {
+    const updated = { ...existing, status: newStatus, ...extra };
+    registerActiveCall(updated);
+    if (newStatus === 'ended' || newStatus === 'rejected') {
+      setTimeout(() => {
+        if (activeVoipCalls.get(callId)?.status === newStatus) {
+          activeVoipCalls.delete(callId);
+        }
+      }, 5000);
+    }
+    return updated;
+  }
+  return null;
+}
+
 // GET ICE Servers configuration for WebRTC (STUN + authenticated TURN)
 router.get('/ice-servers', async (req, res) => {
   try {
@@ -37,7 +74,8 @@ router.post('/start', async (req, res) => {
       receiverId,
       receiverRole,
       receiverName,
-      receiverPhone
+      receiverPhone,
+      service
     } = req.body;
 
     if (!bookingId) {
@@ -48,7 +86,7 @@ router.post('/start', async (req, res) => {
     const bare = cleanBookingId.replace(/^(UC|JOB|LEAD)[-_]?/i, '');
     const callId = `call_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
-    // End any stale active calls on this booking (older than 2 minutes or unclosed)
+    // End any stale active calls on this booking
     await CallSession.updateMany(
       {
         $or: [
@@ -62,7 +100,7 @@ router.post('/start', async (req, res) => {
       { $set: { status: 'ended', endedAt: new Date(), disconnectReason: 'superseded_by_new_call' } }
     );
 
-    const session = await CallSession.create({
+    const callPayload = {
       callId,
       bookingId: cleanBookingId,
       callerId: String(callerId || callerPhone || 'cust-user'),
@@ -77,9 +115,14 @@ router.post('/start', async (req, res) => {
       metadata: {
         callerPhone,
         receiverPhone,
-        bookingRef: cleanBookingId
+        bookingRef: cleanBookingId,
+        service: service || 'Doorstep Service'
       }
-    });
+    };
+
+    const session = await CallSession.create(callPayload);
+    // Instant in-memory cache update
+    registerActiveCall(session);
 
     console.log(`📞 [VoIP Call Started] ${callId} on Booking #${cleanBookingId} (${session.callerName} -> ${session.receiverName})`);
     res.json({ success: true, callId, session });
@@ -89,7 +132,59 @@ router.post('/start', async (req, res) => {
   }
 });
 
-// GET Real-time VoIP Call: Check for active/incoming call on booking
+// GET Real-time VoIP Call: Check for active/incoming call (general or query param)
+router.get('/active', async (req, res) => {
+  try {
+    const bookingId = req.query.bookingId || req.query.id;
+    const cleanBookingId = bookingId ? String(bookingId).replace(/^#/, '').trim() : '';
+    const bare = cleanBookingId ? cleanBookingId.replace(/^(UC|JOB|LEAD)[-_]?/i, '') : '';
+    const ninetySecondsAgo = new Date(Date.now() - 90 * 1000);
+
+    // 1. Check in-memory cache first (0ms latency)
+    let cached = null;
+    if (cleanBookingId) {
+      cached = activeVoipCalls.get(cleanBookingId) || activeVoipCalls.get(bare) || activeVoipCalls.get(`UC-${bare}`) || activeVoipCalls.get(`JOB-${bare}`);
+    }
+    if (!cached) {
+      cached = activeVoipCalls.get('latest');
+    }
+
+    if (cached && (cached.status === 'ringing' || cached.status === 'connected')) {
+      const callStarted = new Date(cached.startedAt || Date.now()).getTime();
+      if (Date.now() - callStarted < 95 * 1000) {
+        return res.json({ success: true, activeCall: cached });
+      }
+    }
+
+    // 2. Query MongoDB fallback
+    const queryCond = cleanBookingId
+      ? {
+          $or: [
+            { bookingId: cleanBookingId },
+            { bookingId: `UC-${bare}` },
+            { bookingId: `JOB-${bare}` },
+            { bookingId: bare }
+          ]
+        }
+      : {};
+
+    const session = await CallSession.findOne({
+      ...queryCond,
+      status: { $in: ['initiated', 'ringing', 'connected'] },
+      startedAt: { $gte: ninetySecondsAgo }
+    }).sort({ startedAt: -1 });
+
+    if (session) {
+      registerActiveCall(session);
+    }
+
+    res.json({ success: true, activeCall: session || null });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// GET Real-time VoIP Call: Check for active/incoming call on booking param
 router.get('/active/:bookingId', async (req, res) => {
   try {
     const { bookingId } = req.params;
@@ -97,6 +192,21 @@ router.get('/active/:bookingId', async (req, res) => {
     const bare = cleanBookingId.replace(/^(UC|JOB|LEAD)[-_]?/i, '');
     const ninetySecondsAgo = new Date(Date.now() - 90 * 1000);
 
+    // 1. In-memory check first (0ms latency)
+    let cached = activeVoipCalls.get(cleanBookingId) ||
+                 activeVoipCalls.get(bare) ||
+                 activeVoipCalls.get(`UC-${bare}`) ||
+                 activeVoipCalls.get(`JOB-${bare}`) ||
+                 (cleanBookingId === 'latest' ? activeVoipCalls.get('latest') : null);
+
+    if (cached && (cached.status === 'ringing' || cached.status === 'connected')) {
+      const callStarted = new Date(cached.startedAt || Date.now()).getTime();
+      if (Date.now() - callStarted < 95 * 1000) {
+        return res.json({ success: true, activeCall: cached });
+      }
+    }
+
+    // 2. MongoDB check
     const session = await CallSession.findOne({
       $or: [
         { bookingId: cleanBookingId },
@@ -107,6 +217,10 @@ router.get('/active/:bookingId', async (req, res) => {
       status: { $in: ['initiated', 'ringing', 'connected'] },
       startedAt: { $gte: ninetySecondsAgo }
     }).sort({ startedAt: -1 });
+
+    if (session) {
+      registerActiveCall(session);
+    }
 
     res.json({ success: true, activeCall: session || null });
   } catch (error) {
@@ -128,6 +242,7 @@ router.post('/respond', async (req, res) => {
         { $set: { status: 'connected', connectedAt: new Date() } },
         { new: true }
       );
+      updateActiveCallStatus(callId, 'connected', { connectedAt: new Date() });
       console.log(`📞 [VoIP Call Connected] ${callId}`);
       return res.json({ success: true, session });
     } else {
@@ -136,6 +251,7 @@ router.post('/respond', async (req, res) => {
         { $set: { status: 'rejected', endedAt: new Date(), disconnectReason: 'declined_by_receiver' } },
         { new: true }
       );
+      updateActiveCallStatus(callId, 'rejected', { endedAt: new Date(), disconnectReason: 'declined_by_receiver' });
       console.log(`📞 [VoIP Call Declined] ${callId}`);
       return res.json({ success: true, session });
     }
@@ -152,7 +268,7 @@ router.post('/end', async (req, res) => {
       return res.status(400).json({ success: false, message: 'callId is required' });
     }
 
-    const existing = await CallSession.findOne({ callId });
+    const existing = activeVoipCalls.get(callId) || await CallSession.findOne({ callId });
     const now = new Date();
     let calculatedDuration = durationSeconds;
     if (!calculatedDuration && existing?.connectedAt) {
@@ -171,6 +287,7 @@ router.post('/end', async (req, res) => {
       },
       { new: true }
     );
+    updateActiveCallStatus(callId, 'ended', { endedAt: now, durationSeconds: Math.max(0, calculatedDuration || 0), disconnectReason: reason });
     console.log(`📞 [VoIP Call Ended] ${callId} (Duration: ${session?.durationSeconds || 0}s, Reason: ${reason})`);
     res.json({ success: true, session });
   } catch (error) {
@@ -239,10 +356,15 @@ router.get('/signals/:callId', async (req, res) => {
 router.get('/call/:callId', async (req, res) => {
   try {
     const { callId } = req.params;
+    const cached = activeVoipCalls.get(callId);
+    if (cached) {
+      return res.json({ success: true, session: cached });
+    }
     const session = await CallSession.findOne({ callId });
     if (!session) {
       return res.status(404).json({ success: false, message: 'Call session not found' });
     }
+    registerActiveCall(session);
     res.json({ success: true, session });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Urban Company",
-    "slug": "urban-company-mobile",
+    "name": "Forge India Connect",
+    "slug": "forge-india-connect-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -19,7 +19,7 @@
       }
     },
     "android": {
-      "package": "com.urbancompany.mobile",
+      "package": "com.forgeindiaconnect.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },

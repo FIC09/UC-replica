@@ -241,7 +241,7 @@ export function AdminServicesModal({
                 Service Catalogue Management (CRUD)
               </h3>
               <p style={{ fontSize: 12, color: '#94A3B8' }}>
-                Create, Read, Update & Delete services across Urban Company Mumbai
+                Create, Read, Update & Delete services across Forge India Connect Mumbai
               </p>
             </div>
           </div>

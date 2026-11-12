@@ -3256,7 +3256,7 @@ export async function downloadSettlementStatement(req, res) {
         <html>
           <head><title>Settlement Statement - ${settlement.id}</title></head>
           <body style="font-family: Arial, sans-serif; padding: 25px; line-height: 1.5;">
-            <h2>Urban Company Settlement Statement</h2>
+            <h2>Forge India Connect Settlement Statement</h2>
             <p><strong>Reference:</strong> ${settlement.settlementReference} | <strong>Cycle:</strong> ${settlement.cycle}</p>
             <p><strong>Status:</strong> ${settlement.status} | <strong>UTR:</strong> ${settlement.utrNumber}</p>
             <hr/>
@@ -3434,7 +3434,7 @@ export async function downloadPartnerInvoice(req, res) {
         <html>
           <head><title>B2B Tax Invoice - ${inv.invoiceNumber}</title></head>
           <body style="font-family: Arial, sans-serif; padding: 30px;">
-            <h2>Urban Company Technologies India Pvt Ltd</h2>
+            <h2>Forge India Connect Technologies India Pvt Ltd</h2>
             <p><strong>Tax Invoice (B2B Commission Statement)</strong></p>
             <hr/>
             <p><strong>Invoice No:</strong> ${inv.invoiceNumber}</p>
@@ -4789,7 +4789,7 @@ export async function exportPartnerReportCsv(req, res) {
     ].join(','));
 
     const csvContent = [
-      '# Urban Company Business Partner Performance Report',
+      '# Forge India Connect Business Partner Performance Report',
       '# Timezone: Asia/Kolkata (IST)',
       '# Currency: INR',
       `# Generated For: Partner ${partnerId} on ${new Date().toISOString()}`,
@@ -5037,7 +5037,7 @@ export async function getPartnerSettings(req, res) {
         branding: {
           brandColor: '#0ea5e9',
           allowedLogoUpload: false,
-          policy: 'Urban Company Platform Co-Branded Standards'
+          policy: 'Forge India Connect Platform Co-Branded Standards'
         }
       }
     });

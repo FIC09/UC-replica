@@ -468,7 +468,7 @@ export function MicrowaveServicePage({
             </div>
           </div>
 
-          {/* Right Hero Promo Banner Card (Matches Official Urban Company Design without broken taskbar/wrong purifier image) */}
+          {/* Right Hero Promo Banner Card (Matches Official Forge India Connect Design without broken taskbar/wrong purifier image) */}
           <div style={{
             backgroundColor: '#FAFAFA',
             borderRadius: 20,
@@ -506,7 +506,7 @@ export function MicrowaveServicePage({
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
                   <Check size={18} color="#0F172A" strokeWidth={2.8} style={{ marginTop: 2, flexShrink: 0 }} />
                   <span style={{ fontSize: 14, fontWeight: 600, color: '#334155', lineHeight: 1.35 }}>
-                    Up to 180 days warranty on spare parts by Urban Company
+                    Up to 180 days warranty on spare parts by Forge India Connect
                   </span>
                 </div>
 
@@ -534,7 +534,7 @@ export function MicrowaveServicePage({
             }}>
               <img 
                 src="/images/microwave_technician_clean.jpg" 
-                alt="Urban Company Microwave Service Technician"
+                alt="Forge India Connect Microwave Service Technician"
                 style={{
                   width: '100%',
                   height: '100%',
@@ -593,7 +593,7 @@ export function MicrowaveServicePage({
               </span>
             </div>
 
-            {/* UC Cover Standard Rate Card Banner (Screenshot 2 & 3) */}
+            {/* FIC Cover Standard Rate Card Banner (Screenshot 2 & 3) */}
             <div 
               onClick={() => setIsRateCardModalOpen(true)}
               style={{
@@ -1107,7 +1107,7 @@ export function MicrowaveServicePage({
               }}>
                 <img 
                   src="/images/top_technician_clean.jpg" 
-                  alt="Verified Skill India Certified Urban Company Technician"
+                  alt="Verified Skill India Certified Forge India Connect Technician"
                   style={{
                     width: '100%',
                     height: '100%',
@@ -1527,7 +1527,7 @@ export function MicrowaveServicePage({
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <ShieldCheck size={22} color="#6E42E5" />
                 <h3 style={{ fontSize: 16.5, fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                  UC Cover: Up to 180 Days Warranty
+                  FIC Cover: Up to 180 Days Warranty
                 </h3>
               </div>
               <button
@@ -1620,14 +1620,14 @@ export function MicrowaveServicePage({
               UC
             </div>
             <span style={{ fontSize: 20, fontWeight: 900, color: '#FFFFFF', letterSpacing: -0.5 }}>
-              Urban Company
+              Forge India Connect
             </span>
           </div>
           <p style={{ fontSize: 13, color: '#94A3B8', margin: 0, maxWidth: 600, lineHeight: 1.6 }}>
-            Urban Company is India&apos;s largest home services platform. Over 834K bookings completed for verified, warranty-backed Microwave repair and servicing.
+            Forge India Connect is India&apos;s largest home services platform. Over 834K bookings completed for verified, warranty-backed Microwave repair and servicing.
           </p>
           <div style={{ fontSize: 12, color: '#64748B', borderTop: '1px solid #1E293B', paddingTop: 16 }}>
-            © 2026 Urban Company. All rights reserved.
+            © 2026 Forge India Connect. All rights reserved.
           </div>
         </div>
       </footer>

@@ -94,7 +94,7 @@ export const DEMO_CATEGORIES: Category[] = [
 export const DEMO_PROMOTIONS: Promotion[] = [
   {
     id: 'promo-1',
-    title: 'Diwali Festive Mega Sale',
+    title: 'Seasonal Super Value Sale',
     subtitle: 'Flat ₹500 off on full home deep cleaning, painting & sanitization',
     discountBadge: 'FLAT ₹500 OFF',
     code: 'FESTIVE500',

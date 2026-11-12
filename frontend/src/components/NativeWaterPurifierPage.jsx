@@ -31,7 +31,7 @@ export function NativeWaterPurifierPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDetailModel, setSelectedDetailModel] = useState(null);
 
-  // Native Water Purifier Models matching official Urban Company screenshot
+  // Native Water Purifier Models matching official Forge India Connect screenshot
   const PURIFIER_MODELS = [
     {
       id: 'native-m1',

@@ -189,7 +189,7 @@ export function ServiceDetailModal({
             </div>
           )}
 
-          {/* Urban Company Promise Card */}
+          {/* Forge India Connect Promise Card */}
           <div style={{
             background: 'linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%)',
             border: '1px solid #E0E7FF',

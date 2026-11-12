@@ -375,7 +375,7 @@ export function ChimneyServicePage({
                 UC
               </div>
               <span style={{ fontSize: 17, fontWeight: 800, color: '#000000', letterSpacing: -0.4 }}>
-                Urban Company
+                Forge India Connect
               </span>
             </div>
           </div>
@@ -1793,7 +1793,7 @@ export function ChimneyServicePage({
             UC
           </div>
           <span style={{ fontSize: 20, fontWeight: 800, color: '#000000', letterSpacing: -0.5 }}>
-            Urban Company
+            Forge India Connect
           </span>
         </div>
       </footer>

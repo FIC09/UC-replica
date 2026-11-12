@@ -36,7 +36,7 @@ export function NativeSmartLocksPage({
   const [selectedDetailLock, setSelectedDetailLock] = useState(null);
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
 
-  // Exact 3 Smart Lock Models matching Urban Company Screenshots 2 & 3
+  // Exact 3 Smart Lock Models matching Forge India Connect Screenshots 2 & 3
   const LOCK_MODELS = [
     {
       id: 'native-lock-pro',

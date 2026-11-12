@@ -421,7 +421,7 @@ export function PromotionsView({ onShowToast }) {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. DIWALI20"
+                      placeholder="e.g. FORGE20"
                       value={formData.code}
                       onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
                       style={{ width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid #D1D5DB', marginTop: 4, boxSizing: 'border-box', fontWeight: 800 }}

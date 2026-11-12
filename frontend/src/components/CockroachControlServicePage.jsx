@@ -289,7 +289,7 @@ export function CockroachControlServicePage({
         }}>
           {/* Left: Brand Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {/* Urban Company Logo */}
+            {/* Forge India Connect Logo */}
             <div 
               onClick={onBackHome}
               style={{
@@ -322,7 +322,7 @@ export function CockroachControlServicePage({
                 letterSpacing: '-0.5px',
                 lineHeight: 1.1
               }}>
-                Urban Company
+                Forge India Connect
               </div>
             </div>
           </div>

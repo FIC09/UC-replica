@@ -43,8 +43,8 @@ function CoPilotDeviceGraphic() {
 
       {/* Brand Header */}
       <rect x="84" y="32" width="14" height="14" rx="2.5" fill="#000" stroke="#44403C" />
-      <text x="86.5" y="42.5" fill="#FFFFFF" fontSize="8" fontWeight="900" fontFamily="sans-serif">UC</text>
-      <text x="103" y="42.5" fill="#E7E5E4" fontSize="9" fontWeight="700" fontFamily="sans-serif">Urban Company</text>
+      <text x="86.5" y="42.5" fill="#FFFFFF" fontSize="8" fontWeight="900" fontFamily="sans-serif">FIC</text>
+      <text x="103" y="42.5" fill="#E7E5E4" fontSize="9" fontWeight="700" fontFamily="sans-serif">Forge India Connect</text>
 
       {/* Neon Matrix Green LCD Screen */}
       <rect x="80" y="52" width="160" height="92" rx="4" fill="#65A30D" />
@@ -550,7 +550,7 @@ export function ACServicePage({
                 UC
               </div>
               <span style={{ fontSize: 17, fontWeight: 800, color: '#000000', letterSpacing: -0.4 }}>
-                Urban Company
+                Forge India Connect
               </span>
             </div>
           </div>
@@ -2439,7 +2439,7 @@ export function ACServicePage({
             UC
           </div>
           <span style={{ fontSize: 20, fontWeight: 800, color: '#000000', letterSpacing: -0.5 }}>
-            Urban Company
+            Forge India Connect
           </span>
         </div>
       </footer>
@@ -2478,9 +2478,9 @@ export function ACServicePage({
                 </div>
                 <div>
                   <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                    UC Cover • Up to 30 Days Warranty
+                    FIC Cover • Up to 30 Days Warranty
                   </h3>
-                  <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>Urban Company Verified Service Guarantee</p>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>Forge India Connect Verified Service Guarantee</p>
                 </div>
               </div>
               <button 

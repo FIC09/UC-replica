@@ -353,7 +353,7 @@ export function PartnerDashboardModal({
                   Active Technicians in Agency Roster (12 Members)
                 </h4>
                 <div style={{ fontSize: 12, color: '#94A3B8' }}>
-                  All technicians are 100% police verified with toolkits & Urban Company branded uniforms.
+                  All technicians are 100% police verified with toolkits & Forge India Connect branded uniforms.
                 </div>
               </div>
 

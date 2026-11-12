@@ -81,6 +81,9 @@ export function getBaseApiUrl() {
  * Returns prioritized list of candidate URLs for seamless failover.
  */
 export function getCandidateApiUrls() {
+  if (Platform.OS === 'web') {
+    return [`http://localhost:${LOCAL_PORT}/api`];
+  }
   const directLocalhost = `http://localhost:${LOCAL_PORT}/api`;
   const direct127 = `http://127.0.0.1:${LOCAL_PORT}/api`;
   const lanUrl = LAN_API_URL;

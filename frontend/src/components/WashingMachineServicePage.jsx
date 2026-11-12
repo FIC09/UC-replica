@@ -35,7 +35,7 @@ export function WashingMachineServicePage({
   const [isWarrantyModalOpen, setIsWarrantyModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
 
-  // Catalogue of Washing Machine services matching official Urban Company Screenshots 1 & 2
+  // Catalogue of Washing Machine services matching official Forge India Connect Screenshots 1 & 2
   const WASHING_MACHINE_SERVICES = [
     // =========================================================================
     // 1. JET SERVICE (Screenshot 1)
@@ -1526,7 +1526,7 @@ export function WashingMachineServicePage({
                 <ShieldCheck size={28} color="#6E42E5" style={{ flexShrink: 0 }} />
                 <div>
                   <h5 style={{ fontSize: 13, fontWeight: 800, color: '#0F172A', margin: '0 0 2px' }}>
-                    Urban Company 180 Days Warranty
+                    Forge India Connect 180 Days Warranty
                   </h5>
                   <p style={{ fontSize: 12, color: '#64748B', margin: 0 }}>
                     Genuine spare parts with up to 180 days warranty &amp; 30-day service protection.
@@ -1625,7 +1625,7 @@ export function WashingMachineServicePage({
 
             <div style={{ padding: '20px', fontSize: 13, color: '#334155', lineHeight: 1.55 }}>
               <p style={{ margin: '0 0 14px' }}>
-                Urban Company offers comprehensive warranty protection on all washing machine services:
+                Forge India Connect offers comprehensive warranty protection on all washing machine services:
               </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -1704,14 +1704,14 @@ export function WashingMachineServicePage({
               UC
             </div>
             <span style={{ fontSize: 20, fontWeight: 900, color: '#FFFFFF', letterSpacing: -0.5 }}>
-              Urban Company
+              Forge India Connect
             </span>
           </div>
           <p style={{ fontSize: 13, color: '#94A3B8', margin: 0, maxWidth: 600, lineHeight: 1.6 }}>
-            Urban Company is India&apos;s largest home services platform. Over 3.7 Million bookings completed for verified, warranty-backed Washing Machine repair and servicing.
+            Forge India Connect is India&apos;s largest home services platform. Over 3.7 Million bookings completed for verified, warranty-backed Washing Machine repair and servicing.
           </p>
           <div style={{ fontSize: 12, color: '#64748B', borderTop: '1px solid #1E293B', paddingTop: 16 }}>
-            © 2026 Urban Company. All rights reserved.
+            © 2026 Forge India Connect. All rights reserved.
           </div>
         </div>
       </footer>

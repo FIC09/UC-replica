@@ -33,7 +33,7 @@ export function GeyserServicePage({
   const [optionsModalService, setOptionsModalService] = useState(null);
   const [isWarrantyModalOpen, setIsWarrantyModalOpen] = useState(false);
 
-  // Catalogue of Geyser services matching official Urban Company Screenshots 1 & 2
+  // Catalogue of Geyser services matching official Forge India Connect Screenshots 1 & 2
   const GEYSER_SERVICES = [
     // =========================================================================
     // 1. REPAIR & SERVICE (Screenshots 1 & 2)
@@ -1346,7 +1346,7 @@ export function GeyserServicePage({
             UC
           </div>
           <span style={{ fontSize: 20, fontWeight: 800, color: '#000000', letterSpacing: -0.5 }}>
-            Urban Company
+            Forge India Connect
           </span>
         </div>
       </footer>
@@ -1387,7 +1387,7 @@ export function GeyserServicePage({
                   <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
                     Up to 30 Days Warranty
                   </h3>
-                  <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>Urban Company Water Heater Service Guarantee</p>
+                  <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>Forge India Connect Water Heater Service Guarantee</p>
                 </div>
               </div>
               <button 

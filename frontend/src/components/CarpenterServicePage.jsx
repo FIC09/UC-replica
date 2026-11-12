@@ -412,7 +412,7 @@ export function CarpenterServicePage({
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
             <ShieldCheck size={18} color="#B45309" />
-            <span>Urban Company Carpentry Guarantee: 30-day warranty, verified master carpenters & laser level accuracy.</span>
+            <span>Forge India Connect Carpentry Guarantee: 30-day warranty, verified master carpenters & laser level accuracy.</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 12, fontWeight: 600 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>

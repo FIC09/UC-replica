@@ -1,4 +1,4 @@
-// Comprehensive Data for Urban Company Mumbai Replica
+// Comprehensive Data for Forge India Connect Mumbai Replica
 
 export const CITIES = [
   { id: 'krishnagiri', name: 'Krishnagiri', state: 'Tamil Nadu', isCurrent: false },
@@ -1814,7 +1814,7 @@ export const SERVICES = [
     badge: 'NEW LAUNCH',
     tag: 'No Service for 3 Years',
     image: '/images/native_purifier.jpg',
-    description: 'India’s first smart IoT RO that requires no service for 3 whole years. Real-time filter monitoring on Urban Company mobile app with copper & alkaline enhancement.',
+    description: 'India’s first smart IoT RO that requires no service for 3 whole years. Real-time filter monitoring on Forge India Connect mobile app with copper & alkaline enhancement.',
     inclusions: [
       'Zero filter replacement required for 3 years',
       'IoT mobile app connectivity with real-time TDS and purity tracker',
@@ -2009,7 +2009,7 @@ export const REVIEWS = [
     date: '4 days ago',
     avatar: null,
     comment:
-      'Our Mumbai hard water had created stubborn white limescale stains on the glass partition and taps. After 45 mins of foam scrubbing, the bathroom literally looks like a 5-star hotel! Super impressed with Urban Company.',
+      'Our Mumbai hard water had created stubborn white limescale stains on the glass partition and taps. After 45 mins of foam scrubbing, the bathroom literally looks like a 5-star hotel! Super impressed with Forge India Connect.',
     verified: true,
   },
   {
@@ -2028,11 +2028,11 @@ export const REVIEWS = [
 
 export const FAQS = [
   {
-    q: 'How does Urban Company ensure safety and hygiene in Mumbai?',
-    a: 'Every Urban Company service partner undergoes 5-point background verification including police records. They carry single-use sealed kits, branded mono-dose products, surgical masks, and clean up the work area thoroughly after finishing.',
+    q: 'How does Forge India Connect ensure safety and hygiene in Mumbai?',
+    a: 'Every Forge India Connect service partner undergoes 5-point background verification including police records. They carry single-use sealed kits, branded mono-dose products, surgical masks, and clean up the work area thoroughly after finishing.',
   },
   {
-    q: 'What is the Urban Company 30-Day Service Guarantee?',
+    q: 'What is the Forge India Connect 30-Day Service Guarantee?',
     a: 'If you encounter any issues or dissatisfaction with the work completed (appliances, repairs, cleaning, pest control), our partner will re-visit and fix the issue completely free of charge under our 30-day warranty.',
   },
   {

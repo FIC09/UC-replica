@@ -32,8 +32,8 @@ const POPULAR_BANKS = [
 
 const AVAILABLE_COUPONS = [
   {
-    code: 'DIWALI25',
-    title: 'Festive Diwali 25% Off',
+    code: 'FORGE25',
+    title: 'Forge Special 25% Off',
     discountPercent: 25,
     minOrder: 399,
     desc: '25% discount on all bookings above ₹399',
@@ -385,14 +385,14 @@ export default function BookingCheckoutFlowModal({
   // Coupon state
   const [couponCodeInput, setCouponCodeInput] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState({
-    code: 'DIWALI25',
-    title: 'Festive Diwali 25% Off',
+    code: 'FORGE25',
+    title: 'Forge Special 25% Off',
     discountPercent: 25,
     minOrder: 399
   });
   const [couponMessage, setCouponMessage] = useState({
     type: 'success',
-    text: 'DIWALI25 applied! 25% savings active on this booking.'
+    text: 'FORGE25 applied! 25% savings active on this booking.'
   });
 
   // EXACT MATHEMATICAL CALCULATIONS
@@ -1024,7 +1024,7 @@ export default function BookingCheckoutFlowModal({
               style={styles.applyCouponQuickBtn}
               onPress={() => handleSelectCoupon(AVAILABLE_COUPONS[0])}
             >
-              <Text style={styles.applyCouponQuickText}>Apply DIWALI25</Text>
+              <Text style={styles.applyCouponQuickText}>Apply FORGE25</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -1308,7 +1308,7 @@ export default function BookingCheckoutFlowModal({
                 setCouponCodeInput(txt.toUpperCase());
                 setCouponMessage(null);
               }}
-              placeholder="e.g. DIWALI25, FIRST50"
+              placeholder="e.g. FORGE25, FIRST50"
               autoCapitalize="characters"
             />
             <TouchableOpacity

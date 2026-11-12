@@ -296,7 +296,7 @@ export function PartnerOnboardingModal({
             Partner Onboarding — Register Service Business or Fleet
           </h2>
           <p style={{ fontSize: 13, color: '#94A3B8', margin: 0 }}>
-            Scale your service company, agency or technician fleet with guaranteed Urban Company enterprise order dispatch.
+            Scale your service company, agency or technician fleet with guaranteed Forge India Connect enterprise order dispatch.
           </p>
 
           {/* Stepper */}
@@ -976,9 +976,9 @@ export function PartnerOnboardingModal({
               }}>
                 <div style={{ fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
                   <ShieldCheck size={16} color="#A78BFA" />
-                  <span>Urban Company Enterprise Partner Agreement</span>
+                  <span>Forge India Connect Enterprise Partner Agreement</span>
                 </div>
-                Registered business partners receive bulk dispatch orders, priority settlement, access to the Partner Pro ERP dashboard, and dedicated Urban Company account manager assistance.
+                Registered business partners receive bulk dispatch orders, priority settlement, access to the Partner Pro ERP dashboard, and dedicated Forge India Connect account manager assistance.
               </div>
 
               <div style={{ display: 'flex', gap: 10 }}>
@@ -1046,7 +1046,7 @@ export function PartnerOnboardingModal({
                 Partner Registration Received!
               </h3>
               <p style={{ fontSize: 13.5, color: '#94A3B8', maxWidth: 480, margin: '0 auto 20px', lineHeight: 1.5 }}>
-                Thank you, <strong style={{ color: '#fff' }}>{submittedPartnerApp.businessName}</strong>. Your partner fleet registration has been routed directly to the Urban Company Operations Admin Hub for enterprise verification and order allocation.
+                Thank you, <strong style={{ color: '#fff' }}>{submittedPartnerApp.businessName}</strong>. Your partner fleet registration has been routed directly to the Forge India Connect Operations Admin Hub for enterprise verification and order allocation.
               </p>
 
               {/* Application Details Summary Card */}

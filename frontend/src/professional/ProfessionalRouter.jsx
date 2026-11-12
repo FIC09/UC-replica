@@ -72,7 +72,7 @@ export function ProfessionalRouter({ onExitToMarketplace, onLogout: onAppLogout 
         setProfessionalUser(res.profile);
         localStorage.setItem('uc_pro_user', JSON.stringify(res.profile));
         if (res.profile.status === 'Approved' || res.profile.status === 'Active') {
-          showToast(`🎉 Application APPROVED! Welcome to the Urban Company Professional Dashboard.`);
+          showToast(`🎉 Application APPROVED! Welcome to the Forge India Connect Professional Dashboard.`);
         } else {
           showToast(`Application status: "${res.profile.status || 'Pending Review'}". Awaiting Admin Approval.`);
         }

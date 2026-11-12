@@ -25,7 +25,7 @@ export function BathroomKitchenCleaningModal({ isOpen, onClose, onSelectOption }
     e.stopPropagation();
     if (navigator.share) {
       navigator.share({
-        title: 'Bathroom & Kitchen Cleaning - Urban Company',
+        title: 'Bathroom & Kitchen Cleaning - Forge India Connect',
         url: window.location.href
       }).catch(() => {});
     } else {

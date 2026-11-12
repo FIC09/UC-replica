@@ -1404,7 +1404,7 @@ export function AdminDashboardModal({
                       Technician Recruitment Queue
                     </h3>
                     <p style={{ fontSize: 12.5, color: '#64748B', margin: '2px 0 0 0' }}>
-                      Individual professionals applying to work on the Urban Company platform
+                      Individual professionals applying to work on the Forge India Connect platform
                     </p>
                   </div>
                 </div>

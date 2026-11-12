@@ -536,7 +536,7 @@ export function KitchenCleaningServicePage({
         }}>
           {/* Left: Brand Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {/* Urban Company Logo exactly matching screenshot */}
+            {/* Forge India Connect Logo exactly matching screenshot */}
             <div 
               onClick={onBackHome}
               style={{

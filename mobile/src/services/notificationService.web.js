@@ -93,7 +93,7 @@ class WebNotificationService {
       });
       const data = await res.json();
       this.showNativeWebNotification(
-        '🔔 Urban Company Push Notification Live!',
+        '🔔 Forge India Connect Push Notification Live!',
         'Push notifications are connected and working in real-time!'
       );
       return data;

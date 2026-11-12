@@ -4865,7 +4865,7 @@ export async function getPayouts(req, res) {
           adjustments: [
             {
               type: 'bonus_incentive',
-              description: 'Weekly Diwali Peak Readiness Performance Incentive',
+              description: 'Weekly Peak Readiness Performance Incentive',
               amount: 500,
               refId: 'INC-DWL-41'
             }

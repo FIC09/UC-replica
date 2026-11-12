@@ -330,9 +330,7 @@ class MobileApiClient {
       }
     } catch (e) {
       if (e.data && e.data.otp) finalOtp = e.data.otp;
-      if (e.message && e.message.includes('525')) {
-        throw e;
-      }
+      message = e.message || message;
     }
 
     return {
@@ -412,13 +410,15 @@ class MobileApiClient {
 
       if (res && res.success && res.user) {
         const u = res.user;
+        const isPartner = u.role === 'worker' || u.role === 'partner' || u.role === 'professional' || role === 'partner';
         const mappedUser = {
-          id: u.id || u._id || (role === 'partner' ? 'PRO-8841' : 'CUST-1001'),
-          name: u.name || (role === 'partner' ? 'Vikram Salvi' : 'Rahul Sharma'),
+          id: u.id || u._id || (isPartner ? 'PRO-8841' : 'CUST-1001'),
+          name: u.name || (isPartner ? 'Vikram Salvi' : 'Rahul Sharma'),
           email: cleanEmail,
-          role: u.role === 'worker' || u.role === 'partner' || role === 'partner' ? 'partner' : 'customer',
-          trade: role === 'partner' ? 'Master AC Specialist & Electrician' : undefined,
-          rating: role === 'partner' ? 4.94 : undefined,
+          phone: u.phone || (isPartner ? '+91 98205 11982' : '+91 98200 12345'),
+          role: isPartner ? 'partner' : 'customer',
+          trade: isPartner ? (u.trade || 'Master AC Specialist & Electrician') : undefined,
+          rating: isPartner ? (u.rating || 4.94) : undefined,
           token: res.token || `jwt-${Date.now()}`
         };
         LOCAL_USERS_STORE.set(cleanEmail, { ...mappedUser, password: cleanPassword });
@@ -471,6 +471,13 @@ class MobileApiClient {
     return this.request('/auth/verify-registration-otp', {
       method: 'POST',
       body: JSON.stringify({ phone, otp })
+    });
+  }
+
+  updateProfile(profileData) {
+    return this.request('/auth/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
     });
   }
 }

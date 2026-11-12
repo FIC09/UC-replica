@@ -47,7 +47,7 @@ export function WaterPurifierServicePage({
 
   const carouselRef = useRef(null);
 
-  // Official Urban Company Water Purifier Services matching Screenshots 2 & 3
+  // Official Forge India Connect Water Purifier Services matching Screenshots 2 & 3
   const RO_SERVICES = [
     {
       id: 'ro-repair-checkup',
@@ -129,7 +129,7 @@ export function WaterPurifierServicePage({
         'Heavy-duty 80 GPD thin-film composite (TFC) RO Membrane',
         'Post-carbon mineralizer & alkaline balance infusion cartridge',
         'Complete sanitisation of storage tank and internal plumbing',
-        '1-Year Comprehensive Urban Company Warranty on all installed filters',
+        '1-Year Comprehensive Forge India Connect Warranty on all installed filters',
         'Free digital TDS meter testing before and after replacement'
       ],
       exclusions: [
@@ -158,7 +158,7 @@ export function WaterPurifierServicePage({
         'Food-grade PE tubing connection for input and reject water lines',
         'Initial 15-minute system flush to remove loose carbon fines',
         'Output water TDS level measurement and taste calibration',
-        '30-day post-service Urban Company workmanship guarantee'
+        '30-day post-service Forge India Connect workmanship guarantee'
       ],
       exclusions: [
         'Additional electrical power socket installation',
@@ -214,7 +214,7 @@ export function WaterPurifierServicePage({
         'Complete draining of purified water tank and filter candles to prevent spillage',
         'Careful unmounting from wall brackets without wall plaster damage',
         'Coiling and bundling of all PE tubes, valves, and power adapters',
-        '30-day Urban Company service assurance'
+        '30-day Forge India Connect service assurance'
       ],
       exclusions: [
         'Packaging carton boxes or bubble wrap not included',
@@ -223,7 +223,7 @@ export function WaterPurifierServicePage({
     }
   ];
 
-  // Standard Rate Card items matching Urban Company official transparent pricing
+  // Standard Rate Card items matching Forge India Connect official transparent pricing
   const RATE_CARD_ITEMS = [
     { part: 'Sediment Filter (Spun/PP 5-micron)', price: '₹350', warranty: '1 Year' },
     { part: 'Pre-Carbon Block Filter (High-Iodine)', price: '₹450', warranty: '1 Year' },
@@ -243,11 +243,11 @@ export function WaterPurifierServicePage({
   const FAQS = [
     {
       q: 'How often should RO water purifier filters be replaced?',
-      a: 'Sediment and carbon pre-filters should generally be replaced every 6 to 12 months depending on your input water quality. The RO membrane typically lasts 1 to 2 years. Urban Company Native filters feature advanced multi-layer architecture engineered to last up to 2 full years with India’s longest 1-year warranty.'
+      a: 'Sediment and carbon pre-filters should generally be replaced every 6 to 12 months depending on your input water quality. The RO membrane typically lasts 1 to 2 years. Forge India Connect Native filters feature advanced multi-layer architecture engineered to last up to 2 full years with India’s longest 1-year warranty.'
     },
     {
       q: 'What is covered under India’s longest 1-year warranty on spares?',
-      a: 'Urban Company provides a comprehensive 1-year warranty on all Native replacement filters and major spare parts (including RO membrane, booster pumps, SMPS adapters, and solenoid valves). If any installed part malfunctions within 365 days, a certified technician will replace it free of cost.'
+      a: 'Forge India Connect provides a comprehensive 1-year warranty on all Native replacement filters and major spare parts (including RO membrane, booster pumps, SMPS adapters, and solenoid valves). If any installed part malfunctions within 365 days, a certified technician will replace it free of cost.'
     },
     {
       q: 'What is a good TDS level for drinking water?',
@@ -632,7 +632,7 @@ export function WaterPurifierServicePage({
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, fontWeight: 500, color: '#111827' }}>
                       <Check size={16} color="#111827" strokeWidth={3} />
-                      <span>1-year warranty on filters<br />by Urban Company</span>
+                      <span>1-year warranty on filters<br />by Forge India Connect</span>
                     </div>
                   </div>
                 </div>
@@ -1134,7 +1134,7 @@ export function WaterPurifierServicePage({
                   color: '#9CA3AF',
                   fontWeight: 500
                 }}>
-                  A brand by Urban Company
+                  A brand by Forge India Connect
                 </p>
               </div>
 
@@ -1371,7 +1371,7 @@ export function WaterPurifierServicePage({
               overflowX: 'auto'
             }}>
               <div style={{ minWidth: 480 }}>
-                {/* Table Header with Green Native by Urban Company Column */}
+                {/* Table Header with Green Native by Forge India Connect Column */}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: '1.4fr 1.6fr 1.3fr 1.3fr',
@@ -1381,7 +1381,7 @@ export function WaterPurifierServicePage({
                 }}>
                   <div></div>
 
-                  {/* Native by Urban Company (Distinct Green Column Header matching Screenshot 1) */}
+                  {/* Native by Forge India Connect (Distinct Green Column Header matching Screenshot 1) */}
                   <div style={{
                     backgroundColor: '#00684A',
                     color: '#FFFFFF',
@@ -1391,7 +1391,7 @@ export function WaterPurifierServicePage({
                     boxShadow: '0 4px 12px rgba(0, 104, 74, 0.2)'
                   }}>
                     <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.25 }}>
-                      Native by<br />Urban Company
+                      Native by<br />Forge India Connect
                     </div>
                   </div>
 
@@ -2027,7 +2027,7 @@ export function WaterPurifierServicePage({
                 letterSpacing: -0.4,
                 marginBottom: 20
               }}>
-                Urban Company promise
+                Forge India Connect promise
               </h2>
 
               {/* Subcard matching Screenshot 5 */}
@@ -2631,7 +2631,7 @@ export function WaterPurifierServicePage({
             </div>
 
             <p style={{ fontSize: 13, color: '#6B7280', marginBottom: 18, lineHeight: 1.4 }}>
-              100% genuine spares with transparent pricing. Urban Company guarantees verified pricing with no hidden charges.
+              100% genuine spares with transparent pricing. Forge India Connect guarantees verified pricing with no hidden charges.
             </p>
 
             {/* Spares Table */}
@@ -2758,7 +2758,7 @@ export function WaterPurifierServicePage({
             </div>
 
             <p style={{ fontSize: 13.5, color: '#4B5563', lineHeight: 1.5, marginBottom: 18 }}>
-              Urban Company offers India’s longest 1-year warranty on all Native water purifier filters and major spare parts, assuring uncompromised drinking water quality and peace of mind.
+              Forge India Connect offers India’s longest 1-year warranty on all Native water purifier filters and major spare parts, assuring uncompromised drinking water quality and peace of mind.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 20 }}>
@@ -2772,7 +2772,7 @@ export function WaterPurifierServicePage({
               </div>
               <div style={{ display: 'flex', gap: 10, fontSize: 13, color: '#1F2937' }}>
                 <CheckCircle2 size={18} color="#2563EB" style={{ flexShrink: 0 }} />
-                <span><strong>No Paperwork Needed:</strong> All warranties are digitally tracked in your Urban Company profile and phone number.</span>
+                <span><strong>No Paperwork Needed:</strong> All warranties are digitally tracked in your Forge India Connect profile and phone number.</span>
               </div>
             </div>
 

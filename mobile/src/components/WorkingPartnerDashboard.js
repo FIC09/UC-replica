@@ -46,6 +46,75 @@ export default function WorkingPartnerDashboard({
   const [showChatModal, setShowChatModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Streamlined Partner Profile State & Interactive Modals
+  const [partnerProfile, setPartnerProfile] = useState({
+    name: currentUser?.name || 'violet',
+    email: currentUser?.email || 'violet@gmail.com',
+    phone: currentUser?.phone || '+91 8772347651',
+    trade: currentUser?.trade || 'Master AC Specialist & Electrician',
+    city: 'Krishnagiri',
+    hub: 'Krishnagiri Town (Direct Service)',
+    operatingRadius: 12,
+    experience: '3-5 years',
+    id: currentUser?.id || currentUser?.workerId || 'PRO-8841'
+  });
+
+  useEffect(() => {
+    if (currentUser) {
+      setPartnerProfile(prev => ({
+        ...prev,
+        name: currentUser.name || prev.name,
+        email: currentUser.email || prev.email,
+        phone: currentUser.phone || prev.phone,
+        trade: currentUser.trade || prev.trade,
+        id: currentUser.id || currentUser.workerId || prev.id
+      }));
+    }
+  }, [currentUser]);
+
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showSkillsModal, setShowSkillsModal] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showKycModal, setShowKycModal] = useState(false);
+  const [showSupportModal, setShowSupportModal] = useState(false);
+  const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
+
+  const [editForm, setEditForm] = useState({
+    name: currentUser?.name || 'violet',
+    phone: currentUser?.phone || '+91 8772347651',
+    trade: currentUser?.trade || 'Master AC Specialist & Electrician',
+    city: 'Krishnagiri',
+    operatingRadius: 12
+  });
+
+  const handleSaveWorkerProfile = async () => {
+    const trimmedName = (editForm.name || '').trim();
+    if (!trimmedName) {
+      Alert.alert('Name Required', 'Please enter your full name.');
+      return;
+    }
+    const updated = {
+      ...partnerProfile,
+      name: trimmedName,
+      phone: (editForm.phone || '').trim() || partnerProfile.phone,
+      trade: (editForm.trade || '').trim() || partnerProfile.trade,
+      city: (editForm.city || '').trim() || partnerProfile.city,
+      operatingRadius: Number(editForm.operatingRadius) || partnerProfile.operatingRadius
+    };
+    setPartnerProfile(updated);
+    setShowEditProfileModal(false);
+    showToast('✓ Partner profile updated successfully in real time');
+
+    try {
+      await mobileApi.updateProfile({
+        id: updated.id,
+        email: updated.email,
+        name: updated.name,
+        phone: updated.phone
+      });
+    } catch (_) {}
+  };
+
   // Active Job state synchronized with shared booking
   const [activeJob, setActiveJob] = useState(() => {
     const stageNum = sharedBooking?.stage || 2;
@@ -167,13 +236,16 @@ export default function WorkingPartnerDashboard({
     const checkIncomingVoipCall = async () => {
       try {
         if (!showVoipCallModal) {
-          const res = await mobileApi.getActiveCall(cleanJobId);
+          let res = await mobileApi.getActiveCall(cleanJobId);
+          if (!res?.activeCall || res?.activeCall?.status !== 'ringing') {
+            res = await mobileApi.getActiveCall('latest');
+          }
           if (res && res.success && res.activeCall && res.activeCall.status === 'ringing') {
             if (res.activeCall.callerRole === 'customer') {
               setVoipCallData({
                 ...res.activeCall,
                 callId: res.activeCall.callId,
-                bookingId: cleanJobId,
+                bookingId: res.activeCall.bookingId || cleanJobId,
                 service: activeJob?.service || 'Doorstep Service'
               });
               setIsVoipIncoming(true);
@@ -184,7 +256,7 @@ export default function WorkingPartnerDashboard({
       } catch (_) {}
     };
 
-    const interval = setInterval(checkIncomingVoipCall, 1800);
+    const interval = setInterval(checkIncomingVoipCall, 1200);
     return () => clearInterval(interval);
   }, [activeJob?.id, sharedBooking?.id, showVoipCallModal]);
 
@@ -671,7 +743,7 @@ export default function WorkingPartnerDashboard({
 
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 14px sans-serif';
-        ctx.fillText('URBAN COMPANY • LIVE TECHNICIAN VERIFICATION', 36, height - 34);
+        ctx.fillText('FORGE INDIA CONNECT • LIVE TECHNICIAN VERIFICATION', 36, height - 34);
 
         ctx.font = '11px sans-serif';
         ctx.fillStyle = '#94A3B8';
@@ -732,7 +804,7 @@ export default function WorkingPartnerDashboard({
 
         ctx.fillStyle = '#FFFFFF';
         ctx.font = 'bold 15px sans-serif';
-        ctx.fillText('URBAN COMPANY TECHNICIAN', 200, 290);
+        ctx.fillText('FORGE INDIA CONNECT SPECIALIST', 200, 290);
         ctx.font = '13px sans-serif';
         ctx.fillText(selfieModalPhase === 'pre' ? 'DOORSTEP PRE-WORK VERIFIED' : 'SERVICE COMPLETED VERIFIED', 200, 320);
         ctx.fillText(new Date().toLocaleTimeString(), 200, 345);
@@ -877,13 +949,13 @@ export default function WorkingPartnerDashboard({
         </View>
       )}
 
-      {/* 1. TOP HEADER: Clean Urban Company Premium White Header (Matching Customer App) */}
+      {/* 1. TOP HEADER: Clean Forge India Connect Premium White Header (Matching Customer App) */}
       <View style={styles.ucCleanHeader}>
         {/* Top Brand & Location Bar */}
         <View style={styles.ucHeaderTopBar}>
           <View style={styles.ucBrandAndLocation}>
             <View style={styles.ucBrandLogoBadge}>
-              <Text style={styles.ucBrandLogoText}>UC</Text>
+              <Text style={styles.ucBrandLogoText}>FIC</Text>
             </View>
             <View style={styles.ucLocationContainer}>
               <TouchableOpacity
@@ -936,61 +1008,65 @@ export default function WorkingPartnerDashboard({
           </View>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.ucSearchBarContainer}>
-          <Text style={styles.ucSearchIcon}>🔍</Text>
-          <TextInput
-            style={styles.ucSearchInput}
-            placeholder="Search for 'active job', 'leads', 'payout', 'photos'..."
-            placeholderTextColor="#94A3B8"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            clearButtonMode="while-editing"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Text style={styles.ucClearIcon}>✕</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+        {/* Search Bar & Quick Suggestion Chips: Displayed on Dispatches Hub */}
+        {activeTab === 'jobs' && (
+          <>
+            <View style={styles.ucSearchBarContainer}>
+              <Text style={styles.ucSearchIcon}>🔍</Text>
+              <TextInput
+                style={styles.ucSearchInput}
+                placeholder="Search for 'active job', 'leads', 'payout', 'photos'..."
+                placeholderTextColor="#94A3B8"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                clearButtonMode="while-editing"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                  <Text style={styles.ucClearIcon}>✕</Text>
+                </TouchableOpacity>
+              )}
+            </View>
 
-        {/* Quick Suggestion Chips */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.ucQuickChipsScroll}
-        >
-          {[
-            { label: 'Active Job', tab: 'jobs' },
-            { label: `Hot Leads (${availableLeads.length})`, tab: 'leads' },
-            { label: `Today: ₹${todayEarnings}`, tab: 'earnings' },
-            { label: `Wallet: ₹${walletBalance}`, tab: 'wallet' },
-            { label: '★ 4.94 SLA', tab: 'quality' },
-            { label: '📸 Work Photos', tab: 'photos' },
-            { label: '📡 Live GPS', tab: 'live-tracking' },
-          ].map((chip, idx) => (
-            <TouchableOpacity
-              key={`worker-chip-${idx}`}
-              style={[
-                styles.ucQuickChip,
-                activeTab === chip.tab && styles.ucQuickChipActive
-              ]}
-              onPress={() => {
-                setActiveTab(chip.tab);
-                setSearchQuery('');
-              }}
+            {/* Quick Suggestion Chips */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.ucQuickChipsScroll}
             >
-              <Text
-                style={[
-                  styles.ucQuickChipText,
-                  activeTab === chip.tab && styles.ucQuickChipTextActive
-                ]}
-              >
-                {chip.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+              {[
+                { label: 'Active Job', tab: 'jobs' },
+                { label: `Hot Leads (${availableLeads.length})`, tab: 'leads' },
+                { label: `Today: ₹${todayEarnings}`, tab: 'earnings' },
+                { label: `Wallet: ₹${walletBalance}`, tab: 'wallet' },
+                { label: '★ 4.94 SLA', tab: 'quality' },
+                { label: '📸 Work Photos', tab: 'photos' },
+                { label: '📡 Live GPS', tab: 'live-tracking' },
+              ].map((chip, idx) => (
+                <TouchableOpacity
+                  key={`worker-chip-${idx}`}
+                  style={[
+                    styles.ucQuickChip,
+                    activeTab === chip.tab && styles.ucQuickChipActive
+                  ]}
+                  onPress={() => {
+                    setActiveTab(chip.tab);
+                    setSearchQuery('');
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.ucQuickChipText,
+                      activeTab === chip.tab && styles.ucQuickChipTextActive
+                    ]}
+                  >
+                    {chip.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </>
+        )}
       </View>
 
       {/* 2. Main Content Body */}
@@ -999,103 +1075,45 @@ export default function WorkingPartnerDashboard({
         contentContainerStyle={styles.scrollInner}
         showsVerticalScrollIndicator={false}
       >
-        {/* ==================== CUSTOMER-STYLE LIVE ORDER TRACKING HERO BANNER ==================== */}
-        {activeJob && activeJob.status !== 'Completed' && (
-          <TouchableOpacity
-            style={styles.customerTrackingBanner}
-            activeOpacity={0.88}
-            onPress={() => setActiveTab('jobs')}
-          >
-            <View style={styles.trackingBannerIconBox}>
-              <Text style={styles.trackingBannerIcon}>🛵</Text>
-            </View>
-            <View style={{ flex: 1, paddingRight: 8 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                <Text style={styles.trackingBannerTitle}>
-                  {`Active Dispatch #${activeJob.id} • ${activeJob.status?.toUpperCase()}`}
-                </Text>
-                <View style={styles.trackingLivePill}>
-                  <Text style={styles.trackingLivePillText}>LIVE</Text>
+        {/* Dispatches Hero & Banners: Rendered on Dispatches Home */}
+        {activeTab === 'jobs' && (
+          <>
+            {/* ==================== CUSTOMER-STYLE LIVE ORDER TRACKING HERO BANNER ==================== */}
+            {activeJob && activeJob.status !== 'Completed' && (
+              <TouchableOpacity
+                style={styles.customerTrackingBanner}
+                activeOpacity={0.88}
+                onPress={() => setActiveTab('jobs')}
+              >
+                <View style={styles.trackingBannerIconBox}>
+                  <Text style={styles.trackingBannerIcon}>🛵</Text>
                 </View>
-              </View>
-              <Text style={styles.trackingBannerSub} numberOfLines={1}>
-                {`${activeJob.service} • Customer: ${activeJob.customer} • Payout: ₹${activeJob.payout}`}
-              </Text>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                    <Text style={styles.trackingBannerTitle}>
+                      {`Active Dispatch #${activeJob.id} • ${activeJob.status?.toUpperCase()}`}
+                    </Text>
+                    <View style={styles.trackingLivePill}>
+                      <Text style={styles.trackingLivePillText}>LIVE</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.trackingBannerSub} numberOfLines={1}>
+                    {`${activeJob.service} • Customer: ${activeJob.customer} • Payout: ₹${activeJob.payout}`}
+                  </Text>
+                </View>
+                <View style={styles.trackingBannerAction}>
+                  <Text style={styles.trackingBannerActionText}>Manage ›</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+
+            {/* Section Heading: Doorstep Services / Active Tasks */}
+            <View style={styles.doorstepSectionHeader}>
+              <Text style={styles.doorstepSectionTitle}>Active Partner Operations</Text>
+              <Text style={styles.doorstepSectionSub}>Real-time dispatches, live customer tracking & SLAs</Text>
             </View>
-            <View style={styles.trackingBannerAction}>
-              <Text style={styles.trackingBannerActionText}>Manage ›</Text>
-            </View>
-          </TouchableOpacity>
+          </>
         )}
-
-        {/* ==================== FESTIVE ROOFTOP CAROUSEL BANNER (CUSTOMER STYLE) ==================== */}
-        <View style={styles.festiveContainer}>
-          <View style={styles.festiveHeaderBar}>
-            <Text style={styles.festiveDiyasLeft}>🪔 🏮</Text>
-            <Text style={styles.festiveTitle}>HAPPY DIWALI • PARTNER PRO</Text>
-            <Text style={styles.festiveDiyasRight}>🏮 🪔</Text>
-          </View>
-
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.festiveCardsScroll}
-          >
-            {/* Highlight Card 1: Today's Earnings */}
-            <TouchableOpacity
-              style={styles.workerFestiveMetricCard}
-              onPress={() => setActiveTab('earnings')}
-              activeOpacity={0.85}
-            >
-              <View style={styles.workerFestiveTag}>
-                <Text style={styles.workerFestiveTagText}>TODAY'S PAYOUT</Text>
-              </View>
-              <View style={styles.workerFestiveBody}>
-                <Text style={styles.workerFestiveValue}>₹{todayEarnings}</Text>
-                <Text style={styles.workerFestiveSub}>{completedCount} jobs completed</Text>
-                <Text style={styles.workerFestiveAction}>View Ledger →</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Highlight Card 2: Wallet Balance */}
-            <TouchableOpacity
-              style={[styles.workerFestiveMetricCard, { borderColor: '#10B981' }]}
-              onPress={() => setActiveTab('wallet')}
-              activeOpacity={0.85}
-            >
-              <View style={[styles.workerFestiveTag, { backgroundColor: '#10B981' }]}>
-                <Text style={[styles.workerFestiveTagText, { color: '#FFFFFF' }]}>INSTANT WALLET</Text>
-              </View>
-              <View style={styles.workerFestiveBody}>
-                <Text style={[styles.workerFestiveValue, { color: '#10B981' }]}>₹{walletBalance}</Text>
-                <Text style={styles.workerFestiveSub}>Instant Bank Transfer</Text>
-                <Text style={[styles.workerFestiveAction, { color: '#10B981' }]}>Withdraw Now →</Text>
-              </View>
-            </TouchableOpacity>
-
-            {/* Highlight Card 3: Rating & SLA */}
-            <TouchableOpacity
-              style={[styles.workerFestiveMetricCard, { borderColor: '#3B82F6' }]}
-              onPress={() => setActiveTab('quality')}
-              activeOpacity={0.85}
-            >
-              <View style={[styles.workerFestiveTag, { backgroundColor: '#3B82F6' }]}>
-                <Text style={[styles.workerFestiveTagText, { color: '#FFFFFF' }]}>DIAMOND PRO</Text>
-              </View>
-              <View style={styles.workerFestiveBody}>
-                <Text style={[styles.workerFestiveValue, { color: '#0F172A' }]}>★ 4.94</Text>
-                <Text style={styles.workerFestiveSub}>98.4% On-time SLA</Text>
-                <Text style={[styles.workerFestiveAction, { color: '#3B82F6' }]}>Check Reviews →</Text>
-              </View>
-            </TouchableOpacity>
-          </ScrollView>
-        </View>
-
-        {/* Section Heading: Doorstep Services / Active Tasks */}
-        <View style={styles.doorstepSectionHeader}>
-          <Text style={styles.doorstepSectionTitle}>Active Partner Operations</Text>
-          <Text style={styles.doorstepSectionSub}>Real-time dispatches, live customer tracking & SLAs</Text>
-        </View>
 
         {/* ==================== TAB 1: ACTIVE DISPATCH JOB ==================== */}
         {activeTab === 'jobs' && (
@@ -1457,24 +1475,6 @@ export default function WorkingPartnerDashboard({
                     </View>
                   </View>
                 </View>
-
-                {/* Real-time Customer Tracking View Button */}
-                <TouchableOpacity
-                  style={styles.viewInCustomerTrackingBtn}
-                  onPress={handleSwitchCustomerWithSync}
-                  activeOpacity={0.85}
-                >
-                  <Text style={styles.viewInCustomerTrackingIcon}>📱</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.viewInCustomerTrackingTitle}>
-                      View in Customer Tracking Modal
-                    </Text>
-                    <Text style={styles.viewInCustomerTrackingSub}>
-                      Live Stage {activeJob.stage || (activeJob.status === 'Completed' ? 6 : activeJob.status === 'In Progress' ? 5 : activeJob.status === 'Arrived' ? 4 : activeJob.status === 'En Route' ? 3 : 2)}/6 • {activeJob.status}
-                    </Text>
-                  </View>
-                  <Text style={styles.viewInCustomerTrackingArrow}>→</Text>
-                </TouchableOpacity>
               </View>
             ) : (
               <View style={styles.noJobBox}>
@@ -1733,8 +1733,273 @@ export default function WorkingPartnerDashboard({
           </View>
         )}
 
-        {/* ==================== TAB 8: QUALITY & REVIEWS / PROFILE ==================== */}
-        {(activeTab === 'quality' || activeTab === 'profile') && (
+        {/* ==================== TAB: STREAMLINED USER-FRIENDLY PARTNER PROFILE ==================== */}
+        {activeTab === 'profile' && (
+          <View style={styles.tabSection}>
+            {/* 1. Partner Profile Hero Card */}
+            <View style={styles.partnerProfileHeroCard}>
+              <View style={styles.partnerProfileAvatarLarge}>
+                <Text style={styles.partnerProfileAvatarText}>
+                  {(partnerProfile.name || 'V').charAt(0).toUpperCase()}
+                </Text>
+                <View style={styles.partnerProAvatarBadge}>
+                  <Text style={styles.partnerProAvatarBadgeText}>PRO</Text>
+                </View>
+              </View>
+
+              <View style={{ flex: 1, paddingRight: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                  <Text style={styles.partnerProfileName} numberOfLines={1}>
+                    {partnerProfile.name}
+                  </Text>
+                  <View style={styles.partnerProBadge}>
+                    <Text style={styles.partnerProBadgeText}>★ 4.94 PRO</Text>
+                  </View>
+                </View>
+                <Text style={styles.partnerProfileTrade} numberOfLines={1}>
+                  {partnerProfile.trade}
+                </Text>
+                <Text style={styles.partnerProfileEmail} numberOfLines={1}>
+                  {partnerProfile.email}
+                </Text>
+                <Text style={styles.partnerProfilePhone} numberOfLines={1}>
+                  {partnerProfile.phone} • {partnerProfile.id}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.partnerEditProfileBtn}
+                onPress={() => {
+                  setEditForm({
+                    name: partnerProfile.name,
+                    phone: partnerProfile.phone,
+                    trade: partnerProfile.trade,
+                    city: partnerProfile.city,
+                    operatingRadius: partnerProfile.operatingRadius
+                  });
+                  setShowEditProfileModal(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.partnerEditProfileBtnText}>Edit</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 2. Duty Status Card */}
+            <View style={styles.partnerDutyCard}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.partnerDutyCardTitle}>
+                  {isOnline ? '🟢 Online & Ready for Jobs' : '⚪ Offline (On Break)'}
+                </Text>
+                <Text style={styles.partnerDutyCardSub}>
+                  {isOnline ? 'Active for instant customer dispatches & leads in Krishnagiri' : 'You will not receive new customer bookings while offline'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.partnerDutyToggleBtn, isOnline ? styles.partnerDutyToggleActive : styles.partnerDutyToggleInactive]}
+                onPress={() => {
+                  const nextState = !isOnline;
+                  setIsOnline(nextState);
+                  showToast(nextState ? '🟢 Duty ON: You are now visible to customers' : '⚪ Duty OFF: You are on break');
+                }}
+                activeOpacity={0.85}
+              >
+                <Text style={[styles.partnerDutyToggleText, { color: isOnline ? '#065F46' : '#64748B' }]}>
+                  {isOnline ? 'GO OFFLINE' : 'GO ONLINE'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 3. Performance Metrics Row (Rating, Jobs, Wallet) */}
+            <View style={styles.partnerQuickMetricsRow}>
+              <TouchableOpacity
+                style={styles.partnerQuickMetricItem}
+                onPress={() => setActiveTab('quality')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.partnerQuickMetricVal}>★ 4.94</Text>
+                <Text style={styles.partnerQuickMetricLabel}>Customer Rating</Text>
+              </TouchableOpacity>
+              <View style={styles.partnerQuickMetricDivider} />
+              <TouchableOpacity
+                style={styles.partnerQuickMetricItem}
+                onPress={() => setActiveTab('jobs')}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.partnerQuickMetricVal}>{completedCount || 8}</Text>
+                <Text style={styles.partnerQuickMetricLabel}>Completed Jobs</Text>
+              </TouchableOpacity>
+              <View style={styles.partnerQuickMetricDivider} />
+              <TouchableOpacity
+                style={styles.partnerQuickMetricItem}
+                onPress={() => setActiveTab('wallet')}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.partnerQuickMetricVal, { color: '#10B981' }]}>₹{walletBalance}</Text>
+                <Text style={styles.partnerQuickMetricLabel}>Instant Wallet</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 4. GROUP 1: PROFESSIONAL PROFILE & CREDENTIALS */}
+            <View style={styles.partnerMenuGroup}>
+              <Text style={styles.partnerMenuSectionTitle}>PROFESSIONAL PROFILE & CREDENTIALS</Text>
+
+              <TouchableOpacity
+                style={styles.partnerMenuItem}
+                onPress={() => setShowSkillsModal(true)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#FFEDD5' }]}>
+                  <Text style={{ fontSize: 18 }}>🛠️</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerMenuTitle}>Service Categories & Skills</Text>
+                  <Text style={styles.partnerMenuSub}>{partnerProfile.trade} • Certified Specialist</Text>
+                </View>
+                <Text style={styles.partnerMenuChevron}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.partnerMenuItem}
+                onPress={() => setShowLocationModal(true)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#EDE9FE' }]}>
+                  <Text style={{ fontSize: 18 }}>📍</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerMenuTitle}>Service Area & Operating Hub</Text>
+                  <Text style={styles.partnerMenuSub}>{partnerProfile.city} Town • {partnerProfile.operatingRadius} KM Radius</Text>
+                </View>
+                <Text style={styles.partnerMenuChevron}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.partnerMenuItem}
+                onPress={() => setShowKycModal(true)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#DCFCE7' }]}>
+                  <Text style={{ fontSize: 18 }}>🛡️</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerMenuTitle}>KYC & Identity Verification</Text>
+                  <Text style={styles.partnerMenuSub}>Aadhaar Verified ✓ • Police Cleared ✓</Text>
+                </View>
+                <View style={[styles.partnerLiveBadge, { backgroundColor: '#10B981' }]}>
+                  <Text style={styles.partnerLiveBadgeText}>VERIFIED</Text>
+                </View>
+                <Text style={styles.partnerMenuChevron}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.partnerMenuItem, { borderBottomWidth: 0 }]}
+                onPress={() => setActiveTab('photos')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#E0F2FE' }]}>
+                  <Text style={{ fontSize: 18 }}>📸</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerMenuTitle}>Work Photos & Evidence</Text>
+                  <Text style={styles.partnerMenuSub}>Cloudinary pre & post service photos</Text>
+                </View>
+                <Text style={styles.partnerMenuChevron}>›</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 5. GROUP 2: EARNINGS & FINANCE */}
+            <View style={styles.partnerMenuGroup}>
+              <Text style={styles.partnerMenuSectionTitle}>EARNINGS & FINANCE</Text>
+
+              <TouchableOpacity
+                style={styles.partnerMenuItem}
+                onPress={() => setActiveTab('wallet')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#CCFBF1' }]}>
+                  <Text style={{ fontSize: 18 }}>💳</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerMenuTitle}>Wallet & Instant Transfer</Text>
+                  <Text style={styles.partnerMenuSub}>₹{walletBalance} withdrawable to HDFC Bank</Text>
+                </View>
+                <View style={styles.partnerCountBadge}>
+                  <Text style={styles.partnerCountBadgeText}>₹{walletBalance}</Text>
+                </View>
+                <Text style={styles.partnerMenuChevron}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.partnerMenuItem, { borderBottomWidth: 0 }]}
+                onPress={() => setActiveTab('invoices')}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#F1F5F9' }]}>
+                  <Text style={{ fontSize: 18 }}>🧾</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerMenuTitle}>GST Tax Invoices & Statements</Text>
+                  <Text style={styles.partnerMenuSub}>Monthly tax invoices, payouts & TDS receipts</Text>
+                </View>
+                <Text style={styles.partnerMenuChevron}>›</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 6. GROUP 3: PREFERENCES & SUPPORT */}
+            <View style={styles.partnerMenuGroup}>
+              <Text style={styles.partnerMenuSectionTitle}>PREFERENCES & SUPPORT</Text>
+
+              <TouchableOpacity
+                style={styles.partnerMenuItem}
+                onPress={async () => {
+                  showToast('🔔 Triggering real-time push notification test...');
+                  await mobileNotificationService.sendSelfTest(partnerProfile.id || 'PRO-8841', 'worker');
+                }}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#FEF3C7' }]}>
+                  <Text style={{ fontSize: 18 }}>🔔</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerMenuTitle}>Job Alerts & Notifications</Text>
+                  <Text style={styles.partnerMenuSub}>Urgent job ringtones & dispatch push alerts</Text>
+                </View>
+                <Text style={styles.partnerMenuChevron}>›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.partnerMenuItem, { borderBottomWidth: 0 }]}
+                onPress={() => setShowSupportModal(true)}
+                activeOpacity={0.7}
+              >
+                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#FEE2E2' }]}>
+                  <Text style={{ fontSize: 18 }}>💬</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerMenuTitle}>24x7 Partner Care & Help</Text>
+                  <Text style={styles.partnerMenuSub}>Instant helpline: 1800-419-7000 • FAQs & tickets</Text>
+                </View>
+                <Text style={styles.partnerMenuChevron}>›</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* 7. Log Out Button */}
+            <TouchableOpacity
+              style={styles.partnerLogoutBtn}
+              activeOpacity={0.8}
+              onPress={() => setShowLogoutConfirmModal(true)}
+            >
+              <Text style={styles.partnerLogoutIcon}>⏻</Text>
+              <Text style={styles.partnerLogoutText}>Log Out</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.partnerVersionText}>Forge India Connect • Partner App v4.18.2 • {partnerProfile.id}</Text>
+          </View>
+        )}
+
+        {/* ==================== TAB 8: QUALITY & REVIEWS ==================== */}
+        {activeTab === 'quality' && (
           <View style={styles.tabSection}>
             <View style={styles.sectionHeaderBox}>
               <Text style={styles.sectionTitle}>⭐ Customer Reviews & Rating</Text>
@@ -1995,14 +2260,14 @@ export default function WorkingPartnerDashboard({
         <TouchableOpacity
           style={styles.bottomNavItem}
           onPress={() => {
-            setActiveTab('quality');
+            setActiveTab('profile');
             setSearchQuery('');
           }}
           activeOpacity={0.7}
         >
-          {(activeTab === 'quality' || activeTab === 'profile') && <View style={styles.bottomActiveIndicator} />}
-          <Text style={[styles.bottomNavIcon, (activeTab === 'quality' || activeTab === 'profile') && styles.bottomNavActiveIcon]}>👤</Text>
-          <Text style={[styles.bottomNavText, (activeTab === 'quality' || activeTab === 'profile') && styles.bottomNavActiveText]}>Profile</Text>
+          {activeTab === 'profile' && <View style={styles.bottomActiveIndicator} />}
+          <Text style={[styles.bottomNavIcon, activeTab === 'profile' && styles.bottomNavActiveIcon]}>👤</Text>
+          <Text style={[styles.bottomNavText, activeTab === 'profile' && styles.bottomNavActiveText]}>Profile</Text>
         </TouchableOpacity>
       </View>
 
@@ -2280,282 +2545,6 @@ export default function WorkingPartnerDashboard({
           </View>
         </View>
       </Modal>
-      {/* ==================== OFF-CANVAS SIDEBAR DRAWER MODAL ==================== */}
-      <Modal
-        visible={isSidebarOpen}
-        animationType="fade"
-        transparent={true}
-        onRequestClose={() => setIsSidebarOpen(false)}
-      >
-        <View style={styles.sidebarOverlay}>
-          {/* Sidebar Drawer */}
-          <View style={styles.sidebarDrawer}>
-            {/* Header */}
-            <View style={styles.sidebarHeader}>
-              <View style={styles.sidebarAvatarBox}>
-                <Text style={styles.sidebarAvatarText}>{proName.charAt(0).toUpperCase()}</Text>
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.sidebarName} numberOfLines={1}>{proName}</Text>
-                <Text style={styles.sidebarRole}>Working Partner Portal</Text>
-                <Text style={styles.sidebarId}>ID: PRO-8841</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.sidebarCloseBtn}
-                onPress={() => setIsSidebarOpen(false)}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              >
-                <Text style={styles.sidebarCloseText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Navigation List */}
-            <ScrollView style={styles.sidebarNavList} showsVerticalScrollIndicator={false}>
-              {/* CORE OPERATIONS */}
-              <View style={styles.sidebarGroup}>
-                <Text style={styles.sidebarGroupTitle}>CORE OPERATIONS</Text>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'jobs' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('jobs');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>⚡</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'jobs' && styles.sidebarNavLabelActive]}>
-                    Active Dispatch
-                  </Text>
-                  {activeJob && activeJob.status !== 'Completed' && (
-                    <View style={styles.sidebarLiveBadge}>
-                      <Text style={styles.sidebarLiveText}>1</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'live-tracking' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('live-tracking');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>🔬</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'live-tracking' && styles.sidebarNavLabelActive]}>
-                    Live GPS Operations
-                  </Text>
-                  <View style={styles.sidebarLiveBadge}>
-                    <Text style={styles.sidebarLiveText}>Live</Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'leads' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('leads');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>📋</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'leads' && styles.sidebarNavLabelActive]}>
-                    Hot Leads & Queue
-                  </Text>
-                  <View style={styles.sidebarCountBadge}>
-                    <Text style={styles.sidebarCountText}>{availableLeads.length}</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              {/* QUALITY & WORK EVIDENCE */}
-              <View style={styles.sidebarGroup}>
-                <Text style={styles.sidebarGroupTitle}>QUALITY & WORK EVIDENCE</Text>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'photos' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('photos');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>📷</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'photos' && styles.sidebarNavLabelActive]}>
-                    Work Photo Evidence
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'quality' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('quality');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>⭐</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'quality' && styles.sidebarNavLabelActive]}>
-                    Quality & Reviews
-                  </Text>
-                  <View style={styles.sidebarCountBadge}>
-                    <Text style={styles.sidebarCountText}>{allReviews.length}</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              {/* FINANCE & LEDGER */}
-              <View style={styles.sidebarGroup}>
-                <Text style={styles.sidebarGroupTitle}>FINANCE & LEDGER</Text>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'earnings' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('earnings');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>💰</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'earnings' && styles.sidebarNavLabelActive]}>
-                    Business Earnings
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'wallet' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('wallet');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>💳</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'wallet' && styles.sidebarNavLabelActive]}>
-                    Wallet & Payouts
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'invoices' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('invoices');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>🧾</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'invoices' && styles.sidebarNavLabelActive]}>
-                    GST Tax Invoices
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'disputes' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('disputes');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>⚠️</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'disputes' && styles.sidebarNavLabelActive]}>
-                    Refunds & Disputes
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* ADMINISTRATION & COMPLIANCE */}
-              <View style={styles.sidebarGroup}>
-                <Text style={styles.sidebarGroupTitle}>ADMINISTRATION & COMPLIANCE</Text>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'notifications' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('notifications');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>🔔</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'notifications' && styles.sidebarNavLabelActive]}>
-                    Alerts & Notifications
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'documents' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('documents');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>🛡️</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'documents' && styles.sidebarNavLabelActive]}>
-                    KYC & Aadhaar Compliance
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.sidebarNavItem, activeTab === 'settings' && styles.sidebarNavItemActive]}
-                  onPress={() => {
-                    setActiveTab('settings');
-                    setIsSidebarOpen(false);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.sidebarNavIcon}>⚙️</Text>
-                  <Text style={[styles.sidebarNavLabel, activeTab === 'settings' && styles.sidebarNavLabelActive]}>
-                    Business Settings
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-
-            {/* Footer Customer Switch & Logout Button */}
-            <View style={styles.sidebarFooter}>
-              <TouchableOpacity
-                style={styles.sidebarCustomerSwitchBtn}
-                onPress={() => {
-                  setIsSidebarOpen(false);
-                  handleSwitchCustomerWithSync();
-                }}
-                activeOpacity={0.85}
-              >
-                <Text style={{ fontSize: 16 }}>👤</Text>
-                <Text style={{ color: '#0F172A', fontSize: 13, fontWeight: '700', marginLeft: 8 }}>
-                  Switch to Customer Portal
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.compactSidebarLogoutBtn}
-                onPress={() => {
-                  setIsSidebarOpen(false);
-                  if (onLogout) onLogout();
-                }}
-                activeOpacity={0.8}
-              >
-                <View style={styles.compactLogoutIconCircle}>
-                  <Text style={styles.compactLogoutIconSymbol}>⏻</Text>
-                </View>
-                <Text style={{ color: '#DC2626', fontSize: 13, fontWeight: '800' }}>
-                  Secure Partner Logout
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Backdrop (tap to close) */}
-          <TouchableOpacity
-            style={styles.sidebarBackdrop}
-            activeOpacity={1}
-            onPress={() => setIsSidebarOpen(false)}
-          />
-        </View>
-      </Modal>
 
       {/* ==================== REAL-TIME LIVE ORDER CHAT MODAL ==================== */}
       <LiveOrderChatModal
@@ -2572,6 +2561,343 @@ export default function WorkingPartnerDashboard({
         callData={voipCallData}
         isIncoming={isVoipIncoming}
       />
+
+      {/* ==================== 1. EDIT PARTNER PROFILE MODAL ==================== */}
+      <Modal
+        visible={showEditProfileModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowEditProfileModal(false)}
+      >
+        <View style={styles.partnerModalOverlay}>
+          <View style={styles.partnerModalCard}>
+            <View style={styles.partnerModalHeader}>
+              <Text style={styles.partnerModalTitle}>Edit Partner Profile</Text>
+              <TouchableOpacity onPress={() => setShowEditProfileModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.partnerModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.partnerModalSub}>Update your personal credentials and service trade</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 380 }}>
+              <View style={styles.partnerModalInputGroup}>
+                <Text style={styles.partnerModalLabel}>Full Name *</Text>
+                <TextInput
+                  style={styles.partnerModalInput}
+                  value={editForm.name}
+                  onChangeText={(val) => setEditForm(prev => ({ ...prev, name: val }))}
+                  placeholder="e.g. violet"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+
+              <View style={styles.partnerModalInputGroup}>
+                <Text style={styles.partnerModalLabel}>Mobile Phone *</Text>
+                <TextInput
+                  style={styles.partnerModalInput}
+                  value={editForm.phone}
+                  onChangeText={(val) => setEditForm(prev => ({ ...prev, phone: val }))}
+                  placeholder="e.g. +91 8772347651"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="phone-pad"
+                />
+              </View>
+
+              <View style={styles.partnerModalInputGroup}>
+                <Text style={styles.partnerModalLabel}>Trade & Category *</Text>
+                <TextInput
+                  style={styles.partnerModalInput}
+                  value={editForm.trade}
+                  onChangeText={(val) => setEditForm(prev => ({ ...prev, trade: val }))}
+                  placeholder="e.g. Master AC Specialist & Electrician"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+
+              <View style={styles.partnerModalInputGroup}>
+                <Text style={styles.partnerModalLabel}>Operating City / Hub</Text>
+                <TextInput
+                  style={styles.partnerModalInput}
+                  value={editForm.city}
+                  onChangeText={(val) => setEditForm(prev => ({ ...prev, city: val }))}
+                  placeholder="e.g. Krishnagiri"
+                  placeholderTextColor="#94A3B8"
+                />
+              </View>
+            </ScrollView>
+
+            <View style={styles.partnerModalActionRow}>
+              <TouchableOpacity
+                style={styles.partnerModalCancelBtn}
+                onPress={() => setShowEditProfileModal(false)}
+              >
+                <Text style={styles.partnerModalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.partnerModalSubmitBtn}
+                onPress={handleSaveWorkerProfile}
+              >
+                <Text style={styles.partnerModalSubmitText}>Save Changes</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ==================== 2. CERTIFIED SKILLS & TRADES MODAL ==================== */}
+      <Modal
+        visible={showSkillsModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowSkillsModal(false)}
+      >
+        <View style={styles.partnerModalOverlay}>
+          <View style={styles.partnerModalCard}>
+            <View style={styles.partnerModalHeader}>
+              <Text style={styles.partnerModalTitle}>🛠️ Certified Trades & Skills</Text>
+              <TouchableOpacity onPress={() => setShowSkillsModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.partnerModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.partnerModalSub}>Verified competencies certified by Forge India Connect</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 360 }}>
+              {[
+                { title: 'AC & Appliance Repair', badge: 'LEVEL 4 MASTER', desc: 'Gas charging, PCB diagnostics, deep powerjet coil servicing.' },
+                { title: 'Split & Inverter AC Specialist', badge: 'CERTIFIED', desc: 'Precision installation, vacuum leak testing & copper piping.' },
+                { title: 'Home Electrical & Safety Audits', badge: 'VERIFIED', desc: 'Earthing tests, load calculation, MCB & inverter wiring.' },
+                { title: 'Full Tool Kit Compliance', badge: 'AUDITED ✓', desc: 'Digital vacuum gauge, manifold gauge, safety shoes, multimeter.' },
+              ].map((item, idx) => (
+                <View key={`skill-${idx}`} style={styles.partnerInfoItemCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
+                    <Text style={styles.partnerInfoItemTitle}>{item.title}</Text>
+                    <View style={styles.partnerInfoItemBadge}>
+                      <Text style={styles.partnerInfoItemBadgeText}>{item.badge}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.partnerInfoItemDesc}>{item.desc}</Text>
+                </View>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.partnerModalSubmitBtn, { marginTop: 14 }]}
+              onPress={() => setShowSkillsModal(false)}
+            >
+              <Text style={styles.partnerModalSubmitText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ==================== 3. SERVICE HUB & RADIUS MODAL ==================== */}
+      <Modal
+        visible={showLocationModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowLocationModal(false)}
+      >
+        <View style={styles.partnerModalOverlay}>
+          <View style={styles.partnerModalCard}>
+            <View style={styles.partnerModalHeader}>
+              <Text style={styles.partnerModalTitle}>📍 Service Hub & Operating Radius</Text>
+              <TouchableOpacity onPress={() => setShowLocationModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.partnerModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.partnerModalSub}>Choose how far you are willing to travel for customer dispatches</Text>
+
+            <View style={styles.partnerRadiusContainer}>
+              <Text style={styles.partnerRadiusLabel}>Operating Hub: <Text style={{ fontWeight: '900', color: '#0F172A' }}>{partnerProfile.city} Town Central</Text></Text>
+              <Text style={[styles.partnerRadiusLabel, { marginTop: 10 }]}>Select Job Dispatch Radius:</Text>
+              <View style={styles.partnerRadiusPillsRow}>
+                {[5, 10, 12, 15, 20].map((km) => (
+                  <TouchableOpacity
+                    key={`km-${km}`}
+                    style={[
+                      styles.partnerRadiusPill,
+                      partnerProfile.operatingRadius === km && styles.partnerRadiusPillActive
+                    ]}
+                    onPress={() => {
+                      setPartnerProfile(prev => ({ ...prev, operatingRadius: km }));
+                      showToast(`✓ Operating radius set to ${km} KM`);
+                    }}
+                  >
+                    <Text style={[
+                      styles.partnerRadiusPillText,
+                      partnerProfile.operatingRadius === km && styles.partnerRadiusPillTextActive
+                    ]}>
+                      {km} KM
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <Text style={styles.partnerRadiusHint}>
+                Covering Rayakottai Road, Gandhi Nagar, Kaveripattinam, Old Pet, and Bangalore Bypass within {partnerProfile.operatingRadius} KM.
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.partnerModalSubmitBtn, { marginTop: 16 }]}
+              onPress={() => setShowLocationModal(false)}
+            >
+              <Text style={styles.partnerModalSubmitText}>Save Area & Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ==================== 4. KYC & VERIFICATION MODAL ==================== */}
+      <Modal
+        visible={showKycModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowKycModal(false)}
+      >
+        <View style={styles.partnerModalOverlay}>
+          <View style={styles.partnerModalCard}>
+            <View style={styles.partnerModalHeader}>
+              <Text style={styles.partnerModalTitle}>🛡️ KYC & Identity Verification</Text>
+              <TouchableOpacity onPress={() => setShowKycModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.partnerModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.partnerModalSub}>Government ID verification and background security audit</Text>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 360 }}>
+              {[
+                { label: 'Aadhaar Card UID', val: 'XXXX-XXXX-8921', status: 'VERIFIED ✓', color: '#10B981' },
+                { label: 'PAN Identity Tax ID', val: 'ABCDE1234F', status: 'ACTIVE ✓', color: '#10B981' },
+                { label: 'Police Background Check', val: 'Clear Record • Tamil Nadu Police', status: 'CLEARED ✓', color: '#10B981' },
+                { label: 'Bank Settlement Account', val: 'HDFC Bank • A/C Ending in 4821', status: 'PENNY TESTED ✓', color: '#10B981' },
+                { label: 'Platform Protection Cover', val: '₹10,000 Accidental Damage Guarantee', status: 'PROTECTED', color: '#3B82F6' },
+              ].map((doc, idx) => (
+                <View key={`doc-${idx}`} style={styles.partnerKycRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.partnerKycLabel}>{doc.label}</Text>
+                    <Text style={styles.partnerKycVal}>{doc.val}</Text>
+                  </View>
+                  <View style={[styles.partnerKycBadge, { backgroundColor: doc.color + '15', borderColor: doc.color + '40' }]}>
+                    <Text style={[styles.partnerKycBadgeText, { color: doc.color }]}>{doc.status}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.partnerModalSubmitBtn, { marginTop: 14 }]}
+              onPress={() => setShowKycModal(false)}
+            >
+              <Text style={styles.partnerModalSubmitText}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ==================== 5. 24x7 PARTNER CARE & SUPPORT MODAL ==================== */}
+      <Modal
+        visible={showSupportModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowSupportModal(false)}
+      >
+        <View style={styles.partnerModalOverlay}>
+          <View style={styles.partnerModalCard}>
+            <View style={styles.partnerModalHeader}>
+              <Text style={styles.partnerModalTitle}>💬 24x7 Partner Care</Text>
+              <TouchableOpacity onPress={() => setShowSupportModal(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Text style={styles.partnerModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.partnerModalSub}>We are here to support your field operations and payouts</Text>
+
+            <View style={{ gap: 10, marginBottom: 14 }}>
+              <TouchableOpacity
+                style={styles.partnerHelpActionBtn}
+                onPress={() => Linking.openURL('tel:18004197000').catch(() => Alert.alert('Helpline', 'Call Toll-Free: 1800-419-7000'))}
+              >
+                <Text style={{ fontSize: 20, marginRight: 10 }}>📞</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerHelpActionTitle}>Call Partner Toll-Free Helpline</Text>
+                  <Text style={styles.partnerHelpActionSub}>1800-419-7000 • 24x7 Priority Support</Text>
+                </View>
+                <Text style={{ fontSize: 18, color: '#F04400', fontWeight: '900' }}>Call ›</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.partnerHelpActionBtn}
+                onPress={() => Linking.openURL('https://wa.me/919820012345').catch(() => Alert.alert('WhatsApp', 'Message Partner Care on WhatsApp: +91 98200 12345'))}
+              >
+                <Text style={{ fontSize: 20, marginRight: 10 }}>💬</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.partnerHelpActionTitle}>WhatsApp Partner Support</Text>
+                  <Text style={styles.partnerHelpActionSub}>Instant ticket resolution & job inquiries</Text>
+                </View>
+                <Text style={{ fontSize: 18, color: '#10B981', fontWeight: '900' }}>Chat ›</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F172A', marginBottom: 6 }}>Common Questions:</Text>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 150 }}>
+              <View style={styles.partnerFaqCard}>
+                <Text style={styles.partnerFaqQ}>When will I receive today's payout?</Text>
+                <Text style={styles.partnerFaqA}>Instant bank transfers are processed in under 60 seconds directly into your registered HDFC bank account.</Text>
+              </View>
+              <View style={styles.partnerFaqCard}>
+                <Text style={styles.partnerFaqQ}>Customer cancelled after I arrived?</Text>
+                <Text style={styles.partnerFaqA}>You receive 100% of the visiting charge protection automatically credited to your wallet.</Text>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={[styles.partnerModalSubmitBtn, { marginTop: 14 }]}
+              onPress={() => setShowSupportModal(false)}
+            >
+              <Text style={styles.partnerModalSubmitText}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ==================== 6. LOG OUT CONFIRMATION MODAL ==================== */}
+      <Modal
+        visible={showLogoutConfirmModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowLogoutConfirmModal(false)}
+      >
+        <View style={styles.partnerModalOverlay}>
+          <View style={[styles.partnerModalCard, { maxWidth: 360, alignItems: 'center' }]}>
+            <View style={styles.logoutModalIconBox}>
+              <Text style={{ fontSize: 28 }}>🚪</Text>
+            </View>
+            <Text style={[styles.partnerModalTitle, { textAlign: 'center', fontSize: 18, marginTop: 10 }]}>
+              Log Out of Partner Account?
+            </Text>
+            <Text style={[styles.partnerModalSub, { textAlign: 'center', marginBottom: 20 }]}>
+              Are you sure you want to log out of Forge India Connect? You can log in anytime with your registered credentials.
+            </Text>
+
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <TouchableOpacity
+                style={styles.partnerModalCancelBtn}
+                onPress={() => setShowLogoutConfirmModal(false)}
+              >
+                <Text style={styles.partnerModalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.partnerModalSubmitBtn, { backgroundColor: '#DC2626' }]}
+                onPress={() => {
+                  setShowLogoutConfirmModal(false);
+                  if (onLogout) onLogout();
+                }}
+              >
+                <Text style={styles.partnerModalSubmitText}>Yes, Log Out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -5154,5 +5480,574 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '800',
+  },
+
+  // PARTNER PROFILE & OPERATIONS HUB STYLES
+  partnerProfileHeroCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  partnerProfileAvatarLarge: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#F04400',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 14,
+  },
+  partnerProfileAvatarText: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+  },
+  partnerProfileName: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  partnerProBadge: {
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+  },
+  partnerProBadgeText: {
+    color: '#92400E',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  partnerProfileTrade: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#334155',
+    marginTop: 1,
+  },
+  partnerProfileEmail: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  partnerDutyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+  },
+  partnerDutyActive: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#A7F3D0',
+  },
+  partnerDutyInactive: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#E2E8F0',
+  },
+  partnerDutyText: {
+    fontSize: 11,
+    fontWeight: '800',
+    marginLeft: 4,
+  },
+
+  partnerQuickMetricsRow: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  partnerQuickMetricItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  partnerQuickMetricVal: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  partnerQuickMetricLabel: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 3,
+    fontWeight: '600',
+  },
+  partnerQuickMetricDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: '#E2E8F0',
+  },
+
+  partnerSwitchCustomerCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  partnerSwitchCustomerIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#EDE9FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  partnerSwitchCustomerTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  partnerSwitchCustomerSub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  partnerSwitchCustomerChevron: {
+    fontSize: 20,
+    color: '#64748B',
+    fontWeight: '700',
+    marginLeft: 6,
+  },
+
+  partnerMenuGroup: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  partnerMenuSectionTitle: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#64748B',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+    textTransform: 'uppercase',
+  },
+  partnerMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  partnerMenuIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  partnerMenuTitle: {
+    fontSize: 13.5,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  partnerMenuSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  partnerMenuChevron: {
+    fontSize: 18,
+    color: '#94A3B8',
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  partnerLiveBadge: {
+    backgroundColor: '#F04400',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  partnerLiveBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  partnerCountBadge: {
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  partnerCountBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  partnerLogoutBtn: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    borderRadius: 12,
+    paddingVertical: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  partnerLogoutIcon: {
+    fontSize: 16,
+    color: '#DC2626',
+    marginRight: 6,
+    fontWeight: '900',
+  },
+  partnerLogoutText: {
+    color: '#DC2626',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  partnerVersionText: {
+    textAlign: 'center',
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 6,
+    marginBottom: 20,
+  },
+
+  // Streamlined Profile Extras & Modals
+  partnerProAvatarBadge: {
+    position: 'absolute',
+    bottom: -3,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+  },
+  partnerProAvatarBadgeText: {
+    color: '#92400E',
+    fontSize: 8.5,
+    fontWeight: '900',
+  },
+  partnerProfilePhone: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  partnerEditProfileBtn: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    alignSelf: 'center',
+  },
+  partnerEditProfileBtnText: {
+    color: '#0F172A',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  partnerDutyCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  partnerDutyCardTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  partnerDutyCardSub: {
+    fontSize: 10.5,
+    color: '#64748B',
+    marginTop: 2,
+    paddingRight: 10,
+  },
+  partnerDutyToggleBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    alignItems: 'center',
+  },
+  partnerDutyToggleActive: {
+    backgroundColor: '#ECFDF5',
+    borderColor: '#10B981',
+  },
+  partnerDutyToggleInactive: {
+    backgroundColor: '#F1F5F9',
+    borderColor: '#CBD5E1',
+  },
+  partnerDutyToggleText: {
+    fontSize: 10.5,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+
+  // Interactive Partner Modals
+  partnerModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  partnerModalCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 420,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 8,
+  },
+  partnerModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  partnerModalTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  partnerModalCloseText: {
+    fontSize: 18,
+    color: '#94A3B8',
+    fontWeight: '700',
+    padding: 4,
+  },
+  partnerModalSub: {
+    fontSize: 11.5,
+    color: '#64748B',
+    marginBottom: 16,
+  },
+  partnerModalInputGroup: {
+    marginBottom: 12,
+  },
+  partnerModalLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+    marginBottom: 4,
+  },
+  partnerModalInput: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: '#0F172A',
+  },
+  partnerModalActionRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 16,
+  },
+  partnerModalCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  partnerModalCancelText: {
+    color: '#475569',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  partnerModalSubmitBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#F04400',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  partnerModalSubmitText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
+  partnerInfoItemCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  partnerInfoItemTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  partnerInfoItemBadge: {
+    backgroundColor: '#E0F2FE',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  partnerInfoItemBadgeText: {
+    color: '#0369A1',
+    fontSize: 9.5,
+    fontWeight: '900',
+  },
+  partnerInfoItemDesc: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 3,
+  },
+  partnerRadiusContainer: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  partnerRadiusLabel: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '600',
+  },
+  partnerRadiusPillsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+    marginBottom: 10,
+  },
+  partnerRadiusPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#CBD5E1',
+  },
+  partnerRadiusPillActive: {
+    backgroundColor: '#0F172A',
+    borderColor: '#0F172A',
+  },
+  partnerRadiusPillText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  partnerRadiusPillTextActive: {
+    color: '#FFFFFF',
+  },
+  partnerRadiusHint: {
+    fontSize: 11,
+    color: '#64748B',
+    lineHeight: 16,
+  },
+  partnerKycRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  partnerKycLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#334155',
+  },
+  partnerKycVal: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  partnerKycBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    borderWidth: 1,
+  },
+  partnerKycBadgeText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+  },
+  partnerHelpActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  partnerHelpActionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  partnerHelpActionSub: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  partnerFaqCard: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+  },
+  partnerFaqQ: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#0F172A',
+  },
+  partnerFaqA: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  logoutModalIconBox: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

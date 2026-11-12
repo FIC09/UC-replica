@@ -71,8 +71,8 @@ export async function testSmtpConnection() {
 export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
   const recipientName = toName || 'Valued Customer';
   const fromEmail = getSenderEmail();
-  const mailSubject = `${otp} is your urban account verification code`;
-  const mailText = `Hello ${recipientName},\n\nYour 6-digit account verification code for urban is: ${otp}\n\nThis code is valid for 10 minutes. Please enter this code in your mobile app to complete your account setup.\n\nThank you,\nurban Doorstep Services Team`;
+  const mailSubject = `${otp} is your Forge India Connect account verification code`;
+  const mailText = `Hello ${recipientName},\n\nYour 6-digit account verification code for Forge India Connect is: ${otp}\n\nThis code is valid for 10 minutes. Please enter this code in your mobile app to complete your account setup.\n\nThank you,\nForge India Connect Doorstep Services Team`;
   const mailHtml = `
       <!DOCTYPE html>
       <html>
@@ -90,10 +90,10 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
                 <tr>
                   <td style="background-color: #0F172A; padding: 24px 32px; text-align: center;">
                     <div style="display: inline-block; background-color: #FFD91A; color: #0F172A; font-weight: 900; font-size: 16px; padding: 6px 14px; border-radius: 8px; letter-spacing: -0.5px; margin-bottom: 8px;">
-                      UC
+                      FIC
                     </div>
                     <h1 style="margin: 0; color: #FFFFFF; font-size: 22px; font-weight: 800; letter-spacing: -0.2px;">
-                      urban
+                      Forge India Connect
                     </h1>
                     <p style="margin: 4px 0 0; color: #94A3B8; font-size: 12.5px;">
                       India's Trusted Doorstep Home & Beauty Services
@@ -109,7 +109,7 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
                     </h2>
                     <p style="margin: 0 0 20px; color: #475569; font-size: 14.5px; line-height: 1.6;">
                       Hello <strong>${recipientName}</strong>,<br>
-                      Welcome to <strong>urban</strong>! Please use the following One-Time Password (OTP) to complete your customer account registration in the mobile app.
+                      Welcome to <strong>Forge India Connect</strong>! Please use the following One-Time Password (OTP) to complete your customer account registration in the mobile app.
                     </p>
 
                     <!-- OTP Box -->
@@ -141,7 +141,7 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
                 <tr>
                   <td style="background-color: #F8FAFC; border-top: 1px solid #E2E8F0; padding: 16px 32px; text-align: center;">
                     <p style="margin: 0; color: #94A3B8; font-size: 11.5px;">
-                      © 2026 urban Doorstep Services India Pvt. Ltd. All rights reserved.<br>
+                      © 2026 Forge India Connect India Pvt. Ltd. All rights reserved.<br>
                       Rayakottai Road, Krishnagiri, Tamil Nadu - 635001
                     </p>
                   </td>

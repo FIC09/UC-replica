@@ -301,7 +301,7 @@ export default function CustomerOrderTrackingModal({
 
     Alert.alert(
       'Thank You! 🌟',
-      `Your ${rating}-star review for Vikram Salvi has been recorded. +25 UC Coins credited to your wallet!`,
+      `Your ${rating}-star review for Vikram Salvi has been recorded. +25 FIC Coins credited to your wallet!`,
       [{ text: 'Great', onPress: onClose }]
     );
   };
