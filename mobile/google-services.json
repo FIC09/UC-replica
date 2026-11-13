@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "79482805856",
+    "project_id": "urban-project-95632",
+    "storage_bucket": "urban-project-95632.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:79482805856:android:6aa4354922f55190e6ed05",
+        "android_client_info": {
+          "package_name": "com.forgeindiaconnect.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBd-3izQJM87BDlqE0t7JEgomihUnwipI8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

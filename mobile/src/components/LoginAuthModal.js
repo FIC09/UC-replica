@@ -91,10 +91,40 @@ export default function LoginAuthModal({
         onSuccess(result.user);
       }
     } catch (err) {
-      Alert.alert('Sign In Failed', err.message || 'Incorrect credentials. Please verify your email/phone and password.');
+      const errMsg = err.message || 'Incorrect credentials. Please verify your email/phone and password.';
+      const isUnregistered = errMsg.toLowerCase().includes('not registered') || errMsg.toLowerCase().includes('register first');
+      const displayMsg = isUnregistered
+        ? "You've not registered, register first."
+        : errMsg;
+
+      setStatusMessage(`⚠️ ${displayMsg}`);
+
+      if (isUnregistered) {
+        Alert.alert(
+          'Registration Required',
+          "You've not registered, register first.",
+          [
+            { text: 'Cancel', style: 'cancel' },
+            {
+              text: 'Register First →',
+              onPress: () => {
+                setAuthMode('create');
+                setStatusMessage('');
+                if (cleanId.includes('@')) {
+                  setEmail(cleanId);
+                } else {
+                  const digits = cleanId.replace(/\D/g, '').slice(-10);
+                  if (digits) setPhone(digits);
+                }
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert('Sign In Failed', errMsg);
+      }
     } finally {
       setLoading(false);
-      setStatusMessage('');
     }
   };
 
@@ -119,6 +149,20 @@ export default function LoginAuthModal({
     }
     if (!cleanPassword || cleanPassword.length < 6) {
       Alert.alert('Password Required', 'Please create a password of at least 6 characters.');
+      return;
+    }
+
+    const phoneDigits = cleanPhone.replace(/\D/g, '');
+    if (!phoneDigits) {
+      Alert.alert('Mobile Number Required', 'Please enter your 10-digit mobile number.');
+      return;
+    }
+    if (!/^[6-9]/.test(phoneDigits)) {
+      Alert.alert('Invalid Mobile Number', 'Mobile number must start with 6, 7, 8, or 9. Numbers starting with 0–5 are invalid.');
+      return;
+    }
+    if (phoneDigits.length !== 10) {
+      Alert.alert('Invalid Mobile Number', `Mobile number must contain exactly 10 digits (received ${phoneDigits.length} digits).`);
       return;
     }
 
@@ -274,21 +318,100 @@ export default function LoginAuthModal({
 
             {/* Status Feedback Message */}
             {statusMessage && step !== 'otp' ? (
-              <View style={styles.statusBox}>
-                <Text style={styles.statusText}>{statusMessage}</Text>
+              <View style={[
+                styles.statusBox,
+                (statusMessage.toLowerCase().includes('register') || statusMessage.toLowerCase().includes('not registered')) && {
+                  backgroundColor: '#FEF2F2',
+                  borderColor: '#F87171'
+                }
+              ]}>
+                <Text style={[
+                  styles.statusText,
+                  (statusMessage.toLowerCase().includes('register') || statusMessage.toLowerCase().includes('not registered')) && {
+                    color: '#DC2626',
+                    fontWeight: '800'
+                  }
+                ]}>
+                  {statusMessage}
+                </Text>
+                {(statusMessage.toLowerCase().includes('register first') || statusMessage.toLowerCase().includes('not registered')) && (
+                  <TouchableOpacity
+                    style={{
+                      marginTop: 8,
+                      backgroundColor: '#DC2626',
+                      paddingVertical: 7,
+                      paddingHorizontal: 14,
+                      borderRadius: 8,
+                      alignSelf: 'center'
+                    }}
+                    onPress={() => {
+                      setAuthMode('create');
+                      setStatusMessage('');
+                      if (identifier.includes('@')) {
+                        setEmail(identifier.trim());
+                      } else {
+                        const digits = identifier.replace(/\D/g, '').slice(-10);
+                        if (digits) setPhone(digits);
+                      }
+                    }}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontSize: 12, fontWeight: '800' }}>
+                      Register First →
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             ) : null}
 
             {/* ==================== 1. SIGN IN VIEW ==================== */}
             {step !== 'otp' && authMode === 'signin' && (
               <View style={styles.formContainer}>
+                {/* Account Type Option for Sign In */}
+                <View style={[styles.roleSubtleRow, { marginBottom: 12 }]}>
+                  <Text style={styles.roleSubtleLabel}>Sign In As:</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.roleChip,
+                      selectedRole === 'customer' && styles.roleChipActive
+                    ]}
+                    onPress={() => setSelectedRole('customer')}
+                  >
+                    <Text
+                      style={[
+                        styles.roleChipText,
+                        selectedRole === 'customer' && styles.roleChipTextActive
+                      ]}
+                    >
+                      👤 Customer
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.roleChip,
+                      selectedRole === 'partner' && styles.roleChipActive
+                    ]}
+                    onPress={() => setSelectedRole('partner')}
+                  >
+                    <Text
+                      style={[
+                        styles.roleChipText,
+                        selectedRole === 'partner' && styles.roleChipTextActive
+                      ]}
+                    >
+                      👷 Working Partner
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
                 {/* Email or Phone */}
-                <Text style={styles.fieldLabel}>Email Address or Phone Number</Text>
+                <Text style={styles.fieldLabel}>
+                  {selectedRole === 'partner' ? 'Partner Email or Phone Number' : 'Customer Email or Phone Number'}
+                </Text>
                 <View style={styles.inputWithIconBox}>
                   <Text style={styles.inputLeadingIcon}>✉</Text>
                   <TextInput
                     style={styles.innerTextInput}
-                    placeholder="Enter email, phone, or username"
+                    placeholder={selectedRole === 'partner' ? 'Enter partner email or phone' : 'Enter customer email or phone'}
                     placeholderTextColor="#94A3B8"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -345,7 +468,9 @@ export default function LoginAuthModal({
                   {loading ? (
                     <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.mainSubmitBtnText}>Sign In →</Text>
+                    <Text style={styles.mainSubmitBtnText}>
+                      Sign In as {selectedRole === 'partner' ? 'Partner' : 'Customer'} →
+                    </Text>
                   )}
                 </TouchableOpacity>
               </View>
@@ -391,9 +516,17 @@ export default function LoginAuthModal({
                     style={styles.innerTextInput}
                     placeholder="Enter 10-digit mobile number"
                     placeholderTextColor="#94A3B8"
-                    keyboardType="phone-pad"
+                    keyboardType="number-pad"
+                    maxLength={10}
                     value={phone}
-                    onChangeText={setPhone}
+                    onChangeText={(val) => {
+                      let clean = (val || '').replace(/\D/g, '');
+                      if (clean.length > 10 && clean.startsWith('91')) clean = clean.slice(2);
+                      else if (clean.length > 10 && clean.startsWith('0')) clean = clean.slice(1);
+                      clean = clean.slice(0, 10);
+                      if (clean.length === 1 && !/^[6-9]/.test(clean)) return;
+                      setPhone(clean);
+                    }}
                   />
                 </View>
 

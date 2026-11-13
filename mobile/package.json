@@ -6,7 +6,12 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:apk": "eas build -p android --profile preview-apk",
+    "build:aab": "eas build -p android --profile production",
+    "build:ios": "eas build -p ios --profile preview",
+    "build:ios-sim": "eas build -p ios --profile preview-ios-simulator",
+    "build:all": "eas build --profile preview"
   },
   "dependencies": {
     "@expo/metro-runtime": "~58.0.17",

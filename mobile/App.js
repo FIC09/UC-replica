@@ -2298,7 +2298,7 @@ const findFullProductDetails = (item, dbServices = []) => {
       : [
           'Master technician arrives at your chosen slot with sanitized toolkit',
           'Pre-service assessment, temperature baseline test & final quote confirmation',
-          'Flawless service delivery following certified Urban Company SOP',
+          'Flawless service delivery following certified Forge India Connect SOP',
           'Final performance test, digital invoice generation & mess-free cleanup'
         ];
 
@@ -2306,11 +2306,11 @@ const findFullProductDetails = (item, dbServices = []) => {
     ...matched,
     ...item,
     id: itemId || (matched && matched.id) || 'srv-' + Date.now(),
-    title: itemTitle || (matched && matched.title) || 'Urban Company Service',
+    title: itemTitle || (matched && matched.title) || 'Forge India Connect Service',
     category:
       (matched && (matched.categoryName || matched.category)) ||
       item.category ||
-      'Urban Company Verified',
+      'Forge India Connect Verified',
     subcategory: (matched && matched.subcategory) || item.subcategory || '',
     price: priceDisplay,
     originalPrice: origPriceDisplay,
@@ -2334,7 +2334,7 @@ const findFullProductDetails = (item, dbServices = []) => {
     warranty:
       (matched && matched.warrantyDays && `${matched.warrantyDays}-day warranty protection`) ||
       item.warranty ||
-      '30-Day Urban Company Assurance'
+      '30-Day Forge India Connect Assurance'
   };
 };
 
@@ -3108,7 +3108,7 @@ export default function App() {
     >
       {/* Rewards Header */}
       <View style={styles.rewardsHeaderBanner}>
-        <Text style={styles.rewardsHeaderSuper}>URBAN COMPANY REWARDS</Text>
+        <Text style={styles.rewardsHeaderSuper}>FORGE INDIA CONNECT REWARDS</Text>
         <Text style={styles.rewardsHeaderTitle}>Exclusive Member Benefits</Text>
         <Text style={styles.rewardsHeaderSub}>
           Save more on every service & unlock VIP privileges
@@ -4409,9 +4409,9 @@ export default function App() {
           Looking to buy Native products in bulk or become a distributor? Write to us at{' '}
           <Text
             style={styles.nativeBusinessLink}
-            onPress={() => Alert.alert('Contact Native B2B', 'Please email us at nativequeries@urbancompany.com')}
+            onPress={() => Alert.alert('Contact Native B2B', 'Please email us at nativequeries@forgeindia.in')}
           >
-            nativequeries@urbancompany.com
+            nativequeries@forgeindia.in
           </Text>
         </Text>
         <View style={styles.nativePedestalsContainer}>
@@ -4428,7 +4428,7 @@ export default function App() {
           <Text style={styles.nativeLabTitle}>Designed in India.{'\n'}For Indian homes.</Text>
 
           <Text style={styles.nativeLabBody}>
-            At Urban Company, we spent 12 years inside Indian kitchens, servicing 50+ brands. We saw that your RO water purifier was broken. The RO industry wasn't built for consumers but around Annual Maintenance Contracts (AMCs).
+            At Forge India Connect, we spent 12 years inside Indian kitchens, servicing 50+ brands. We saw that your RO water purifier was broken. The RO industry wasn't built for consumers but around Annual Maintenance Contracts (AMCs).
           </Text>
 
           <Text style={styles.nativeLabBody}>
@@ -4451,7 +4451,7 @@ export default function App() {
       showsVerticalScrollIndicator={false}
     >
       <View style={styles.homesHeroBanner}>
-        <Text style={styles.homesHeroTag}>URBAN COMPANY HOMES</Text>
+        <Text style={styles.homesHeroTag}>FORGE INDIA CONNECT HOMES</Text>
         <Text style={styles.homesHeroTitle}>Complete Home Care{'\n'}& Maintenance</Text>
         <Text style={styles.homesHeroSub}>
           Expert cleaning, appliance repairs, painting & verified mechanics
@@ -5955,7 +5955,7 @@ export default function App() {
           <View style={styles.salonPromoRow}>
             <View style={styles.salonPromiseCard}>
               <View style={styles.salonPromiseHeader}>
-                <Text style={styles.salonPromiseTitle}>Urban Company Assurance</Text>
+                <Text style={styles.salonPromiseTitle}>Forge India Connect Assurance</Text>
                 <View style={styles.salonQualityPill}>
                   <Text style={styles.salonQualityPillText}>VERIFIED</Text>
                 </View>
@@ -6113,7 +6113,7 @@ export default function App() {
                 ...prev,
                 stage,
                 status: targetStatus,
-                assignedPartner: prev.assignedPartner || 'Vikram Salvi'
+                assignedPartner: prev.assignedPartner || 'violet'
               }));
             }}
             onSyncJob={(updatedJob) => {
@@ -6123,7 +6123,7 @@ export default function App() {
               const stageMap = { 1: 'Confirmed', 2: 'Assigned', 3: 'En Route', 4: 'Arrived', 5: 'In Progress', 6: 'Completed' };
               const targetStage = updatedJob.stage || 2;
               const targetStatus = updatedJob.status || stageMap[targetStage] || 'Assigned';
-              const partnerName = updatedJob.assignedPartner || 'Vikram Salvi';
+              const partnerName = updatedJob.assignedPartner || 'violet';
               setActiveCustomerBooking((prev) => ({
                 ...prev,
                 id: normalizedId || prev.id,
@@ -6141,8 +6141,8 @@ export default function App() {
                 technician: {
                   name: partnerName,
                   rating: 4.94,
-                  trade: 'Master AC Specialist',
-                  phone: '+91 98450 77123'
+                  trade: updatedJob.technician?.trade || 'AC & Appliance Repair',
+                  phone: updatedJob.technician?.phone || '+91 98450 77123'
                 },
                 prePhoto: updatedJob.prePhoto || prev.prePhoto,
                 postPhoto: updatedJob.postPhoto || prev.postPhoto
@@ -6488,7 +6488,7 @@ export default function App() {
                   <Text style={styles.richAssuranceIcon}>🛡️</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.richAssuranceTitle}>
-                      {selectedService.warranty || '30-Day Urban Company Assurance'}
+                      {selectedService.warranty || '30-Day Forge India Connect Assurance'}
                     </Text>
                     <Text style={styles.richAssuranceBody}>
                       100% verified master technicians, sterile single-use packaging, and free doorstep rework if not completely satisfied.
@@ -6745,7 +6745,7 @@ export default function App() {
               <View style={styles.ucGuaranteeBanner}>
                 <Text style={styles.ucGuaranteeShield}>🛡️</Text>
                 <Text style={styles.ucGuaranteeText}>
-                  <Text style={{ fontWeight: '700' }}>Urban Company Guarantee:</Text> 30-day service warranty, verified background-checked pros & upfront transparent pricing.
+                  <Text style={{ fontWeight: '700' }}>Forge India Connect Guarantee:</Text> 30-day service warranty, verified background-checked pros & upfront transparent pricing.
                 </Text>
               </View>
             </View>
@@ -7080,10 +7080,10 @@ export default function App() {
                 <Text style={{ fontSize: 28 }}>🚪</Text>
               </View>
               <Text style={{ fontSize: 18, fontWeight: '800', color: '#0F172A', marginBottom: 8, textAlign: 'center' }}>
-                Log Out of Urban Company?
+                Log Out of Forge India Connect?
               </Text>
               <Text style={{ fontSize: 13, color: '#64748B', textAlign: 'center', lineHeight: 18, marginBottom: 20 }}>
-                Are you sure you want to log out? You can sign back in anytime with your mobile number or password.
+                Are you sure you want to log out of Forge India Connect? You can sign back in anytime with your mobile number or password.
               </Text>
 
               <View style={{ width: '100%', gap: 10 }}>

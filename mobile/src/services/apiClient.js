@@ -5,17 +5,21 @@ import { API_BASE_URL, CLOUD_API_URL, getCandidateApiUrls } from '../config/api'
 const LOCAL_USERS_STORE = new Map();
 
 const defaultWorkerUser = {
-  email: 'partner@forgeindia.in',
+  email: 'violet@gmail.com',
   password: 'password123',
-  name: 'Vikram Salvi',
+  name: 'violet',
   role: 'partner',
+  phone: '8772347651',
   trade: 'Master AC Specialist & Electrician',
   rating: 4.94,
   id: 'PRO-8841'
 };
 
 // Register worker aliases
-LOCAL_USERS_STORE.set('partner@forgeindia.in', defaultWorkerUser);
+LOCAL_USERS_STORE.set('violet@gmail.com', defaultWorkerUser);
+LOCAL_USERS_STORE.set('violet', defaultWorkerUser);
+LOCAL_USERS_STORE.set('8772347651', defaultWorkerUser);
+LOCAL_USERS_STORE.set('partner@forgeindia.in', { ...defaultWorkerUser, email: 'partner@forgeindia.in', name: 'Vikram Salvi' });
 LOCAL_USERS_STORE.set('pro@urbancompany.com', { ...defaultWorkerUser, email: 'pro@urbancompany.com' });
 LOCAL_USERS_STORE.set('pro@forgeindia.in', { ...defaultWorkerUser, email: 'pro@forgeindia.in' });
 LOCAL_USERS_STORE.set('partner@urbancompany.com', { ...defaultWorkerUser, email: 'partner@urbancompany.com' });
@@ -30,12 +34,15 @@ const defaultCustomerUser = {
   email: 'customer@forgeindia.in',
   password: 'password123',
   name: 'Rahul Sharma',
+  phone: '9820012345',
   role: 'customer',
   id: 'CUST-1001'
 };
 LOCAL_USERS_STORE.set('customer@forgeindia.in', defaultCustomerUser);
 LOCAL_USERS_STORE.set('customer@urbancompany.com', { ...defaultCustomerUser, email: 'customer@urbancompany.com' });
 LOCAL_USERS_STORE.set('customer', defaultCustomerUser);
+LOCAL_USERS_STORE.set('rahul', defaultCustomerUser);
+LOCAL_USERS_STORE.set('9820012345', defaultCustomerUser);
 
 // Track recent network errors to prevent terminal flooding
 const LAST_ERROR_MAP = new Map();
@@ -385,7 +392,11 @@ class MobileApiClient {
     };
 
     // Save into local credential store so future password logins work seamlessly
-    LOCAL_USERS_STORE.set(cleanEmail, userProfile);
+    LOCAL_USERS_STORE.set(cleanEmail.toLowerCase(), userProfile);
+    if (phone) {
+      const cleanPhone = String(phone).replace(/\D/g, '').slice(-10);
+      if (cleanPhone) LOCAL_USERS_STORE.set(cleanPhone, userProfile);
+    }
 
     return {
       success: true,
@@ -424,7 +435,7 @@ class MobileApiClient {
           id: u.id || u._id || (isPartner ? 'PRO-8841' : 'CUST-1001'),
           name: u.name || u.applicantName || (isPartner ? 'violet' : 'Rahul Sharma'),
           email: u.email || (rawInput.includes('@') ? rawInput : 'user@forgeindia.in'),
-          phone: u.phone || (isPartner ? '+91 98205 11982' : '+91 98200 12345'),
+          phone: u.phone || (isPartner ? '+91 87723 47651' : '+91 98200 12345'),
           role: isPartner ? 'partner' : 'customer',
           trade: isPartner ? (u.trade || 'Master AC Specialist & Electrician') : undefined,
           rating: isPartner ? (u.rating || 4.94) : undefined,
@@ -435,12 +446,12 @@ class MobileApiClient {
           LOCAL_USERS_STORE.set(mappedUser.email.toLowerCase(), { ...mappedUser, password: cleanPassword });
         }
         return { success: true, user: mappedUser };
-      } else if (res && res.error) {
-        throw new Error(res.error);
+      } else if (res && (res.error || res.message)) {
+        throw new Error(res.error || res.message);
       }
     } catch (err) {
       const errMsg = err?.message || '';
-      // If error is an explicit authentication rejection from backend, throw it to user
+      // If error is an explicit authentication rejection or not registered error from backend, rethrow immediately!
       if (errMsg && !errMsg.includes('Failed to fetch') && !errMsg.includes('Network') && !errMsg.includes('unreachable') && !errMsg.includes('ECONNREFUSED')) {
         throw err;
       }
@@ -458,25 +469,8 @@ class MobileApiClient {
       };
     }
 
-    // 3. Fallback user session creation for newly registered offline credentials
-    const isPartnerRole = role === 'partner';
-    const newUser = {
-      id: isPartnerRole ? 'PRO-8841' : `CUST-${Date.now().toString().slice(-4)}`,
-      name: isPartnerRole ? 'violet' : 'Valued Customer',
-      email: rawInput.includes('@') ? rawInput : 'customer@forgeindia.in',
-      phone: rawInput.match(/^\d+$/) ? rawInput : '+91 98200 12345',
-      password: cleanPassword,
-      role: isPartnerRole ? 'partner' : 'customer',
-      trade: isPartnerRole ? 'Master AC Specialist & Electrician' : undefined,
-      rating: isPartnerRole ? 4.94 : undefined,
-      token: `jwt-${Date.now()}`
-    };
-    LOCAL_USERS_STORE.set(rawInput.toLowerCase(), newUser);
-
-    return {
-      success: true,
-      user: newUser
-    };
+    // 3. User is NOT registered: Deny login for unregistered customers and workers!
+    throw new Error("You've not registered, register first.");
   }
 
   // Legacy Phone OTP

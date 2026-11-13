@@ -174,9 +174,11 @@ export function AdminLayout({
         boxSizing: 'border-box'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-          {/* Brand Header */}
+          {/* Brand Header - Aligned to exact 64px height of admin-page-header for a seamless dividing line */}
           <div style={{
-            height: 56,
+            height: 64,
+            minHeight: 64,
+            maxHeight: 64,
             boxSizing: 'border-box',
             flexShrink: 0,
             padding: sidebarCollapsed ? '0 10px' : '0 12px 0 16px',

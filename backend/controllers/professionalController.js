@@ -1465,13 +1465,13 @@ export async function professionalLogin(req, res) {
     }
 
     if (!pro) {
-      // Generic authentication error - never reveal user non-existence
       attempt.count += 1;
       if (attempt.count >= 5) attempt.lockedUntil = Date.now() + 15 * 60 * 1000;
       loginAttemptsStore.set(rateKey, attempt);
       return res.status(401).json({
         success: false,
-        error: 'Invalid credentials provided. Please check your phone/email and password.'
+        notRegistered: true,
+        error: "You've not registered, register first."
       });
     }
 

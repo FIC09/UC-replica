@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Forge India Connect",
-    "slug": "forge-india-connect-mobile",
+    "slug": "fic-home-services",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -11,7 +11,10 @@
     },
     "ios": {
       "supportsTablet": true,
+      "bundleIdentifier": "com.forgeindiaconnect.mobile",
       "infoPlist": {
+        "NSCameraUsageDescription": "This app uses the camera to capture technician and service verification photos.",
+        "NSPhotoLibraryUsageDescription": "This app accesses the photo library to upload service verification photos.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true,
           "NSAllowsLocalNetworking": true
@@ -26,11 +29,17 @@
       },
       "permissions": [
         "INTERNET",
+        "CAMERA",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
       ]
     },
-    "plugins": []
+    "plugins": [],
+    "extra": {
+      "eas": {
+        "projectId": "479c40d6-c09a-4d09-bba5-b71d593c58e9"
+      }
+    }
   }
 }
 

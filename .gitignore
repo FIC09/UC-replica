@@ -36,3 +36,4 @@ backend/data/pgdata/
 # Firebase credentials
 *firebase-service-account*.json
 **/google-services.json
+!mobile/google-services.json
