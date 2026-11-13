@@ -57,7 +57,7 @@ export async function getCustomers(req, res) {
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       try {
         allBookings = await Booking.find()
-          .select('-structuredChecklists -beforeWorkPhoto -afterWorkPhoto')
+          .select('id bookingReference customerId userPhone userName userEmail totalAmount status createdAt city serviceCategory')
           .sort({ createdAt: -1 })
           .lean();
       } catch (e) {

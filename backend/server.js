@@ -20,6 +20,7 @@ import chatRoutes from './routes/chatRoutes.js';
 import callingRoutes from './routes/callingRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import './config/firebaseAdmin.js';
 
 import { startAssignmentWatchdog } from './services/assignmentEngine.js';
 import { testSmtpConnection } from './services/emailService.js';

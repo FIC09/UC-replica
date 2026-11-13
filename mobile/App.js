@@ -2456,6 +2456,13 @@ export default function App() {
   const handleLoginSuccess = (userProfile) => {
     setIsAuthenticated(true);
     setCurrentUser(userProfile);
+    if (userProfile?.name) {
+      setActiveCustomerBooking((prev) => ({
+        ...prev,
+        customer: userProfile.name,
+        userName: userProfile.name
+      }));
+    }
   };
 
   const handleLogout = () => {
@@ -2570,18 +2577,25 @@ export default function App() {
   const [showCustomerChatModal, setShowCustomerChatModal] = useState(false);
   const [partnerReviews, setPartnerReviews] = useState([]);
   const [activeCustomerBooking, setActiveCustomerBooking] = useState({
-    id: '9410',
-    service: 'All in All AC',
-    price: 3524,
+    id: 'UC-428127',
+    bookingRef: 'UC-428127',
+    service: 'Laptop/Desktop service',
+    price: 2799,
     otp: '4829',
-    stage: 1, // Stage 1: Confirmed (Awaiting specialist assignment)
-    address: 'Flat 302, Green Park, Rayakottai Road, Krishnagiri - 635122',
-    customer: 'Rahul Sharma',
-    phone: '+91 98200 12345',
+    stage: 4, // Stage 4: Arrived (Specialist at your door)
+    address: 'Door 14/2, Rayakottai Road, Krishnagiri - 635001',
+    customer: 'Islam',
+    userName: 'Islam',
+    phone: '+91 98201 44521',
     slot: 'Today, 04:00 PM - 05:00 PM',
-    status: 'Confirmed',
-    assignedPartner: '',
-    technician: null
+    status: 'Arrived',
+    assignedPartner: 'violet',
+    technician: {
+      name: 'violet',
+      rating: 4.94,
+      trade: 'AC & Appliance Repair',
+      phone: '1111111111'
+    }
   });
 
   const [showVoipCallModal, setShowVoipCallModal] = useState(false);
@@ -2593,22 +2607,29 @@ export default function App() {
     const target = booking || activeCustomerBooking;
     if (!target) return;
 
-    const rawId = target.id || target.bookingRef || 'UC-397386';
+    const rawId = target.id || target.bookingRef || 'UC-428127';
     const cleanId = String(rawId).startsWith('UC-') ? rawId : `UC-${String(rawId).replace(/^(JOB|LEAD)[-_]?/i, '')}`;
-    const proName = target.assignedPartner || target.technician?.name || target.partner || 'Vikram Salvi';
-    const customerName = currentUser?.name || target.customer || 'Rahul Sharma';
+    const proName = target.assignedPartner || target.technician?.name || target.partner || 'violet';
+    const customerName =
+      (currentUser?.name && currentUser.name.trim() && currentUser.name !== 'Rahul Sharma')
+        ? currentUser.name.trim()
+        : (target.userName && target.userName.trim() && target.userName !== 'Rahul Sharma')
+        ? target.userName.trim()
+        : (target.customer && target.customer.trim() && target.customer !== 'Rahul Sharma')
+        ? target.customer.trim()
+        : (currentUser?.name || target.userName || target.customer || 'Islam');
 
     const payload = {
       bookingId: cleanId,
       callerId: currentUser?._id || currentUser?.id || 'cust-user',
       callerRole: 'customer',
       callerName: customerName,
-      callerPhone: currentUser?.phone || target.phone || '+91 98200 12345',
+      callerPhone: currentUser?.phone || target.phone || '+91 98201 44521',
       receiverId: target.technician?.id || 'worker-user',
       receiverRole: 'worker',
       receiverName: proName,
-      receiverPhone: target.technician?.phone || '+91 98200 54321',
-      service: target.service || 'Doorstep Service'
+      receiverPhone: target.technician?.phone || '1111111111',
+      service: target.service || 'Laptop/Desktop service'
     };
 
     try {
@@ -2678,43 +2699,53 @@ export default function App() {
     return () => clearInterval(poller);
   }, [isAuthenticated, activeCustomerBooking?.id, showVoipCallModal, currentUser?.name]);
 
-  // Partner Hot Leads Queue (live synchronized between customer bookings and worker portal)
-  const [partnerLeads, setPartnerLeads] = useState([
-    {
-      id: 'LEAD-9410',
-      bookingId: '9410',
-      service: 'All in All AC',
-      payout: 3524,
-      customer: 'Rahul Sharma',
-      address: 'Flat 302, Green Park, Rayakottai Road, Krishnagiri - 635122',
-      distance: '0.5 km away',
-      slot: 'Today, 04:00 PM - 05:00 PM',
-      phone: '+91 98200 12345',
-      tag: '🔥 NEW LIVE BOOKING (JUST NOW)'
-    },
-    {
-      id: 'LEAD-104',
-      service: 'AC Gas Leak Repair & Refill',
-      customer: 'Pooja Deshmukh',
-      address: 'Perry Cross Rd, Bandra West, Mumbai',
-      distance: '0.8 km away',
-      payout: 1250,
-      slot: 'Today, 02:00 PM',
-      phone: '+91 98330 99881',
-      tag: '⚡ HOT LEAD (15 MINS)'
-    },
-    {
-      id: 'LEAD-105',
-      service: 'Microwave Heating Coil & Magnetron Fix',
-      customer: 'Amitabh Sen',
-      address: 'Turner Road, Bandra West, Mumbai',
-      distance: '1.4 km away',
-      payout: 650,
-      slot: 'Today, 04:30 PM',
-      phone: '+91 98210 44321',
-      tag: '⚡ POPULAR'
-    }
-  ]);
+  // Partner Admin Assigned Dispatches (allocated specifically to this worker by platform operations)
+  const [partnerLeads, setPartnerLeads] = useState([]);
+
+  // Live synchronization of Admin Assigned Dispatches specifically allocated to this worker
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const workerName = currentUser?.name || 'violet';
+    const workerId = currentUser?.id || currentUser?._id || 'PRO-8841';
+
+    let isFetching = false;
+    const fetchWorkerAssignedLeads = async () => {
+      if (isFetching) return;
+      isFetching = true;
+      try {
+        const res = await mobileApi.getWorkerAssignedBookings(workerName, workerId);
+        if (res && res.success && Array.isArray(res.bookings)) {
+          // Format admin-assigned bookings specifically for the worker dashboard
+          const activeDispatches = res.bookings
+            .filter((b) => b.status !== 'Completed' && b.status !== 'Cancelled')
+            .map((b) => {
+              const bookingRef = b.id || b.bookingReference;
+              return {
+                id: bookingRef ? (String(bookingRef).startsWith('LEAD-') || String(bookingRef).startsWith('JOB-') || String(bookingRef).startsWith('UC-') ? String(bookingRef) : `JOB-${bookingRef}`) : `JOB-${Date.now()}`,
+                bookingId: bookingRef,
+                service: b.serviceName || b.service || 'Doorstep Service',
+                customer: b.userName || b.customer || 'Customer',
+                address: b.address || 'Doorstep Location',
+                distance: b.distance || '0.5 km away',
+                payout: b.totalAmount || b.price || (b.pricing && b.pricing.finalTotal) || 1200,
+                slot: b.slot || 'Today, Scheduled Slot',
+                phone: b.userPhone || b.phone || '',
+                tag: b.assignmentStatus === 'OFFERED' ? '⏳ ADMIN OFFER' : '🎯 ADMIN ASSIGNED',
+                otp: b.otp || '4829',
+                status: b.status || 'Assigned'
+              };
+            });
+          setPartnerLeads(activeDispatches);
+        }
+      } catch (_) {} finally {
+        isFetching = false;
+      }
+    };
+
+    fetchWorkerAssignedLeads();
+    const interval = setInterval(fetchWorkerAssignedLeads, 6000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated, currentUser?.role, currentUser?.name, currentUser?.id]);
 
   // Slot, Address & Payment Flow State
   const [showCheckoutFlow, setShowCheckoutFlow] = useState(false);
@@ -8004,6 +8035,7 @@ export default function App() {
         visible={showTrackingModal}
         onClose={() => setShowTrackingModal(false)}
         booking={activeCustomerBooking}
+        currentUser={currentUser}
         onReviewSubmitted={(newReview) => {
           setPartnerReviews((prev) => [newReview, ...prev]);
         }}
@@ -8068,8 +8100,8 @@ export default function App() {
             otp: bookingDetails.otp || '4829'
           };
 
-          // Prepend to partner leads so worker dashboard immediately has it in Hot Leads & Queue!
-          setPartnerLeads((prev) => [freshLead, ...prev.filter((l) => l.id !== newLeadId)]);
+          // Note: Booking is dispatched to Admin Web App first for operations allocation
+          // It will only reach the worker dashboard once Admin assigns it to the worker.
 
           setActiveCustomerBooking((prev) => ({
             ...prev,

@@ -28,7 +28,7 @@ export async function getOverviewDashboardMetrics(req, res) {
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       try {
         dbBookings = await Booking.find()
-          .select('-structuredChecklists -beforeWorkPhoto -afterWorkPhoto')
+          .select('-structuredChecklists -beforeWorkPhoto -afterWorkPhoto -timeline -chatMessages -incidentReports -extraWorkRequests -rescheduleHistory')
           .sort({ createdAt: -1 })
           .lean();
         allUsersCount = await User.countDocuments();

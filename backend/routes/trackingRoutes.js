@@ -608,7 +608,9 @@ router.get('/operations/all', async (req, res) => {
     try {
       const activeBookings = await Booking.find({
         status: { $in: ['Assigned', 'En Route', 'Arrived', 'In Progress'] }
-      }).lean();
+      })
+      .select('id bookingReference status assignedProfessional assignedPartner assignedWorker serviceCategory serviceName address serviceZone city partnerAgency userName customerName userPhone safetyPin')
+      .lean();
 
       for (const booking of activeBookings) {
         const assignedProName = booking.assignedProfessional?.name || booking.assignedPartner || booking.assignedWorker;
@@ -685,7 +687,9 @@ router.get('/operations/all', async (req, res) => {
       // Update tracking sessions for Cancelled or Completed bookings so they do not linger as active
       const inactiveBookings = await Booking.find({
         status: { $in: ['Cancelled', 'Completed', 'Failed'] }
-      }).lean();
+      })
+      .select('id bookingReference status')
+      .lean();
 
       for (const ib of inactiveBookings) {
         const inactiveStatus = ib.status === 'Cancelled' ? 'cancelled' : 'completed';

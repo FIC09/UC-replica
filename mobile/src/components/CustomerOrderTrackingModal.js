@@ -32,6 +32,7 @@ export default function CustomerOrderTrackingModal({
   visible,
   onClose,
   booking,
+  currentUser,
   onReviewSubmitted,
   onUpdateStage
 }) {
@@ -197,13 +198,22 @@ export default function CustomerOrderTrackingModal({
     }
 
     const bookingRef = displayOrderRef;
+    const resolvedCustomerName =
+      (currentUser?.name && currentUser.name.trim() && currentUser.name !== 'Rahul Sharma')
+        ? currentUser.name.trim()
+        : (effectiveBooking?.userName && effectiveBooking.userName.trim() && effectiveBooking.userName !== 'Rahul Sharma')
+        ? effectiveBooking.userName.trim()
+        : (effectiveBooking?.customer && effectiveBooking.customer.trim() && effectiveBooking.customer !== 'Rahul Sharma')
+        ? effectiveBooking.customer.trim()
+        : (currentUser?.name || effectiveBooking?.userName || effectiveBooking?.customer || 'Islam');
+
     const callPayload = {
       bookingId: bookingRef,
       callerRole: 'customer',
-      callerName: effectiveBooking?.customer || effectiveBooking?.userName || 'Rahul Sharma',
-      callerPhone: effectiveBooking?.phone || '+91 98201 44521',
+      callerName: resolvedCustomerName,
+      callerPhone: currentUser?.phone || effectiveBooking?.phone || '+91 98201 44521',
       receiverRole: 'professional',
-      receiverName: assignedProName,
+      receiverName: assignedProName || 'violet',
       receiverPhone: effectiveBooking?.technician?.phone || '+91 98450 77123',
       service: effectiveBooking?.service || 'Doorstep Service'
     };

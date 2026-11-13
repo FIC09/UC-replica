@@ -1,6 +1,7 @@
 import express from 'express';
 import DeviceToken from '../models/DeviceToken.js';
 import {
+  dispatchDeviceMessage,
   sendExpoPushBatch,
   sendNotificationToUser,
   sendNotificationToRole,
@@ -69,16 +70,14 @@ router.post('/send', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Notification title and body are required' });
     }
 
-    // Direct token dispatch
+    // Direct token dispatch (supports Expo push tokens and Firebase FCM tokens)
     if (token) {
-      const result = await sendExpoPushBatch([{
-        to: token,
+      const result = await dispatchDeviceMessage(token, {
         title,
         body,
         data,
-        channelId,
-        priority: 'high'
-      }]);
+        channelId
+      });
       return res.json({ success: true, mode: 'direct-token', result });
     }
 

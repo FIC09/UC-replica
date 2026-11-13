@@ -1,6 +1,29 @@
 import DeviceToken from '../models/DeviceToken.js';
+import { sendFcmNotification, sendFcmMulticast } from '../config/firebaseAdmin.js';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
+
+/**
+ * Dispatch notification to a device token (supports both Expo push tokens and Firebase FCM tokens)
+ */
+export async function dispatchDeviceMessage(token, { title, body, data = {}, sound = 'default', channelId = 'default' }) {
+  if (!token) return { success: false, reason: 'No token' };
+
+  if (token.startsWith('ExponentPushToken') || token.startsWith('ExpoPushToken')) {
+    return await sendExpoPushBatch([{
+      to: token,
+      sound,
+      title,
+      body,
+      data,
+      priority: 'high',
+      channelId
+    }]);
+  } else {
+    // Native Firebase Cloud Messaging token
+    return await sendFcmNotification(token, { title, body, data });
+  }
+}
 
 /**
  * Send raw push notification payload to Expo Push Server
@@ -70,21 +93,52 @@ export async function sendNotificationToUser(userId, { title, body, data = {}, s
       return { success: true, count: 0, note: 'No active device tokens found for user' };
     }
 
-    const messages = devices.map(d => ({
-      to: d.token,
-      sound,
-      title,
-      body,
-      data: {
-        ...data,
-        notificationId: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
-        timestamp: Date.now()
-      },
-      priority: 'high',
-      channelId: channelId || 'default'
-    }));
+    const expoMessages = [];
+    const fcmTokens = [];
 
-    return await sendExpoPushBatch(messages);
+    devices.forEach(d => {
+      if (d.token.startsWith('ExponentPushToken') || d.token.startsWith('ExpoPushToken')) {
+        expoMessages.push({
+          to: d.token,
+          sound,
+          title,
+          body,
+          data: {
+            ...data,
+            notificationId: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+            timestamp: Date.now()
+          },
+          priority: 'high',
+          channelId: channelId || 'default'
+        });
+      } else {
+        fcmTokens.push(d.token);
+      }
+    });
+
+    const results = [];
+    if (expoMessages.length > 0) {
+      results.push(await sendExpoPushBatch(expoMessages));
+    }
+    if (fcmTokens.length > 0) {
+      results.push(await sendFcmMulticast(fcmTokens, {
+        title,
+        body,
+        data: {
+          ...data,
+          notificationId: `notif-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+          timestamp: Date.now()
+        }
+      }));
+    }
+
+    return {
+      success: true,
+      count: devices.length,
+      expoCount: expoMessages.length,
+      fcmCount: fcmTokens.length,
+      results
+    };
   } catch (err) {
     console.error(`Error notifying user ${userId}:`, err.message);
     return { success: false, error: err.message };
@@ -106,21 +160,52 @@ export async function sendNotificationToRole(role, { title, body, data = {}, cha
       return { success: true, count: 0, note: `No active tokens for role: ${role}` };
     }
 
-    const messages = devices.map(d => ({
-      to: d.token,
-      sound: 'default',
-      title,
-      body,
-      data: {
-        ...data,
-        role,
-        timestamp: Date.now()
-      },
-      priority: 'high',
-      channelId
-    }));
+    const expoMessages = [];
+    const fcmTokens = [];
 
-    return await sendExpoPushBatch(messages);
+    devices.forEach(d => {
+      if (d.token.startsWith('ExponentPushToken') || d.token.startsWith('ExpoPushToken')) {
+        expoMessages.push({
+          to: d.token,
+          sound: 'default',
+          title,
+          body,
+          data: {
+            ...data,
+            role,
+            timestamp: Date.now()
+          },
+          priority: 'high',
+          channelId
+        });
+      } else {
+        fcmTokens.push(d.token);
+      }
+    });
+
+    const results = [];
+    if (expoMessages.length > 0) {
+      results.push(await sendExpoPushBatch(expoMessages));
+    }
+    if (fcmTokens.length > 0) {
+      results.push(await sendFcmMulticast(fcmTokens, {
+        title,
+        body,
+        data: {
+          ...data,
+          role,
+          timestamp: Date.now()
+        }
+      }));
+    }
+
+    return {
+      success: true,
+      count: devices.length,
+      expoCount: expoMessages.length,
+      fcmCount: fcmTokens.length,
+      results
+    };
   } catch (err) {
     console.error(`Error notifying role ${role}:`, err.message);
     return { success: false, error: err.message };

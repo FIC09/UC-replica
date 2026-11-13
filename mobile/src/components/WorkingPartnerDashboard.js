@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
   Linking,
   Modal,
   Dimensions,
-  Image
+  Image,
+  ActivityIndicator
 } from 'react-native';
 import mobileApi from '../services/apiClient';
 import mobileNotificationService from '../services/notificationService';
@@ -40,6 +41,10 @@ export default function WorkingPartnerDashboard({
   const [otpInput, setOtpInput] = useState('');
   const [isOtpVerified, setIsOtpVerified] = useState(() => (sharedBooking?.stage >= 5));
   const [walletBalance, setWalletBalance] = useState(5800);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [isProcessingWithdraw, setIsProcessingWithdraw] = useState(false);
+  const [withdrawSuccessData, setWithdrawSuccessData] = useState(null);
+  const [selectedInvoiceForView, setSelectedInvoiceForView] = useState(null);
   const [todayEarnings, setTodayEarnings] = useState(2250);
   const [completedCount, setCompletedCount] = useState(3);
   const [toastMessage, setToastMessage] = useState(null);
@@ -78,6 +83,102 @@ export default function WorkingPartnerDashboard({
   const [showKycModal, setShowKycModal] = useState(false);
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
+
+  // Service Tickets & Support Desk State
+  const [showServiceTicketsModal, setShowServiceTicketsModal] = useState(false);
+  const [serviceTickets, setServiceTickets] = useState([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [selectedTicketThread, setSelectedTicketThread] = useState(null);
+  const [ticketViewMode, setTicketViewMode] = useState('list'); // 'list' | 'create' | 'thread'
+  const [newTicketForm, setNewTicketForm] = useState({
+    category: 'earnings_payout',
+    subject: '',
+    description: '',
+    priority: 'Normal',
+    bookingId: ''
+  });
+  const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
+  const [ticketReplyText, setTicketReplyText] = useState('');
+  const [isSendingTicketReply, setIsSendingTicketReply] = useState(false);
+
+  // Real-time polling for service tickets
+  const fetchSupportTickets = useCallback(async () => {
+    try {
+      const res = await mobileApi.getProfessionalSupportTickets(partnerProfile);
+      const list = res?.tickets || res?.data || (Array.isArray(res) ? res : []);
+      setServiceTickets(list);
+      // Auto-update thread view if currently open
+      setSelectedTicketThread(prev => {
+        if (!prev) return null;
+        const targetId = prev.referenceNumber || prev.id;
+        const match = list.find(t => (t.referenceNumber || t.id) === targetId);
+        return match || prev;
+      });
+    } catch (_) {}
+  }, [partnerProfile]);
+
+  useEffect(() => {
+    if (!showServiceTicketsModal) return;
+    fetchSupportTickets();
+    const interval = setInterval(fetchSupportTickets, 3500);
+    return () => clearInterval(interval);
+  }, [showServiceTicketsModal, fetchSupportTickets]);
+
+  const handleSubmitTicket = async () => {
+    const desc = (newTicketForm.description || '').trim();
+    const subj = (newTicketForm.subject || '').trim();
+    if (!desc || desc.length < 3) {
+      Alert.alert('Details Required', 'Please provide a clear description of the issue (at least 3 characters).');
+      return;
+    }
+    setIsSubmittingTicket(true);
+    try {
+      const payload = {
+        subject: subj || `${newTicketForm.category.replace(/_/g, ' ').toUpperCase()} Inquiry`,
+        category: newTicketForm.category,
+        description: desc,
+        priority: newTicketForm.priority,
+        relatedBookingId: newTicketForm.bookingId || activeJob?.id || ''
+      };
+      const res = await mobileApi.createProfessionalSupportTicket(payload, partnerProfile);
+      showToast('✓ Support ticket dispatched to Admin Helpdesk!');
+      setNewTicketForm({
+        category: 'earnings_payout',
+        subject: '',
+        description: '',
+        priority: 'Normal',
+        bookingId: ''
+      });
+      await fetchSupportTickets();
+      if (res?.ticket) {
+        setSelectedTicketThread(res.ticket);
+        setTicketViewMode('thread');
+      } else {
+        setTicketViewMode('list');
+      }
+    } catch (err) {
+      Alert.alert('Submission Error', err.message || 'Could not submit ticket. Please retry.');
+    } finally {
+      setIsSubmittingTicket(false);
+    }
+  };
+
+  const handleSendTicketReply = async () => {
+    const text = (ticketReplyText || '').trim();
+    if (!text || !selectedTicketThread) return;
+    setIsSendingTicketReply(true);
+    const ticketId = selectedTicketThread.referenceNumber || selectedTicketThread.id;
+    try {
+      await mobileApi.sendProfessionalTicketMessage(ticketId, text, partnerProfile);
+      setTicketReplyText('');
+      showToast('✓ Message sent to Admin Operations');
+      await fetchSupportTickets();
+    } catch (err) {
+      Alert.alert('Send Failed', err.message || 'Could not send message.');
+    } finally {
+      setIsSendingTicketReply(false);
+    }
+  };
 
   const [editForm, setEditForm] = useState({
     name: currentUser?.name || 'violet',
@@ -903,22 +1004,111 @@ export default function WorkingPartnerDashboard({
       Alert.alert('Insufficient Balance', 'You do not have any funds available for withdrawal.');
       return;
     }
-    Alert.alert(
-      'Instant Bank Payout (IMPS)',
-      `Transfer ₹${walletBalance.toLocaleString('en-IN')} directly to your verified Bank Account / UPI (HDFC Bank ending in **4821)?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Withdraw Now',
-          onPress: () => {
-            const amount = walletBalance;
-            setWalletBalance(0);
-            showToast(`💸 ₹${amount.toLocaleString('en-IN')} transferred via instant IMPS!`);
-            Alert.alert('Payout Successful', `₹${amount.toLocaleString('en-IN')} has been disbursed to your linked bank account. Reference ID: IMPS-${Date.now().toString().slice(-8)}`);
-          }
-        }
-      ]
-    );
+    setShowWithdrawModal(true);
+  };
+
+  const confirmExecuteWithdrawal = () => {
+    if (walletBalance <= 0) return;
+    setIsProcessingWithdraw(true);
+    setTimeout(() => {
+      const amount = walletBalance;
+      const utr = `IMPS${Date.now().toString().slice(-8)}`;
+      setWalletBalance(0);
+      setIsProcessingWithdraw(false);
+      setWithdrawSuccessData({
+        amount,
+        utr,
+        bank: 'HDFC Bank Ltd (•••• 4821)',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+      showToast(`⚡ ₹${amount.toLocaleString('en-IN')} transferred via instant IMPS!`);
+    }, 900);
+  };
+
+  const handleDownloadInvoice = (inv) => {
+    setSelectedInvoiceForView(inv);
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tax Invoice - ${inv.id}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 40px; color: #0F172A; max-width: 700px; margin: 0 auto; }
+    .header { border-bottom: 2px solid #2563EB; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: center; }
+    .logo { font-size: 24px; font-weight: 900; color: #1E293B; }
+    .badge { background: #DCFCE7; color: #15803D; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 12px; }
+    .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+    .meta-table td { padding: 6px 0; font-size: 14px; }
+    .bold { font-weight: 700; }
+    .line-items { width: 100%; border-collapse: collapse; margin: 20px 0; }
+    .line-items th { background: #F8FAFC; text-align: left; padding: 10px; border-bottom: 1px solid #E2E8F0; font-size: 13px; }
+    .line-items td { padding: 12px 10px; border-bottom: 1px solid #F1F5F9; font-size: 13px; }
+    .total-row { font-size: 16px; font-weight: 800; color: #1E293B; }
+    .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #E2E8F0; font-size: 11px; color: #64748B; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="logo">FORGE INDIA CONNECT</div>
+      <div style="font-size: 12px; color: #64748B;">Authoritative Field Services Tax Invoice</div>
+    </div>
+    <div class="badge">PAID IN FULL</div>
+  </div>
+  <table class="meta-table">
+    <tr>
+      <td><strong>Invoice Ref:</strong> ${inv.id}</td>
+      <td style="text-align: right;"><strong>Date:</strong> ${inv.date}</td>
+    </tr>
+    <tr>
+      <td><strong>GSTIN:</strong> 33AAAAF0000A1Z5</td>
+      <td style="text-align: right;"><strong>Payment Mode:</strong> ${inv.status}</td>
+    </tr>
+    <tr>
+      <td><strong>Customer:</strong> ${inv.customer}</td>
+      <td style="text-align: right;"><strong>Partner:</strong> ${partnerProfile.name} (${partnerProfile.id})</td>
+    </tr>
+  </table>
+  <table class="line-items">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th style="text-align: right;">Taxable Value</th>
+        <th style="text-align: right;">CGST (9%)</th>
+        <th style="text-align: right;">SGST (9%)</th>
+        <th style="text-align: right;">Total Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Doorstep Certified Service Disbursement - ${inv.customer}</td>
+        <td style="text-align: right;">₹${(inv.amount - inv.gst).toFixed(2)}</td>
+        <td style="text-align: right;">₹${(inv.gst / 2).toFixed(2)}</td>
+        <td style="text-align: right;">₹${(inv.gst / 2).toFixed(2)}</td>
+        <td style="text-align: right;" class="total-row">₹${inv.amount.toFixed(2)}</td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="footer">
+    This is a computer-generated tax receipt. No signature required. Forge India Connect Private Limited.
+  </div>
+</body>
+</html>`;
+
+    if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Invoice-${inv.id}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast(`📥 ${inv.id} receipt downloaded!`);
+    } else {
+      showToast(`📥 ${inv.id} receipt generated!`);
+    }
   };
 
   const handleSendReply = () => {
@@ -1952,19 +2142,27 @@ export default function WorkingPartnerDashboard({
 
               <TouchableOpacity
                 style={styles.partnerMenuItem}
-                onPress={async () => {
-                  showToast('🔔 Triggering real-time push notification test...');
-                  await mobileNotificationService.sendSelfTest(partnerProfile.id || 'PRO-8841', 'worker');
+                onPress={() => {
+                  setShowServiceTicketsModal(true);
+                  setTicketViewMode('list');
+                  fetchSupportTickets();
                 }}
                 activeOpacity={0.7}
               >
-                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#FEF3C7' }]}>
-                  <Text style={{ fontSize: 18 }}>🔔</Text>
+                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#EFF6FF' }]}>
+                  <Text style={{ fontSize: 18 }}>🎫</Text>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.partnerMenuTitle}>Job Alerts & Notifications</Text>
-                  <Text style={styles.partnerMenuSub}>Urgent job ringtones & dispatch push alerts</Text>
+                  <Text style={styles.partnerMenuTitle}>Service Tickets</Text>
+                  <Text style={styles.partnerMenuSub}>Raise operational issues & live admin chat</Text>
                 </View>
+                {serviceTickets.filter(t => t.status === 'Open' || t.status === 'In Progress').length > 0 && (
+                  <View style={[styles.partnerCountBadge, { backgroundColor: '#2563EB' }]}>
+                    <Text style={[styles.partnerCountBadgeText, { color: '#FFFFFF' }]}>
+                      {serviceTickets.filter(t => t.status === 'Open' || t.status === 'In Progress').length}
+                    </Text>
+                  </View>
+                )}
                 <Text style={styles.partnerMenuChevron}>›</Text>
               </TouchableOpacity>
 
@@ -2095,7 +2293,7 @@ export default function WorkingPartnerDashboard({
                   <Text style={styles.invoiceTotal}>Total: ₹{inv.amount} (Incl. GST ₹{inv.gst})</Text>
                   <TouchableOpacity
                     style={styles.downloadInvoiceBtn}
-                    onPress={() => Alert.alert('Tax Invoice', `Downloading ${inv.id} PDF receipt...`)}
+                    onPress={() => handleDownloadInvoice(inv)}
                   >
                     <Text style={styles.downloadInvoiceBtnText}>⬇ Download</Text>
                   </TouchableOpacity>
@@ -2821,7 +3019,7 @@ export default function WorkingPartnerDashboard({
                   <Text style={styles.partnerHelpActionTitle}>Call Partner Toll-Free Helpline</Text>
                   <Text style={styles.partnerHelpActionSub}>1800-419-7000 • 24x7 Priority Support</Text>
                 </View>
-                <Text style={{ fontSize: 18, color: '#F04400', fontWeight: '900' }}>Call ›</Text>
+                <Text style={styles.partnerMenuChevron}>›</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -2833,7 +3031,7 @@ export default function WorkingPartnerDashboard({
                   <Text style={styles.partnerHelpActionTitle}>WhatsApp Partner Support</Text>
                   <Text style={styles.partnerHelpActionSub}>Instant ticket resolution & job inquiries</Text>
                 </View>
-                <Text style={{ fontSize: 18, color: '#10B981', fontWeight: '900' }}>Chat ›</Text>
+                <Text style={styles.partnerMenuChevron}>›</Text>
               </TouchableOpacity>
             </View>
 
@@ -2895,6 +3093,761 @@ export default function WorkingPartnerDashboard({
                 <Text style={styles.partnerModalSubmitText}>Yes, Log Out</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ==================== 7. INSTANT IMPS BANK WITHDRAWAL MODAL ==================== */}
+      <Modal
+        visible={showWithdrawModal}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => {
+          if (!isProcessingWithdraw) {
+            setShowWithdrawModal(false);
+            setWithdrawSuccessData(null);
+          }
+        }}
+      >
+        <View style={styles.partnerModalOverlay}>
+          <View style={[styles.partnerModalCard, { maxWidth: 390 }]}>
+            {withdrawSuccessData ? (
+              /* SUCCESS RECEIPT STATE */
+              <View style={{ alignItems: 'center', paddingVertical: 10 }}>
+                <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#DCFCE7', justifyContent: 'center', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ fontSize: 32 }}>✓</Text>
+                </View>
+                <Text style={[styles.partnerModalTitle, { fontSize: 20, textAlign: 'center', color: '#15803D' }]}>
+                  Disbursement Successful!
+                </Text>
+                <Text style={[styles.partnerModalSub, { textAlign: 'center', marginBottom: 16 }]}>
+                  Instant IMPS payout settled into verified beneficiary account
+                </Text>
+
+                <View style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 14, width: '100%', borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 16, gap: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>Transferred Amount:</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 13, fontWeight: '800' }}>₹{withdrawSuccessData.amount.toLocaleString('en-IN')}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>Bank Account:</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '700' }}>{withdrawSuccessData.bank}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>Bank UTR Ref:</Text>
+                    <Text style={{ color: '#2563EB', fontSize: 12, fontWeight: '800' }}>{withdrawSuccessData.utr}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>Settlement Time:</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '600' }}>{withdrawSuccessData.timestamp}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>Remaining Balance:</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '700' }}>₹0</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={[styles.partnerModalSubmitBtn, { width: '100%', backgroundColor: '#10B981' }]}
+                  onPress={() => {
+                    setShowWithdrawModal(false);
+                    setWithdrawSuccessData(null);
+                  }}
+                >
+                  <Text style={styles.partnerModalSubmitText}>✓ Done (Close Receipt)</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              /* CONFIRMATION STATE */
+              <View>
+                <View style={styles.partnerModalHeader}>
+                  <Text style={styles.partnerModalTitle}>🏦 Instant IMPS Payout</Text>
+                  <TouchableOpacity
+                    onPress={() => !isProcessingWithdraw && setShowWithdrawModal(false)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text style={styles.partnerModalCloseText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.partnerModalSub}>
+                  Direct 24x7 bank disbursement with zero gateway deduction fee
+                </Text>
+
+                {/* Amount Box */}
+                <View style={{ backgroundColor: '#ECFDF5', borderWidth: 1.5, borderColor: '#10B981', borderRadius: 14, padding: 14, alignItems: 'center', marginVertical: 12 }}>
+                  <Text style={{ color: '#065F46', fontSize: 12, fontWeight: '700' }}>WITHDRAWAL AMOUNT</Text>
+                  <Text style={{ color: '#047857', fontSize: 28, fontWeight: '900', marginVertical: 4 }}>
+                    ₹{walletBalance.toLocaleString('en-IN')}
+                  </Text>
+                  <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '700' }}>⚡ Zero Processing Fee (₹0)</Text>
+                </View>
+
+                {/* Bank Account Info */}
+                <View style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: '#E2E8F0', marginBottom: 16, gap: 6 }}>
+                  <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '800', marginBottom: 2 }}>Beneficiary Bank Details</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 11 }}>Bank Name:</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 11, fontWeight: '700' }}>HDFC Bank Ltd</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 11 }}>Account Number:</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 11, fontWeight: '700' }}>•••• •••• •••• 4821</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 11 }}>IFSC Code:</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 11, fontWeight: '700' }}>HDFC0000240</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 11 }}>Verification Status:</Text>
+                    <Text style={{ color: '#10B981', fontSize: 11, fontWeight: '800' }}>✓ PENNY TEST VERIFIED</Text>
+                  </View>
+                </View>
+
+                {/* Buttons */}
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity
+                    style={[styles.partnerModalCancelBtn, isProcessingWithdraw && { opacity: 0.5 }]}
+                    disabled={isProcessingWithdraw}
+                    onPress={() => setShowWithdrawModal(false)}
+                  >
+                    <Text style={styles.partnerModalCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.partnerModalSubmitBtn,
+                      { flex: 2, backgroundColor: '#10B981' },
+                      isProcessingWithdraw && { opacity: 0.75 }
+                    ]}
+                    disabled={isProcessingWithdraw}
+                    onPress={confirmExecuteWithdrawal}
+                  >
+                    {isProcessingWithdraw ? (
+                      <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                      <Text style={styles.partnerModalSubmitText}>
+                        ⚡ Confirm Transfer →
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ==================== 8. GST TAX INVOICE DETAIL & PRINT MODAL ==================== */}
+      <Modal
+        visible={selectedInvoiceForView !== null}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setSelectedInvoiceForView(null)}
+      >
+        <View style={styles.partnerModalOverlay}>
+          <View style={[styles.partnerModalCard, { maxWidth: 420 }]}>
+            {selectedInvoiceForView && (
+              <View>
+                <View style={styles.partnerModalHeader}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 20 }}>🧾</Text>
+                    <View>
+                      <Text style={styles.partnerModalTitle}>{selectedInvoiceForView.id}</Text>
+                      <Text style={{ fontSize: 11, color: '#059669', fontWeight: '700' }}>● {selectedInvoiceForView.status}</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setSelectedInvoiceForView(null)}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Text style={styles.partnerModalCloseText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ backgroundColor: '#F8FAFC', borderRadius: 12, padding: 14, marginVertical: 14, borderWidth: 1, borderColor: '#E2E8F0', gap: 8 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>Invoice Date:</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '700' }}>{selectedInvoiceForView.date}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>Customer Name:</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '700' }}>{selectedInvoiceForView.customer}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>Service Specialist:</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '700' }}>{currentUser?.name || 'violet'}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>GSTIN (Supplier):</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '700' }}>33AAAAF0000A1Z5</Text>
+                  </View>
+
+                  <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 4 }} />
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>Base Payout:</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '700' }}>₹{(selectedInvoiceForView.amount - selectedInvoiceForView.gst).toLocaleString('en-IN')}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>CGST (9%):</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '700' }}>₹{(selectedInvoiceForView.gst / 2).toFixed(1)}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ color: '#64748B', fontSize: 12 }}>SGST (9%):</Text>
+                    <Text style={{ color: '#0F172A', fontSize: 12, fontWeight: '700' }}>₹{(selectedInvoiceForView.gst / 2).toFixed(1)}</Text>
+                  </View>
+
+                  <View style={{ height: 1, backgroundColor: '#E2E8F0', marginVertical: 4 }} />
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ color: '#0F172A', fontSize: 14, fontWeight: '800' }}>Total Paid:</Text>
+                    <Text style={{ color: '#10B981', fontSize: 18, fontWeight: '900' }}>₹{selectedInvoiceForView.amount.toLocaleString('en-IN')}</Text>
+                  </View>
+                </View>
+
+                <View style={{ flexDirection: 'row', gap: 10 }}>
+                  <TouchableOpacity
+                    style={[styles.partnerModalSubmitBtn, { flex: 1, backgroundColor: '#0F172A' }]}
+                    onPress={() => handleDownloadInvoice(selectedInvoiceForView)}
+                  >
+                    <Text style={styles.partnerModalSubmitText}>⬇ Download File</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.partnerModalSubmitBtn, { flex: 1, backgroundColor: '#2563EB' }]}
+                    onPress={() => {
+                      if (typeof window !== 'undefined' && typeof window.print === 'function') {
+                        window.print();
+                      } else {
+                        handleDownloadInvoice(selectedInvoiceForView);
+                      }
+                    }}
+                  >
+                    <Text style={styles.partnerModalSubmitText}>🖨️ Print Receipt</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ==================== 9. SERVICE TICKETS & ADMIN HELPDESK MODAL ==================== */}
+      <Modal
+        visible={showServiceTicketsModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => {
+          if (ticketViewMode !== 'list') {
+            setTicketViewMode('list');
+          } else {
+            setShowServiceTicketsModal(false);
+          }
+        }}
+      >
+        <View style={styles.partnerModalOverlay}>
+          <View style={[styles.partnerModalCard, { maxWidth: 440, height: '85%', maxHeight: 620, padding: 0, overflow: 'hidden' }]}>
+            
+            {/* Header */}
+            <View style={[styles.partnerModalHeader, { paddingHorizontal: 18, paddingTop: 16, paddingBottom: 12, borderBottomWidth: 1, borderColor: '#F1F5F9', backgroundColor: '#FFFFFF' }]}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                {ticketViewMode !== 'list' && (
+                  <TouchableOpacity
+                    onPress={() => setTicketViewMode('list')}
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    style={{ paddingRight: 4 }}
+                  >
+                    <Text style={{ fontSize: 18, fontWeight: '700', color: '#1E293B' }}>←</Text>
+                  </TouchableOpacity>
+                )}
+                <View>
+                  <Text style={[styles.partnerModalTitle, { fontSize: 16 }]}>
+                    {ticketViewMode === 'create'
+                      ? '✍️ Raise Service Ticket'
+                      : ticketViewMode === 'thread'
+                      ? `💬 ${selectedTicketThread?.referenceNumber || selectedTicketThread?.id || 'Ticket Thread'}`
+                      : '🎫 Service Tickets'}
+                  </Text>
+                  <Text style={[styles.partnerModalSub, { marginBottom: 0, fontSize: 11 }]}>
+                    {ticketViewMode === 'thread'
+                      ? 'Live real-time messaging with Platform Operations'
+                      : 'Authoritative support dispatched directly to Admin Operations'}
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowServiceTicketsModal(false);
+                  setTicketViewMode('list');
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Text style={styles.partnerModalCloseText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* BODY CONTENT BY MODE */}
+            {ticketViewMode === 'list' && (
+              <View style={{ flex: 1, padding: 16, backgroundColor: '#F8FAFC' }}>
+                {/* Action & Sync Bar */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#10B981' }} />
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#059669' }}>Real-Time Admin Sync</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#1E293B',
+                      paddingHorizontal: 12,
+                      paddingVertical: 7,
+                      borderRadius: 8,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 6
+                    }}
+                    onPress={() => setTicketViewMode('create')}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 12 }}>+ Raise New Ticket</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Tickets Scroll List */}
+                <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 16 }}>
+                  {serviceTickets.length === 0 ? (
+                    <View style={{ alignItems: 'center', paddingVertical: 40, paddingHorizontal: 20 }}>
+                      <Text style={{ fontSize: 36, marginBottom: 10 }}>🎫</Text>
+                      <Text style={{ fontSize: 15, fontWeight: '800', color: '#0F172A', textAlign: 'center' }}>
+                        No Service Tickets Yet
+                      </Text>
+                      <Text style={{ fontSize: 12, color: '#64748B', textAlign: 'center', marginTop: 6, lineHeight: 18 }}>
+                        Encountered a dispatch, payout dispute, or customer location issue? Raise a ticket and admin operations will assist in real time.
+                      </Text>
+                      <TouchableOpacity
+                        style={[styles.partnerModalSubmitBtn, { marginTop: 16, width: '100%', backgroundColor: '#1E293B' }]}
+                        onPress={() => setTicketViewMode('create')}
+                      >
+                        <Text style={styles.partnerModalSubmitText}>+ Raise Your First Ticket</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    serviceTickets.map((ticket, index) => {
+                      const tId = ticket.referenceNumber || ticket.id || `TCK-${index + 1}`;
+                      const isResolved = ticket.status === 'Resolved' || ticket.status === 'Closed';
+                      const isInProgress = ticket.status === 'In Progress';
+                      const messages = ticket.messages || ticket.conversation || [];
+                      const lastMessage = messages[messages.length - 1];
+                      const isAdminLast = lastMessage && (lastMessage.senderRole === 'Admin' || lastMessage.senderRole === 'Staff Support Desk' || lastMessage.sender === 'Platform Support Agent' || (!lastMessage.senderRole && !lastMessage.isInternal && lastMessage.sender !== partnerProfile.name));
+
+                      return (
+                        <TouchableOpacity
+                          key={tId}
+                          style={{
+                            backgroundColor: '#FFFFFF',
+                            borderRadius: 12,
+                            padding: 14,
+                            marginBottom: 10,
+                            borderWidth: 1,
+                            borderColor: isInProgress ? '#93C5FD' : '#E2E8F0',
+                            shadowColor: '#000',
+                            shadowOpacity: 0.04,
+                            shadowRadius: 3,
+                            shadowOffset: { width: 0, height: 1 }
+                          }}
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            setSelectedTicketThread(ticket);
+                            setTicketViewMode('thread');
+                          }}
+                        >
+                          {/* Row 1: Ref & Status Badge */}
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Text style={{ fontSize: 13, fontWeight: '900', color: '#2563EB' }}>{tId}</Text>
+                              <View style={{
+                                backgroundColor: ticket.priority === 'Urgent' ? '#FEE2E2' : ticket.priority === 'High' ? '#FFEDD5' : '#F1F5F9',
+                                paddingHorizontal: 6,
+                                paddingVertical: 2,
+                                borderRadius: 4
+                              }}>
+                                <Text style={{
+                                  fontSize: 10,
+                                  fontWeight: '800',
+                                  color: ticket.priority === 'Urgent' ? '#DC2626' : ticket.priority === 'High' ? '#C2410C' : '#475569'
+                                }}>
+                                  {ticket.priority || 'Normal'}
+                                </Text>
+                              </View>
+                            </View>
+
+                            <View style={{
+                              backgroundColor: isResolved ? '#DCFCE7' : isInProgress ? '#DBEAFE' : '#FEF3C7',
+                              paddingHorizontal: 8,
+                              paddingVertical: 2,
+                              borderRadius: 12
+                            }}>
+                              <Text style={{
+                                fontSize: 11,
+                                fontWeight: '800',
+                                color: isResolved ? '#15803D' : isInProgress ? '#1D4ED8' : '#B45309'
+                              }}>
+                                {ticket.status || 'Open'}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Row 2: Subject */}
+                          <Text style={{ fontSize: 13, fontWeight: '700', color: '#0F172A', marginBottom: 6 }}>
+                            {ticket.subject || ticket.issueCategory || 'Service Issue'}
+                          </Text>
+
+                          {/* Row 3: Last reply snippet */}
+                          {lastMessage && (
+                            <View style={{
+                              backgroundColor: isAdminLast ? '#EEF2FF' : '#F8FAFC',
+                              padding: 8,
+                              borderRadius: 8,
+                              borderWidth: 1,
+                              borderColor: isAdminLast ? '#C7D2FE' : '#E2E8F0',
+                              marginBottom: 8
+                            }}>
+                              <Text style={{
+                                fontSize: 11,
+                                fontWeight: '800',
+                                color: isAdminLast ? '#4338CA' : '#475569',
+                                marginBottom: 2
+                              }}>
+                                {isAdminLast ? '🛡️ Admin Operations Reply:' : 'You:'}
+                              </Text>
+                              <Text style={{ fontSize: 12, color: '#334155' }} numberOfLines={2}>
+                                {lastMessage.text || lastMessage.message}
+                              </Text>
+                            </View>
+                          )}
+
+                          {/* Footer */}
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Text style={{ fontSize: 10.5, color: '#94A3B8' }}>
+                              {ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent'}
+                            </Text>
+                            <Text style={{ fontSize: 11, fontWeight: '800', color: '#2563EB' }}>
+                              Open Chat ›
+                            </Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })
+                  )}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* CREATE TICKET VIEW */}
+            {ticketViewMode === 'create' && (
+              <ScrollView style={{ flex: 1, backgroundColor: '#F8FAFC' }} contentContainerStyle={{ padding: 16 }}>
+                {/* Category Picker */}
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F172A', marginBottom: 6 }}>
+                  ISSUE CATEGORY
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                  {[
+                    { id: 'earnings_payout', label: '💰 Payout & Earnings' },
+                    { id: 'booking_support', label: '📍 Customer / Site Issue' },
+                    { id: 'technical_issue', label: '🔧 App / Technical' },
+                    { id: 'safety_incident', label: '🚨 Safety & Emergency' },
+                    { id: 'account_onboarding', label: '📋 Account & Documents' }
+                  ].map(cat => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 8,
+                        backgroundColor: newTicketForm.category === cat.id ? '#1E293B' : '#FFFFFF',
+                        borderWidth: 1,
+                        borderColor: newTicketForm.category === cat.id ? '#1E293B' : '#CBD5E1'
+                      }}
+                      onPress={() => setNewTicketForm(prev => ({ ...prev, category: cat.id }))}
+                    >
+                      <Text style={{
+                        fontSize: 11.5,
+                        fontWeight: '700',
+                        color: newTicketForm.category === cat.id ? '#FFFFFF' : '#334155'
+                      }}>
+                        {cat.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Priority Picker */}
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F172A', marginBottom: 6 }}>
+                  PRIORITY LEVEL
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                  {[
+                    { id: 'Normal', label: 'Normal Priority' },
+                    { id: 'High', label: 'High Priority' },
+                    { id: 'Urgent', label: '🚨 Urgent Priority' }
+                  ].map(p => (
+                    <TouchableOpacity
+                      key={p.id}
+                      style={{
+                        flex: 1,
+                        paddingVertical: 7,
+                        borderRadius: 8,
+                        alignItems: 'center',
+                        backgroundColor: newTicketForm.priority === p.id ? (p.id === 'Urgent' ? '#DC2626' : p.id === 'High' ? '#EA580C' : '#2563EB') : '#FFFFFF',
+                        borderWidth: 1,
+                        borderColor: newTicketForm.priority === p.id ? 'transparent' : '#CBD5E1'
+                      }}
+                      onPress={() => setNewTicketForm(prev => ({ ...prev, priority: p.id }))}
+                    >
+                      <Text style={{
+                        fontSize: 11,
+                        fontWeight: '800',
+                        color: newTicketForm.priority === p.id ? '#FFFFFF' : '#475569'
+                      }}>
+                        {p.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Subject */}
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F172A', marginBottom: 6 }}>
+                  SUBJECT
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: '#CBD5E1',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    fontSize: 13,
+                    color: '#0F172A',
+                    marginBottom: 14
+                  }}
+                  placeholder="e.g. Bank transfer delay or dispute on order #UC-9410"
+                  placeholderTextColor="#94A3B8"
+                  value={newTicketForm.subject}
+                  onChangeText={val => setNewTicketForm(prev => ({ ...prev, subject: val }))}
+                />
+
+                {/* Related Booking ID */}
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F172A', marginBottom: 6 }}>
+                  RELATED BOOKING ID (OPTIONAL)
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: '#CBD5E1',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 8,
+                    fontSize: 13,
+                    color: '#0F172A',
+                    marginBottom: 14
+                  }}
+                  placeholder="e.g. UC-9410"
+                  placeholderTextColor="#94A3B8"
+                  value={newTicketForm.bookingId}
+                  onChangeText={val => setNewTicketForm(prev => ({ ...prev, bookingId: val }))}
+                />
+
+                {/* Description */}
+                <Text style={{ fontSize: 12, fontWeight: '800', color: '#0F172A', marginBottom: 6 }}>
+                  ISSUE DETAILS & REASON *
+                </Text>
+                <TextInput
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderWidth: 1,
+                    borderColor: '#CBD5E1',
+                    borderRadius: 8,
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    fontSize: 13,
+                    color: '#0F172A',
+                    minHeight: 100,
+                    textAlignVertical: 'top',
+                    marginBottom: 18
+                  }}
+                  multiline={true}
+                  numberOfLines={4}
+                  placeholder="Please describe the issue in detail so the admin operations team can investigate and resolve it immediately..."
+                  placeholderTextColor="#94A3B8"
+                  value={newTicketForm.description}
+                  onChangeText={val => setNewTicketForm(prev => ({ ...prev, description: val }))}
+                />
+
+                {/* Submit button */}
+                <TouchableOpacity
+                  style={[
+                    styles.partnerModalSubmitBtn,
+                    { width: '100%', backgroundColor: '#1E293B', paddingVertical: 12 },
+                    isSubmittingTicket && { opacity: 0.6 }
+                  ]}
+                  disabled={isSubmittingTicket}
+                  onPress={handleSubmitTicket}
+                >
+                  <Text style={styles.partnerModalSubmitText}>
+                    {isSubmittingTicket ? 'Dispatching Ticket to Admin...' : '🚀 Submit Ticket to Admin →'}
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            )}
+
+            {/* THREAD / CHAT VIEW */}
+            {ticketViewMode === 'thread' && selectedTicketThread && (
+              <View style={{ flex: 1, backgroundColor: '#F8FAFC' }}>
+                {/* Meta info bar */}
+                <View style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 10,
+                  backgroundColor: '#FFFFFF',
+                  borderBottomWidth: 1,
+                  borderColor: '#E2E8F0',
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#0F172A' }} numberOfLines={1}>
+                      {selectedTicketThread.subject || 'Support Ticket'}
+                    </Text>
+                    <Text style={{ fontSize: 11, color: '#64748B' }}>
+                      Category: {selectedTicketThread.category || 'General'} • Priority: {selectedTicketThread.priority || 'Normal'}
+                    </Text>
+                  </View>
+                  <View style={{
+                    backgroundColor: (selectedTicketThread.status === 'Resolved' || selectedTicketThread.status === 'Closed')
+                      ? '#DCFCE7'
+                      : selectedTicketThread.status === 'In Progress'
+                      ? '#DBEAFE'
+                      : '#FEF3C7',
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 12
+                  }}>
+                    <Text style={{
+                      fontSize: 11,
+                      fontWeight: '800',
+                      color: (selectedTicketThread.status === 'Resolved' || selectedTicketThread.status === 'Closed')
+                        ? '#15803D'
+                        : selectedTicketThread.status === 'In Progress'
+                        ? '#1D4ED8'
+                        : '#B45309'
+                    }}>
+                      {selectedTicketThread.status || 'Open'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Conversation Scroll Feed */}
+                <ScrollView
+                  style={{ flex: 1, paddingHorizontal: 14, paddingVertical: 12 }}
+                  contentContainerStyle={{ paddingBottom: 16, gap: 10 }}
+                >
+                  {(selectedTicketThread.messages || selectedTicketThread.conversation || []).map((msg, idx) => {
+                    const isFromWorker = msg.senderRole === 'Professional' || msg.sender === partnerProfile.name || (msg.sender && msg.sender.toLowerCase().includes('violet'));
+
+                    return (
+                      <View
+                        key={msg.id || idx}
+                        style={{
+                          alignSelf: isFromWorker ? 'flex-end' : 'flex-start',
+                          maxWidth: '85%',
+                          backgroundColor: isFromWorker ? '#1E293B' : '#FFFFFF',
+                          paddingHorizontal: 14,
+                          paddingVertical: 10,
+                          borderRadius: 14,
+                          borderWidth: isFromWorker ? 0 : 1,
+                          borderColor: '#E2E8F0',
+                          shadowColor: '#000',
+                          shadowOpacity: 0.03,
+                          shadowRadius: 2,
+                          shadowOffset: { width: 0, height: 1 }
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4, gap: 8 }}>
+                          <Text style={{
+                            fontSize: 11,
+                            fontWeight: '800',
+                            color: isFromWorker ? '#93C5FD' : '#4338CA'
+                          }}>
+                            {isFromWorker ? 'You (Partner)' : `🛡️ ${msg.sender || 'Admin Helpdesk'}`}
+                          </Text>
+                          <Text style={{
+                            fontSize: 10,
+                            color: isFromWorker ? '#94A3B8' : '#94A3B8'
+                          }}>
+                            {msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </Text>
+                        </View>
+                        <Text style={{
+                          fontSize: 13,
+                          color: isFromWorker ? '#FFFFFF' : '#0F172A',
+                          lineHeight: 18
+                        }}>
+                          {msg.text || msg.message}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </ScrollView>
+
+                {/* Reply Composer Box */}
+                <View style={{
+                  padding: 12,
+                  backgroundColor: '#FFFFFF',
+                  borderTopWidth: 1,
+                  borderColor: '#E2E8F0',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8
+                }}>
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      backgroundColor: '#F8FAFC',
+                      borderWidth: 1,
+                      borderColor: '#CBD5E1',
+                      borderRadius: 20,
+                      paddingHorizontal: 14,
+                      paddingVertical: 8,
+                      fontSize: 13,
+                      color: '#0F172A',
+                      maxHeight: 80
+                    }}
+                    placeholder="Type reply to Admin Operations..."
+                    placeholderTextColor="#94A3B8"
+                    value={ticketReplyText}
+                    onChangeText={setTicketReplyText}
+                    multiline={false}
+                  />
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: (ticketReplyText.trim() && !isSendingTicketReply) ? '#2563EB' : '#94A3B8',
+                      paddingHorizontal: 16,
+                      paddingVertical: 10,
+                      borderRadius: 20,
+                      justifyContent: 'center',
+                      alignItems: 'center'
+                    }}
+                    disabled={!ticketReplyText.trim() || isSendingTicketReply}
+                    onPress={handleSendTicketReply}
+                  >
+                    <Text style={{ color: '#FFFFFF', fontWeight: '800', fontSize: 13 }}>
+                      {isSendingTicketReply ? '...' : 'Send'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            )}
+
           </View>
         </View>
       </Modal>

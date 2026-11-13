@@ -161,9 +161,14 @@ router.post('/shop/order', placeShopOrder);
 
 // Support & Safety
 router.get('/support', getSupportTickets);
+router.get('/support/tickets', getSupportTickets);
 router.post('/support', createSupportTicket);
+router.post('/support/tickets', createSupportTicket);
 router.post('/support/safety-escalation', escalateSafetyIncident);
 router.post('/support/:id/messages', addTicketMessage);
+router.post('/support/:id/message', addTicketMessage);
+router.post('/support/tickets/:id/messages', addTicketMessage);
+router.post('/support/tickets/:id/message', addTicketMessage);
 
 // Notifications & Dispatch Broadcasts
 router.get('/notifications', getNotifications);

@@ -111,7 +111,7 @@ export async function getLocations(req, res) {
   try {
     const [workers, bookings] = await Promise.all([
       WorkerApplication.find().lean().catch(() => []),
-      Booking.find().lean().catch(() => [])
+      Booking.find().select('city totalAmount status').lean().catch(() => [])
     ]);
 
     const enrichedLocations = mockLocations.map(loc => {

@@ -42,7 +42,7 @@ export async function getBookings(req, res) {
     if (mongoose.connection && mongoose.connection.readyState === 1) {
       try {
         dbBookings = await Booking.find()
-          .select('-structuredChecklists -beforeWorkPhoto -afterWorkPhoto')
+          .select('-structuredChecklists -beforeWorkPhoto -afterWorkPhoto -timeline -chatMessages -incidentReports -extraWorkRequests -rescheduleHistory')
           .sort({ createdAt: -1 })
           .lean();
       } catch (err) {
@@ -583,8 +583,9 @@ export async function assignProfessional(req, res) {
     booking.assignedProfessional = assignedProData;
     booking.assignmentStatus = 'ASSIGNED';
     booking.offerStatus = 'accepted';
-    if (booking.status === 'Confirmed' || booking.status === 'Pending') {
+    if (!['En Route', 'Arrived', 'In Progress'].includes(booking.status) || previousWorkerId !== newAssignedProId) {
       booking.status = 'Assigned';
+      booking.stage = 3;
     }
     booking.timeline.push(timelineEvent);
     await booking.save();
@@ -598,9 +599,14 @@ export async function assignProfessional(req, res) {
       ).catch(() => {});
     }
     // Update newly assigned worker dispatch state
-    if (newAssignedProId) {
+    if (newAssignedProId || professionalName) {
       WorkerApplication.updateOne(
-        { $or: [{ id: newAssignedProId }, { applicationNumber: newAssignedProId }] },
+        {
+          $or: [
+            ...(newAssignedProId ? [{ id: newAssignedProId }, { applicationNumber: newAssignedProId }] : []),
+            ...(professionalName ? [{ applicantName: new RegExp(`^${professionalName}$`, 'i') }, { name: new RegExp(`^${professionalName}$`, 'i') }] : [])
+          ]
+        },
         { $set: { dispatchState: 'Busy on Booking', activeBookingId: booking.id } }
       ).catch(() => {});
     }
@@ -1038,12 +1044,12 @@ export async function getEligibleProfessionals(req, res) {
         score: c.totalScore != null ? c.totalScore : (c.score || 80),
         totalScore: c.totalScore != null ? c.totalScore : (c.score || 80),
         activeBookingsCount: c.activeBookingsCount || 0,
-        maxDailyJobs: c.maxDailyJobs || 4,
+        maxDailyJobs: c.maxDailyJobs || 6,
         attendanceStatus: c.attendanceStatus || (w.dispatchState === 'Offline' ? 'OFFLINE' : 'PRESENT'),
         attendanceLabel: c.attendanceLabel || (w.dispatchState === 'Offline' ? 'Offline' : 'Present & Available'),
         attendanceScore: c.attendanceScore != null ? c.attendanceScore : 30,
         workloadStatus: c.workloadStatus || 'OPTIMAL',
-        workloadLabel: c.workloadLabel || 'Optimal (0 active jobs)',
+        workloadLabel: c.workloadLabel || `Optimal (0/${c.maxDailyJobs || 6} active)`,
         workloadScore: c.workloadScore != null ? c.workloadScore : 30,
         isCapacityReached: !!c.isCapacityReached,
         isSlotConflict: !!c.isSlotConflict,

@@ -178,6 +178,14 @@ class MobileApiClient {
     return this.request(`/bookings${phone ? `?phone=${encodeURIComponent(phone)}` : ''}`);
   }
 
+  getWorkerAssignedBookings(workerName, workerId) {
+    const params = [];
+    if (workerName) params.push(`assignedWorker=${encodeURIComponent(workerName)}`);
+    if (workerId) params.push(`workerId=${encodeURIComponent(workerId)}`);
+    const qs = params.length > 0 ? `?${params.join('&')}` : '';
+    return this.request(`/bookings${qs}`);
+  }
+
   createBooking(bookingPayload) {
     return this.request('/bookings', {
       method: 'POST',
@@ -385,13 +393,13 @@ class MobileApiClient {
     };
   }
 
-  // Credential Password Login (Email & Password)
-  async loginWithPassword({ email, password, role = 'customer' }) {
-    const cleanEmail = (email || '').trim().toLowerCase();
+  // Credential Password Login (Email, Phone or Username & Password)
+  async loginWithPassword({ identifier, email, phone, password, role }) {
+    const rawInput = (identifier || email || phone || '').trim();
     const cleanPassword = (password || '').trim();
 
-    if (!cleanEmail) {
-      throw new Error('Email address is required.');
+    if (!rawInput) {
+      throw new Error('Please enter your email address, phone, or username.');
     }
     if (!cleanPassword) {
       throw new Error('Password is required.');
@@ -402,34 +410,44 @@ class MobileApiClient {
       const res = await this.request('/auth/unified-login', {
         method: 'POST',
         body: JSON.stringify({
-          identifier: cleanEmail,
+          identifier: rawInput,
           password: cleanPassword,
-          role: role || 'customer'
+          role: role || undefined
         })
       });
 
       if (res && res.success && res.user) {
         const u = res.user;
-        const isPartner = u.role === 'worker' || u.role === 'partner' || u.role === 'professional' || role === 'partner';
+        const returnedRole = (res.role || u.role || '').toLowerCase();
+        const isPartner = returnedRole === 'worker' || returnedRole === 'partner' || returnedRole === 'professional' || role === 'partner';
         const mappedUser = {
           id: u.id || u._id || (isPartner ? 'PRO-8841' : 'CUST-1001'),
-          name: u.name || (isPartner ? 'Vikram Salvi' : 'Rahul Sharma'),
-          email: cleanEmail,
+          name: u.name || u.applicantName || (isPartner ? 'violet' : 'Rahul Sharma'),
+          email: u.email || (rawInput.includes('@') ? rawInput : 'user@forgeindia.in'),
           phone: u.phone || (isPartner ? '+91 98205 11982' : '+91 98200 12345'),
           role: isPartner ? 'partner' : 'customer',
           trade: isPartner ? (u.trade || 'Master AC Specialist & Electrician') : undefined,
           rating: isPartner ? (u.rating || 4.94) : undefined,
           token: res.token || `jwt-${Date.now()}`
         };
-        LOCAL_USERS_STORE.set(cleanEmail, { ...mappedUser, password: cleanPassword });
+        LOCAL_USERS_STORE.set(rawInput.toLowerCase(), { ...mappedUser, password: cleanPassword });
+        if (mappedUser.email) {
+          LOCAL_USERS_STORE.set(mappedUser.email.toLowerCase(), { ...mappedUser, password: cleanPassword });
+        }
         return { success: true, user: mappedUser };
+      } else if (res && res.error) {
+        throw new Error(res.error);
       }
-    } catch (_) {
-      // Backend unavailable or suspended, proceed to local persistent check
+    } catch (err) {
+      const errMsg = err?.message || '';
+      // If error is an explicit authentication rejection from backend, throw it to user
+      if (errMsg && !errMsg.includes('Failed to fetch') && !errMsg.includes('Network') && !errMsg.includes('unreachable') && !errMsg.includes('ECONNREFUSED')) {
+        throw err;
+      }
     }
 
-    // 2. Check local registered user credentials
-    const localUser = LOCAL_USERS_STORE.get(cleanEmail);
+    // 2. Check local registered user credentials fallback
+    const localUser = LOCAL_USERS_STORE.get(rawInput.toLowerCase());
     if (localUser) {
       if (localUser.password && localUser.password !== cleanPassword) {
         throw new Error('Incorrect password. Please verify your credentials or reset your password.');
@@ -440,18 +458,20 @@ class MobileApiClient {
       };
     }
 
-    // 3. If new email logging in directly, create user session with provided credentials
+    // 3. Fallback user session creation for newly registered offline credentials
+    const isPartnerRole = role === 'partner';
     const newUser = {
-      id: role === 'partner' ? 'PRO-8841' : `CUST-${Date.now().toString().slice(-4)}`,
-      name: role === 'partner' ? 'Vikram Salvi' : 'Valued Customer',
-      email: cleanEmail,
+      id: isPartnerRole ? 'PRO-8841' : `CUST-${Date.now().toString().slice(-4)}`,
+      name: isPartnerRole ? 'violet' : 'Valued Customer',
+      email: rawInput.includes('@') ? rawInput : 'customer@forgeindia.in',
+      phone: rawInput.match(/^\d+$/) ? rawInput : '+91 98200 12345',
       password: cleanPassword,
-      role,
-      trade: role === 'partner' ? 'Master AC Specialist & Electrician' : undefined,
-      rating: role === 'partner' ? 4.94 : undefined,
+      role: isPartnerRole ? 'partner' : 'customer',
+      trade: isPartnerRole ? 'Master AC Specialist & Electrician' : undefined,
+      rating: isPartnerRole ? 4.94 : undefined,
       token: `jwt-${Date.now()}`
     };
-    LOCAL_USERS_STORE.set(cleanEmail, newUser);
+    LOCAL_USERS_STORE.set(rawInput.toLowerCase(), newUser);
 
     return {
       success: true,
@@ -478,6 +498,49 @@ class MobileApiClient {
     return this.request('/auth/profile', {
       method: 'PUT',
       body: JSON.stringify(profileData)
+    });
+  }
+
+  getProfessionalSupportTickets(workerProfile = {}) {
+    const proId = workerProfile.id || 'PRO-8841';
+    const proEmail = workerProfile.email || 'violet@gmail.com';
+    const proName = workerProfile.name || 'violet';
+    return this.request('/professional/support', {
+      headers: {
+        'x-professional-id': proId,
+        'x-professional-email': proEmail,
+        'x-professional-name': proName
+      }
+    });
+  }
+
+  createProfessionalSupportTicket(ticketData, workerProfile = {}) {
+    const proId = workerProfile.id || 'PRO-8841';
+    const proEmail = workerProfile.email || 'violet@gmail.com';
+    const proName = workerProfile.name || 'violet';
+    return this.request('/professional/support', {
+      method: 'POST',
+      headers: {
+        'x-professional-id': proId,
+        'x-professional-email': proEmail,
+        'x-professional-name': proName
+      },
+      body: JSON.stringify(ticketData)
+    });
+  }
+
+  sendProfessionalTicketMessage(ticketId, message, workerProfile = {}) {
+    const proId = workerProfile.id || 'PRO-8841';
+    const proEmail = workerProfile.email || 'violet@gmail.com';
+    const proName = workerProfile.name || 'violet';
+    return this.request(`/professional/support/${encodeURIComponent(ticketId)}/messages`, {
+      method: 'POST',
+      headers: {
+        'x-professional-id': proId,
+        'x-professional-email': proEmail,
+        'x-professional-name': proName
+      },
+      body: JSON.stringify({ message, text: message })
     });
   }
 }

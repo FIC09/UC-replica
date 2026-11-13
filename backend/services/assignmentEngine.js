@@ -242,7 +242,7 @@ export function calculateWorkerScore(worker, booking, customerCoords, activeJobs
   }
 
   // 2. Workload Fairness & Active Capacity (30% Weight)
-  const maxDailyJobs = worker.availabilityPreferences?.maxDailyJobs || 4;
+  const maxDailyJobs = worker.availabilityPreferences?.maxDailyJobs || 6;
   const isCapacityReached = activeJobsCount >= maxDailyJobs;
   let workloadScore = 30; // Max 30 pts
   let workloadStatus = 'OPTIMAL';
@@ -364,24 +364,36 @@ export async function findEligibleProfessionals(bookingIdOrDoc, { scopePartnerId
     return { customerCoords, candidates: [] };
   }
 
-  // 3. Concurrency check: find any conflicting active bookings
+  // 3. Concurrency check: find any active bookings currently assigned or in progress
   const activeBookings = await Booking.find({
-    id: { $ne: booking.id },
-    status: { $in: ['Assigned', 'En Route', 'In Progress'] }
+    status: { $in: ['Assigned', 'En Route', 'Arrived', 'In Progress', 'Scheduled', 'Pending'] }
   }).lean();
 
-  const busyWorkerIds = new Set();
-  const workerActiveCountMap = {};
+  function isBookingAssignedToWorker(b, worker) {
+    if (!b || !worker) return false;
+    const wId = String(worker.id || '').trim().toLowerCase();
+    const wMongoId = String(worker._id || '').trim().toLowerCase();
+    const wName = String(worker.applicantName || worker.name || '').trim().toLowerCase();
 
-  for (const b of activeBookings) {
-    const proId = b.assignedProfessional?.id;
-    if (proId) {
-      workerActiveCountMap[proId] = (workerActiveCountMap[proId] || 0) + 1;
-      // If slot matches, flag conflict
-      if (b.slot === booking.slot) {
-        busyWorkerIds.add(proId);
+    const bProId = String(b.assignedProfessional?.id || '').trim().toLowerCase();
+    const bProName = String(b.assignedProfessional?.name || '').trim().toLowerCase();
+    const bPartner = String(b.assignedPartner || '').trim().toLowerCase();
+    const bWorker = String(b.assignedWorker || '').trim().toLowerCase();
+    const bWorkerId = String(b.assignedWorkerId || '').trim().toLowerCase();
+    const bOfferId = String(b.offeredTo?.proId || '').trim().toLowerCase();
+    const bOfferName = String(b.offeredTo?.proName || '').trim().toLowerCase();
+
+    if (wId && (bProId === wId || bWorkerId === wId || bOfferId === wId)) return true;
+    if (wMongoId && (bProId === wMongoId || bWorkerId === wMongoId || bOfferId === wMongoId)) return true;
+    if (wName && (bProName === wName || bWorker === wName || bOfferName === wName)) return true;
+
+    if (bPartner && wName && bPartner === wName) {
+      if (!bProName || bProName === wName || bProName.includes(wName) || wName.includes(bProName)) {
+        return true;
       }
     }
+
+    return false;
   }
 
   // 4. Redis online presence check
@@ -406,16 +418,28 @@ export async function findEligibleProfessionals(bookingIdOrDoc, { scopePartnerId
     const distanceKm = calculateDistanceKm(workerCoords, customerCoords);
     const etaMinutes = Math.max(4, Math.round(distanceKm * 3.0 + 3));
 
-    const activeJobsCount = workerActiveCountMap[worker.id] || 0;
-    const isSlotConflict = busyWorkerIds.has(worker.id);
+    // Dynamic real-time workload calculation derived strictly from real active MongoDB bookings
+    const assignedBookings = activeBookings.filter(b => isBookingAssignedToWorker(b, worker));
+    const activeJobsCount = assignedBookings.length;
+    const isSlotConflict = assignedBookings.some(b =>
+      String(b.id || b.bookingReference || '') !== String(booking.id || booking.bookingReference || '') &&
+      b.slot && booking.slot && b.slot.trim().toLowerCase() === booking.slot.trim().toLowerCase()
+    );
 
-    // Self-healing: If worker has 0 active jobs in system, heal any stale 'Busy on Booking' state
+    // Keep dispatchState synchronized with real-time active bookings
     if (activeJobsCount === 0 && worker.dispatchState === 'Busy on Booking') {
       worker.dispatchState = 'Available';
       worker.activeBookingId = '';
       WorkerApplication.updateOne(
         { _id: worker._id },
         { $set: { dispatchState: 'Available', activeBookingId: '' } }
+      ).catch(() => {});
+    } else if (activeJobsCount > 0 && worker.dispatchState !== 'Offline' && worker.dispatchState !== 'Suspended') {
+      worker.dispatchState = 'Busy on Booking';
+      worker.activeBookingId = assignedBookings[0]?.id || '';
+      WorkerApplication.updateOne(
+        { _id: worker._id },
+        { $set: { dispatchState: 'Busy on Booking', activeBookingId: assignedBookings[0]?.id || '' } }
       ).catch(() => {});
     }
 

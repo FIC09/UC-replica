@@ -100,15 +100,56 @@ router.post('/start', async (req, res) => {
       { $set: { status: 'ended', endedAt: new Date(), disconnectReason: 'superseded_by_new_call' } }
     );
 
+    let resolvedCallerName = callerName;
+    let resolvedReceiverName = receiverName;
+    let resolvedService = service;
+
+    try {
+      const bDoc = await Booking.findOne({
+        $or: [
+          { id: cleanBookingId },
+          { id: `UC-${bare}` },
+          { id: `JOB-${bare}` },
+          { id: bare },
+          { bookingReference: cleanBookingId },
+          { bookingReference: `UC-${bare}` }
+        ]
+      });
+
+      if (bDoc) {
+        resolvedService = bDoc.serviceName || bDoc.service || resolvedService || 'Doorstep Service';
+        const realCustomer = bDoc.userName || bDoc.customerName || bDoc.customer;
+        const realPro = bDoc.assignedPartner || bDoc.assignedProfessional?.name || (bDoc.technician && bDoc.technician.name);
+
+        if (callerRole === 'customer') {
+          if (!resolvedCallerName || resolvedCallerName === 'Rahul Sharma' || resolvedCallerName === 'Customer') {
+            if (realCustomer) resolvedCallerName = realCustomer;
+          }
+          if ((!resolvedReceiverName || resolvedReceiverName === 'Specialist') && realPro) {
+            resolvedReceiverName = realPro;
+          }
+        } else {
+          if ((!resolvedCallerName || resolvedCallerName === 'Specialist') && realPro) {
+            resolvedCallerName = realPro;
+          }
+          if ((!resolvedReceiverName || resolvedReceiverName === 'Customer' || resolvedReceiverName === 'Rahul Sharma') && realCustomer) {
+            resolvedReceiverName = realCustomer;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Booking lookup in VoIP start warning:', e.message);
+    }
+
     const callPayload = {
       callId,
       bookingId: cleanBookingId,
       callerId: String(callerId || callerPhone || 'cust-user'),
       callerRole: callerRole === 'worker' ? 'professional' : callerRole,
-      callerName: callerName || (callerRole === 'customer' ? 'Customer' : 'Specialist'),
+      callerName: resolvedCallerName || (callerRole === 'customer' ? 'Customer' : 'Specialist'),
       receiverId: String(receiverId || receiverPhone || 'worker-user'),
       receiverRole: receiverRole === 'worker' ? 'professional' : (receiverRole || (callerRole === 'customer' ? 'professional' : 'customer')),
-      receiverName: receiverName || (callerRole === 'customer' ? 'Specialist' : 'Customer'),
+      receiverName: resolvedReceiverName || (callerRole === 'customer' ? 'Specialist' : 'Customer'),
       status: 'ringing',
       callType: 'webrtc_audio',
       startedAt: new Date(),
@@ -116,7 +157,7 @@ router.post('/start', async (req, res) => {
         callerPhone,
         receiverPhone,
         bookingRef: cleanBookingId,
-        service: service || 'Doorstep Service'
+        service: resolvedService || 'Doorstep Service'
       }
     };
 
@@ -131,6 +172,46 @@ router.post('/start', async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+async function enrichCallSessionWithBooking(callData) {
+  if (!callData) return callData;
+  const targetBookingId = callData.bookingId || '';
+  const cleanId = String(targetBookingId).replace(/^#/, '').trim();
+  const bare = cleanId.replace(/^(UC|JOB|LEAD)[-_]?/i, '');
+
+  try {
+    const bDoc = await Booking.findOne({
+      $or: [
+        { id: cleanId },
+        { id: `UC-${bare}` },
+        { id: `JOB-${bare}` },
+        { id: bare },
+        { bookingReference: cleanId },
+        { bookingReference: `UC-${bare}` }
+      ]
+    });
+    if (bDoc) {
+      const realCustomer = bDoc.userName || bDoc.customerName || bDoc.customer;
+      const realPro = bDoc.assignedPartner || bDoc.assignedProfessional?.name || (bDoc.technician && bDoc.technician.name);
+      if (realCustomer && (callData.callerName === 'Rahul Sharma' || callData.callerName === 'Customer' || !callData.callerName)) {
+        callData.callerName = realCustomer;
+      }
+      if (realCustomer && (callData.receiverName === 'Rahul Sharma' || callData.receiverName === 'Customer' || !callData.receiverName)) {
+        callData.receiverName = realCustomer;
+      }
+      if (realPro && (callData.receiverName === 'Specialist' || !callData.receiverName)) {
+        callData.receiverName = realPro;
+      }
+      if (realPro && (callData.callerName === 'Specialist' || !callData.callerName)) {
+        callData.callerName = realPro;
+      }
+      if (bDoc.serviceName || bDoc.service) {
+        callData.service = bDoc.serviceName || bDoc.service;
+      }
+    }
+  } catch (_) {}
+  return callData;
+}
 
 // GET Real-time VoIP Call: Check for active/incoming call (general or query param)
 router.get('/active', async (req, res) => {
@@ -152,6 +233,7 @@ router.get('/active', async (req, res) => {
     if (cached && (cached.status === 'ringing' || cached.status === 'connected')) {
       const callStarted = new Date(cached.startedAt || Date.now()).getTime();
       if (Date.now() - callStarted < 95 * 1000) {
+        await enrichCallSessionWithBooking(cached);
         return res.json({ success: true, activeCall: cached });
       }
     }
@@ -175,10 +257,12 @@ router.get('/active', async (req, res) => {
     }).sort({ startedAt: -1 });
 
     if (session) {
-      registerActiveCall(session);
+      const enriched = await enrichCallSessionWithBooking(session.toObject ? session.toObject() : session);
+      registerActiveCall(enriched);
+      return res.json({ success: true, activeCall: enriched });
     }
 
-    res.json({ success: true, activeCall: session || null });
+    res.json({ success: true, activeCall: null });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -202,6 +286,7 @@ router.get('/active/:bookingId', async (req, res) => {
     if (cached && (cached.status === 'ringing' || cached.status === 'connected')) {
       const callStarted = new Date(cached.startedAt || Date.now()).getTime();
       if (Date.now() - callStarted < 95 * 1000) {
+        await enrichCallSessionWithBooking(cached);
         return res.json({ success: true, activeCall: cached });
       }
     }
@@ -219,10 +304,12 @@ router.get('/active/:bookingId', async (req, res) => {
     }).sort({ startedAt: -1 });
 
     if (session) {
-      registerActiveCall(session);
+      const enriched = await enrichCallSessionWithBooking(session.toObject ? session.toObject() : session);
+      registerActiveCall(enriched);
+      return res.json({ success: true, activeCall: enriched });
     }
 
-    res.json({ success: true, activeCall: session || null });
+    res.json({ success: true, activeCall: null });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

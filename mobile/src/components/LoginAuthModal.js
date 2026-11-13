@@ -24,11 +24,16 @@ export default function LoginAuthModal({
   const [selectedRole, setSelectedRole] = useState(initialRole); // 'customer' | 'partner'
   const [step, setStep] = useState('form'); // 'form' | 'otp'
   
-  // Fields
-  const [email, setEmail] = useState('');
+  // Sign In / Common Fields
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
+
+  // Sign Up Fields
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
 
   // OTP State
   const [otp, setOtp] = useState('');
@@ -54,17 +59,13 @@ export default function LoginAuthModal({
     return re.test(str);
   };
 
-  // 1. SIGN IN WITH EMAIL & PASSWORD
+  // 1. SIGN IN (Email, Phone, or Username + Password)
   const handleSignIn = async () => {
-    const cleanEmail = email.trim();
+    const cleanId = identifier.trim();
     const cleanPassword = password.trim();
 
-    if (!cleanEmail) {
-      Alert.alert('Email Required', 'Please enter your email address to sign in.');
-      return;
-    }
-    if (!validateEmail(cleanEmail)) {
-      Alert.alert('Invalid Email', 'Please enter a valid email address (e.g. name@example.com).');
+    if (!cleanId) {
+      Alert.alert('Required Field', 'Please enter your email address or phone number.');
       return;
     }
     if (!cleanPassword) {
@@ -77,7 +78,7 @@ export default function LoginAuthModal({
 
     try {
       const result = await mobileApi.loginWithPassword({
-        email: cleanEmail,
+        identifier: cleanId,
         password: cleanPassword,
         role: selectedRole
       });
@@ -85,12 +86,12 @@ export default function LoginAuthModal({
       if (result.success && result.user) {
         Alert.alert(
           'Sign In Successful',
-          `Welcome back, ${result.user.name}! Opening ${selectedRole === 'partner' ? 'Working Partner Dashboard' : 'Customer Dashboard'}.`
+          `Welcome back, ${result.user.name || 'User'}!`
         );
         onSuccess(result.user);
       }
     } catch (err) {
-      Alert.alert('Sign In Failed', err.message || 'Incorrect email or password. Please verify your credentials.');
+      Alert.alert('Sign In Failed', err.message || 'Incorrect credentials. Please verify your email/phone and password.');
     } finally {
       setLoading(false);
       setStatusMessage('');
@@ -101,9 +102,15 @@ export default function LoginAuthModal({
   const handleSendOtp = async () => {
     const cleanEmail = email.trim();
     const cleanPassword = password.trim();
+    const cleanName = name.trim();
+    const cleanPhone = phone.trim();
 
+    if (!cleanName) {
+      Alert.alert('Name Required', 'Please enter your full name.');
+      return;
+    }
     if (!cleanEmail) {
-      Alert.alert('Email Required', 'Please enter your email address to create an account.');
+      Alert.alert('Email Required', 'Please enter your email address.');
       return;
     }
     if (!validateEmail(cleanEmail)) {
@@ -111,37 +118,38 @@ export default function LoginAuthModal({
       return;
     }
     if (!cleanPassword || cleanPassword.length < 6) {
-      Alert.alert('Password Required', 'Please create a password of at least 6 characters for future sign-ins.');
+      Alert.alert('Password Required', 'Please create a password of at least 6 characters.');
       return;
     }
 
     setLoading(true);
-    setStatusMessage('Dispatching real-time OTP to your email inbox...');
+    setStatusMessage('Sending 6-digit OTP to your email...');
 
     try {
       const response = await mobileApi.sendEmailOtp({
         email: cleanEmail,
-        name: name.trim() || (selectedRole === 'partner' ? 'Vikram Salvi' : 'Rahul Sharma'),
+        name: cleanName,
+        phone: cleanPhone,
         role: selectedRole
       });
 
       setExpectedOtp(response.otp);
       setStep('otp');
       setCooldown(30);
-      setStatusMessage(`✅ OTP dispatched! Please check your email inbox: ${cleanEmail}`);
+      setStatusMessage(`✅ OTP sent! Please check your email inbox: ${cleanEmail}`);
 
       Alert.alert(
         'Verification Code Sent',
-        `A 6-digit verification code has been dispatched to ${cleanEmail}.\n\n(Dev Test Hint: ${response.otp})`
+        `A 6-digit verification code has been dispatched to ${cleanEmail}.\n\n(Dev Hint: ${response.otp})`
       );
     } catch (err) {
-      Alert.alert('Dispatch Error', err.message || 'Failed to dispatch email OTP. Please check your connection.');
+      Alert.alert('Dispatch Error', err.message || 'Failed to dispatch verification email. Please check your connection.');
     } finally {
       setLoading(false);
     }
   };
 
-  // 3. VERIFY OTP & FINALIZE ACCOUNT CREATION
+  // 3. VERIFY OTP & COMPLETE REGISTRATION
   const handleVerifyOtp = async () => {
     if (!otp.trim()) {
       Alert.alert('OTP Required', 'Please enter the 6-digit verification code sent to your email.');
@@ -151,18 +159,19 @@ export default function LoginAuthModal({
     setLoading(true);
     try {
       const result = await mobileApi.verifyEmailOtp({
-        email,
+        email: email.trim(),
         enteredOtp: otp.trim(),
         expectedOtp,
         role: selectedRole,
-        name: name.trim() || (selectedRole === 'partner' ? 'Vikram Salvi' : 'Rahul Sharma'),
+        name: name.trim() || 'User',
+        phone: phone.trim(),
         password: password.trim()
       });
 
       if (result.success && result.user) {
         Alert.alert(
           'Account Created Successfully',
-          `Your ${selectedRole === 'partner' ? 'Working Partner' : 'Customer'} account has been verified! You can now sign in anytime using your email and password.`
+          `Welcome to Forge India Connect, ${result.user.name || 'User'}!`
         );
         onSuccess(result.user);
       }
@@ -176,95 +185,296 @@ export default function LoginAuthModal({
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={false}>
+    <Modal visible={visible} animationType="fade" transparent={false}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={styles.keyboardAvoid}
       >
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Brand Header */}
-          <View style={styles.brandHeader}>
-            <View style={styles.logoPill}>
-              <Text style={styles.logoPillText}>FIC</Text>
-            </View>
-            <Text style={styles.brandTitle}>Forge India Connect</Text>
-            <Text style={styles.brandSubtitle}>
-              India's Verified Doorstep Services Platform
-            </Text>
-          </View>
-
-          {/* Role Switcher: Customer vs Working Partner */}
-          <View style={styles.roleTabsContainer}>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[
-                styles.roleTab,
-                selectedRole === 'customer' && styles.roleTabActiveCustomer
-              ]}
-              onPress={() => {
-                setSelectedRole('customer');
-                setStep('form');
-                setOtp('');
-              }}
-            >
-              <Text style={[
-                styles.roleTabText,
-                selectedRole === 'customer' && styles.roleTabTextActive
-              ]}>
-                👤 Customer
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[
-                styles.roleTab,
-                selectedRole === 'partner' && styles.roleTabActivePartner
-              ]}
-              onPress={() => {
-                setSelectedRole('partner');
-                setStep('form');
-                setOtp('');
-              }}
-            >
-              <Text style={[
-                styles.roleTabText,
-                selectedRole === 'partner' && styles.roleTabTextActive
-              ]}>
-                🛠️ Working Partner
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Main Card */}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Main Card Container */}
           <View style={styles.card}>
-            {/* Header info inside card */}
-            <View style={styles.roleHeaderBox}>
-              <Text style={styles.roleHeadline}>
-                {authMode === 'signin'
-                  ? `Sign In as ${selectedRole === 'partner' ? 'Working Partner' : 'Customer'}`
-                  : `Create ${selectedRole === 'partner' ? 'Working Partner' : 'Customer'} Account`}
-              </Text>
-              <Text style={styles.roleDescription}>
-                {authMode === 'signin'
-                  ? 'Enter your registered email and password to access your dashboard.'
-                  : step === 'otp'
-                    ? `Enter the 6-digit verification code sent to ${email || 'your email'}.`
-                    : 'Register your email and set a password. A 6-digit real-time OTP will be sent to your inbox.'}
-              </Text>
+            {/* Top Close Button */}
+            {onClose ? (
+              <TouchableOpacity
+                style={styles.closeBtn}
+                onPress={onClose}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.closeBtnText}>✕</Text>
+              </TouchableOpacity>
+            ) : null}
+
+            {/* Top Center Logo Badge */}
+            <View style={styles.logoBadgeContainer}>
+              <View style={styles.ficLogoBadge}>
+                <Text style={styles.ficLogoText}>FIC</Text>
+              </View>
             </View>
 
+            {/* Title & Subtitle */}
+            <Text style={styles.cardTitle}>Welcome to Forge India Connect</Text>
+            <Text style={styles.cardSubtitle}>
+              {step === 'otp'
+                ? `Enter the 6-digit verification code sent to ${email || 'your email'}`
+                : authMode === 'signin'
+                  ? 'Enter your credentials to open your target dashboard'
+                  : 'Enter your details to create your verified account'}
+            </Text>
+
+            {/* Segmented Pill Tabs (Sign In vs Create Account) */}
+            {step !== 'otp' && (
+              <View style={styles.pillTabBar}>
+                <TouchableOpacity
+                  style={[
+                    styles.pillTabItem,
+                    authMode === 'signin' && styles.pillTabItemActive
+                  ]}
+                  onPress={() => {
+                    setAuthMode('signin');
+                    setStatusMessage('');
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    style={[
+                      styles.pillTabText,
+                      authMode === 'signin' && styles.pillTabTextActive
+                    ]}
+                  >
+                    Sign In
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.pillTabItem,
+                    authMode === 'create' && styles.pillTabItemActive
+                  ]}
+                  onPress={() => {
+                    setAuthMode('create');
+                    setStatusMessage('');
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text
+                    style={[
+                      styles.pillTabText,
+                      authMode === 'create' && styles.pillTabTextActive
+                    ]}
+                  >
+                    Create Account
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* Status Feedback Message */}
             {statusMessage && step !== 'otp' ? (
               <View style={styles.statusBox}>
                 <Text style={styles.statusText}>{statusMessage}</Text>
               </View>
             ) : null}
 
-            {/* --- FORM DISPLAY --- */}
-            {step === 'otp' ? (
-              /* OTP VERIFICATION STEP (During Create Account) */
-              <View style={styles.formSection}>
-                <Text style={styles.inputLabel}>Enter 6-Digit Verification OTP *</Text>
+            {/* ==================== 1. SIGN IN VIEW ==================== */}
+            {step !== 'otp' && authMode === 'signin' && (
+              <View style={styles.formContainer}>
+                {/* Email or Phone */}
+                <Text style={styles.fieldLabel}>Email Address or Phone Number</Text>
+                <View style={styles.inputWithIconBox}>
+                  <Text style={styles.inputLeadingIcon}>✉</Text>
+                  <TextInput
+                    style={styles.innerTextInput}
+                    placeholder="Enter email, phone, or username"
+                    placeholderTextColor="#94A3B8"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    value={identifier}
+                    onChangeText={setIdentifier}
+                  />
+                </View>
+
+                {/* Password */}
+                <Text style={styles.fieldLabel}>Password</Text>
+                <View style={styles.inputWithIconBox}>
+                  <Text style={styles.inputLeadingIcon}>🔒</Text>
+                  <TextInput
+                    style={styles.innerTextInput}
+                    placeholder="Enter your password"
+                    placeholderTextColor="#94A3B8"
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                  <TouchableOpacity
+                    style={styles.inputTrailingBtn}
+                    onPress={() => setShowPassword(!showPassword)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.eyeIconText}>{showPassword ? '👁️' : '👁'}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Remember Me Checkbox */}
+                <TouchableOpacity
+                  style={styles.rememberMeRow}
+                  onPress={() => setRememberMe(!rememberMe)}
+                  activeOpacity={0.7}
+                >
+                  <View
+                    style={[
+                      styles.checkboxBox,
+                      rememberMe && styles.checkboxBoxChecked
+                    ]}
+                  >
+                    {rememberMe ? <Text style={styles.checkboxCheck}>✓</Text> : null}
+                  </View>
+                  <Text style={styles.rememberMeLabel}>Remember me</Text>
+                </TouchableOpacity>
+
+                {/* Sign In Button */}
+                <TouchableOpacity
+                  style={[styles.mainSubmitBtn, loading && styles.btnDisabled]}
+                  disabled={loading}
+                  onPress={handleSignIn}
+                  activeOpacity={0.88}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.mainSubmitBtnText}>Sign In →</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* ==================== 2. CREATE ACCOUNT VIEW ==================== */}
+            {step !== 'otp' && authMode === 'create' && (
+              <View style={styles.formContainer}>
+                {/* Full Name */}
+                <Text style={styles.fieldLabel}>Full Name</Text>
+                <View style={styles.inputWithIconBox}>
+                  <Text style={styles.inputLeadingIcon}>👤</Text>
+                  <TextInput
+                    style={styles.innerTextInput}
+                    placeholder="Enter your full name"
+                    placeholderTextColor="#94A3B8"
+                    value={name}
+                    onChangeText={setName}
+                  />
+                </View>
+
+                {/* Email Address */}
+                <Text style={styles.fieldLabel}>Email Address</Text>
+                <View style={styles.inputWithIconBox}>
+                  <Text style={styles.inputLeadingIcon}>✉</Text>
+                  <TextInput
+                    style={styles.innerTextInput}
+                    placeholder="Enter email address"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    value={email}
+                    onChangeText={setEmail}
+                  />
+                </View>
+
+                {/* Mobile Number */}
+                <Text style={styles.fieldLabel}>Mobile Number</Text>
+                <View style={styles.inputWithIconBox}>
+                  <Text style={styles.inputLeadingIcon}>📞</Text>
+                  <TextInput
+                    style={styles.innerTextInput}
+                    placeholder="Enter 10-digit mobile number"
+                    placeholderTextColor="#94A3B8"
+                    keyboardType="phone-pad"
+                    value={phone}
+                    onChangeText={setPhone}
+                  />
+                </View>
+
+                {/* Password */}
+                <Text style={styles.fieldLabel}>Password</Text>
+                <View style={styles.inputWithIconBox}>
+                  <Text style={styles.inputLeadingIcon}>🔒</Text>
+                  <TextInput
+                    style={styles.innerTextInput}
+                    placeholder="Create password (min 6 characters)"
+                    placeholderTextColor="#94A3B8"
+                    secureTextEntry={!showPassword}
+                    value={password}
+                    onChangeText={setPassword}
+                  />
+                  <TouchableOpacity
+                    style={styles.inputTrailingBtn}
+                    onPress={() => setShowPassword(!showPassword)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.eyeIconText}>{showPassword ? '👁️' : '👁'}</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Account Type Option */}
+                <View style={styles.roleSubtleRow}>
+                  <Text style={styles.roleSubtleLabel}>Account Type:</Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.roleChip,
+                      selectedRole === 'customer' && styles.roleChipActive
+                    ]}
+                    onPress={() => setSelectedRole('customer')}
+                  >
+                    <Text
+                      style={[
+                        styles.roleChipText,
+                        selectedRole === 'customer' && styles.roleChipTextActive
+                      ]}
+                    >
+                      Customer
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.roleChip,
+                      selectedRole === 'partner' && styles.roleChipActive
+                    ]}
+                    onPress={() => setSelectedRole('partner')}
+                  >
+                    <Text
+                      style={[
+                        styles.roleChipText,
+                        selectedRole === 'partner' && styles.roleChipTextActive
+                      ]}
+                    >
+                      Working Partner
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Create Account Button */}
+                <TouchableOpacity
+                  style={[styles.mainSubmitBtn, loading && styles.btnDisabled]}
+                  disabled={loading}
+                  onPress={handleSendOtp}
+                  activeOpacity={0.88}
+                >
+                  {loading ? (
+                    <ActivityIndicator color="#FFFFFF" size="small" />
+                  ) : (
+                    <Text style={styles.mainSubmitBtnText}>Create Account →</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {/* ==================== 3. OTP VERIFICATION VIEW ==================== */}
+            {step === 'otp' && (
+              <View style={styles.formContainer}>
+                <Text style={styles.fieldLabel}>Enter 6-Digit Email OTP</Text>
                 <TextInput
                   style={styles.otpBigInput}
                   placeholder="• • • • • •"
@@ -277,15 +487,16 @@ export default function LoginAuthModal({
                 />
 
                 <TouchableOpacity
-                  style={[styles.primaryBtn, loading && styles.btnDisabled]}
+                  style={[styles.mainSubmitBtn, loading && styles.btnDisabled]}
                   disabled={loading}
                   onPress={handleVerifyOtp}
+                  activeOpacity={0.88}
                 >
                   {loading ? (
-                    <ActivityIndicator color="#FFFFFF" />
+                    <ActivityIndicator color="#FFFFFF" size="small" />
                   ) : (
-                    <Text style={styles.primaryBtnText}>
-                      ✓ Verify OTP & Create Account
+                    <Text style={styles.mainSubmitBtnText}>
+                      ✓ Verify & Complete Registration →
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -295,7 +506,7 @@ export default function LoginAuthModal({
                     <Text style={styles.cooldownText}>Resend code in {cooldown}s</Text>
                   ) : (
                     <TouchableOpacity onPress={handleSendOtp} disabled={loading}>
-                      <Text style={styles.resendLinkText}>Didn't receive? Resend Email OTP</Text>
+                      <Text style={styles.resendLinkText}>Resend Email OTP</Text>
                     </TouchableOpacity>
                   )}
 
@@ -304,169 +515,7 @@ export default function LoginAuthModal({
                   </TouchableOpacity>
                 </View>
               </View>
-            ) : authMode === 'signin' ? (
-              /* SIGN IN FORM (Only Email & Password) */
-              <View style={styles.formSection}>
-                {/* Demo Quick-Fill Pill Card */}
-                <View style={styles.demoAccountBox}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.demoAccountTitle}>
-                      {selectedRole === 'partner' ? '👷 Demo Partner Login' : '👤 Demo Customer Login'}
-                    </Text>
-                    <Text style={styles.demoAccountText}>
-                      {selectedRole === 'partner' ? 'partner@forgeindia.in' : 'customer@forgeindia.in'} • password123
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.demoFillBtn}
-                    onPress={() => {
-                      if (selectedRole === 'partner') {
-                        setEmail('partner@forgeindia.in');
-                        setPassword('password123');
-                      } else {
-                        setEmail('customer@forgeindia.in');
-                        setPassword('password123');
-                      }
-                    }}
-                  >
-                    <Text style={styles.demoFillBtnText}>Auto Fill</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.inputLabel}>Email Address *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. name@example.com"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={email}
-                  onChangeText={setEmail}
-                />
-
-                <View style={styles.labelRow}>
-                  <Text style={styles.inputLabel}>Password *</Text>
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Text style={styles.showHideText}>{showPassword ? 'Hide' : 'Show'}</Text>
-                  </TouchableOpacity>
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Enter your password"
-                  placeholderTextColor="#94A3B8"
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                />
-
-                <TouchableOpacity
-                  style={[styles.primaryBtn, loading && styles.btnDisabled]}
-                  disabled={loading}
-                  onPress={handleSignIn}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>
-                      Sign In →
-                    </Text>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.switchModeFooter}>
-                  <Text style={styles.switchModePrompt}>Don't have an account?</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setAuthMode('create');
-                      setStep('form');
-                    }}
-                  >
-                    <Text style={styles.switchModeLink}> Create Account</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              /* CREATE ACCOUNT FORM (Email, Name, Password - NO mobile number) */
-              <View style={styles.formSection}>
-                <Text style={styles.inputLabel}>Email Address *</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="e.g. name@example.com"
-                  placeholderTextColor="#94A3B8"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  value={email}
-                  onChangeText={setEmail}
-                />
-
-                <Text style={styles.inputLabel}>Full Name (Optional)</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder={selectedRole === 'partner' ? 'e.g. Vikram Salvi' : 'e.g. Rahul Sharma'}
-                  placeholderTextColor="#94A3B8"
-                  value={name}
-                  onChangeText={setName}
-                />
-
-                <View style={styles.labelRow}>
-                  <Text style={styles.inputLabel}>Set Password *</Text>
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-                    <Text style={styles.showHideText}>{showPassword ? 'Hide' : 'Show'}</Text>
-                  </TouchableOpacity>
-                </View>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Create password for future sign-ins"
-                  placeholderTextColor="#94A3B8"
-                  secureTextEntry={!showPassword}
-                  value={password}
-                  onChangeText={setPassword}
-                />
-                <Text style={styles.inputHelper}>
-                  Use this password to sign in to your {selectedRole === 'partner' ? 'Partner' : 'Customer'} account in the future.
-                </Text>
-
-                <TouchableOpacity
-                  style={[styles.primaryBtn, loading && styles.btnDisabled]}
-                  disabled={loading}
-                  onPress={handleSendOtp}
-                >
-                  {loading ? (
-                    <ActivityIndicator color="#FFFFFF" />
-                  ) : (
-                    <Text style={styles.primaryBtnText}>
-                      📧 Send Real-Time Email OTP →
-                    </Text>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.switchModeFooter}>
-                  <Text style={styles.switchModePrompt}>Already have an account?</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setAuthMode('signin');
-                      setStep('form');
-                    }}
-                  >
-                    <Text style={styles.switchModeLink}> Sign In</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
             )}
-
-            {onClose && (
-              <TouchableOpacity style={styles.guestBtn} onPress={onClose}>
-                <Text style={styles.guestBtnText}>Browse App as Guest →</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={styles.footerNote}>
-            <Text style={styles.footerNoteText}>
-              🛡️ 100% Verified Quality • Aadhaar KYC Verified Specialists • Instant Bank IMPS
-            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -477,156 +526,232 @@ export default function LoginAuthModal({
 const styles = StyleSheet.create({
   keyboardAvoid: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#0F172A',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-  },
-  brandHeader: {
     alignItems: 'center',
-    marginBottom: 20,
-    marginTop: Platform.OS === 'android' ? 24 : 10,
+    padding: 16,
+    backgroundColor: '#0F172A',
   },
-  logoPill: {
-    backgroundColor: '#F04400',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
-    marginBottom: 8,
+  card: {
+    width: '100%',
+    maxWidth: 440,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 28,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 8,
+    position: 'relative',
   },
-  logoPillText: {
+  closeBtn: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  closeBtnText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  logoBadgeContainer: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  ficLogoBadge: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ficLogoText: {
     color: '#FFFFFF',
+    fontSize: 18,
     fontWeight: '900',
-    fontSize: 16,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
   },
-  brandTitle: {
+  cardTitle: {
     color: '#0F172A',
-    fontSize: 24,
-    fontWeight: '900',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
   },
-  brandSubtitle: {
+  cardSubtitle: {
     color: '#64748B',
     fontSize: 13,
-    marginTop: 4,
+    textAlign: 'center',
+    marginTop: 6,
+    marginBottom: 20,
+    lineHeight: 18,
+    paddingHorizontal: 8,
   },
-  roleTabsContainer: {
+  pillTabBar: {
     flexDirection: 'row',
     backgroundColor: '#F1F5F9',
     borderRadius: 12,
     padding: 4,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
+    marginBottom: 20,
   },
-  roleTab: {
+  pillTabItem: {
     flex: 1,
     paddingVertical: 10,
     alignItems: 'center',
+    justifyContent: 'center',
     borderRadius: 8,
   },
-  roleTabActiveCustomer: {
-    backgroundColor: '#2563EB',
+  pillTabItemActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  roleTabActivePartner: {
-    backgroundColor: '#F04400',
-  },
-  roleTabText: {
+  pillTabText: {
     color: '#64748B',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  pillTabTextActive: {
+    color: '#0F172A',
+    fontWeight: '800',
+  },
+  formContainer: {
+    width: '100%',
+  },
+  fieldLabel: {
+    color: '#1E293B',
     fontSize: 13,
     fontWeight: '700',
-  },
-  roleTabTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  roleHeaderBox: {
-    marginBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-    paddingBottom: 10,
-  },
-  roleHeadline: {
-    color: '#0F172A',
-    fontSize: 17,
-    fontWeight: '800',
-  },
-  roleDescription: {
-    color: '#64748B',
-    fontSize: 12,
-    marginTop: 4,
-    lineHeight: 17,
-  },
-  statusBox: {
-    backgroundColor: 'rgba(5, 150, 105, 0.15)',
-    borderWidth: 1,
-    borderColor: '#059669',
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 14,
-  },
-  statusText: {
-    color: '#10B981',
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  formSection: {
-    marginTop: 2,
-  },
-  labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  inputLabel: {
-    color: '#334155',
-    fontSize: 12,
-    fontWeight: '700',
     marginBottom: 6,
-    marginTop: 10,
+    marginTop: 8,
   },
-  showHideText: {
-    color: '#0284C7',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  input: {
-    backgroundColor: '#F8FAFC',
+  inputWithIconBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
     borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    color: '#0F172A',
-    fontSize: 15,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 12,
+    height: 48,
+    marginBottom: 10,
   },
-  inputHelper: {
+  inputLeadingIcon: {
+    fontSize: 15,
+    marginRight: 8,
     color: '#64748B',
+  },
+  innerTextInput: {
+    flex: 1,
+    fontSize: 14,
+    color: '#0F172A',
+    paddingVertical: 0,
+  },
+  inputTrailingBtn: {
+    padding: 6,
+  },
+  eyeIconText: {
+    fontSize: 16,
+    color: '#64748B',
+  },
+  rememberMeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+    marginBottom: 18,
+  },
+  checkboxBox: {
+    width: 18,
+    height: 18,
+    borderRadius: 4,
+    borderWidth: 1.5,
+    borderColor: '#94A3B8',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+  },
+  checkboxBoxChecked: {
+    borderColor: '#0F172A',
+    backgroundColor: '#0F172A',
+  },
+  checkboxCheck: {
+    color: '#FFFFFF',
     fontSize: 11,
-    marginTop: 4,
+    fontWeight: '900',
+  },
+  rememberMeLabel: {
+    color: '#64748B',
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  mainSubmitBtn: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    height: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 6,
+  },
+  btnDisabled: {
+    opacity: 0.65,
+  },
+  mainSubmitBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  roleSubtleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 14,
+    gap: 8,
+  },
+  roleSubtleLabel: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  roleChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: '#F1F5F9',
+  },
+  roleChipActive: {
+    backgroundColor: '#0F172A',
+  },
+  roleChipText: {
+    color: '#64748B',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  roleChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   otpBigInput: {
     backgroundColor: '#F8FAFC',
     borderWidth: 2,
-    borderColor: '#F04400',
-    borderRadius: 10,
+    borderColor: '#1E293B',
+    borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     color: '#0F172A',
@@ -634,61 +759,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 10,
     textAlign: 'center',
-    marginVertical: 12,
-  },
-  otpNoticeBox: {
-    backgroundColor: '#EFF6FF',
-    borderRadius: 10,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#BFDBFE',
-    marginBottom: 12,
-  },
-  otpNoticeTitle: {
-    color: '#0284C7',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  otpNoticeEmail: {
-    color: '#0F172A',
-    fontSize: 13,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  otpNoticeSub: {
-    color: '#64748B',
-    fontSize: 11,
-    marginTop: 4,
-  },
-  primaryBtn: {
-    backgroundColor: '#F04400',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: 18,
-  },
-  btnDisabled: {
-    opacity: 0.6,
-  },
-  primaryBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  switchModeFooter: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 18,
-  },
-  switchModePrompt: {
-    color: '#64748B',
-    fontSize: 13,
-  },
-  switchModeLink: {
-    color: '#F04400',
-    fontSize: 13,
-    fontWeight: '800',
+    marginVertical: 14,
   },
   resendRow: {
     flexDirection: 'row',
@@ -702,7 +773,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   resendLinkText: {
-    color: '#0284C7',
+    color: '#2563EB',
     fontSize: 12,
     fontWeight: '700',
   },
@@ -711,56 +782,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textDecorationLine: 'underline',
   },
-  guestBtn: {
-    marginTop: 16,
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  guestBtnText: {
-    color: '#64748B',
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  footerNote: {
-    marginTop: 20,
-    alignItems: 'center',
-  },
-  footerNoteText: {
-    color: '#94A3B8',
-    fontSize: 11,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  demoAccountBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F8FAFC',
+  statusBox: {
+    backgroundColor: 'rgba(5, 150, 105, 0.1)',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#059669',
     borderRadius: 10,
     padding: 10,
     marginBottom: 14,
-    gap: 8,
   },
-  demoAccountTitle: {
+  statusText: {
+    color: '#059669',
     fontSize: 12,
     fontWeight: '700',
-    color: '#0F172A',
-  },
-  demoAccountText: {
-    fontSize: 11,
-    color: '#64748B',
-    marginTop: 2,
-  },
-  demoFillBtn: {
-    backgroundColor: '#0F172A',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  demoFillBtnText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '700',
+    textAlign: 'center',
   },
 });

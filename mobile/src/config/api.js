@@ -72,6 +72,9 @@ export function getBaseApiUrl() {
     return process.env.EXPO_PUBLIC_API_URL;
   }
   if (Platform.OS === 'web') {
+    if (typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return `http://${window.location.hostname}:${LOCAL_PORT}/api`;
+    }
     return `http://localhost:${LOCAL_PORT}/api`;
   }
   return LAN_API_URL;
@@ -81,17 +84,19 @@ export function getBaseApiUrl() {
  * Returns prioritized list of candidate URLs for seamless failover.
  */
 export function getCandidateApiUrls() {
-  if (Platform.OS === 'web') {
-    return [`http://localhost:${LOCAL_PORT}/api`];
-  }
   const directLocalhost = `http://localhost:${LOCAL_PORT}/api`;
   const direct127 = `http://127.0.0.1:${LOCAL_PORT}/api`;
   const lanUrl = LAN_API_URL;
+  const webHostUrl = (typeof window !== 'undefined' && window.location && window.location.hostname)
+    ? `http://${window.location.hostname}:${LOCAL_PORT}/api`
+    : null;
 
   const candidates = [
+    webHostUrl,
     directLocalhost,
     direct127,
-    lanUrl
+    lanUrl,
+    ANDROID_EMULATOR_API_URL
   ];
   return Array.from(new Set(candidates.filter(Boolean)));
 }

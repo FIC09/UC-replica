@@ -1196,7 +1196,10 @@ export async function getLivePartnerBookings(partnerId, businessName) {
   let all = [];
   if (mongoose.connection?.readyState === 1) {
     try {
-      all = await Booking.find().sort({ createdAt: -1 }).lean();
+      all = await Booking.find()
+        .select('-structuredChecklists -beforeWorkPhoto -afterWorkPhoto -timeline -chatMessages -incidentReports -extraWorkRequests -rescheduleHistory')
+        .sort({ createdAt: -1 })
+        .lean();
     } catch (err) {
       console.warn('Booking.find in getLivePartnerBookings:', err.message);
     }

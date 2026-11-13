@@ -163,12 +163,12 @@ export const adminClient = {
   // Overview Metrics
   getOverview: (params = {}) => {
     const query = '?' + new URLSearchParams(params).toString();
-    return fetchWithFallback(`/overview${query}`, {}, { success: true, data: { metrics: {}, lastUpdated: new Date().toLocaleTimeString() } });
+    return fetchWithFallback(`/overview${query}`);
   },
 
   getOverviewMetrics: (params = {}) => {
     const query = '?' + new URLSearchParams(params).toString();
-    return fetchWithFallback(`/overview${query}`, {}, { success: true, data: { metrics: {}, lastUpdated: new Date().toLocaleTimeString() } });
+    return fetchWithFallback(`/overview${query}`);
   },
 
   // Real-Time Bookings Operations

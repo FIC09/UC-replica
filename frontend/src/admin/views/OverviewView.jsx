@@ -41,12 +41,15 @@ export function OverviewView({ onNavigate, onShowToast }) {
 
   const fetchOverview = React.useCallback(async (isInitial = false) => {
     if (isInitial) setLoading(true);
-    else setIsRefreshing(true);
+    else {
+      if (isRefreshing) return;
+      setIsRefreshing(true);
+    }
 
     try {
       const getOverviewFn = adminClient.getOverview || adminClient.getOverviewMetrics;
       const res = await getOverviewFn({ dateRange, city, category, partner });
-      if (res && res.data) {
+      if (res && res.data && res.data.metrics && Object.keys(res.data.metrics).length > 0) {
         setData(res.data);
         const timestamp = res.data.lastUpdated || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
         setLastSyncTime(timestamp);
@@ -58,7 +61,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
       if (isInitial) setLoading(false);
       setIsRefreshing(false);
     }
-  }, [dateRange, city, category, partner]);
+  }, [dateRange, city, category, partner, isRefreshing]);
 
   // Initial fetch and re-fetch when filters change
   useEffect(() => {

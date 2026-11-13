@@ -24,7 +24,7 @@ export function sanitizeCsvCell(value) {
 // Compute live real-time reporting data from authoritative MongoDB Atlas models
 async function computeRealReportsData() {
   const [allBookings, allUsers, workerApps, partnerApps] = await Promise.all([
-    Booking.find().sort({ createdAt: -1 }).lean(),
+    Booking.find().select('id totalAmount status createdAt city serviceCategory paymentStatus partnerAgency').sort({ createdAt: -1 }).lean(),
     User.find().lean(),
     WorkerApplication.find().lean(),
     PartnerApplication.find().lean()

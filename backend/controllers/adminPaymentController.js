@@ -16,7 +16,10 @@ export async function getTransactions(req, res) {
 
     let dbBookings = [];
     try {
-      dbBookings = await Booking.find().sort({ createdAt: -1 }).lean();
+      dbBookings = await Booking.find()
+        .select('id bookingReference userName customerName totalAmount paymentMethod paymentStatus status createdAt serviceName paymentDetails partnerAgency')
+        .sort({ createdAt: -1 })
+        .lean();
     } catch (e) {
       console.warn('Booking.find in getTransactions error:', e.message);
     }

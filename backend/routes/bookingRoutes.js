@@ -94,12 +94,36 @@ router.get('/slot-availability', async (req, res) => {
 // GET bookings - Strictly isolated per customer user ID, phone, or email (Bug 18)
 router.get('/', async (req, res) => {
   try {
-    const { phone, customerId, userEmail } = req.query;
+    const { phone, customerId, userEmail, assignedWorker, workerName, workerId, assignedTo } = req.query;
     const authHeader = req.headers.authorization || '';
     const isAdmin = authHeader.includes('admin') || req.query.role === 'admin' || req.query.admin === 'true';
 
     let query = {};
-    if (customerId) {
+    const targetWorker = (assignedWorker || workerName || assignedTo || '').trim();
+    const targetWorkerId = (workerId || '').trim();
+
+    if (targetWorker || targetWorkerId) {
+      // Query bookings allocated specifically to this worker by admin dispatch
+      const workerOrConditions = [];
+      if (targetWorker) {
+        const escaped = targetWorker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        workerOrConditions.push({ assignedPartner: { $regex: new RegExp(`^${escaped}$`, 'i') } });
+        workerOrConditions.push({ 'assignedProfessional.name': { $regex: new RegExp(`^${escaped}$`, 'i') } });
+        workerOrConditions.push({ 'offeredTo.proName': { $regex: new RegExp(`^${escaped}$`, 'i') } });
+      }
+      if (targetWorkerId) {
+        workerOrConditions.push({ 'assignedProfessional.id': targetWorkerId });
+        workerOrConditions.push({ 'offeredTo.proId': targetWorkerId });
+        workerOrConditions.push({ 'assignedProfessional.id': String(targetWorkerId) });
+        workerOrConditions.push({ 'offeredTo.proId': String(targetWorkerId) });
+      }
+      query.$or = workerOrConditions;
+      if (req.query.status) {
+        query.status = req.query.status;
+      } else {
+        query.status = { $in: ['Assigned', 'Offered', 'En Route', 'Arrived', 'In Progress'] };
+      }
+    } else if (customerId) {
       query.$or = [
         { customerId: customerId },
         { customerId: String(customerId) }
