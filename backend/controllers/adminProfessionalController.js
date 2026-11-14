@@ -82,7 +82,17 @@ export async function getProfessionals(req, res) {
           (p.id || '').toLowerCase().includes(q);
         if (!matches) return false;
       }
-      if (trade !== 'ALL' && !(p.trade || '').toLowerCase().includes(trade.toLowerCase())) return false;
+      if (trade !== 'ALL') {
+        const t = (p.trade || '').toLowerCase();
+        const filter = trade.toLowerCase();
+        const matchesTrade = t.includes(filter) ||
+          (filter.includes('ac') && (t.includes('ac') || t.includes('appliance') || t.includes('electric'))) ||
+          (filter.includes('salon') && (t.includes('salon') || t.includes('spa') || t.includes('grooming') || t.includes('women') || t.includes('men'))) ||
+          (filter.includes('clean') && (t.includes('clean') || t.includes('pest') || t.includes('housekeeping'))) ||
+          (filter.includes('plumb') && (t.includes('plumb') || t.includes('carpenter') || t.includes('repair') || t.includes('handyman'))) ||
+          (filter.includes('paint') && (t.includes('paint') || t.includes('decor') || t.includes('waterproof')));
+        if (!matchesTrade) return false;
+      }
       if (status !== 'ALL') {
         const matchStatus = (status === 'Active' || status === 'Approved') ? ['Active', 'Approved'] : [status];
         if (!matchStatus.includes(p.status)) return false;

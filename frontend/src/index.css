@@ -76,24 +76,54 @@ html, body {
   border-radius: 0 !important;
 }
 
-/* Custom Sleek Dark Scrollbars across the entire Admin Hub (eliminates default white browser scrollbars) */
+/* Global utility to hide native scrollbars cleanly while preserving scrollability */
+.hide-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Custom Sleek Scrollbars across the entire Admin Hub (eliminates bulky native Windows browser scrollbars and arrow gutters) */
 .admin-portal-fullscreen *::-webkit-scrollbar,
 .admin-dashboard-modal *::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 .admin-portal-fullscreen *::-webkit-scrollbar-track,
 .admin-dashboard-modal *::-webkit-scrollbar-track {
-  background: rgba(11, 17, 32, 0.6);
+  background: transparent;
 }
 .admin-portal-fullscreen *::-webkit-scrollbar-thumb,
 .admin-dashboard-modal *::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #CBD5E1;
   border-radius: 999px;
 }
 .admin-portal-fullscreen *::-webkit-scrollbar-thumb:hover,
 .admin-dashboard-modal *::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #94A3B8;
+}
+
+/* Admin Sidebar specific sleek scrollbar */
+.admin-sidebar-scroll {
+  scrollbar-width: thin !important;
+  scrollbar-color: #CBD5E1 transparent !important;
+}
+.admin-sidebar-scroll::-webkit-scrollbar {
+  width: 4px !important;
+}
+.admin-sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+.admin-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #CBD5E1 !important;
+  border-radius: 4px !important;
+}
+.admin-sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94A3B8 !important;
 }
 
 /* Admin Hub Pulse Animation for Live Ops */

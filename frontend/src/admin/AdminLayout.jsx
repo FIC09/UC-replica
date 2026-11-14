@@ -146,15 +146,18 @@ export function AdminLayout({
 
 
   return (
-    <div style={{
-      display: 'flex',
-      height: '100vh',
-      maxHeight: '100vh',
-      overflow: 'hidden',
-      backgroundColor: '#F8FAFC',
-      color: '#0F172A',
-      fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
-    }}>
+    <div 
+      className="admin-portal-fullscreen"
+      style={{
+        display: 'flex',
+        height: '100vh',
+        maxHeight: '100vh',
+        overflow: 'hidden',
+        backgroundColor: '#F8FAFC',
+        color: '#0F172A',
+        fontFamily: 'Inter, system-ui, -apple-system, sans-serif'
+      }}
+    >
       {/* ---------------------------------------------------- */}
       {/* COLLAPSIBLE LEFT SIDEBAR                              */}
       {/* ---------------------------------------------------- */}
@@ -256,14 +259,19 @@ export function AdminLayout({
           </div>
 
           {/* Navigation Item Scrollable List */}
-          <nav style={{
-            flex: 1,
-            overflowY: 'auto',
-            padding: sidebarCollapsed ? '8px 6px' : '8px 10px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 10
-          }}>
+          <nav 
+            className="admin-sidebar-scroll"
+            style={{
+              flex: 1,
+              overflowY: 'auto',
+              padding: sidebarCollapsed ? '8px 6px' : '8px 6px 8px 10px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#CBD5E1 transparent'
+            }}
+          >
             {NAV_SECTIONS.map((section, sIdx) => (
               <div key={section.title || sIdx}>
                 {!sidebarCollapsed && (

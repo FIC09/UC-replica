@@ -149,8 +149,9 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
       onShowToast && onShowToast('Professional full name is required');
       return;
     }
-    if (!newProfessional.phone.trim()) {
-      onShowToast && onShowToast('Phone number is required');
+    const cleanPhone = (newProfessional.phone || '').replace(/\D/g, '');
+    if (cleanPhone.length !== 10 || !/^[6-9]/.test(cleanPhone)) {
+      onShowToast && onShowToast('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
       return;
     }
     adminClient.createProfessional(newProfessional)
@@ -484,14 +485,19 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
 
       <div className="admin-page-body">
         {/* Status Pipeline Tabs */}
-      <div style={{
-        display: 'flex',
-        borderBottom: '1px solid #E2E8F0',
-        backgroundColor: '#FFFFFF',
-        borderRadius: '12px 12px 0 0',
-        padding: '0 16px',
-        overflowX: 'auto'
-      }}>
+      <div 
+        className="hide-scrollbar"
+        style={{
+          display: 'flex',
+          borderBottom: '1px solid #E2E8F0',
+          backgroundColor: '#FFFFFF',
+          borderRadius: '12px 12px 0 0',
+          padding: '0 16px',
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}
+      >
         {[
           { id: 'ALL', label: 'All Professionals' },
           { id: 'Pending Review', label: 'Newly Applied' },
@@ -602,6 +608,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
             <option value="Salon & Spa Services">Salon & Spa Services</option>
             <option value="Deep Home Cleaning">Deep Home Cleaning</option>
             <option value="Plumber & Carpentry">Plumber & Carpentry</option>
+            <option value="Painting & Decor">Painting & Decor</option>
           </select>
 
           {(cityFilter !== 'ALL' || tradeFilter !== 'ALL' || search) && (
@@ -2238,11 +2245,12 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 4 }}>Phone Number *</label>
                   <input
-                    type="text"
+                    type="tel"
                     required
-                    placeholder="8778293269"
+                    maxLength={10}
+                    placeholder="e.g. 9876543210 (10 digits)"
                     value={newProfessional.phone}
-                    onChange={e => setNewProfessional({ ...newProfessional, phone: e.target.value })}
+                    onChange={e => setNewProfessional({ ...newProfessional, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
                     style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
                   />
                 </div>

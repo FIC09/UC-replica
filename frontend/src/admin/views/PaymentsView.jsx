@@ -22,6 +22,7 @@ import {
   HardHat,
   ArrowUpRight,
   TrendingUp,
+  Tag,
   RefreshCw
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
@@ -343,38 +344,22 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
             Manage customer checkout transactions, franchise &amp; technician payouts, dispute refunds, and gateway reconciliation.
           </p>
         </div>
-
-        {/* Environmental Sandbox Separation Indicator */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '6px 12px',
-          backgroundColor: '#F8FAFC',
-          borderRadius: 8,
-          border: '1px solid #E2E8F0'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10B981' }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>Gateway Prod Verified</span>
-          </div>
-          <div style={{ width: 1, height: 16, backgroundColor: '#CBD5E1' }} />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <FlaskConical size={14} color="#7C3AED" />
-            <span style={{ fontSize: 12, fontWeight: 600, color: '#7C3AED' }}>Sandbox Isolated ({simTxns.length} sim test)</span>
-          </div>
-        </div>
       </div>
 
       {/* SUB-SCREEN NAVIGATION TABS */}
-      <div style={{
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #E2E8F0',
-        padding: '0 24px',
-        display: 'flex',
-        gap: 8,
-        overflowX: 'auto'
-      }}>
+      <div 
+        className="hide-scrollbar"
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderBottom: '1px solid #E2E8F0',
+          padding: '0 24px',
+          display: 'flex',
+          gap: 8,
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}
+      >
           <button
             type="button"
             onClick={() => setActiveTab('transactions')}
@@ -423,7 +408,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
             }}
           >
             <Wallet size={16} />
-            <span>Payout Statements</span>
+            <span>Payouts Ledger</span>
             {pendingBatchPayout > 0 && (
               <span style={{
                 fontSize: 11,
@@ -456,7 +441,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
             }}
           >
             <RotateCcw size={16} />
-            <span>Refund Requests</span>
+            <span>Refunds &amp; Disputes</span>
             <span style={{
               fontSize: 11,
               padding: '1px 6px',
@@ -467,6 +452,27 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
             }}>
               {refunds.filter(r => r.status === 'Pending Review').length}
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate ? onNavigate('/admin/promotions') : null}
+            style={{
+              padding: '10px 16px',
+              fontSize: 13.5,
+              fontWeight: 700,
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              color: '#64748B',
+              borderBottom: '2.5px solid transparent',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8
+            }}
+          >
+            <Tag size={16} />
+            <span>Promotions &amp; Coupons</span>
           </button>
 
           <button

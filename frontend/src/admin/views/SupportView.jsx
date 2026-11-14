@@ -112,6 +112,11 @@ export function SupportView({ onShowToast }) {
   async function handleCreateTicket(e) {
     e.preventDefault();
     if (!ticketForm.callerName.trim() || !ticketForm.message.trim()) return;
+    const cleanPhone = (ticketForm.callerPhone || '').replace(/\D/g, '');
+    if (cleanPhone && (cleanPhone.length !== 10 || !/^[6-9]/.test(cleanPhone))) {
+      onShowToast && onShowToast('Please enter a valid 10-digit Indian phone number starting with 6-9');
+      return;
+    }
     setCreatingTicket(true);
 
     try {
@@ -1100,10 +1105,11 @@ export function SupportView({ onShowToast }) {
                 <div>
                   <label style={{ fontSize: 11.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 4 }}>Phone Number</label>
                   <input
-                    type="text"
-                    placeholder="10-digit phone"
+                    type="tel"
+                    maxLength={10}
+                    placeholder="10-digit mobile (e.g. 9876543210)"
                     value={ticketForm.callerPhone}
-                    onChange={e => setTicketForm(prev => ({ ...prev, callerPhone: e.target.value }))}
+                    onChange={e => setTicketForm(prev => ({ ...prev, callerPhone: e.target.value.replace(/\D/g, '').slice(0, 10) }))}
                     style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #D1D5DB', fontSize: 13, boxSizing: 'border-box' }}
                   />
                 </div>

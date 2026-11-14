@@ -325,16 +325,7 @@ export function SettingsView({ onShowToast }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Header Bar aligned to admin header standards */}
-      <div className="admin-page-header" style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 12,
-        padding: '16px 24px',
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #E2E8F0'
-      }}>
+      <div className="admin-page-header">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', margin: 0 }}>
@@ -457,7 +448,7 @@ export function SettingsView({ onShowToast }) {
         </div>
       </div>
 
-      <div className="admin-page-body" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div className="admin-page-body" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
         {/* Unsaved Changes Banner */}
         {hasUnsavedChanges && (
           <div style={{
@@ -495,13 +486,18 @@ export function SettingsView({ onShowToast }) {
         )}
 
         {/* Tab Navigation */}
-        <div style={{
-          display: 'flex',
-          gap: 6,
-          borderBottom: '1px solid #E2E8F0',
-          paddingBottom: 4,
-          overflowX: 'auto'
-        }}>
+        <div 
+          className="hide-scrollbar"
+          style={{
+            display: 'flex',
+            gap: 6,
+            borderBottom: '1px solid #E2E8F0',
+            paddingBottom: 4,
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
+        >
           {TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;

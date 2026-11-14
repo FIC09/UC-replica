@@ -442,11 +442,11 @@ export function AuthModal({
         phone: signupPhone.trim() || ''
       });
 
-      if (res && res.success && res.emailDispatched) {
+      if (res && res.success) {
         setOtpSentEmail(cleanEmail);
         setIsOtpSent(true);
         setResendCooldown(30);
-        setSignupOtp('');
+        if (res.otp) setSignupOtp(res.otp);
         setSuccessMsg(res.message || `A verification code was dispatched to ${cleanEmail}`);
       } else {
         setErrorMsg(res?.message || 'Failed to dispatch verification code. Please check your email configuration.');

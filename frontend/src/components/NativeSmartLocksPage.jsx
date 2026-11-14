@@ -47,7 +47,6 @@ export function NativeSmartLocksPage({
       originalPrice: 18999,
       offerPrice: 13500,
       offerBanner: 'Get it at ₹13,500',
-      optionsText: '2 options',
       bullets: [
         '7 ways to unlock',
         'Unlock request with visitor photo on every doorbell press'
@@ -72,7 +71,6 @@ export function NativeSmartLocksPage({
       originalPrice: 26999,
       offerPrice: 20499,
       offerBanner: 'Get it at ₹20,499',
-      optionsText: '2 options',
       hasFaceScanIcon: true,
       bullets: [
         '9 ways to unlock including face unlock',
@@ -97,7 +95,6 @@ export function NativeSmartLocksPage({
       originalPrice: 11999,
       offerPrice: 8999,
       offerBanner: null,
-      optionsText: null,
       bullets: [
         '5 ways to unlock',
         'Install on any door & go keyless'

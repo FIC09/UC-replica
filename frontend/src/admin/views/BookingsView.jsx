@@ -740,6 +740,26 @@ export function BookingsView({ onShowToast, onNavigate }) {
     }
   };
 
+  // Handle Restore Soft-Deleted Booking
+  const handleRestoreBooking = async (bookingId) => {
+    if (!bookingId) return;
+    try {
+      const res = await adminClient.restoreBooking(bookingId);
+      if (res && res.success !== false) {
+        onShowToast && onShowToast(`✓ Booking #${bookingId} restored to active bookings`);
+        fetchBookingsList(false);
+        fetchAssignmentStats();
+        if (selectedBooking && (selectedBooking.id === bookingId || selectedBooking.bookingReference === bookingId)) {
+          setSelectedBooking(prev => ({ ...prev, isDeleted: false, status: 'Confirmed' }));
+        }
+      } else {
+        throw new Error(res?.error || res?.message || 'Restore failed');
+      }
+    } catch (err) {
+      onShowToast && onShowToast(`Restore error: ${err.message}`);
+    }
+  };
+
   // Handle Internal Note
   function handleAddNoteSubmit(e) {
     e.preventDefault();
@@ -1117,31 +1137,6 @@ export function BookingsView({ onShowToast, onNavigate }) {
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            type="button"
-            onClick={() => {
-              setCreateFormData(initialCreateForm);
-              setShowCreateModal(true);
-            }}
-            title="Create a new service booking"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 12px',
-              borderRadius: 6,
-              border: 'none',
-              backgroundColor: '#6E42E5',
-              color: '#FFFFFF',
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 2px 4px rgba(110, 66, 229, 0.25)'
-            }}
-          >
-            <Plus size={14} />
-            New Booking
-          </button>
           <span style={{ fontSize: 12, fontWeight: 700, color: '#059669', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', padding: '4px 10px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
             Live DB Active
@@ -1217,16 +1212,20 @@ export function BookingsView({ onShowToast, onNavigate }) {
           </div>
 
           {/* 2. Pending Offers */}
-          <div style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 8,
-            padding: '8px 12px',
-            border: '1px solid #E2E8F0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-          }}>
+          <div
+            onClick={() => { setStatusFilter(statusFilter === 'Pending' ? 'ALL' : 'Pending'); setPage(1); }}
+            style={{
+              backgroundColor: statusFilter === 'Pending' ? '#F5F3FF' : '#FFFFFF',
+              borderRadius: 8,
+              padding: '8px 12px',
+              border: statusFilter === 'Pending' ? '2px solid #7C3AED' : '1px solid #E2E8F0',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+            }}
+          >
             <div style={{
               width: 30,
               height: 30,
@@ -1251,16 +1250,20 @@ export function BookingsView({ onShowToast, onNavigate }) {
           </div>
 
           {/* 3. Auto-Assigned */}
-          <div style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 8,
-            padding: '8px 12px',
-            border: '1px solid #E2E8F0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-          }}>
+          <div
+            onClick={() => { setAssignedFilter(assignedFilter === 'assigned' ? 'ALL' : 'assigned'); setPage(1); }}
+            style={{
+              backgroundColor: assignedFilter === 'assigned' ? '#EFF6FF' : '#FFFFFF',
+              borderRadius: 8,
+              padding: '8px 12px',
+              border: assignedFilter === 'assigned' ? '2px solid #2563EB' : '1px solid #E2E8F0',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+            }}
+          >
             <div style={{
               width: 30,
               height: 30,
@@ -1285,16 +1288,20 @@ export function BookingsView({ onShowToast, onNavigate }) {
           </div>
 
           {/* 4. Manually Assigned */}
-          <div style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 8,
-            padding: '8px 12px',
-            border: '1px solid #E2E8F0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-          }}>
+          <div
+            onClick={() => { setAssignedFilter(assignedFilter === 'assigned' ? 'ALL' : 'assigned'); setPage(1); }}
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: 8,
+              padding: '8px 12px',
+              border: '1px solid #E2E8F0',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+            }}
+          >
             <div style={{
               width: 30,
               height: 30,
@@ -1319,16 +1326,20 @@ export function BookingsView({ onShowToast, onNavigate }) {
           </div>
 
           {/* 5. Rejected / Expired */}
-          <div style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 8,
-            padding: '8px 12px',
-            border: '1px solid #E2E8F0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-          }}>
+          <div
+            onClick={() => { setStatusFilter(statusFilter === 'Cancelled' ? 'ALL' : 'Cancelled'); setPage(1); }}
+            style={{
+              backgroundColor: statusFilter === 'Cancelled' ? '#FFF1F2' : '#FFFFFF',
+              borderRadius: 8,
+              padding: '8px 12px',
+              border: statusFilter === 'Cancelled' ? '2px solid #BE123C' : '1px solid #E2E8F0',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
+            }}
+          >
             <div style={{
               width: 30,
               height: 30,
@@ -1455,6 +1466,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
               <option value="In Progress">In Progress</option>
               <option value="Completed">Completed</option>
               <option value="Cancelled">Cancelled</option>
+              <option value="Deleted">Deleted</option>
             </select>
 
             {/* Payment Status Filter */}
@@ -1869,59 +1881,6 @@ export function BookingsView({ onShowToast, onNavigate }) {
                             </button>
                           )}
 
-                          {/* Retry Auto-Assign button */}
-                          {b.assignmentMode === 'AUTO' && b.status !== 'Assigned' && b.status !== 'Completed' && b.status !== 'Cancelled' && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRetryAutoAssign(b.id || b.bookingReference);
-                              }}
-                              title="Run automatic assignment engine"
-                              style={{
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 3,
-                                backgroundColor: '#EFF6FF',
-                                color: '#2563EB',
-                                border: '1px solid #BFDBFE',
-                                borderRadius: 6,
-                                padding: '6px 9px',
-                                fontSize: 11.5,
-                                fontWeight: 600,
-                                cursor: 'pointer',
-                                whiteSpace: 'nowrap'
-                              }}
-                            >
-                              <RotateCcw size={11} />
-                              Auto
-                            </button>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenEditModal(b);
-                            }}
-                            title="Edit Booking Details"
-                            style={{
-                              backgroundColor: '#F1F5F9',
-                              border: '1px solid #CBD5E1',
-                              borderRadius: 6,
-                              padding: '6px 9px',
-                              fontSize: 12,
-                              color: '#334155',
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4
-                            }}
-                          >
-                            <Edit size={12} />
-                            Edit
-                          </button>
-
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -1941,30 +1900,57 @@ export function BookingsView({ onShowToast, onNavigate }) {
                             Details
                           </button>
 
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteBooking(b.id || b.bookingReference);
-                            }}
-                            title="Permanently Delete Booking"
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              backgroundColor: '#FEF2F2',
-                              color: '#DC2626',
-                              border: '1px solid #FECACA',
-                              borderRadius: 6,
-                              padding: '6px 9px',
-                              fontSize: 12,
-                              fontWeight: 600,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <Trash2 size={12} />
-                            Delete
-                          </button>
+                          {(b.isDeleted || (b.status || '').toLowerCase() === 'deleted') ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRestoreBooking(b.id || b.bookingReference);
+                              }}
+                              title="Restore Soft-Deleted Booking"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                backgroundColor: '#ECFDF5',
+                                color: '#059669',
+                                border: '1px solid #A7F3D0',
+                                borderRadius: 6,
+                                padding: '6px 9px',
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <RotateCcw size={12} />
+                              Restore
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteBooking(b.id || b.bookingReference);
+                              }}
+                              title="Delete Booking"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                backgroundColor: '#FEF2F2',
+                                color: '#DC2626',
+                                border: '1px solid #FECACA',
+                                borderRadius: 6,
+                                padding: '6px 9px',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Trash2 size={12} />
+                              Delete
+                            </button>
+                          )}
                           <ChevronRight size={16} color="#94A3B8" />
                         </div>
                       </td>
@@ -2316,26 +2302,49 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   </button>
                 )}
 
-                <button
-                  onClick={() => handleDeleteBooking(selectedBooking.id || selectedBooking.bookingReference)}
-                  style={{
-                    flex: '1 1 auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    padding: '8px 14px',
-                    borderRadius: 8,
-                    border: '1px solid #FECACA',
-                    backgroundColor: '#FEF2F2',
-                    color: '#DC2626',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  <Trash2 size={14} /> Delete Booking
-                </button>
+                {(selectedBooking.isDeleted || (selectedBooking.status || '').toLowerCase() === 'deleted') ? (
+                  <button
+                    onClick={() => handleRestoreBooking(selectedBooking.id || selectedBooking.bookingReference)}
+                    style={{
+                      flex: '1 1 auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      border: '1px solid #A7F3D0',
+                      backgroundColor: '#ECFDF5',
+                      color: '#059669',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <RotateCcw size={14} /> Restore Booking
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleDeleteBooking(selectedBooking.id || selectedBooking.bookingReference)}
+                    style={{
+                      flex: '1 1 auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      padding: '8px 14px',
+                      borderRadius: 8,
+                      border: '1px solid #FECACA',
+                      backgroundColor: '#FEF2F2',
+                      color: '#DC2626',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <Trash2 size={14} /> Delete Booking
+                  </button>
+                )}
               </div>
 
               {/* Customer and Service Address */}

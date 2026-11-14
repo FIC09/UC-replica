@@ -190,6 +190,10 @@ export const adminClient = {
     method: 'DELETE'
   }),
 
+  restoreBooking: (id) => fetchWithFallback(`/bookings/${id}/restore`, {
+    method: 'POST'
+  }),
+
   updateLifecycleStatus: (id, newStatus, notes) => fetchWithFallback(`/bookings/${id}/lifecycle`, {
     method: 'PUT',
     body: JSON.stringify({ newStatus, notes })
@@ -366,6 +370,10 @@ export const adminClient = {
 
   deletePartner: (id) => fetchWithFallback(`/partners/${id}`, {
     method: 'DELETE'
+  }),
+
+  restorePartner: (id) => fetchWithFallback(`/partners/${id}/restore`, {
+    method: 'POST'
   }),
 
   verifyPartnerDocument: (id, docType, status, rejectionReason) => fetchWithFallback(`/partners/${id}/verify-document`, {

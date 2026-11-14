@@ -6555,11 +6555,20 @@ export async function getNotifications(req, res) {
       });
     }
 
-    const { category, read, search, page = 1, limit = 20 } = req.query;
-    let list = notificationsStore[proId] || [];
+    const { category, read, search, page = 1, limit = 50 } = req.query;
+    const allNotifications = notificationsStore[proId] || [];
+    let list = [...allNotifications];
 
     if (category && category !== 'all') {
-      list = list.filter(n => n.category === category);
+      if (category === 'dispatch_group') {
+        list = list.filter(n => n.category === 'new_assignment' || n.category === 'offer_expiry');
+      } else if (category === 'payouts_group') {
+        list = list.filter(n => n.category === 'earnings_updates' || n.category === 'payout_status');
+      } else if (category === 'safety_group') {
+        list = list.filter(n => n.category === 'safety_advisory' || n.category === 'document_review' || n.category === 'training');
+      } else {
+        list = list.filter(n => n.category === category);
+      }
     }
     if (read !== undefined) {
       const isRead = read === 'true' || read === true;
@@ -6575,16 +6584,24 @@ export async function getNotifications(req, res) {
     }
 
     const pageNum = parseInt(page) || 1;
-    const limitNum = parseInt(limit) || 20;
+    const limitNum = parseInt(limit) || 50;
     const startIndex = (pageNum - 1) * limitNum;
     const paginated = list.slice(startIndex, startIndex + limitNum);
 
-    const unreadCount = (notificationsStore[proId] || []).filter(n => !n.read).length;
+    const stats = {
+      unread: allNotifications.filter(n => !n.read).length,
+      dispatch: allNotifications.filter(n => n.category === 'new_assignment' || n.category === 'offer_expiry').length,
+      financial: allNotifications.filter(n => n.category === 'earnings_updates' || n.category === 'payout_status').length,
+      safety: allNotifications.filter(n => n.category === 'safety_advisory' || n.category === 'document_review' || n.category === 'training').length,
+      total: allNotifications.length
+    };
 
     return res.json({
       success: true,
       notifications: paginated,
-      unreadCount,
+      allNotifications,
+      unreadCount: stats.unread,
+      stats,
       totalCount: list.length,
       page: pageNum,
       totalPages: Math.ceil(list.length / limitNum) || 1,

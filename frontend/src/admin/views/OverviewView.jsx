@@ -38,6 +38,8 @@ export function OverviewView({ onNavigate, onShowToast }) {
   const [category, setCategory] = useState('ALL');
   const [partner, setPartner] = useState('ALL');
   const [showCalculationGuide, setShowCalculationGuide] = useState(false);
+  const [trendViewMode, setTrendViewMode] = useState('graph'); // 'graph' | 'bars'
+  const [hoveredTrendPoint, setHoveredTrendPoint] = useState(null);
 
   const fetchOverview = React.useCallback(async (isInitial = false) => {
     if (isInitial) setLoading(true);
@@ -128,8 +130,10 @@ export function OverviewView({ onNavigate, onShowToast }) {
               animation: autoSync ? 'livePulse 2s infinite ease-in-out' : 'none'
             }} />
             <span style={{ letterSpacing: '0.02em' }}>{autoSync ? 'LIVE STREAM' : 'PAUSED'}</span>
-            <span style={{ color: '#86EFAC', fontWeight: 400 }}>•</span>
-            <span style={{ color: '#166534', fontWeight: 600 }}>{lastSyncTime || data?.lastUpdated || 'Syncing...'}</span>
+            <span style={{ color: autoSync ? '#86EFAC' : '#FDE68A', fontWeight: 400 }}>•</span>
+            <span style={{ color: autoSync ? '#166534' : '#92400E', fontWeight: 600 }}>
+              {autoSync ? (lastSyncTime || data?.lastUpdated || 'Active') : `Refreshed: ${lastSyncTime || 'Manual'}`}
+            </span>
           </div>
 
           {/* Auto-Sync Toggle */}
@@ -571,27 +575,349 @@ export function OverviewView({ onNavigate, onShowToast }) {
           borderRadius: 12,
           border: '1px solid #E2E8F0',
           padding: 20,
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
+          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative'
         }}>
-          <h4 style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', margin: '0 0 16px 0' }}>Daily Booking Volume Trend</h4>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 160, gap: 12, paddingTop: 10 }}>
-            {(() => {
-              const bTrends = trends.bookingTrends || [];
-              const maxOrders = Math.max(1, ...bTrends.map(b => b.orders || 1));
-              return bTrends.map(b => {
-                const heightPercent = Math.max(18, Math.min(100, Math.round(((b.orders || 1) / maxOrders) * 100)));
-                return (
-                  <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#475569' }}>{b.orders}</span>
-                    <div style={{ width: '100%', height: `${heightPercent}%`, backgroundColor: '#EDE9FE', borderRadius: '4px 4px 0 0', position: 'relative' }}>
-                      <div style={{ width: '100%', height: '35%', backgroundColor: '#6E42E5', borderRadius: '4px 4px 0 0' }} />
-                    </div>
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: '#64748B' }}>{b.label}</span>
-                  </div>
-                );
-              });
-            })()}
+          {/* Card Header with Volume Badge & View Mode Toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <h4 style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', margin: 0 }}>Daily Booking Volume Trend</h4>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#6E42E5', backgroundColor: '#F5F3FF', border: '1px solid #DDD6FE', padding: '2px 8px', borderRadius: 12 }}>
+                  {((trends.bookingTrends || []).reduce((acc, t) => acc + (t.orders || 0), 0))} Orders This Week
+                </span>
+              </div>
+              <p style={{ fontSize: 11, color: '#64748B', margin: '3px 0 0 0' }}>
+                MongoDB dispatch lifecycle volume grouped across calendar days
+              </p>
+            </div>
+
+            {/* Toggle: Graph vs Bars */}
+            <div style={{ display: 'inline-flex', backgroundColor: '#F1F5F9', borderRadius: 7, padding: 2, border: '1px solid #E2E8F0' }}>
+              <button
+                type="button"
+                onClick={() => setTrendViewMode('graph')}
+                style={{
+                  padding: '3px 9px',
+                  borderRadius: 5,
+                  border: 'none',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  backgroundColor: trendViewMode === 'graph' ? '#FFFFFF' : 'transparent',
+                  color: trendViewMode === 'graph' ? '#6E42E5' : '#64748B',
+                  boxShadow: trendViewMode === 'graph' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span>📈</span> Graph
+              </button>
+              <button
+                type="button"
+                onClick={() => setTrendViewMode('bars')}
+                style={{
+                  padding: '3px 9px',
+                  borderRadius: 5,
+                  border: 'none',
+                  fontSize: 11,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  backgroundColor: trendViewMode === 'bars' ? '#FFFFFF' : 'transparent',
+                  color: trendViewMode === 'bars' ? '#6E42E5' : '#64748B',
+                  boxShadow: trendViewMode === 'bars' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4
+                }}
+              >
+                <span>📊</span> Bars
+              </button>
+            </div>
           </div>
+
+          {/* 1. GRAPH VIEW (Smooth SVG Curve & Gradient Area) */}
+          {trendViewMode === 'graph' ? (
+            <div style={{ position: 'relative', width: '100%', height: 180, marginTop: 4 }}>
+              {(() => {
+                const bTrends = trends.bookingTrends || [];
+                const maxOrders = Math.max(4, ...bTrends.map(b => b.orders || 0));
+                const padL = 36;
+                const padR = 24;
+                const padT = 24;
+                const padB = 32;
+                const svgW = 480;
+                const svgH = 175;
+                const plotW = svgW - padL - padR;
+                const plotH = svgH - padT - padB;
+
+                const points = bTrends.map((b, i) => {
+                  const x = padL + (bTrends.length > 1 ? (i / (bTrends.length - 1)) * plotW : plotW / 2);
+                  const y = (padT + plotH) - ((b.orders || 0) / maxOrders) * plotH;
+                  return { ...b, x, y };
+                });
+
+                let pathD = '';
+                if (points.length > 0) {
+                  pathD = `M ${points[0].x} ${points[0].y}`;
+                  for (let i = 1; i < points.length; i++) {
+                    const prev = points[i - 1];
+                    const curr = points[i];
+                    const cpx1 = prev.x + (curr.x - prev.x) / 2;
+                    const cpy1 = prev.y;
+                    const cpx2 = prev.x + (curr.x - prev.x) / 2;
+                    const cpy2 = curr.y;
+                    pathD += ` C ${cpx1} ${cpy1}, ${cpx2} ${cpy2}, ${curr.x} ${curr.y}`;
+                  }
+                }
+
+                let areaD = '';
+                if (points.length > 0) {
+                  const baselineY = padT + plotH;
+                  areaD = `M ${points[0].x} ${baselineY} L ${points[0].x} ${points[0].y}`;
+                  for (let i = 1; i < points.length; i++) {
+                    const prev = points[i - 1];
+                    const curr = points[i];
+                    const cpx1 = prev.x + (curr.x - prev.x) / 2;
+                    const cpy1 = prev.y;
+                    const cpx2 = prev.x + (curr.x - prev.x) / 2;
+                    const cpy2 = curr.y;
+                    areaD += ` C ${cpx1} ${cpy1}, ${cpx2} ${cpy2}, ${curr.x} ${curr.y}`;
+                  }
+                  areaD += ` L ${points[points.length - 1].x} ${baselineY} Z`;
+                }
+
+                const gridLevels = [
+                  { val: maxOrders, y: padT },
+                  { val: Math.round(maxOrders / 2), y: padT + plotH / 2 },
+                  { val: 0, y: padT + plotH }
+                ];
+
+                return (
+                  <svg viewBox={`0 0 ${svgW} ${svgH}`} style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+                    <defs>
+                      <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.35" />
+                        <stop offset="65%" stopColor="#8B5CF6" stopOpacity="0.12" />
+                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.0" />
+                      </linearGradient>
+                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#7C3AED" floodOpacity="0.35" />
+                      </filter>
+                    </defs>
+
+                    {/* Dotted Grid lines & Y-axis labels */}
+                    {gridLevels.map((gl, idx) => (
+                      <g key={idx}>
+                        <line
+                          x1={padL}
+                          y1={gl.y}
+                          x2={svgW - padR}
+                          y2={gl.y}
+                          stroke="#E2E8F0"
+                          strokeDasharray={idx === 2 ? 'none' : '3 3'}
+                          strokeWidth="1"
+                        />
+                        <text
+                          x={padL - 6}
+                          y={gl.y + 3.5}
+                          textAnchor="end"
+                          fontSize="9.5"
+                          fontWeight="600"
+                          fill="#94A3B8"
+                        >
+                          {gl.val}
+                        </text>
+                      </g>
+                    ))}
+
+                    {/* Gradient Area under curve */}
+                    {areaD && <path d={areaD} fill="url(#trendGradient)" />}
+
+                    {/* Smooth Trend Line */}
+                    {pathD && (
+                      <path
+                        d={pathD}
+                        fill="none"
+                        stroke="#6E42E5"
+                        strokeWidth="3.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        filter="url(#glow)"
+                      />
+                    )}
+
+                    {/* Plot Points & Value Badges */}
+                    {points.map((p, idx) => {
+                      const isHovered = hoveredTrendPoint === idx;
+                      const hasOrders = (p.orders || 0) > 0;
+                      return (
+                        <g
+                          key={idx}
+                          onMouseEnter={() => setHoveredTrendPoint(idx)}
+                          onMouseLeave={() => setHoveredTrendPoint(null)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          {/* Hover Guide Column */}
+                          {isHovered && (
+                            <line
+                              x1={p.x}
+                              y1={padT}
+                              x2={p.x}
+                              y2={padT + plotH}
+                              stroke="#C4B5FD"
+                              strokeWidth="1.5"
+                              strokeDasharray="2 2"
+                            />
+                          )}
+
+                          {/* Value Pill above Point */}
+                          {hasOrders ? (
+                            <g>
+                              <rect
+                                x={p.x - 13}
+                                y={p.y - 20}
+                                width="26"
+                                height="15"
+                                rx="4"
+                                fill="#6E42E5"
+                                style={{ transition: 'all 0.2s' }}
+                              />
+                              <text
+                                x={p.x}
+                                y={p.y - 9}
+                                textAnchor="middle"
+                                fill="#FFFFFF"
+                                fontSize="10"
+                                fontWeight="800"
+                              >
+                                {p.orders}
+                              </text>
+                            </g>
+                          ) : (
+                            <text
+                              x={p.x}
+                              y={p.y - 8}
+                              textAnchor="middle"
+                              fill="#94A3B8"
+                              fontSize="9.5"
+                              fontWeight="600"
+                            >
+                              0
+                            </text>
+                          )}
+
+                          {/* Data Point Dot */}
+                          <circle
+                            cx={p.x}
+                            cy={p.y}
+                            r={isHovered ? 8 : (hasOrders ? 6 : 4.5)}
+                            fill="#FFFFFF"
+                            stroke={hasOrders ? '#6E42E5' : '#94A3B8'}
+                            strokeWidth={hasOrders ? 2.5 : 2}
+                            style={{ transition: 'all 0.15s ease-out' }}
+                          />
+                          <circle
+                            cx={p.x}
+                            cy={p.y}
+                            r={isHovered ? 4.5 : (hasOrders ? 3 : 2)}
+                            fill={hasOrders ? '#6E42E5' : '#94A3B8'}
+                          />
+
+                          {/* X-axis Day Label */}
+                          <text
+                            x={p.x}
+                            y={svgH - 14}
+                            textAnchor="middle"
+                            fill={isHovered ? '#6E42E5' : (hasOrders ? '#0F172A' : '#64748B')}
+                            fontSize="11"
+                            fontWeight={hasOrders || isHovered ? '800' : '600'}
+                          >
+                            {p.label}
+                          </text>
+
+                          {/* Calendar Date (e.g. 14 Nov) */}
+                          {p.dateStr && (
+                            <text
+                              x={p.x}
+                              y={svgH - 2}
+                              textAnchor="middle"
+                              fill="#94A3B8"
+                              fontSize="8.5"
+                              fontWeight="500"
+                            >
+                              {p.dateStr}
+                            </text>
+                          )}
+                        </g>
+                      );
+                    })}
+                  </svg>
+                );
+              })()}
+
+              {/* Hover Tooltip Card */}
+              {hoveredTrendPoint !== null && (trends.bookingTrends || [])[hoveredTrendPoint] && (
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  right: 12,
+                  backgroundColor: '#0F172A',
+                  color: '#FFFFFF',
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  fontSize: 11,
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.18)',
+                  pointerEvents: 'none',
+                  zIndex: 10,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2
+                }}>
+                  <div style={{ fontWeight: 800, color: '#C4B5FD' }}>
+                    {(trends.bookingTrends || [])[hoveredTrendPoint].label} ({(trends.bookingTrends || [])[hoveredTrendPoint].dateStr || 'Day'})
+                  </div>
+                  <div>Bookings: <strong>{(trends.bookingTrends || [])[hoveredTrendPoint].orders} orders</strong></div>
+                  <div>GMV: <strong>₹{((trends.bookingTrends || [])[hoveredTrendPoint].gmv || 0).toLocaleString()}</strong></div>
+                </div>
+              )}
+            </div>
+          ) : (
+            /* 2. BAR CHART VIEW (Fixed Height & Proper Solid Gradient Bars) */
+            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: 180, gap: 12, paddingTop: 10 }}>
+              {(() => {
+                const bTrends = trends.bookingTrends || [];
+                const maxOrders = Math.max(1, ...bTrends.map(b => b.orders || 1));
+                return bTrends.map(b => {
+                  const hasOrders = (b.orders || 0) > 0;
+                  const barHeightPx = hasOrders
+                    ? Math.max(24, Math.round(((b.orders || 0) / maxOrders) * 110))
+                    : 6;
+                  return (
+                    <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: 6 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: hasOrders ? '#6E42E5' : '#94A3B8' }}>{b.orders}</span>
+                      <div style={{
+                        width: '100%',
+                        maxWidth: 34,
+                        height: barHeightPx,
+                        background: hasOrders ? 'linear-gradient(180deg, #6E42E5 0%, #A78BFA 100%)' : '#E2E8F0',
+                        borderRadius: '6px 6px 0 0',
+                        boxShadow: hasOrders ? '0 2px 4px rgba(110, 66, 229, 0.25)' : 'none',
+                        transition: 'height 0.3s ease'
+                      }} />
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: hasOrders ? '#0F172A' : '#64748B' }}>{b.label}</span>
+                        {b.dateStr && <span style={{ fontSize: 9, color: '#94A3B8' }}>{b.dateStr}</span>}
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
+            </div>
+          )}
         </div>
 
         {/* Status Distribution */}

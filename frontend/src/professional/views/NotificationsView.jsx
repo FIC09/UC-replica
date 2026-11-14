@@ -29,8 +29,27 @@ import {
 } from 'lucide-react';
 import { professionalClient } from '../professionalClient';
 
-// Dual-tone harmonious chime synthesized via Web Audio API without external file dependencies
+// High-volume authentic frog croak audio chime synthesized via Web Audio API & Audio asset
 function playNotificationChime() {
+  try {
+    // 1. Play high-volume synthesized frog croak WAV asset
+    const audio = new Audio('/frog_chime.wav');
+    audio.volume = 1.0;
+    const playPromise = audio.play();
+
+    // 2. Fallback / parallel reinforcement via Web Audio API if asset playback is delayed or blocked
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        synthesizeFrogCroakWebAudio();
+      });
+    }
+  } catch (err) {
+    synthesizeFrogCroakWebAudio();
+  }
+}
+
+// Pure Web Audio API high-volume frog croak generator (Ribbit! Ribbit!)
+function synthesizeFrogCroakWebAudio() {
   try {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return;
@@ -38,31 +57,69 @@ function playNotificationChime() {
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
-    const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gain = ctx.createGain();
 
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-    osc1.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12); // A5
+    // High volume master gain + dynamic compressor for punchy, loud frog ribbit
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.95, ctx.currentTime);
 
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(880, ctx.currentTime);
-    osc2.frequency.exponentialRampToValueAtTime(1174.66, ctx.currentTime + 0.18); // D6
+    const compressor = ctx.createDynamicsCompressor();
+    compressor.threshold.setValueAtTime(-12, ctx.currentTime);
+    compressor.knee.setValueAtTime(30, ctx.currentTime);
+    compressor.ratio.setValueAtTime(12, ctx.currentTime);
+    compressor.attack.setValueAtTime(0.003, ctx.currentTime);
+    compressor.release.setValueAtTime(0.15, ctx.currentTime);
 
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+    masterGain.connect(compressor);
+    compressor.connect(ctx.destination);
 
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(ctx.destination);
+    // Helper to generate a single guttural 'rib' or 'bit' croak pulse
+    const scheduleCroakPulse = (startTime, duration, fStart, fEnd, formantFreq) => {
+      // 1. Vocal sac oscillator (sawtooth for rich harmonic buzz)
+      const osc = ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(fStart, startTime);
+      osc.frequency.exponentialRampToValueAtTime(fEnd, startTime + duration);
 
-    osc1.start();
-    osc2.start();
-    osc1.stop(ctx.currentTime + 0.38);
-    osc2.stop(ctx.currentTime + 0.38);
-  } catch (err) {
-    console.debug('Audio chime playback omitted:', err);
+      // 2. Throat formant bandpass filter
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(formantFreq, startTime);
+      filter.Q.setValueAtTime(5.5, startTime);
+
+      // 3. Amplitude modulation (AM flutter / tremolo at 36Hz for raspy frog throat)
+      const tremoloOsc = ctx.createOscillator();
+      tremoloOsc.type = 'sine';
+      tremoloOsc.frequency.setValueAtTime(36, startTime);
+
+      const tremoloGain = ctx.createGain();
+      tremoloGain.gain.setValueAtTime(0.5, startTime);
+
+      const pulseGain = ctx.createGain();
+      pulseGain.gain.setValueAtTime(0.001, startTime);
+      pulseGain.gain.linearRampToValueAtTime(0.9, startTime + 0.03);
+      pulseGain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+
+      tremoloOsc.connect(tremoloGain.gain);
+      osc.connect(filter);
+      filter.connect(pulseGain);
+      pulseGain.connect(masterGain);
+
+      tremoloOsc.start(startTime);
+      tremoloOsc.stop(startTime + duration);
+      osc.start(startTime);
+      osc.stop(startTime + duration);
+    };
+
+    const now = ctx.currentTime + 0.02;
+    // Croak 1: 'Rib-bit'
+    scheduleCroakPulse(now, 0.20, 140, 220, 650);
+    scheduleCroakPulse(now + 0.22, 0.22, 230, 160, 850);
+
+    // Croak 2: 'Rib-bit'
+    scheduleCroakPulse(now + 0.52, 0.20, 150, 230, 680);
+    scheduleCroakPulse(now + 0.74, 0.25, 240, 150, 880);
+  } catch (e) {
+    console.debug('Frog audio synthesis fallback omitted:', e);
   }
 }
 
@@ -108,6 +165,8 @@ function ToggleSwitch({ checked, onChange, id }) {
 
 export function NotificationsView({ onNavigate, showToast }) {
   const [notifications, setNotifications] = useState([]);
+  const [allNotifications, setAllNotifications] = useState([]);
+  const [summaryStats, setSummaryStats] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
   const [unreadOnly, setUnreadOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,13 +204,25 @@ export function NotificationsView({ onNavigate, showToast }) {
     try {
       setLoading(true);
       const params = {};
-      if (activeCategory !== 'all') params.category = activeCategory;
+      if (activeCategory !== 'all' && !activeCategory.endsWith('_group')) {
+        params.category = activeCategory;
+      }
       if (unreadOnly) params.read = 'false';
       if (searchQuery.trim()) params.search = searchQuery.trim();
 
       const res = await professionalClient.getNotifications(params);
-      if (res.success && res.notifications) {
-        setNotifications(res.notifications);
+      if (res && res.success) {
+        if (res.notifications) {
+          setNotifications(res.notifications);
+        }
+        if (res.allNotifications && res.allNotifications.length > 0) {
+          setAllNotifications(res.allNotifications);
+        } else if (!activeCategory || activeCategory === 'all') {
+          setAllNotifications(res.notifications || []);
+        }
+        if (res.stats) {
+          setSummaryStats(res.stats);
+        }
       }
     } catch (err) {
       if (showToast) showToast(err.message || 'Failed to load notifications');
@@ -175,14 +246,16 @@ export function NotificationsView({ onNavigate, showToast }) {
   const handleTestChime = () => {
     setChimePlaying(true);
     playNotificationChime();
-    setTimeout(() => setChimePlaying(false), 500);
-    if (showToast) showToast('Playing dispatch alert chime');
+    setTimeout(() => setChimePlaying(false), 1100);
+    if (showToast) showToast('Playing dispatch frog chime 🐸');
   };
 
   const handleMarkAllRead = async () => {
     try {
       await professionalClient.markNotificationsRead();
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setAllNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setSummaryStats(prev => prev ? { ...prev, unread: 0 } : null);
       if (showToast) showToast('All notifications marked as read.');
     } catch (err) {
       if (showToast) showToast('Notifications marked as read.');
@@ -194,6 +267,8 @@ export function NotificationsView({ onNavigate, showToast }) {
       if (!currentRead) {
         await professionalClient.markNotificationsRead(id);
         setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        setAllNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+        setSummaryStats(prev => prev ? { ...prev, unread: Math.max(0, prev.unread - 1) } : null);
       }
     } catch {}
   };
@@ -203,9 +278,11 @@ export function NotificationsView({ onNavigate, showToast }) {
     try {
       await professionalClient.deleteNotification(id);
       setNotifications(prev => prev.filter(n => n.id !== id));
+      setAllNotifications(prev => prev.filter(n => n.id !== id));
       if (showToast) showToast('Notification dismissed.');
     } catch (err) {
       setNotifications(prev => prev.filter(n => n.id !== id));
+      setAllNotifications(prev => prev.filter(n => n.id !== id));
       if (showToast) showToast('Notification dismissed.');
     }
   };
@@ -214,9 +291,11 @@ export function NotificationsView({ onNavigate, showToast }) {
     try {
       await professionalClient.deleteNotification('all-read');
       setNotifications(prev => prev.filter(n => !n.read));
+      setAllNotifications(prev => prev.filter(n => !n.read));
       if (showToast) showToast('Cleared archived notifications.');
     } catch (err) {
       setNotifications(prev => prev.filter(n => !n.read));
+      setAllNotifications(prev => prev.filter(n => !n.read));
       if (showToast) showToast('Cleared archived notifications.');
     }
   };
@@ -240,22 +319,36 @@ export function NotificationsView({ onNavigate, showToast }) {
     }
   };
 
-  // Filtered notifications via search input
+  // Filtered notifications via search input and active category/group
   const filteredNotifications = useMemo(() => {
-    if (!searchQuery.trim()) return notifications;
+    let source = notifications;
+    if (activeCategory === 'dispatch_group') {
+      source = (allNotifications.length > 0 ? allNotifications : notifications).filter(n => n.category === 'new_assignment' || n.category === 'offer_expiry');
+    } else if (activeCategory === 'payouts_group') {
+      source = (allNotifications.length > 0 ? allNotifications : notifications).filter(n => n.category === 'earnings_updates' || n.category === 'payout_status');
+    } else if (activeCategory === 'safety_group') {
+      source = (allNotifications.length > 0 ? allNotifications : notifications).filter(n => n.category === 'safety_advisory' || n.category === 'document_review' || n.category === 'training');
+    }
+
+    if (unreadOnly) {
+      source = source.filter(n => !n.read);
+    }
+
+    if (!searchQuery.trim()) return source;
     const query = searchQuery.toLowerCase().trim();
-    return notifications.filter(n =>
+    return source.filter(n =>
       (n.title && n.title.toLowerCase().includes(query)) ||
       (n.message && n.message.toLowerCase().includes(query)) ||
       (n.category && n.category.toLowerCase().includes(query))
     );
-  }, [notifications, searchQuery]);
+  }, [notifications, allNotifications, activeCategory, unreadOnly, searchQuery]);
 
-  // Overall metric counts
-  const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
-  const dispatchAlertsCount = useMemo(() => notifications.filter(n => n.category === 'new_assignment' || n.category === 'offer_expiry').length, [notifications]);
-  const financialCount = useMemo(() => notifications.filter(n => n.category === 'earnings_updates' || n.category === 'payout_status').length, [notifications]);
-  const safetyCount = useMemo(() => notifications.filter(n => n.category === 'safety_advisory' || n.category === 'document_review' || n.category === 'training').length, [notifications]);
+  // Stable overall metric counts (always reflecting global pipeline across all categories)
+  const poolForCounts = allNotifications.length > 0 ? allNotifications : notifications;
+  const unreadCount = summaryStats?.unread != null ? summaryStats.unread : poolForCounts.filter(n => !n.read).length;
+  const dispatchAlertsCount = summaryStats?.dispatch != null ? summaryStats.dispatch : poolForCounts.filter(n => n.category === 'new_assignment' || n.category === 'offer_expiry').length;
+  const financialCount = summaryStats?.financial != null ? summaryStats.financial : poolForCounts.filter(n => n.category === 'earnings_updates' || n.category === 'payout_status').length;
+  const safetyCount = summaryStats?.safety != null ? summaryStats.safety : poolForCounts.filter(n => n.category === 'safety_advisory' || n.category === 'document_review' || n.category === 'training').length;
 
   // Category theme styling helper
   const getCategoryTheme = (category) => {
@@ -566,10 +659,10 @@ export function NotificationsView({ onNavigate, showToast }) {
 
         {/* Card 2: Active Dispatches */}
         <div
-          onClick={() => setActiveCategory(activeCategory === 'new_assignment' ? 'all' : 'new_assignment')}
+          onClick={() => setActiveCategory(activeCategory === 'dispatch_group' || activeCategory === 'new_assignment' ? 'all' : 'dispatch_group')}
           style={{
-            background: activeCategory === 'new_assignment' ? '#ECFDF5' : '#FFFFFF',
-            border: activeCategory === 'new_assignment' ? '1.5px solid #10B981' : '1px solid #E2E8F0',
+            background: (activeCategory === 'dispatch_group' || activeCategory === 'new_assignment') ? '#ECFDF5' : '#FFFFFF',
+            border: (activeCategory === 'dispatch_group' || activeCategory === 'new_assignment') ? '1.5px solid #10B981' : '1px solid #E2E8F0',
             borderRadius: 12,
             padding: '14px 16px',
             display: 'flex',
@@ -604,10 +697,10 @@ export function NotificationsView({ onNavigate, showToast }) {
 
         {/* Card 3: Settlements & Tips */}
         <div
-          onClick={() => setActiveCategory(activeCategory === 'earnings_updates' ? 'all' : 'earnings_updates')}
+          onClick={() => setActiveCategory(activeCategory === 'payouts_group' || activeCategory === 'earnings_updates' ? 'all' : 'payouts_group')}
           style={{
-            background: activeCategory === 'earnings_updates' ? '#F5F3FF' : '#FFFFFF',
-            border: activeCategory === 'earnings_updates' ? '1.5px solid #8B5CF6' : '1px solid #E2E8F0',
+            background: (activeCategory === 'payouts_group' || activeCategory === 'earnings_updates') ? '#F5F3FF' : '#FFFFFF',
+            border: (activeCategory === 'payouts_group' || activeCategory === 'earnings_updates') ? '1.5px solid #8B5CF6' : '1px solid #E2E8F0',
             borderRadius: 12,
             padding: '14px 16px',
             display: 'flex',
@@ -642,10 +735,10 @@ export function NotificationsView({ onNavigate, showToast }) {
 
         {/* Card 4: Compliance & Safety */}
         <div
-          onClick={() => setActiveCategory(activeCategory === 'safety_advisory' ? 'all' : 'safety_advisory')}
+          onClick={() => setActiveCategory(activeCategory === 'safety_group' || activeCategory === 'safety_advisory' ? 'all' : 'safety_group')}
           style={{
-            background: activeCategory === 'safety_advisory' ? '#EFF6FF' : '#FFFFFF',
-            border: activeCategory === 'safety_advisory' ? '1.5px solid #3B82F6' : '1px solid #E2E8F0',
+            background: (activeCategory === 'safety_group' || activeCategory === 'safety_advisory') ? '#EFF6FF' : '#FFFFFF',
+            border: (activeCategory === 'safety_group' || activeCategory === 'safety_advisory') ? '1.5px solid #3B82F6' : '1px solid #E2E8F0',
             borderRadius: 12,
             padding: '14px 16px',
             display: 'flex',

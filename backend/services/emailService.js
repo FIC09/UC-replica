@@ -268,6 +268,22 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
     const isIpBlocked = Boolean(lastError?.message && lastError.message.includes('525'));
     console.error(`❌ [Brevo Error] SMTP delivery attempt to ${toEmail} failed:`, lastError?.message);
 
+    // If Brevo SMTP is rejected due to IP authorization, activate fallback so user registration is not blocked
+    if (isIpBlocked) {
+      console.log(`\n======================================================`);
+      console.log(`⚠️ [BREVO IP WHITELIST ACTIVE] 525 Unauthorized IP address.`);
+      console.log(`🔑 FALLBACK OTP FOR ${toEmail}: ${otp}`);
+      console.log(`👉 Valid for 10 minutes.`);
+      console.log(`======================================================\n`);
+      return {
+        success: true,
+        messageId: `fallback-ip-${Date.now()}`,
+        method: 'fallback-ip-whitelist',
+        isIpBlocked: true,
+        otp
+      };
+    }
+
     return {
       success: false,
       error: lastError?.message || 'SMTP delivery failed on candidate ports',

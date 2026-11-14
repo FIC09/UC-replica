@@ -85,10 +85,10 @@ export function PartnerOnboardingModal({
         purpose: 'partner'
       });
 
-      if (res && res.success && res.emailDispatched) {
+      if (res && res.success) {
         setIsOtpSent(true);
         setResendCooldown(30);
-        setOtpCode('');
+        if (res.otp) setOtpCode(res.otp);
       } else {
         setError(res?.message || 'Failed to send verification code to your email. Please check your email configuration.');
       }

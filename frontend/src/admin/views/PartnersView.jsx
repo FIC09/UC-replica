@@ -234,12 +234,25 @@ export function PartnersView({ onShowToast, onNavigate }) {
     if (!window.confirm(`Are you sure you want to permanently delete partner agency "${selectedPartner?.businessName || partnerId}"? This will deregister the agency franchise.`)) return;
     adminClient.deletePartner(partnerId)
       .then(() => {
-        onShowToast && onShowToast('✓ Agency partner franchise deleted successfully');
+        onShowToast && onShowToast('✓ Agency partner franchise moved to Deleted section');
         setSelectedPartner(null);
         fetchPartnersList();
       })
       .catch(err => {
         onShowToast && onShowToast(`Error deleting partner: ${err.message}`);
+      });
+  }
+
+  // Handle Partner Restoration
+  function handleRestorePartner(partnerId) {
+    adminClient.restorePartner(partnerId)
+      .then(() => {
+        onShowToast && onShowToast('✓ Partner agency franchise restored successfully to Active list');
+        setSelectedPartner(null);
+        fetchPartnersList();
+      })
+      .catch(err => {
+        onShowToast && onShowToast(`Error restoring partner: ${err.message}`);
       });
   }
 
@@ -381,6 +394,7 @@ export function PartnersView({ onShowToast, onNavigate }) {
             <option value="Active">Active Franchisees</option>
             <option value="Pending Review">Pending Applications</option>
             <option value="Suspended">Suspended</option>
+            <option value="Deleted">Deleted Agencies</option>
           </select>
 
           <select
@@ -781,26 +795,49 @@ export function PartnersView({ onShowToast, onNavigate }) {
                   <Lock size={14} /> Configure Settlement Mode
                 </button>
 
-                <button
-                  onClick={() => handleDeletePartner(selectedPartner.id)}
-                  style={{
-                    flex: '1 1 auto',
-                    padding: '8px 14px',
-                    borderRadius: 6,
-                    border: '1px solid #FECACA',
-                    backgroundColor: '#FEF2F2',
-                    color: '#DC2626',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6
-                  }}
-                >
-                  <Trash2 size={14} /> Delete Agency
-                </button>
+                {(selectedPartner.isDeleted || (selectedPartner.status || '').toLowerCase() === 'deleted') ? (
+                  <button
+                    onClick={() => handleRestorePartner(selectedPartner.id)}
+                    style={{
+                      flex: '1 1 auto',
+                      padding: '8px 14px',
+                      borderRadius: 6,
+                      border: '1px solid #A7F3D0',
+                      backgroundColor: '#ECFDF5',
+                      color: '#059669',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <RotateCcw size={14} /> Restore Agency
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleDeletePartner(selectedPartner.id)}
+                    style={{
+                      flex: '1 1 auto',
+                      padding: '8px 14px',
+                      borderRadius: 6,
+                      border: '1px solid #FECACA',
+                      backgroundColor: '#FEF2F2',
+                      color: '#DC2626',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <Trash2 size={14} /> Delete Agency
+                  </button>
+                )}
               </div>
 
               {/* TAB 1: PROFILE */}

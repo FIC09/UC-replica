@@ -63,6 +63,7 @@ export async function getPartners(req, res) {
       },
       linkedProfessionals: p.linkedProfessionals || [],
       internalNotes: p.internalNotes || [],
+      isDeleted: p.isDeleted || false,
       status: p.status || 'Pending Review',
       statusReason: p.statusReason || '',
       statusHistory: p.statusHistory || [],
@@ -83,9 +84,16 @@ export async function getPartners(req, res) {
           (p.id || '').toLowerCase().includes(q);
         if (!matches) return false;
       }
-      if (status !== 'ALL') {
-        const matchStatus = (status === 'Active' || status === 'Approved') ? ['Active', 'Approved'] : [status];
-        if (!matchStatus.includes(p.status)) return false;
+      // Soft Delete & Status Filtering
+      const isDeletedPartner = Boolean(p.isDeleted || (p.status || '').toLowerCase() === 'deleted');
+      if (status.toLowerCase() === 'deleted') {
+        if (!isDeletedPartner) return false;
+      } else {
+        if (isDeletedPartner) return false;
+        if (status !== 'ALL') {
+          const matchStatus = (status === 'Active' || status === 'Approved') ? ['Active', 'Approved'] : [status];
+          if (!matchStatus.includes(p.status)) return false;
+        }
       }
       if (city !== 'ALL' && (p.city || '').toLowerCase() !== city.toLowerCase()) return false;
       return true;
@@ -316,18 +324,65 @@ export async function updatePartnerStatus(req, res) {
   }
 }
 
-// 5. Delete Partner from MongoDB
+// 5. Delete Partner (Soft Delete with Permanent Purge Option)
 export async function deletePartner(req, res) {
   try {
     const { id } = req.params;
+    const { permanent } = req.query;
     const isMongoId = id?.match(/^[0-9a-fA-F]{24}$/);
-    const deleted = await PartnerApplication.findOneAndDelete(isMongoId ? { $or: [{ id }, { _id: id }] } : { id });
-    if (!deleted) {
+    const query = isMongoId ? { $or: [{ id }, { _id: id }] } : { id };
+
+    if (permanent === 'true') {
+      const deleted = await PartnerApplication.findOneAndDelete(query);
+      if (!deleted) {
+        return res.status(404).json({ success: false, error: `Partner #${id} not found.` });
+      }
+      return res.json({
+        success: true,
+        message: `Partner agency #${id} deleted permanently from database.`
+      });
+    }
+
+    // Default: Soft Delete to preserve data and allow viewing in Deleted filter
+    const updated = await PartnerApplication.findOneAndUpdate(
+      query,
+      { $set: { isDeleted: true, status: 'Deleted', deletedAt: new Date() } },
+      { new: true }
+    );
+    if (!updated) {
       return res.status(404).json({ success: false, error: `Partner #${id} not found.` });
     }
+
     return res.json({
       success: true,
-      message: `Partner agency #${id} deleted permanently from database.`
+      message: `Partner agency #${id} moved to deleted records (soft-deleted).`,
+      partner: updated
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// 5B. Restore Soft-Deleted Partner
+export async function restorePartner(req, res) {
+  try {
+    const { id } = req.params;
+    const isMongoId = id?.match(/^[0-9a-fA-F]{24}$/);
+    const query = isMongoId ? { $or: [{ id }, { _id: id }] } : { id };
+
+    const updated = await PartnerApplication.findOneAndUpdate(
+      query,
+      { $set: { isDeleted: false, status: 'Active', deletedAt: null } },
+      { new: true }
+    );
+    if (!updated) {
+      return res.status(404).json({ success: false, error: `Partner #${id} not found.` });
+    }
+
+    return res.json({
+      success: true,
+      message: `Partner agency #${id} restored successfully to Active status.`,
+      partner: updated
     });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });

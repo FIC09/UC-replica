@@ -59,6 +59,7 @@ import {
   switchAssignmentMode,
   getAssignmentManagementStats,
   deleteBooking,
+  restoreBooking,
   updateBookingDetails
 } from '../controllers/adminBookingController.js';
 
@@ -92,6 +93,7 @@ import {
   createPartner,
   updatePartnerStatus,
   deletePartner,
+  restorePartner,
   verifyPartnerDocument,
   updateSettlementMode,
   addPartnerNote
@@ -198,6 +200,7 @@ router.post('/bookings/:id/notes', requireAdminAuth, requirePermission('bookings
 router.post('/bookings/:id/refund', requireAdminAuth, requirePermission('refunds', 'refund'), initiateBookingRefund);
 router.get('/bookings/:id/invoice', requireAdminAuth, requirePermission('bookings', 'view'), getBookingInvoice);
 router.delete('/bookings/:id', requireAdminAuth, requirePermission('bookings', 'edit'), deleteBooking);
+router.post('/bookings/:id/restore', requireAdminAuth, requirePermission('bookings', 'edit'), restoreBooking);
 router.put('/bookings/:id', requireAdminAuth, requirePermission('bookings', 'edit'), updateBookingDetails);
 
 // ==========================================
@@ -238,6 +241,7 @@ router.get('/partners/:id', requireAdminAuth, requirePermission('partners', 'vie
 router.post('/partners', requireAdminAuth, requirePermission('partners', 'create'), createPartner);
 router.put('/partners/:id/status', requireAdminAuth, requirePermission('partners', 'approve'), updatePartnerStatus);
 router.delete('/partners/:id', requireAdminAuth, requirePermission('partners', 'suspend'), deletePartner);
+router.post('/partners/:id/restore', requireAdminAuth, requirePermission('partners', 'suspend'), restorePartner);
 router.put('/partners/:id/verify-document', requireAdminAuth, requirePermission('partners', 'approve'), verifyPartnerDocument);
 router.put('/partners/:id/settlement-mode', requireAdminAuth, requirePermission('payouts', 'edit'), updateSettlementMode);
 router.post('/partners/:id/notes', requireAdminAuth, requirePermission('partners', 'edit'), addPartnerNote);

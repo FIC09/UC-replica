@@ -273,15 +273,20 @@ export function ReportsView({ onShowToast }) {
       </div>
 
       {/* Sub-Section Navigation Tabs */}
-      <div style={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        border: '1px solid #E2E8F0',
-        padding: '6px 12px',
-        display: 'flex',
-        gap: 8,
-        overflowX: 'auto'
-      }}>
+      <div 
+        className="hide-scrollbar"
+        style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 12,
+          border: '1px solid #E2E8F0',
+          padding: '6px 12px',
+          display: 'flex',
+          gap: 8,
+          overflowX: 'auto',
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none'
+        }}
+      >
         {[
           { id: 'financials', label: 'Financials & Collections', icon: DollarSign },
           { id: 'professionals', label: 'Technician Fleet Metrics', icon: HardHat },

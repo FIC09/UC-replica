@@ -94,8 +94,14 @@ export async function getBookings(req, res) {
         if (!matches) return false;
       }
 
-      // Status
-      if (status !== 'ALL' && (b.status || '').toLowerCase() !== status.toLowerCase()) return false;
+      // Status & Soft Delete Separation
+      const isDeletedBooking = Boolean(b.isDeleted || (b.status || '').toLowerCase() === 'deleted');
+      if (status.toLowerCase() === 'deleted') {
+        if (!isDeletedBooking) return false;
+      } else {
+        if (isDeletedBooking) return false;
+        if (status !== 'ALL' && (b.status || '').toLowerCase() !== status.toLowerCase()) return false;
+      }
 
       // Payment Status
       if (paymentStatus !== 'ALL' && (b.paymentStatus || '').toLowerCase() !== paymentStatus.toLowerCase()) return false;
@@ -1319,10 +1325,11 @@ export async function getAssignmentManagementStats(req, res) {
   }
 }
 
-// 12. Delete Booking Permanently from Real Database
+// 12. Delete Booking (Soft Delete with Permanent Purge Option)
 export async function deleteBooking(req, res) {
   try {
     const { id } = req.params;
+    const { permanent } = req.query;
     const cleanId = String(id).replace(/^#/, '');
     const query = [
       { id: cleanId },
@@ -1333,28 +1340,34 @@ export async function deleteBooking(req, res) {
     if (mongoose.isValidObjectId(id)) {
       query.push({ _id: id });
     }
-    const deleted = await Booking.findOneAndDelete({ $or: query });
 
-    try {
-      const { inMemoryBookings } = await import('../routes/bookingRoutes.js');
+    if (permanent === 'true') {
+      await Booking.findOneAndDelete({ $or: query });
       if (inMemoryBookings) {
         inMemoryBookings.delete(cleanId);
         inMemoryBookings.delete(`#${cleanId}`);
         inMemoryBookings.delete(id);
       }
-    } catch (e) {}
-
-    // Delete associated live tracking sessions
-    try {
-      await TrackingSession.deleteMany({
-        $or: [
-          { bookingId: cleanId },
-          { bookingId: `#${cleanId}` },
-          { bookingReference: cleanId },
-          { bookingReference: `#${cleanId}` }
-        ]
+      return res.json({
+        success: true,
+        message: `Booking #${cleanId} deleted permanently from database.`,
+        deletedId: cleanId
       });
-    } catch (e) {}
+    }
+
+    // Default: Soft Delete to preserve audit and allow viewing in Deleted filter
+    const updated = await Booking.findOneAndUpdate(
+      { $or: query },
+      { $set: { isDeleted: true, status: 'Deleted', deletedAt: new Date() } },
+      { new: true }
+    );
+
+    if (inMemoryBookings) {
+      const mem = inMemoryBookings.get(cleanId) || inMemoryBookings.get(`#${cleanId}`) || inMemoryBookings.get(id);
+      if (mem) {
+        inMemoryBookings.set(cleanId, { ...mem, isDeleted: true, status: 'Deleted', deletedAt: new Date() });
+      }
+    }
 
     // Emit real-time synchronization events
     try {
@@ -1367,11 +1380,59 @@ export async function deleteBooking(req, res) {
 
     return res.json({
       success: true,
-      message: `Booking #${cleanId} deleted permanently from database.`,
-      deletedId: cleanId
+      message: `Booking #${cleanId} moved to deleted records (soft-deleted).`,
+      deletedId: cleanId,
+      booking: updated
     });
   } catch (err) {
     console.error('deleteBooking error:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}
+
+// 13. Restore Soft-Deleted Booking
+export async function restoreBooking(req, res) {
+  try {
+    const { id } = req.params;
+    const cleanId = String(id).replace(/^#/, '');
+    const query = [
+      { id: cleanId },
+      { id: `#${cleanId}` },
+      { bookingReference: cleanId },
+      { bookingReference: `#${cleanId}` }
+    ];
+    if (mongoose.isValidObjectId(id)) {
+      query.push({ _id: id });
+    }
+
+    const updated = await Booking.findOneAndUpdate(
+      { $or: query },
+      { $set: { isDeleted: false, status: 'Confirmed', deletedAt: null } },
+      { new: true }
+    );
+
+    if (inMemoryBookings) {
+      const mem = inMemoryBookings.get(cleanId) || inMemoryBookings.get(`#${cleanId}`) || inMemoryBookings.get(id);
+      if (mem) {
+        inMemoryBookings.set(cleanId, { ...mem, isDeleted: false, status: 'Confirmed', deletedAt: null });
+      }
+    }
+
+    try {
+      emitEvent('BOOKING_UPDATED', {
+        entityId: cleanId,
+        room: 'admin:operations',
+        payload: { bookingId: cleanId, status: 'Confirmed' }
+      });
+    } catch (e) {}
+
+    return res.json({
+      success: true,
+      message: `Booking #${cleanId} restored successfully to Confirmed status.`,
+      booking: updated
+    });
+  } catch (err) {
+    console.error('restoreBooking error:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 }

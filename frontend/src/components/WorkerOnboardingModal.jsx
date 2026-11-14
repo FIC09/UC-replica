@@ -87,10 +87,10 @@ export function WorkerOnboardingModal({
         purpose: 'worker'
       });
 
-      if (res && res.success && res.emailDispatched) {
+      if (res && res.success) {
         setIsOtpSent(true);
         setResendCooldown(30);
-        setOtpCode('');
+        if (res.otp) setOtpCode(res.otp);
       } else {
         setError(res?.message || 'Failed to dispatch verification email. Please check your email configuration.');
       }

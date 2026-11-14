@@ -360,20 +360,6 @@ export function AvailabilityView({ profile, onToggleOnline, showToast }) {
               ))}
             </div>
           </div>
-
-          {/* Operational Service Areas */}
-          <div style={{ background: '#ffffff', borderRadius: 16, padding: '22px 24px', border: '1px solid #e2e8f0', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 10px 0' }}>
-              📍 Operational Service Areas
-            </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {serviceAreas.map((area, idx) => (
-                <span key={idx} style={{ background: '#eff6ff', color: '#1d4ed8', padding: '4px 10px', borderRadius: 14, fontSize: 12, fontWeight: 600 }}>
-                  📍 {area}
-                </span>
-              ))}
-            </div>
-          </div>
         </div>
       </div>
 

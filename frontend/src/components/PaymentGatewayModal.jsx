@@ -1424,9 +1424,10 @@ export function PaymentGatewayModal({
                   </label>
                   <input
                     type="text"
+                    maxLength={20}
                     value={nbUserId}
-                    onChange={(e) => setNbUserId(e.target.value)}
-                    placeholder="Enter Customer ID / User ID"
+                    onChange={(e) => setNbUserId(e.target.value.slice(0, 20))}
+                    placeholder="Enter Customer ID / User ID (Max 20 chars)"
                     style={{
                       width: '100%',
                       boxSizing: 'border-box',
@@ -1446,9 +1447,10 @@ export function PaymentGatewayModal({
                   </label>
                   <input
                     type="password"
+                    maxLength={24}
                     value={nbPassword}
-                    onChange={(e) => setNbPassword(e.target.value)}
-                    placeholder="Enter password"
+                    onChange={(e) => setNbPassword(e.target.value.slice(0, 24))}
+                    placeholder="Enter password (Max 24 chars)"
                     style={{
                       width: '100%',
                       boxSizing: 'border-box',
