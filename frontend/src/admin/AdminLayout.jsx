@@ -76,10 +76,16 @@ export function AdminLayout({
     function refreshSupportBadge() {
       adminClient.getSupportTickets()
         .then(res => {
-          const count = typeof res.openCount === 'number'
-            ? res.openCount
-            : (res.tickets || []).filter(t => t.status !== 'Resolved' && t.status !== 'Closed' && t.status !== 'RESOLVED' && t.status !== 'CLOSED').length;
-          setSupportBadge(count > 0 ? String(count) : null);
+          const tickets = res.tickets || [];
+          const openTickets = tickets.filter(t => t.status !== 'Resolved' && t.status !== 'Closed' && t.status !== 'RESOLVED' && t.status !== 'CLOSED');
+          const hasSos = openTickets.some(t => t.priority === 'Critical' || t.category === 'SOS Emergency' || t.issueCategory === 'SOS Emergency');
+          const count = typeof res.openCount === 'number' && res.openCount > 0 ? res.openCount : openTickets.length;
+
+          if (hasSos) {
+            setSupportBadge('🚨 SOS');
+          } else {
+            setSupportBadge(count > 0 ? String(count) : null);
+          }
         })
         .catch(() => setSupportBadge(null));
     }

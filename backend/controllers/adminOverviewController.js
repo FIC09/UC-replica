@@ -5,6 +5,7 @@ import { WorkerApplication } from '../models/WorkerApplication.js';
 import { PartnerApplication } from '../models/PartnerApplication.js';
 import { Service } from '../models/Service.js';
 import { AdminSetting } from '../models/AdminSetting.js';
+import { SupportTicket } from '../models/SupportTicket.js';
 import { inMemoryBookings } from '../routes/bookingRoutes.js';
 // Helper to safely calculate percentage comparison without zero denominator division error
 function calculatePercentageChange(current, previous) {
@@ -212,7 +213,25 @@ export async function getOverviewDashboardMetrics(req, res) {
     const availableProfessionals = workerApps.filter(w => (w.status === 'Approved' || w.status === 'Active') && (w.dispatchState === 'Available' || !w.dispatchState)).length;
 
     // Support Tickets & Rating
-    const openSupportTickets = 0;
+    let openSupportTickets = 0;
+    let activeSosAlerts = [];
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        openSupportTickets = await SupportTicket.countDocuments({
+          status: { $in: ['Open', 'In Progress'] }
+        });
+        activeSosAlerts = await SupportTicket.find({
+          $or: [
+            { priority: 'Critical' },
+            { category: { $in: ['safety_incident', 'SOS Emergency'] } },
+            { issueCategory: { $in: ['Safety Incident Reporting', 'SOS Emergency'] } }
+          ],
+          status: { $in: ['Open', 'In Progress'] }
+        }).sort({ createdAt: -1 }).limit(3).lean();
+      } catch (stErr) {
+        console.error('Error fetching support tickets count for overview:', stErr.message);
+      }
+    }
     const ratedBookings = periodBookings.filter(b => b.rating && b.rating > 0);
     const averageRating = ratedBookings.length > 0
       ? (ratedBookings.reduce((sum, b) => sum + b.rating, 0) / ratedBookings.length).toFixed(2)
@@ -367,6 +386,21 @@ export async function getOverviewDashboardMetrics(req, res) {
 
     // 9. Operational Alerts (Dynamically generated from real numbers)
     const operationalAlerts = [];
+
+    // Critical live SOS Emergency notifications from on-duty technicians
+    if (activeSosAlerts && activeSosAlerts.length > 0) {
+      activeSosAlerts.forEach(sos => {
+        operationalAlerts.unshift({
+          id: `ALT-SOS-${sos._id}`,
+          severity: 'critical',
+          title: `🚨 CRITICAL SOS EMERGENCY: Technician ${sos.callerName || 'Worker'}`,
+          message: `${sos.serviceTitle || sos.subject || 'Worker triggered live SOS safety alarm and broadcast GPS coordinates.'} Immediate emergency dispatch intervention required.`,
+          link: '/admin/support',
+          actionText: 'Open Incident Desk →'
+        });
+      });
+    }
+
     if (unassignedBookings > 0) {
       operationalAlerts.push({
         id: 'ALT-UNASSIGNED',

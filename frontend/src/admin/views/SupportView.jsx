@@ -569,7 +569,16 @@ export function SupportView({ onShowToast }) {
                       </td>
 
                       <td style={{ padding: '14px 18px' }}>
-                        <div style={{ fontWeight: 600, color: '#334155' }}>{t.category}</div>
+                        <div style={{ 
+                          fontWeight: 700, 
+                          color: (t.category === 'SOS Emergency' || t.priority === 'Critical') ? '#DC2626' : '#334155',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6
+                        }}>
+                          {(t.category === 'SOS Emergency' || t.priority === 'Critical') && <span>🚨</span>}
+                          <span>{t.category}</span>
+                        </div>
                         <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>
                           {(t.conversation || t.messages || []).length} messages logged
                         </div>
@@ -579,14 +588,15 @@ export function SupportView({ onShowToast }) {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           <span style={{
                             fontSize: 10.5,
-                            fontWeight: 700,
+                            fontWeight: 800,
                             padding: '2px 8px',
                             borderRadius: 9999,
                             width: 'fit-content',
-                            backgroundColor: t.priority === 'Urgent' || t.priority === 'High' ? '#FEE2E2' : t.priority === 'Medium' ? '#FEF3C7' : '#F1F5F9',
-                            color: t.priority === 'Urgent' || t.priority === 'High' ? '#DC2626' : t.priority === 'Medium' ? '#92400E' : '#475569'
+                            backgroundColor: t.priority === 'Critical' ? '#FEF2F2' : (t.priority === 'Urgent' || t.priority === 'High') ? '#FEE2E2' : t.priority === 'Medium' ? '#FEF3C7' : '#F1F5F9',
+                            color: t.priority === 'Critical' ? '#DC2626' : (t.priority === 'Urgent' || t.priority === 'High') ? '#DC2626' : t.priority === 'Medium' ? '#92400E' : '#475569',
+                            border: t.priority === 'Critical' ? '1px solid #FCA5A5' : 'none'
                           }}>
-                            {t.priority}
+                            {t.priority === 'Critical' ? '🚨 Critical' : t.priority}
                           </span>
 
                           <span style={{

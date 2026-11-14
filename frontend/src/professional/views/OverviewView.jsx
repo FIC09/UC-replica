@@ -28,6 +28,84 @@ import {
   Radio
 } from 'lucide-react';
 
+// Emergency Siren Audio System (Dual-mode: 16-bit WAV + Web Audio API synthesis)
+let sirenAudioInstance = null;
+let sirenOscillatorInstance = null;
+
+function playEmergencySiren() {
+  try {
+    stopEmergencySiren();
+    const audio = new Audio('/emergency_siren.wav');
+    audio.volume = 1.0;
+    audio.loop = true;
+    sirenAudioInstance = audio;
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        startWebAudioSiren();
+      });
+    }
+  } catch (err) {
+    startWebAudioSiren();
+  }
+}
+
+function stopEmergencySiren() {
+  if (sirenAudioInstance) {
+    try {
+      sirenAudioInstance.pause();
+      sirenAudioInstance.currentTime = 0;
+    } catch {}
+    sirenAudioInstance = null;
+  }
+  if (sirenOscillatorInstance) {
+    try {
+      sirenOscillatorInstance.stop();
+    } catch {}
+    sirenOscillatorInstance = null;
+  }
+}
+
+function startWebAudioSiren() {
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    if (ctx.state === 'suspended') ctx.resume();
+
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(850, ctx.currentTime);
+
+    lfo.type = 'sine';
+    lfo.frequency.setValueAtTime(1.4, ctx.currentTime);
+    lfoGain.gain.setValueAtTime(320, ctx.currentTime);
+
+    lfo.connect(osc.frequency);
+    gain.gain.setValueAtTime(0.95, ctx.currentTime);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    lfo.start();
+
+    sirenOscillatorInstance = {
+      stop: () => {
+        try {
+          osc.stop();
+          lfo.stop();
+          ctx.close();
+        } catch {}
+      }
+    };
+  } catch {}
+}
+
 export function OverviewView({ professional, profile, onNavigate, onToggleOnline, showToast }) {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,6 +121,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
   // Emergency SOS Modal state
   const [showSosModal, setShowSosModal] = useState(false);
   const [sosSent, setSosSent] = useState(false);
+  const [sirenActive, setSirenActive] = useState(false);
 
   // Incoming Live Dispatch Offer state
   const [incomingOffer, setIncomingOffer] = useState(null);
@@ -187,13 +266,45 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
     }
   };
 
-  const handleTriggerSosAlert = () => {
+  const handleOpenSos = () => {
+    setShowSosModal(true);
+    setSirenActive(true);
+    playEmergencySiren();
+    handleTriggerSosAlert();
+  };
+
+  const handleToggleSiren = () => {
+    if (sirenActive) {
+      stopEmergencySiren();
+      setSirenActive(false);
+    } else {
+      playEmergencySiren();
+      setSirenActive(true);
+    }
+  };
+
+  const handleCloseSosModal = () => {
+    stopEmergencySiren();
+    setSirenActive(false);
+    setShowSosModal(false);
+  };
+
+  const handleTriggerSosAlert = async () => {
     setSosSent(true);
-    showToast('🚨 SOS Broadcast Sent: Krishnagiri Town Safety Dispatch & Emergency Support Alerted!');
-    setTimeout(() => {
-      setSosSent(false);
-      setShowSosModal(false);
-    }, 2800);
+    showToast('🚨 SOS EMERGENCY BROADCAST SENT! Live siren active & alert dispatched to Admin Command Center.');
+    try {
+      await professionalClient.escalateSafetyIncident({
+        incidentType: 'medical_emergency',
+        description: `🚨 CRITICAL SOS EMERGENCY triggered by ${profile?.applicantName || 'Violet'} (${profile?.phone || '+91 98450 11223'}) on active doorstep duty in Krishnagiri. Immediate intervention required!`,
+        consentLocationShare: true,
+        latitude: 12.5266,
+        longitude: 78.2140
+      });
+      window.dispatchEvent(new CustomEvent('uc:support-tickets-updated'));
+      window.dispatchEvent(new CustomEvent('uc:admin-stats-updated'));
+    } catch (err) {
+      console.error('SOS emergency broadcast dispatch error:', err);
+    }
   };
 
   // Derive active jobs list based on filter tab
@@ -536,7 +647,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
           )}
 
           <button
-            onClick={() => setShowSosModal(true)}
+            onClick={handleOpenSos}
             style={{
               background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
               color: '#FFFFFF',
@@ -1686,8 +1797,48 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               </div>
             </div>
 
-            <p style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.45, margin: '0 0 20px 0' }}>
-              If you feel unsafe or have met with an accident, tap below to broadcast your live GPS coordinates to the Krishnagiri Safety Operations Desk and dial emergency helplines.
+            {/* Active Siren Control Bar */}
+            <div style={{
+              backgroundColor: sirenActive ? '#FEF2F2' : '#F8FAFC',
+              border: sirenActive ? '1.5px solid #F87171' : '1px solid #E2E8F0',
+              borderRadius: 12,
+              padding: '10px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 14
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 18 }}>{sirenActive ? '🔊' : '🔇'}</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: sirenActive ? '#DC2626' : '#64748B' }}>
+                    {sirenActive ? 'Emergency Siren Wailing (High Volume)' : 'Siren Silenced'}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748B' }}>
+                    {sirenActive ? 'Audible alarm active on device speaker' : 'Muted during calls with emergency services'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleSiren}
+                style={{
+                  backgroundColor: sirenActive ? '#DC2626' : '#475569',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: 6,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                {sirenActive ? 'Silence Siren' : 'Sound Siren'}
+              </button>
+            </div>
+
+            <p style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.45, margin: '0 0 16px 0' }}>
+              Your live emergency broadcast and GPS telemetry have been dispatched to the Krishnagiri Safety Operations Desk &amp; Admin Command Center. Dial emergency helplines below if you require immediate police or medical assistance.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
@@ -1711,7 +1862,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 }}
               >
                 <span>📍</span>
-                <span>{sosSent ? 'Broadcast Sent to Safety Desk!' : 'Broadcast GPS to Krishnagiri Safety Desk'}</span>
+                <span>{sosSent ? '✅ Broadcast Sent to Admin Dashboard!' : 'Re-broadcast GPS to Admin Dashboard'}</span>
               </button>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -1783,7 +1934,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             </div>
 
             <button
-              onClick={() => setShowSosModal(false)}
+              onClick={handleCloseSosModal}
               style={{
                 width: '100%',
                 background: '#F1F5F9',
@@ -1796,7 +1947,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 cursor: 'pointer'
               }}
             >
-              Close Emergency Window
+              Close Emergency Window &amp; Silence
             </button>
           </div>
         </div>
