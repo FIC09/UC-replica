@@ -177,14 +177,14 @@ export default function LoginAuthModal({
         role: selectedRole
       });
 
-      setExpectedOtp(response.otp);
+      setOtp('');
       setStep('otp');
       setCooldown(30);
-      setStatusMessage(`✅ OTP sent! Please check your email inbox: ${cleanEmail}`);
+      setStatusMessage(`✅ OTP sent! Please check your email inbox and spam folder: ${cleanEmail}`);
 
       Alert.alert(
         'Verification Code Sent',
-        `A 6-digit verification code has been dispatched to ${cleanEmail}.\n\n(Dev Hint: ${response.otp})`
+        `A 6-digit verification code has been dispatched to ${cleanEmail}.\n\nPlease check your email inbox and spam folder.`
       );
     } catch (err) {
       Alert.alert('Dispatch Error', err.message || 'Failed to dispatch verification email. Please check your connection.');
@@ -195,7 +195,8 @@ export default function LoginAuthModal({
 
   // 3. VERIFY OTP & COMPLETE REGISTRATION
   const handleVerifyOtp = async () => {
-    if (!otp.trim()) {
+    const cleanOtp = otp.trim();
+    if (!cleanOtp || cleanOtp.length !== 6) {
       Alert.alert('OTP Required', 'Please enter the 6-digit verification code sent to your email.');
       return;
     }
@@ -204,8 +205,7 @@ export default function LoginAuthModal({
     try {
       const result = await mobileApi.verifyEmailOtp({
         email: email.trim(),
-        enteredOtp: otp.trim(),
-        expectedOtp,
+        enteredOtp: cleanOtp,
         role: selectedRole,
         name: name.trim() || 'User',
         phone: phone.trim(),
@@ -608,6 +608,9 @@ export default function LoginAuthModal({
             {step === 'otp' && (
               <View style={styles.formContainer}>
                 <Text style={styles.fieldLabel}>Enter 6-Digit Email OTP</Text>
+                <Text style={{ fontSize: 11.5, color: '#94A3B8', marginBottom: 10, lineHeight: 16 }}>
+                  A verification code has been dispatched to {email}. If not found in Primary, please check your Spam / Promotions folder.
+                </Text>
                 <TextInput
                   style={styles.otpBigInput}
                   placeholder="• • • • • •"
@@ -615,7 +618,7 @@ export default function LoginAuthModal({
                   keyboardType="number-pad"
                   maxLength={6}
                   value={otp}
-                  onChangeText={setOtp}
+                  onChangeText={(val) => setOtp((val || '').replace(/\D/g, '').slice(0, 6))}
                   autoFocus
                 />
 

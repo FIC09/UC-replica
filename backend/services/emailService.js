@@ -1,5 +1,10 @@
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config();
 
 const SMTP_HOST = (process.env.BREVO_SMTP_HOST || 'smtp-relay.brevo.com').trim();
@@ -16,7 +21,7 @@ export function getSenderEmail() {
   return 'forgeindiaconnectfic@gmail.com';
 }
 
-const FROM_NAME = (process.env.BREVO_SENDER_NAME || process.env.BREVO_FROM_NAME || 'urban').trim();
+const FROM_NAME = (process.env.BREVO_SENDER_NAME || process.env.BREVO_FROM_NAME || 'Forge India Connect').trim();
 
 function createBrevoTransporter(port = SMTP_PORT) {
   return nodemailer.createTransport({
@@ -268,19 +273,13 @@ export async function sendRegistrationOtpEmail(toEmail, toName, otp) {
     const isIpBlocked = Boolean(lastError?.message && lastError.message.includes('525'));
     console.error(`❌ [Brevo Error] SMTP delivery attempt to ${toEmail} failed:`, lastError?.message);
 
-    // If Brevo SMTP is rejected due to IP authorization, activate fallback so user registration is not blocked
+    // If Brevo SMTP is rejected due to IP authorization, report failure clearly
     if (isIpBlocked) {
-      console.log(`\n======================================================`);
-      console.log(`⚠️ [BREVO IP WHITELIST ACTIVE] 525 Unauthorized IP address.`);
-      console.log(`🔑 FALLBACK OTP FOR ${toEmail}: ${otp}`);
-      console.log(`👉 Valid for 10 minutes.`);
-      console.log(`======================================================\n`);
+      console.warn(`⚠️ [BREVO IP WHITELIST ACTIVE] 525 Unauthorized IP address.`);
       return {
-        success: true,
-        messageId: `fallback-ip-${Date.now()}`,
-        method: 'fallback-ip-whitelist',
-        isIpBlocked: true,
-        otp
+        success: false,
+        error: "Brevo SMTP connection rejected (525 Unauthorized IP). Please deactivate 'Block unauthorized IP addresses' in Brevo Dashboard > Settings > Security > Authorized IPs.",
+        isIpBlocked: true
       };
     }
 

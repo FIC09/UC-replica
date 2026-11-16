@@ -337,72 +337,64 @@ class MobileApiClient {
   // Real-time Email OTP Dispatch & Verification
   async sendEmailOtp({ email, name, role = 'customer', phone }) {
     const cleanEmail = (email || '').trim().toLowerCase();
-    const generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    let finalOtp = generatedOtp;
-    let message = '';
 
-    // 1. Dispatch via authoritative backend route (Brevo SMTP)
-    try {
-      const res = await this.request('/auth/send-registration-otp', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: cleanEmail,
-          name: name || (role === 'partner' ? 'Working Partner' : 'Customer'),
-          phone: phone || '+91 98201 44521',
-          purpose: role === 'partner' ? 'worker' : 'customer',
-          otp: generatedOtp
-        })
-      });
-      if (res) {
-        if (res.otp) finalOtp = res.otp;
-        message = res.message;
-      }
-    } catch (e) {
-      if (e.data && e.data.otp) finalOtp = e.data.otp;
-      message = e.message || message;
+    // Dispatch via authoritative backend route (Brevo SMTP) with adequate network timeout
+    const res = await this.request('/auth/send-registration-otp', {
+      method: 'POST',
+      timeout: 12000,
+      body: JSON.stringify({
+        email: cleanEmail,
+        name: name || (role === 'partner' ? 'Working Partner' : 'Customer'),
+        phone: phone || '+91 98201 44521',
+        purpose: role === 'partner' ? 'worker' : 'customer'
+      })
+    });
+
+    if (!res || !res.success) {
+      throw new Error(res?.message || 'Failed to dispatch verification email via Brevo.');
     }
 
     return {
       success: true,
-      otp: finalOtp,
       email: cleanEmail,
-      message: message || `A 6-digit verification code has been dispatched to ${cleanEmail}. Please check your inbox.`
+      message: res.message || `A 6-digit verification code has been dispatched to ${cleanEmail}. Please check your inbox and spam folder.`
     };
   }
 
-  async verifyEmailOtp({ email, enteredOtp, expectedOtp, role = 'customer', name, password }) {
+  async verifyEmailOtp({ email, enteredOtp, role = 'customer', name, phone, password }) {
     const cleanEmail = (email || '').trim().toLowerCase();
     const cleanEntered = (enteredOtp || '').toString().trim();
-    const cleanExpected = (expectedOtp || '').toString().trim();
 
-    const isMatched = (cleanEntered && cleanEntered === cleanExpected) || cleanEntered === '123456';
-
-    if (!isMatched) {
-      throw new Error('Invalid verification code. Please check your email and enter the 6-digit OTP.');
+    if (!cleanEntered || cleanEntered.length !== 6) {
+      throw new Error('Please enter the full 6-digit verification code sent to your email.');
     }
 
-    try {
-      await this.request('/auth/verify-registration-otp', {
-        method: 'POST',
-        body: JSON.stringify({
-          email: cleanEmail,
-          otp: cleanEntered,
-          password: password || 'password123',
-          name: name || (role === 'partner' ? 'Vikram Salvi' : 'Rahul Sharma'),
-          purpose: role === 'partner' ? 'worker' : 'customer'
-        })
-      });
-    } catch (_) {}
+    const res = await this.request('/auth/verify-registration-otp', {
+      method: 'POST',
+      timeout: 10000,
+      body: JSON.stringify({
+        email: cleanEmail,
+        otp: cleanEntered,
+        password: password || 'password123',
+        name: name || (role === 'partner' ? 'Working Partner' : 'Customer'),
+        phone: phone || '+91 98201 44521',
+        purpose: role === 'partner' ? 'worker' : 'customer',
+        role
+      })
+    });
 
+    if (!res || !res.success) {
+      throw new Error(res?.message || 'Invalid or expired verification code. Please check your email inbox.');
+    }
+
+    const returnedUser = res.user || {};
     const userProfile = {
-      id: role === 'partner' ? 'PRO-8841' : `CUST-${Date.now().toString().slice(-4)}`,
-      name: name || (role === 'partner' ? 'Vikram Salvi' : 'Rahul Sharma'),
+      id: returnedUser._id || returnedUser.id || (role === 'partner' ? 'PRO-8841' : `CUST-${Date.now().toString().slice(-4)}`),
+      name: returnedUser.name || name || (role === 'partner' ? 'Working Partner' : 'Customer'),
       email: cleanEmail,
-      password: password || 'password123',
-      role,
-      trade: role === 'partner' ? 'Master AC Specialist & Electrician' : undefined,
-      rating: role === 'partner' ? 4.94 : undefined,
-      token: `jwt-${Date.now()}`
+      phone: returnedUser.phone || phone || '',
+      role: returnedUser.role || role,
+      token: res.token || `jwt-${Date.now()}`
     };
 
     // Save into local credential store so future password logins work seamlessly
