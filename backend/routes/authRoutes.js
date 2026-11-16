@@ -738,12 +738,16 @@ router.post('/unified-login', async (req, res) => {
       const isPartnerPwdMatch = Boolean(partner.password && partner.password === password);
 
       if (isMasterPartnerPwd || isPartnerPwdMatch) {
-        const partnerSecret = process.env.PARTNER_JWT_SECRET || 'uc_partner_jwt_secret_key_2026';
+        const partnerSecret = process.env.JWT_SECRET || 'urban_company_jwt_secret_key_2026';
         const token = jwt.sign({
           partnerId: partner.id || 'PTR-90142',
+          id: partner.id || 'PTR-90142',
           staffId: 'STF-APX-01',
-          staffName: partner.ownerName || 'Business Owner',
-          role: 'Business Owner'
+          staffName: partner.ownerName || 'Sandeep Patil',
+          role: 'Business Owner',
+          email: partner.email || 'contact@apexhome.in',
+          businessName: partner.businessName || 'Apex Home Solutions LLP',
+          status: partner.status || 'Active'
         }, partnerSecret, { expiresIn: '7d' });
 
         return res.json({

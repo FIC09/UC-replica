@@ -107,7 +107,9 @@ class PartnerClient {
       });
 
       if (res.status === 401 && endpoint !== '/login') {
-        this.logout();
+        this.token = '';
+        sessionStorage.removeItem('uc_partner_token');
+        localStorage.removeItem('uc_partner_token');
       }
 
       const data = await res.json().catch(() => ({}));
@@ -125,9 +127,14 @@ class PartnerClient {
 
   // Auth & Account
   async login(credentials) {
+    const payload = {
+      emailOrPhone: credentials.emailOrPhone || credentials.identifier || credentials.email || credentials.phone || '',
+      identifier: credentials.identifier || credentials.emailOrPhone || credentials.email || credentials.phone || '',
+      password: credentials.password
+    };
     const data = await this.request('/login', {
       method: 'POST',
-      body: JSON.stringify(credentials)
+      body: JSON.stringify(payload)
     });
     if (data.success && data.token) {
       this.setAuth(data.token, data.partner, data.staff);

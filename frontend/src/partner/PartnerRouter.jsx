@@ -40,12 +40,12 @@ export function PartnerRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
 
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     const token = sessionStorage.getItem('uc_partner_token') || localStorage.getItem('uc_partner_token');
-    if (token && token !== 'simulated-partner-jwt-token') {
+    if (token) {
       return true;
     }
     try {
       const u = JSON.parse(localStorage.getItem('uc_user'));
-      if (u && u.role === 'partner' && u.token) {
+      if (u && (u.role === 'partner' || u.roleKey === 'partner')) {
         return true;
       }
     } catch {}

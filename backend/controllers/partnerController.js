@@ -551,16 +551,17 @@ const INITIAL_PARTNER_ACTIVITY_LOGS = JSON.parse(JSON.stringify(partnerActivityL
 
 export async function loginPartner(req, res) {
   try {
-    const { emailOrPhone, password } = req.body;
+    const rawInput = req.body.emailOrPhone || req.body.identifier || req.body.email || req.body.phone;
+    const { password } = req.body;
 
-    if (!emailOrPhone || !password) {
+    if (!rawInput || !password) {
       return res.status(400).json({
         success: false,
         error: 'Please provide both email/phone and password.'
       });
     }
 
-    const cleanInput = emailOrPhone.trim().toLowerCase();
+    const cleanInput = rawInput.trim().toLowerCase();
 
     // Check staff accounts first
     const staff = staffAccounts.find(s => 

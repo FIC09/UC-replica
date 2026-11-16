@@ -164,9 +164,10 @@ export function AuthModal({
           requesting_bank_changes: true
         }
       };
-      partnerClient.setAuth('simulated-partner-jwt-token', partnerData, staffData);
-      sessionStorage.setItem('uc_partner_token', 'simulated-partner-jwt-token');
-      localStorage.setItem('uc_partner_token', 'simulated-partner-jwt-token');
+      const partnerToken = userObj.token || partnerClient.token || 'simulated-partner-jwt-token';
+      partnerClient.setAuth(partnerToken, partnerData, staffData);
+      sessionStorage.setItem('uc_partner_token', partnerToken);
+      localStorage.setItem('uc_partner_token', partnerToken);
     } else if (role === 'professional') {
       const workerName = userObj.applicantName || userObj.name || 'Professional';
       const cleanName = workerName.trim();
@@ -398,6 +399,22 @@ export function AuthModal({
         }
       } catch (err) {
         console.warn('Pro quick login fallback:', err?.message || err);
+      }
+    } else if (roleKey === 'partner') {
+      try {
+        const partnerRes = await partnerClient.login({
+          emailOrPhone: preset.email,
+          password: preset.password
+        });
+        if (partnerRes?.success && partnerRes?.token) {
+          authenticatedUser.token = partnerRes.token;
+          if (partnerRes.partner) {
+            authenticatedUser.id = partnerRes.partner.id;
+            authenticatedUser.agencyName = partnerRes.partner.businessName;
+          }
+        }
+      } catch (err) {
+        console.warn('Partner quick login fallback:', err?.message || err);
       }
     }
 
