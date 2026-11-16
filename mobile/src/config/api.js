@@ -68,22 +68,14 @@ export function getMetroApiUrl() {
  * 3. Falls back to direct LAN IP
  */
 export function getBaseApiUrl() {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-  if (Platform.OS === 'web') {
-    if (typeof window !== 'undefined' && window.location && window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-      return `http://${window.location.hostname}:${LOCAL_PORT}/api`;
-    }
-    return `http://localhost:${LOCAL_PORT}/api`;
-  }
-  return LAN_API_URL;
+  return process.env.EXPO_PUBLIC_API_URL || RENDER_API_URL || 'https://uc-replica-dn4i.onrender.com/api';
 }
 
 /**
  * Returns prioritized list of candidate URLs for seamless failover.
  */
 export function getCandidateApiUrls() {
+  const renderUrl = RENDER_API_URL || 'https://uc-replica-dn4i.onrender.com/api';
   const directLocalhost = `http://localhost:${LOCAL_PORT}/api`;
   const direct127 = `http://127.0.0.1:${LOCAL_PORT}/api`;
   const lanUrl = LAN_API_URL;
@@ -92,12 +84,12 @@ export function getCandidateApiUrls() {
     : null;
 
   const candidates = [
+    renderUrl,
     webHostUrl,
     directLocalhost,
     direct127,
     lanUrl,
-    ANDROID_EMULATOR_API_URL,
-    RENDER_API_URL
+    ANDROID_EMULATOR_API_URL
   ];
   return Array.from(new Set(candidates.filter(Boolean)));
 }
