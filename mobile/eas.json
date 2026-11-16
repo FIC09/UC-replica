@@ -10,6 +10,13 @@
     },
     "preview": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://uc-replica-dn4i.onrender.com/api",
+        "EXPO_PUBLIC_BACKEND_URL": "https://uc-replica-dn4i.onrender.com",
+        "EXPO_PUBLIC_RENDER_API_URL": "https://uc-replica-dn4i.onrender.com/api",
+        "EXPO_PUBLIC_ANDROID_API_URL": "https://uc-replica-dn4i.onrender.com/api",
+        "EXPO_PUBLIC_LAN_API_URL": "https://uc-replica-dn4i.onrender.com/api"
+      },
       "android": {
         "buildType": "apk"
       },
@@ -19,6 +26,13 @@
     },
     "preview-apk": {
       "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://uc-replica-dn4i.onrender.com/api",
+        "EXPO_PUBLIC_BACKEND_URL": "https://uc-replica-dn4i.onrender.com",
+        "EXPO_PUBLIC_RENDER_API_URL": "https://uc-replica-dn4i.onrender.com/api",
+        "EXPO_PUBLIC_ANDROID_API_URL": "https://uc-replica-dn4i.onrender.com/api",
+        "EXPO_PUBLIC_LAN_API_URL": "https://uc-replica-dn4i.onrender.com/api"
+      },
       "android": {
         "buildType": "apk"
       }
@@ -31,6 +45,13 @@
     },
     "production": {
       "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://uc-replica-dn4i.onrender.com/api",
+        "EXPO_PUBLIC_BACKEND_URL": "https://uc-replica-dn4i.onrender.com",
+        "EXPO_PUBLIC_RENDER_API_URL": "https://uc-replica-dn4i.onrender.com/api",
+        "EXPO_PUBLIC_ANDROID_API_URL": "https://uc-replica-dn4i.onrender.com/api",
+        "EXPO_PUBLIC_LAN_API_URL": "https://uc-replica-dn4i.onrender.com/api"
+      },
       "android": {
         "buildType": "app-bundle"
       },
