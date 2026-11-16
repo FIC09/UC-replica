@@ -34,7 +34,7 @@ export const LOCAL_DEV_IP = resolveDevHostIp();
 export const LOCALHOST_API_URL = process.env.EXPO_PUBLIC_API_URL || `http://localhost:${LOCAL_PORT}/api`;
 export const ANDROID_EMULATOR_API_URL = process.env.EXPO_PUBLIC_ANDROID_API_URL || `http://10.0.2.2:${LOCAL_PORT}/api`;
 export const LAN_API_URL = process.env.EXPO_PUBLIC_LAN_API_URL || `http://${LOCAL_DEV_IP}:${LOCAL_PORT}/api`;
-export const RENDER_API_URL = process.env.EXPO_PUBLIC_RENDER_API_URL || 'https://uc-replica.onrender.com/api';
+export const RENDER_API_URL = process.env.EXPO_PUBLIC_RENDER_API_URL || 'https://uc-replica-dn4i.onrender.com/api';
 export const CLOUD_API_URL = process.env.EXPO_PUBLIC_CLOUD_API_URL || 'https://urban-rosy.vercel.app/api';
 
 /**
@@ -96,7 +96,8 @@ export function getCandidateApiUrls() {
     directLocalhost,
     direct127,
     lanUrl,
-    ANDROID_EMULATOR_API_URL
+    ANDROID_EMULATOR_API_URL,
+    RENDER_API_URL
   ];
   return Array.from(new Set(candidates.filter(Boolean)));
 }

@@ -555,7 +555,7 @@ export function SupportView({ showToast }) {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 4 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: m.sender === 'Professional' ? '#1d4ed8' : '#0f172a' }}>
-                    {m.sender} ({m.senderRole || 'User'})
+                    {m.sender === 'Super Admin' ? 'Admin' : m.sender} {m.senderRole && m.senderRole !== 'Super Admin' && m.senderRole !== 'User' ? `(${m.senderRole})` : ''}
                   </span>
                   <span style={{ fontSize: 11, color: '#94a3b8' }}>
                     {new Date(m.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

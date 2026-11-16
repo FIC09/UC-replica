@@ -45,7 +45,10 @@ async function request(endpoint, options = {}) {
     clearTimeout(timeoutId);
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(data.message || `Request failed with status ${res.status}`);
+      const serverMessage = data.error || data.message || `Request failed with status ${res.status}`;
+      const err = new Error(serverMessage);
+      err.response = { status: res.status, data };
+      throw err;
     }
     return data;
   } catch (error) {

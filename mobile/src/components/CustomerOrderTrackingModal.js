@@ -40,9 +40,9 @@ export default function CustomerOrderTrackingModal({
 
   useEffect(() => {
     if (booking) {
-      setLiveBooking((prev) => ({ ...(prev || {}), ...booking }));
+      setLiveBooking(booking);
     }
-  }, [booking?.id, booking?.stage, booking?.status, booking?.assignedPartner]);
+  }, [booking?.id, booking?.stage, booking?.status, booking?.assignedPartner, booking?.service]);
 
   const effectiveBooking = liveBooking || booking;
   const rawId = effectiveBooking?.id || effectiveBooking?.bookingRef || effectiveBooking?.bookingReference || '9410';

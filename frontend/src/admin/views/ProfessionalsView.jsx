@@ -445,25 +445,6 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <button
-            onClick={() => setIsCreateOpen(true)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              backgroundColor: '#6E42E5',
-              color: '#FFFFFF',
-              border: 'none',
-              borderRadius: 8,
-              padding: '9px 16px',
-              fontSize: 13,
-              fontWeight: 700,
-              cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(110, 66, 229, 0.25)'
-            }}
-          >
-            <Plus size={16} /> Add Professional
-          </button>
-          <button
             onClick={fetchProfessionalsList}
             title="Refresh Directory"
             style={{

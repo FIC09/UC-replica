@@ -357,7 +357,7 @@ export function SupportView({ showToast, staff }) {
                 <div style={{ background: '#f8fafc', padding: 12, borderRadius: 8, fontSize: 13, border: '1px solid #f1f5f9' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 2 }}>
                     <strong style={{ color: '#0f172a', fontSize: 12 }}>
-                      {tck.messages[tck.messages.length - 1].sender}
+                      {tck.messages[tck.messages.length - 1].sender === 'Super Admin' ? 'Admin' : tck.messages[tck.messages.length - 1].sender}
                     </strong>
                     <span style={{ fontSize: 11.5, color: '#94a3b8' }}>
                       {new Date(tck.messages[tck.messages.length - 1].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}
@@ -468,7 +468,7 @@ export function SupportView({ showToast, staff }) {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: '#64748b' }}>
-                      <strong style={{ color: isPartner ? '#7c3aed' : '#0f172a' }}>{msg.sender}</strong>
+                      <strong style={{ color: isPartner ? '#7c3aed' : '#0f172a' }}>{msg.sender === 'Super Admin' ? 'Admin' : msg.sender}</strong>
                       <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</span>
                     </div>
 

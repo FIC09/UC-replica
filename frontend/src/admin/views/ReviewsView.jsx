@@ -186,66 +186,73 @@ export function ReviewsView({ onShowToast }) {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Header Banner with Authenticity Notice */}
-      <div style={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: '20px 24px',
-        border: '1px solid #E2E8F0',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 16,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                Ratings & Customer Feedback Moderation
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* 1. Standard Top Sticky Header matching exact 64px sidebar line */}
+      <div className="admin-page-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Ratings &amp; Customer Feedback Moderation
               </h2>
               <span style={{
-                fontSize: 11,
+                fontSize: 10.5,
                 fontWeight: 700,
-                padding: '3px 8px',
+                padding: '2px 7px',
                 borderRadius: 6,
                 backgroundColor: '#ECFDF5',
                 color: '#059669',
-                border: '1px solid #A7F3D0'
+                border: '1px solid #A7F3D0',
+                whiteSpace: 'nowrap'
               }}>
                 Real-Time Moderation
               </span>
             </div>
-            <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0 0' }}>
+            <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               Newly submitted customer reviews enter Pending Approval. Once you click "Approve", the review appears immediately on the main landing page.
             </p>
           </div>
+        </div>
 
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
+          backgroundColor: '#F8FAFC',
+          border: '1px solid #E2E8F0',
+          borderRadius: 8,
+          padding: '5px 10px',
+          fontSize: 11.5,
+          color: '#334155',
+          flexShrink: 0
+        }}>
+          <ShieldCheck size={14} color="#059669" />
+          <span>Strict Authenticity: Verified completed bookings only</span>
+        </div>
+      </div>
+
+      {/* 2. Main Page Body Content */}
+      <div className="admin-page-body">
+        {/* Filter & Tabs Control Card */}
+        <div style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 12,
+          padding: '16px 20px',
+          border: '1px solid #E2E8F0',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 14,
+          boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+        }}>
+          {/* Status Navigation Tabs */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            backgroundColor: '#F8FAFC',
-            border: '1px solid #E2E8F0',
-            borderRadius: 8,
-            padding: '8px 14px',
-            fontSize: 12.5,
-            color: '#334155'
+            borderBottom: '1px solid #E2E8F0',
+            paddingBottom: 10,
+            flexWrap: 'wrap'
           }}>
-            <ShieldCheck size={16} color="#059669" />
-            <span>Strict Authenticity: Only verified completed bookings can post reviews.</span>
-          </div>
-        </div>
-
-        {/* Status Navigation Tabs */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          borderBottom: '1px solid #E2E8F0',
-          paddingBottom: 10,
-          flexWrap: 'wrap'
-        }}>
           <button
             type="button"
             onClick={() => setStatusTab('ALL')}
@@ -650,6 +657,7 @@ export function ReviewsView({ onShowToast }) {
         })
       )}
     </div>
+  </div>
 
       {/* ========================================================================= */}
       {/* MODAL: REVIEW MODERATION WITH AUDIT REASON LOGGING                        */}

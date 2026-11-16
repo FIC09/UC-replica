@@ -5992,8 +5992,8 @@ export async function getSupportTickets(req, res) {
           .filter(m => !m.isInternal)
           .map(m => ({
             id: m.id || String(m._id) || `MSG-${Math.random()}`,
-            sender: m.sender || (m.senderRole === 'Professional' ? 'Professional' : 'Platform Support Desk'),
-            senderRole: m.senderRole || 'Support Desk',
+            sender: m.sender === 'Super Admin' ? 'Admin' : (m.sender || (m.senderRole === 'Professional' ? 'Professional' : 'Platform Support Desk')),
+            senderRole: m.senderRole === 'Super Admin' ? 'Admin' : (m.senderRole || 'Support Desk'),
             text: m.text,
             timestamp: m.timestamp || t.createdAt,
             attachments: m.attachments || []

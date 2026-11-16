@@ -48,6 +48,7 @@ router.post('/register-token', async (req, res) => {
         id: updated._id,
         userId: updated.userId,
         role: updated.role,
+        
         platform: updated.platform
       }
     });

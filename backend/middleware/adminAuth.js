@@ -32,7 +32,7 @@ export async function requireAdminAuth(req, res, next) {
       if (isDev) {
         req.admin = {
           id: 'ADM-01',
-          name: 'Super Admin',
+          name: 'Admin',
           email: 'admin@urbancompany.com',
           role: 'Super Admin',
           assignedZone: 'All India',
@@ -55,7 +55,7 @@ export async function requireAdminAuth(req, res, next) {
       if (isDev) {
         req.admin = {
           id: 'ADM-01',
-          name: 'Super Admin',
+          name: 'Admin',
           email: 'admin@urbancompany.com',
           role: 'Super Admin',
           assignedZone: 'All India',
@@ -100,7 +100,7 @@ export async function requireAdminAuth(req, res, next) {
       // Fallback for mock/demo mode
       req.admin = {
         id: decoded.id || 'ADM-01',
-        name: decoded.name || 'Super Admin',
+        name: (decoded.name === 'Super Admin' || !decoded.name) ? 'Admin' : decoded.name,
         email: decoded.email || 'admin@urbancompany.com',
         role: decoded.role || 'Super Admin',
         assignedZone: decoded.assignedZone || 'All India',

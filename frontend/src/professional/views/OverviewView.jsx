@@ -645,32 +645,6 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               <span>{isOnline ? 'Pause Duty' : 'Go Online'}</span>
             </button>
           )}
-
-          <button
-            onClick={handleOpenSos}
-            style={{
-              background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)',
-              color: '#FFFFFF',
-              border: '1.5px solid rgba(255,255,255,0.35)',
-              padding: '12px 20px',
-              borderRadius: 12,
-              fontSize: 13.5,
-              fontWeight: 800,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 7,
-              boxShadow: '0 4px 14px rgba(239, 68, 68, 0.4)',
-              transition: 'all 0.15s ease',
-              whiteSpace: 'nowrap'
-            }}
-            title="Emergency Safety & Incident Support"
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-          >
-            <span>🚨</span>
-            <span>SOS Emergency</span>
-          </button>
         </div>
       </div>
 

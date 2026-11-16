@@ -7,7 +7,7 @@ import { ErrorBoundary } from './ErrorBoundary.jsx'
 // Automatically route API requests directly to Render backend in production (Vercel)
 if (typeof window !== 'undefined') {
   const isProdVercel = window.location.hostname.includes('vercel.app') || (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1');
-  const RENDER_BACKEND_URL = (import.meta.env.VITE_API_BASE_URL || 'https://uc-replica.onrender.com').replace(/\/api\/?$/, '').replace(/\/$/, '');
+  const RENDER_BACKEND_URL = (import.meta.env.VITE_API_BASE_URL || 'https://uc-replica-dn4i.onrender.com').replace(/\/api\/?$/, '').replace(/\/$/, '');
 
   if (isProdVercel) {
     const nativeFetch = window.fetch;

@@ -45,17 +45,24 @@ export async function getSupportTickets(req, res) {
       openCount = await SupportTicket.countDocuments({ status: { $in: ['Open', 'In Progress'] } });
     }
 
-    // Format for frontend SupportView compatibility
-    const formattedTickets = tickets.map(t => ({
-      ...t,
-      id: t._id ? String(t._id) : t.referenceNumber,
-      referenceNumber: t.referenceNumber,
-      conversation: t.messages || [],
-      messages: t.messages || [],
-      slaStatus: (t.status === 'Resolved' || t.status === 'Closed')
-        ? 'Resolved'
-        : (t.slaDeadline && new Date() > new Date(t.slaDeadline)) ? 'SLA Breached' : 'Within SLA'
-    }));
+    // Format for frontend SupportView compatibility and sanitize wording
+    const formattedTickets = tickets.map(t => {
+      const sanitizedMessages = (t.messages || []).map(m => ({
+        ...m,
+        sender: m.sender === 'Super Admin' ? 'Admin' : m.sender,
+        senderRole: m.senderRole === 'Super Admin' ? 'Admin' : m.senderRole
+      }));
+      return {
+        ...t,
+        id: t._id ? String(t._id) : t.referenceNumber,
+        referenceNumber: t.referenceNumber,
+        conversation: sanitizedMessages,
+        messages: sanitizedMessages,
+        slaStatus: (t.status === 'Resolved' || t.status === 'Closed')
+          ? 'Resolved'
+          : (t.slaDeadline && new Date() > new Date(t.slaDeadline)) ? 'SLA Breached' : 'Within SLA'
+      };
+    });
 
     return res.json({
       success: true,
@@ -134,8 +141,10 @@ export async function addTicketMessage(req, res) {
       return res.status(400).json({ success: false, error: 'Message text is required.' });
     }
 
-    const senderName = req.admin?.name || 'Platform Support Agent';
-    const senderRole = req.admin?.role || 'Staff Support Desk';
+    const rawSenderName = req.admin?.name || 'Admin';
+    const senderName = rawSenderName === 'Super Admin' ? 'Admin' : rawSenderName;
+    const rawSenderRole = req.admin?.role || 'Admin';
+    const senderRole = rawSenderRole === 'Super Admin' ? 'Admin' : rawSenderRole;
 
     const ticket = await SupportTicket.findOne({
       $or: [
@@ -177,10 +186,18 @@ export async function addTicketMessage(req, res) {
       }
     }
 
+    const rawMessages = ticket.messages || [];
+    const sanitizedMessages = rawMessages.map(m => ({
+      ...m.toObject ? m.toObject() : m,
+      sender: m.sender === 'Super Admin' ? 'Admin' : m.sender,
+      senderRole: m.senderRole === 'Super Admin' ? 'Admin' : m.senderRole
+    }));
+
     const returnTicket = {
       ...ticket.toObject(),
       id: String(ticket._id),
-      conversation: ticket.messages || []
+      conversation: sanitizedMessages,
+      messages: sanitizedMessages
     };
 
     return res.json({
@@ -232,10 +249,18 @@ export async function updateTicketStatus(req, res) {
       }
     }
 
+    const rawMessages = ticket.messages || [];
+    const sanitizedMessages = rawMessages.map(m => ({
+      ...m.toObject ? m.toObject() : m,
+      sender: m.sender === 'Super Admin' ? 'Admin' : m.sender,
+      senderRole: m.senderRole === 'Super Admin' ? 'Admin' : m.senderRole
+    }));
+
     const returnTicket = {
       ...ticket.toObject(),
       id: String(ticket._id),
-      conversation: ticket.messages || []
+      conversation: sanitizedMessages,
+      messages: sanitizedMessages
     };
 
     return res.json({

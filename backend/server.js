@@ -49,7 +49,8 @@ const allowedOrigins = [
   process.env.CLIENT_URL || 'http://localhost:5173',
   'http://127.0.0.1:5173',
   'http://localhost:5000',
-  'https://urban-rosy.vercel.app'
+  'https://urban-rosy.vercel.app',
+  'https://uc-replica-dn4i.onrender.com'
 ];
 
 const corsOptions = {

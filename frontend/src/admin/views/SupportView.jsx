@@ -246,152 +246,107 @@ export function SupportView({ onShowToast }) {
   });
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Header & Tabs */}
-      <div style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 30,
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #E2E8F0',
-        padding: '16px 24px 0 24px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 14,
-        boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <h2 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: 0 }}>
-                Support, Quality & Warranty Disputes
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* 1. Standard Top Sticky Header matching exact 64px sidebar line */}
+      <div className="admin-page-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                Support, Quality &amp; Warranty Disputes
               </h2>
               <span style={{
-                fontSize: 11,
+                fontSize: 10.5,
                 fontWeight: 700,
-                padding: '3px 8px',
+                padding: '2px 7px',
                 borderRadius: 6,
                 backgroundColor: '#EEF2FF',
                 color: '#4F46E5',
-                border: '1px solid #C7D2FE'
+                border: '1px solid #C7D2FE',
+                whiteSpace: 'nowrap'
               }}>
                 Strict SLA Tracking
               </span>
             </div>
-            <p style={{ fontSize: 13, color: '#64748B', margin: '4px 0 0 0' }}>
+            <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               Manage customer, pro, and partner support tickets, conversation threads, internal staff notes, and warranty revisits.
             </p>
           </div>
-
-          <div style={{ display: 'flex', gap: 10 }}>
-            {activeTab === 'tickets' && (
-              <button
-                type="button"
-                onClick={() => setShowTicketModal(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '9px 16px',
-                  borderRadius: 8,
-                  backgroundColor: '#6E42E5',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                <Plus size={16} /> Log Support Ticket
-              </button>
-            )}
-
-            {activeTab === 'revisits' && (
-              <button
-                type="button"
-                onClick={() => setShowRevisitModal(true)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '9px 16px',
-                  borderRadius: 8,
-                  backgroundColor: '#6E42E5',
-                  color: '#FFFFFF',
-                  border: 'none',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: 'pointer'
-                }}
-              >
-                <Plus size={16} /> Log Warranty Revisit Dispute
-              </button>
-            )}
-          </div>
         </div>
+      </div>
 
-        {/* Sub-Tabs */}
-        <div style={{ display: 'flex', gap: 8, borderBottom: '1px solid #E2E8F0', paddingBottom: 2 }}>
-          <button
-            type="button"
-            onClick={() => setActiveTab('tickets')}
-            style={{
-              padding: '10px 16px',
-              fontSize: 13.5,
-              fontWeight: 700,
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              color: activeTab === 'tickets' ? '#6E42E5' : '#64748B',
-              borderBottom: activeTab === 'tickets' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8
-            }}
-          >
-            <HelpCircle size={16} />
-            <span>Support Tickets</span>
-            <span style={{
-              fontSize: 11,
-              padding: '1px 6px',
-              borderRadius: 10,
-              backgroundColor: activeTab === 'tickets' ? '#F3E8FF' : '#F1F5F9',
-              color: activeTab === 'tickets' ? '#6E42E5' : '#64748B'
-            }}>
-              {tickets.length}
-            </span>
-          </button>
+      {/* 2. Sub-Tabs Bar */}
+      <div style={{
+        backgroundColor: '#FFFFFF',
+        borderBottom: '1px solid #E2E8F0',
+        padding: '0 24px',
+        display: 'flex',
+        gap: 8,
+        position: 'sticky',
+        top: 64,
+        zIndex: 20
+      }}>
+        <button
+          type="button"
+          onClick={() => setActiveTab('tickets')}
+          style={{
+            padding: '10px 16px',
+            fontSize: 13,
+            fontWeight: 700,
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            color: activeTab === 'tickets' ? '#6E42E5' : '#64748B',
+            borderBottom: activeTab === 'tickets' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <HelpCircle size={15} />
+          <span>Support Tickets</span>
+          <span style={{
+            fontSize: 11,
+            padding: '1px 6px',
+            borderRadius: 10,
+            backgroundColor: activeTab === 'tickets' ? '#F3E8FF' : '#F1F5F9',
+            color: activeTab === 'tickets' ? '#6E42E5' : '#64748B'
+          }}>
+            {tickets.length}
+          </span>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('revisits')}
-            style={{
-              padding: '10px 16px',
-              fontSize: 13.5,
-              fontWeight: 700,
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              color: activeTab === 'revisits' ? '#6E42E5' : '#64748B',
-              borderBottom: activeTab === 'revisits' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8
-            }}
-          >
-            <RotateCcw size={16} />
-            <span>Revisits & Warranty Disputes</span>
-            <span style={{
-              fontSize: 11,
-              padding: '1px 6px',
-              borderRadius: 10,
-              backgroundColor: activeTab === 'revisits' ? '#F3E8FF' : '#F1F5F9',
-              color: activeTab === 'revisits' ? '#6E42E5' : '#64748B'
-            }}>
-              {revisits.length}
-            </span>
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('revisits')}
+          style={{
+            padding: '10px 16px',
+            fontSize: 13,
+            fontWeight: 700,
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            color: activeTab === 'revisits' ? '#6E42E5' : '#64748B',
+            borderBottom: activeTab === 'revisits' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            transition: 'all 0.15s ease'
+          }}
+        >
+          <RotateCcw size={15} />
+          <span>Revisits &amp; Warranty Disputes</span>
+          <span style={{
+            fontSize: 11,
+            padding: '1px 6px',
+            borderRadius: 10,
+            backgroundColor: activeTab === 'revisits' ? '#F3E8FF' : '#F1F5F9',
+            color: activeTab === 'revisits' ? '#6E42E5' : '#64748B'
+          }}>
+            {revisits.length}
+          </span>
+        </button>
       </div>
 
       <div className="admin-page-body">
@@ -902,7 +857,7 @@ export function SupportView({ onShowToast }) {
                         </span>
                       ) : (
                         <span style={{ fontSize: 12, fontWeight: 700, color: '#0F172A' }}>
-                          {msg.sender}
+                          {msg.sender === 'Super Admin' ? 'Admin' : (msg.sender || 'Admin')}
                         </span>
                       )}
                     </div>

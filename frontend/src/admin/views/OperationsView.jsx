@@ -144,43 +144,35 @@ export function OperationsView({ onNavigate, onShowToast }) {
   const completedCount = sessions.filter(s => s.status === 'completed').length;
 
   return (
-    <div style={{ padding: '24px 32px', maxWidth: 1600, margin: '0 auto' }}>
-      {/* Page Header */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 24,
-        flexWrap: 'wrap',
-        gap: 16
-      }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{
-              width: 38,
-              height: 38,
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-              color: '#FFFFFF',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)'
-            }}>
-              <Navigation size={20} />
-            </div>
-            <div>
-              <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', margin: 0, letterSpacing: '-0.02em' }}>
-                Live Operations Center
-              </h1>
-              <p style={{ fontSize: 13, color: '#64748B', margin: '2px 0 0 0' }}>
-                Real-time GPS dispatch monitor, active technician tracking, and intelligent auto-assignment
-              </p>
-            </div>
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Top Sticky Header with continuous 64px border-bottom line matching Admin standard */}
+      <div className="admin-page-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <div style={{
+            width: 34,
+            height: 34,
+            borderRadius: 8,
+            background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+            color: '#FFFFFF',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(124, 58, 237, 0.25)',
+            flexShrink: 0
+          }}>
+            <Navigation size={18} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Live Operations Center
+            </h2>
+            <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Real-time GPS dispatch monitor, active technician tracking, and intelligent auto-assignment
+            </p>
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <div style={{
             display: 'flex',
             alignItems: 'center',
@@ -188,8 +180,8 @@ export function OperationsView({ onNavigate, onShowToast }) {
             background: '#FFFFFF',
             border: '1px solid #E2E8F0',
             borderRadius: 8,
-            padding: '6px 12px',
-            fontSize: 12,
+            padding: '5px 10px',
+            fontSize: 11.5,
             color: '#475569',
             fontWeight: 600
           }}>
@@ -207,12 +199,12 @@ export function OperationsView({ onNavigate, onShowToast }) {
             type="button"
             onClick={() => setAutoRefresh(!autoRefresh)}
             style={{
-              padding: '8px 14px',
+              padding: '6px 12px',
               borderRadius: 8,
               border: '1px solid #CBD5E1',
               background: '#FFFFFF',
               color: '#334155',
-              fontSize: 12.5,
+              fontSize: 12,
               fontWeight: 600,
               cursor: 'pointer',
               display: 'flex',
@@ -220,13 +212,15 @@ export function OperationsView({ onNavigate, onShowToast }) {
               gap: 6
             }}
           >
-            <RefreshCw size={14} className={autoRefresh ? 'spin' : ''} />
+            <RefreshCw size={13} className={autoRefresh ? 'spin' : ''} />
             <span>{autoRefresh ? 'Pause Sync' : 'Resume Sync'}</span>
           </button>
         </div>
       </div>
 
-      {/* Metric Cards Banner */}
+      {/* Main Body Content */}
+      <div style={{ padding: '24px 32px' }}>
+        {/* Metric Cards Banner */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -528,5 +522,6 @@ export function OperationsView({ onNavigate, onShowToast }) {
         </div>
       </div>
     </div>
+  </div>
   );
 }

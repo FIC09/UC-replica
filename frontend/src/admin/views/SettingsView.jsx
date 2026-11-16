@@ -403,28 +403,6 @@ export function SettingsView({ onShowToast }) {
           )}
 
           <button
-            type="button"
-            onClick={handleToggleSurge}
-            disabled={togglingSurge}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              padding: '8px 14px',
-              borderRadius: 8,
-              border: settings.monsoonSurgeActive ? '1px solid #F59E0B' : '1px solid #E2E8F0',
-              backgroundColor: settings.monsoonSurgeActive ? '#FFFBEB' : '#F8FAFC',
-              color: settings.monsoonSurgeActive ? '#B45309' : '#475569',
-              fontSize: 12.5,
-              fontWeight: 700,
-              cursor: togglingSurge ? 'not-allowed' : 'pointer'
-            }}
-          >
-            <Zap size={14} fill={settings.monsoonSurgeActive ? '#B45309' : 'none'} color={settings.monsoonSurgeActive ? '#B45309' : '#64748B'} />
-            {togglingSurge ? 'Toggling...' : settings.monsoonSurgeActive ? 'Disable Surge' : 'Quick Surge (+₹49)'}
-          </button>
-
-          <button
             onClick={handleSave}
             disabled={saving || !hasUnsavedChanges}
             style={{

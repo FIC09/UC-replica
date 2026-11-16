@@ -181,8 +181,22 @@ class MobileApiClient {
   }
 
   // Bookings
-  getBookings(phone) {
-    return this.request(`/bookings${phone ? `?phone=${encodeURIComponent(phone)}` : ''}`);
+  getBookings(filter) {
+    if (typeof filter === 'string') {
+      return this.request(`/bookings?phone=${encodeURIComponent(filter)}`);
+    }
+    if (typeof filter === 'object' && filter !== null) {
+      const params = [];
+      if (filter.phone) params.push(`phone=${encodeURIComponent(filter.phone)}`);
+      if (filter.customerId) params.push(`customerId=${encodeURIComponent(filter.customerId)}`);
+      if (filter.userEmail) params.push(`userEmail=${encodeURIComponent(filter.userEmail)}`);
+      if (filter.assignedWorker) params.push(`assignedWorker=${encodeURIComponent(filter.assignedWorker)}`);
+      if (filter.workerId) params.push(`workerId=${encodeURIComponent(filter.workerId)}`);
+      if (filter.status) params.push(`status=${encodeURIComponent(filter.status)}`);
+      const qs = params.length > 0 ? `?${params.join('&')}` : '';
+      return this.request(`/bookings${qs}`);
+    }
+    return this.request('/bookings');
   }
 
   getWorkerAssignedBookings(workerName, workerId) {

@@ -315,6 +315,15 @@ export default function WorkingPartnerDashboard({
       6: 'Completed'
     };
     setActiveJob((prev) => {
+      // Guard: Never allow an unrelated customer booking to overwrite the worker's active dispatch!
+      if (prev?.id && sharedBooking.id) {
+        const prevBare = String(prev.id).replace(/^(?:UC|JOB|LEAD)[-_]?/gi, '');
+        const sharedBare = String(sharedBooking.id).replace(/^(?:UC|JOB|LEAD)[-_]?/gi, '');
+        if (prevBare !== sharedBare && prev.status !== 'Completed') {
+          return prev;
+        }
+      }
+
       // Ensure one-way progression: never allow an older sharedBooking state to regress activeJob!
       const currentStage = prev?.stage || 2;
       const finalStage = Math.max(currentStage, stageNum);
@@ -447,11 +456,13 @@ export default function WorkingPartnerDashboard({
     };
   }, [currentUser?.id]);
 
-  // Fetch real active booking from database on mount if sharedBooking is missing or empty
+  // Fetch real active booking assigned specifically to this worker from database on mount
   useEffect(() => {
-    mobileApi.getBookings().then(res => {
+    const workerName = currentUser?.name || 'violet';
+    const workerId = currentUser?.id || currentUser?._id || 'PRO-8841';
+    mobileApi.getWorkerAssignedBookings(workerName, workerId).then(res => {
       if (res && res.bookings && res.bookings.length > 0) {
-        const liveBooking = res.bookings.find(b => b.status !== 'Cancelled' && b.status !== 'Completed') || res.bookings[0];
+        const liveBooking = res.bookings.find(b => b.status !== 'Cancelled' && b.status !== 'Completed');
         if (liveBooking) {
           const stageMap = {
             'Confirmed': 1,
@@ -464,14 +475,14 @@ export default function WorkingPartnerDashboard({
           const stageNum = liveBooking.stage || stageMap[liveBooking.status] || 2;
           setActiveJob(prev => {
             const currentStage = prev?.stage || 2;
-            if (currentStage > stageNum) {
+            if (currentStage > stageNum && prev?.id === (liveBooking.bookingRef || liveBooking.id)) {
               return prev; // Never regress!
             }
             return {
               ...prev,
               id: liveBooking.bookingRef || liveBooking.id || liveBooking._id,
-              customer: liveBooking.customerName || prev?.customer,
-              phone: liveBooking.customerPhone || prev?.phone,
+              customer: liveBooking.customerName || liveBooking.userName || prev?.customer,
+              phone: liveBooking.customerPhone || liveBooking.userPhone || prev?.phone,
               address: (liveBooking.address && liveBooking.address.street) || (typeof liveBooking.address === 'string' ? liveBooking.address : prev?.address),
               service: liveBooking.serviceName || prev?.service,
               payout: (liveBooking.pricing && liveBooking.pricing.finalTotal) || liveBooking.totalAmount || prev?.payout,
@@ -484,7 +495,7 @@ export default function WorkingPartnerDashboard({
         }
       }
     }).catch(err => console.log('Worker dashboard initial booking fetch:', err?.message));
-  }, []);
+  }, [currentUser?.name, currentUser?.id]);
 
   const handleSwitchCustomerWithSync = () => {
     if (activeJob) {
@@ -1053,6 +1064,15 @@ export default function WorkingPartnerDashboard({
     setPreServicePhoto(null);
     setPostServicePhoto(null);
     setAvailableLeads((prev) => prev.filter((l) => l.id !== lead.id));
+    const targetBookingId = lead.bookingId || lead.id;
+    if (targetBookingId) {
+      const workerName = currentUser?.name || 'violet';
+      mobileApi.updateBookingStatus(targetBookingId, 'Assigned', 2, {
+        assignedPartner: workerName,
+        assignmentStatus: 'ASSIGNED',
+        offerStatus: 'accepted'
+      }).catch((e) => console.warn('Could not persist accepted lead to server:', e?.message));
+    }
     if (onAcceptLead) {
       onAcceptLead(lead.id);
     }
@@ -1694,17 +1714,6 @@ export default function WorkingPartnerDashboard({
                           </View>
                         )}
                       </View>
-
-                      {/* Live Customer Synchronization Quick Link */}
-                      <TouchableOpacity
-                        style={styles.trackerSwitchCustomerBtn}
-                        onPress={handleSwitchCustomerWithSync}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={styles.trackerSwitchCustomerBtnText}>
-                          👁️ View in Customer Dashboard (Live Sync) →
-                        </Text>
-                      </TouchableOpacity>
                     </View>
                   );
                 })()}

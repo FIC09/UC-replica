@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   Text,
@@ -2341,6 +2341,10 @@ const findFullProductDetails = (item, dbServices = []) => {
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const currentUserRef = useRef(currentUser);
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
   const [showProfileMenuModal, setShowProfileMenuModal] = useState(false);
   const [showLogoutConfirmModal, setShowLogoutConfirmModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -2456,6 +2460,7 @@ export default function App() {
   const handleLoginSuccess = (userProfile) => {
     setIsAuthenticated(true);
     setCurrentUser(userProfile);
+    currentUserRef.current = userProfile;
     if (userProfile?.name) {
       setActiveCustomerBooking((prev) => ({
         ...prev,
@@ -2463,6 +2468,7 @@ export default function App() {
         userName: userProfile.name
       }));
     }
+    syncActiveBooking(userProfile);
   };
 
   const handleLogout = () => {
@@ -2576,19 +2582,20 @@ export default function App() {
   const [showTrackingModal, setShowTrackingModal] = useState(false);
   const [showCustomerChatModal, setShowCustomerChatModal] = useState(false);
   const [partnerReviews, setPartnerReviews] = useState([]);
+  const [userBookings, setUserBookings] = useState([]);
   const [activeCustomerBooking, setActiveCustomerBooking] = useState({
-    id: 'UC-428127',
-    bookingRef: 'UC-428127',
-    service: 'Laptop/Desktop service',
-    price: 2799,
-    otp: '4829',
-    stage: 4, // Stage 4: Arrived (Specialist at your door)
+    id: 'UC-983462',
+    bookingRef: 'UC-983462',
+    service: 'pipe line services',
+    price: 739,
+    otp: '2229',
+    stage: 3, // Stage 3: Specialist En Route
     address: 'Door 14/2, Rayakottai Road, Krishnagiri - 635001',
-    customer: 'Islam',
-    userName: 'Islam',
-    phone: '+91 98201 44521',
-    slot: 'Today, 04:00 PM - 05:00 PM',
-    status: 'Arrived',
+    customer: 'arman',
+    userName: 'arman',
+    phone: '+91 7788996655',
+    slot: 'Monday, Nov 16, 2026 • 04:00 PM - 05:00 PM',
+    status: 'Assigned',
     assignedPartner: 'violet',
     technician: {
       name: 'violet',
@@ -2701,6 +2708,7 @@ export default function App() {
 
   // Partner Admin Assigned Dispatches (allocated specifically to this worker by platform operations)
   const [partnerLeads, setPartnerLeads] = useState([]);
+  const acceptedLeadIdsRef = useRef(new Set());
 
   // Live synchronization of Admin Assigned Dispatches specifically allocated to this worker
   useEffect(() => {
@@ -2717,7 +2725,12 @@ export default function App() {
         if (res && res.success && Array.isArray(res.bookings)) {
           // Format admin-assigned bookings specifically for the worker dashboard
           const activeDispatches = res.bookings
-            .filter((b) => b.status !== 'Completed' && b.status !== 'Cancelled')
+            .filter((b) => {
+              if (b.status === 'Completed' || b.status === 'Cancelled') return false;
+              const bookingRef = b.id || b.bookingReference;
+              if (bookingRef && acceptedLeadIdsRef.current.has(bookingRef)) return false;
+              return true;
+            })
             .map((b) => {
               const bookingRef = b.id || b.bookingReference;
               return {
@@ -2875,21 +2888,29 @@ export default function App() {
   };
 
   // Auto connect to backend and sync all live web app products & bookings in real-time
-  const syncActiveBooking = async () => {
+  const syncActiveBooking = async (overrideUser = null) => {
     try {
-      const activeId = activeCustomerBooking?.id;
-      if (activeId && activeId !== '9410') {
-        const cleanId = String(activeId).replace(/^[#\s]+/, '').replace(/^JOB-/, '');
-        const single = await mobileApi.getBookingById(cleanId);
-        if (single && single.success && single.booking) {
-          applyBookingUpdate(single.booking);
-          return;
-        }
+      const user = overrideUser || currentUserRef.current || currentUser;
+      const filter = {};
+      if (user?.phone) filter.phone = user.phone;
+      if (user?.email) filter.userEmail = user.email;
+      if (user?._id || user?.id) filter.customerId = user._id || user.id;
+
+      // 1. Fetch user-scoped bookings if user credentials exist
+      let res = await mobileApi.getBookings(filter);
+      if (!res?.bookings?.length && (filter.phone || filter.userEmail || filter.customerId)) {
+        // Fallback to general bookings if filtered query returned empty
+        res = await mobileApi.getBookings();
       }
-      const res = await mobileApi.getBookings();
+
       if (res && res.success && Array.isArray(res.bookings) && res.bookings.length > 0) {
-        const match = activeId ? res.bookings.find(b => b.id === activeId || b.bookingReference === activeId) : null;
-        const active = match || res.bookings.find((b) => b.status !== 'Completed' && b.status !== 'Cancelled') || res.bookings[0];
+        setUserBookings(res.bookings);
+
+        // Find active uncompleted booking (priority to Assigned, En Route, Arrived, In Progress, Confirmed)
+        const active = res.bookings.find(
+          (b) => b.status !== 'Completed' && b.status !== 'Cancelled' && b.status !== 'Deleted'
+        ) || res.bookings[0];
+
         if (active) {
           applyBookingUpdate(active);
         }
@@ -3445,12 +3466,18 @@ export default function App() {
 
   // 1C. MY BOOKINGS SCREEN VIEW (Urban Company Step-by-Step Experience & Tracking)
   const renderMyBookingsView = () => {
+    const liveCompletedList = userBookings.filter((b) => b.status === 'Completed');
+    const liveCancelledList = userBookings.filter((b) => b.status === 'Cancelled');
+    const ongoingCount = (activeCustomerBooking && activeCustomerBooking.status !== 'Completed' && activeCustomerBooking.status !== 'Cancelled') ? 1 : 0;
+    const completedCount = liveCompletedList.length > 0 ? liveCompletedList.length : 2;
+    const cancelledCount = liveCancelledList.length > 0 ? liveCancelledList.length : 1;
+
     const filterTabs = [
       { id: 'all', label: 'All' },
-      { id: 'ongoing', label: 'Ongoing (1)' },
+      { id: 'ongoing', label: `Ongoing (${ongoingCount})` },
       { id: 'upcoming', label: 'Upcoming' },
-      { id: 'completed', label: 'Completed (2)' },
-      { id: 'cancelled', label: 'Cancelled (1)' },
+      { id: 'completed', label: `Completed (${completedCount})` },
+      { id: 'cancelled', label: `Cancelled (${cancelledCount})` },
     ];
 
     const showOngoing = bookingFilter === 'all' || bookingFilter === 'ongoing';
@@ -3630,106 +3657,190 @@ export default function App() {
 
         {/* 3. COMPLETED BOOKING CARDS */}
         {showCompleted && (
-          <>
-            <View style={styles.bookingCardCompleted}>
-              <View style={styles.completedHeaderRow}>
-                <View style={styles.completedBadgePill}>
-                  <Text style={styles.completedBadgeText}>✓ COMPLETED</Text>
-                </View>
-                <Text style={styles.bookingDateText}>02 Nov 2026, 11:30 AM</Text>
-              </View>
+          liveCompletedList.length > 0 ? (
+            liveCompletedList.map((b) => {
+              const bRef = b.id || b.bookingReference || 'UC-000000';
+              const bCleanRef = String(bRef).startsWith('UC-') ? bRef : `UC-${String(bRef).replace(/^(?:JOB|LEAD)[-_]?/gi, '')}`;
+              const bTitle = b.serviceName || b.service || 'Doorstep Service';
+              const bPro = b.assignedPartner || b.assignedProfessional?.name || 'Assigned Specialist';
+              const bRating = b.assignedProfessional?.rating || 4.94;
+              const bPrice = b.totalAmount || (b.pricing && b.pricing.finalTotal) || b.price || 999;
+              const bDate = b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent';
+              return (
+                <View key={bRef} style={styles.bookingCardCompleted}>
+                  <View style={styles.completedHeaderRow}>
+                    <View style={styles.completedBadgePill}>
+                      <Text style={styles.completedBadgeText}>✓ COMPLETED</Text>
+                    </View>
+                    <Text style={styles.bookingDateText}>{bDate}</Text>
+                  </View>
 
-              <View style={styles.completedBodyRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.completedServiceTitle}>Deep Kitchen & Chimney Cleaning</Text>
-                  <Text style={styles.completedSpecialistText}>Served by Suresh Kumar (★ 4.91)</Text>
-                  <View style={styles.starRow}>
-                    <Text style={styles.starGold}>★★★★★</Text>
-                    <Text style={styles.ratedText}>Rated 5.0 by you</Text>
+                  <View style={styles.completedBodyRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.completedServiceTitle}>{bTitle}</Text>
+                      <Text style={styles.completedSpecialistText}>Served by {bPro} (★ {bRating})</Text>
+                      <View style={styles.starRow}>
+                        <Text style={styles.starGold}>★★★★★</Text>
+                        <Text style={styles.ratedText}>Rated 5.0 by you</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.completedPriceText}>₹{bPrice}</Text>
+                  </View>
+
+                  <View style={styles.completedActionsRow}>
+                    <TouchableOpacity
+                      style={styles.repeatBookingBtn}
+                      onPress={() => handleAddService({ id: `rebook-${bRef}`, title: bTitle, price: bPrice, rating: bRating })}
+                    >
+                      <Text style={styles.repeatBookingText}>Book Again</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.invoiceBtn}
+                      onPress={() => Alert.alert('Tax Invoice', `Invoice for #${bCleanRef} (₹${bPrice}) has been sent to ${currentUser?.email || 'customer@forgeindia.in'}`)}
+                    >
+                      <Text style={styles.invoiceBtnText}>📄 Invoice</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
-                <Text style={styles.completedPriceText}>₹1,299</Text>
-              </View>
-
-              <View style={styles.completedActionsRow}>
-                <TouchableOpacity
-                  style={styles.repeatBookingBtn}
-                  onPress={() => handleAddService({ id: 'clean-kitchen', title: 'Deep Kitchen & Chimney Cleaning', price: 1299, rating: 4.91 })}
-                >
-                  <Text style={styles.repeatBookingText}>Book Again</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.invoiceBtn}
-                  onPress={() => Alert.alert('Tax Invoice', 'Invoice for #UC-8842 (₹1,299) has been sent to customer@forgeindia.in')}
-                >
-                  <Text style={styles.invoiceBtnText}>📄 Invoice</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            <View style={styles.bookingCardCompleted}>
-              <View style={styles.completedHeaderRow}>
-                <View style={styles.completedBadgePill}>
-                  <Text style={styles.completedBadgeText}>✓ COMPLETED</Text>
-                </View>
-                <Text style={styles.bookingDateText}>18 Oct 2026, 03:00 PM</Text>
-              </View>
-
-              <View style={styles.completedBodyRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.completedServiceTitle}>Salon Classic Pedicure & Hair Spa</Text>
-                  <Text style={styles.completedSpecialistText}>Served by Priya Sharma (★ 4.96)</Text>
-                  <View style={styles.starRow}>
-                    <Text style={styles.starGold}>★★★★★</Text>
-                    <Text style={styles.ratedText}>Rated 5.0 by you</Text>
+              );
+            })
+          ) : (
+            <>
+              <View style={styles.bookingCardCompleted}>
+                <View style={styles.completedHeaderRow}>
+                  <View style={styles.completedBadgePill}>
+                    <Text style={styles.completedBadgeText}>✓ COMPLETED</Text>
                   </View>
+                  <Text style={styles.bookingDateText}>02 Nov 2026, 11:30 AM</Text>
                 </View>
-                <Text style={styles.completedPriceText}>₹1,599</Text>
+
+                <View style={styles.completedBodyRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.completedServiceTitle}>Deep Kitchen & Chimney Cleaning</Text>
+                    <Text style={styles.completedSpecialistText}>Served by Suresh Kumar (★ 4.91)</Text>
+                    <View style={styles.starRow}>
+                      <Text style={styles.starGold}>★★★★★</Text>
+                      <Text style={styles.ratedText}>Rated 5.0 by you</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.completedPriceText}>₹1,299</Text>
+                </View>
+
+                <View style={styles.completedActionsRow}>
+                  <TouchableOpacity
+                    style={styles.repeatBookingBtn}
+                    onPress={() => handleAddService({ id: 'clean-kitchen', title: 'Deep Kitchen & Chimney Cleaning', price: 1299, rating: 4.91 })}
+                  >
+                    <Text style={styles.repeatBookingText}>Book Again</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.invoiceBtn}
+                    onPress={() => Alert.alert('Tax Invoice', 'Invoice for #UC-8842 (₹1,299) has been sent to customer@forgeindia.in')}
+                  >
+                    <Text style={styles.invoiceBtnText}>📄 Invoice</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              <View style={styles.completedActionsRow}>
-                <TouchableOpacity
-                  style={styles.repeatBookingBtn}
-                  onPress={() => handleAddService({ id: 'salon-pedi', title: 'Salon Classic Pedicure & Hair Spa', price: 1599, rating: 4.96 })}
-                >
-                  <Text style={styles.repeatBookingText}>Book Again</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.invoiceBtn}
-                  onPress={() => Alert.alert('Tax Invoice', 'Invoice for #UC-7921 (₹1,599) has been sent to customer@forgeindia.in')}
-                >
-                  <Text style={styles.invoiceBtnText}>📄 Invoice</Text>
-                </TouchableOpacity>
+              <View style={styles.bookingCardCompleted}>
+                <View style={styles.completedHeaderRow}>
+                  <View style={styles.completedBadgePill}>
+                    <Text style={styles.completedBadgeText}>✓ COMPLETED</Text>
+                  </View>
+                  <Text style={styles.bookingDateText}>18 Oct 2026, 03:00 PM</Text>
+                </View>
+
+                <View style={styles.completedBodyRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.completedServiceTitle}>Salon Classic Pedicure & Hair Spa</Text>
+                    <Text style={styles.completedSpecialistText}>Served by Priya Sharma (★ 4.96)</Text>
+                    <View style={styles.starRow}>
+                      <Text style={styles.starGold}>★★★★★</Text>
+                      <Text style={styles.ratedText}>Rated 5.0 by you</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.completedPriceText}>₹1,599</Text>
+                </View>
+
+                <View style={styles.completedActionsRow}>
+                  <TouchableOpacity
+                    style={styles.repeatBookingBtn}
+                    onPress={() => handleAddService({ id: 'salon-pedi', title: 'Salon Classic Pedicure & Hair Spa', price: 1599, rating: 4.96 })}
+                  >
+                    <Text style={styles.repeatBookingText}>Book Again</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.invoiceBtn}
+                    onPress={() => Alert.alert('Tax Invoice', 'Invoice for #UC-7921 (₹1,599) has been sent to customer@forgeindia.in')}
+                  >
+                    <Text style={styles.invoiceBtnText}>📄 Invoice</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-          </>
+            </>
+          )
         )}
 
         {/* 4. CANCELLED BOOKING CARD */}
         {showCancelled && (
-          <View style={styles.bookingCardCancelled}>
-            <View style={styles.cancelledHeaderRow}>
-              <View style={styles.cancelledBadgePill}>
-                <Text style={styles.cancelledBadgeText}>✕ CANCELLED</Text>
-              </View>
-              <Text style={styles.bookingDateText}>04 Sep 2026</Text>
-            </View>
+          liveCancelledList.length > 0 ? (
+            liveCancelledList.map((b) => {
+              const bRef = b.id || b.bookingReference || 'UC-000000';
+              const bTitle = b.serviceName || b.service || 'Doorstep Service';
+              const bPrice = b.totalAmount || (b.pricing && b.pricing.finalTotal) || b.price || 499;
+              const bDate = b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent';
+              const reason = b.cancelReason || 'Cancelled by customer';
+              return (
+                <View key={bRef} style={styles.bookingCardCancelled}>
+                  <View style={styles.cancelledHeaderRow}>
+                    <View style={styles.cancelledBadgePill}>
+                      <Text style={styles.cancelledBadgeText}>✕ CANCELLED</Text>
+                    </View>
+                    <Text style={styles.bookingDateText}>{bDate}</Text>
+                  </View>
 
-            <View style={styles.cancelledBodyRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cancelledServiceTitle}>Bathroom Anti-Bacterial Cleaning</Text>
-                <Text style={styles.refundText}>✓ Full refund of ₹499 processed to HDFC UPI (Ref #TXN-902148)</Text>
-              </View>
-              <Text style={styles.cancelledPriceText}>₹499</Text>
-            </View>
+                  <View style={styles.cancelledBodyRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.cancelledServiceTitle}>{bTitle}</Text>
+                      <Text style={styles.refundText}>✓ Full refund of ₹{bPrice} processed ({reason})</Text>
+                    </View>
+                    <Text style={styles.cancelledPriceText}>₹{bPrice}</Text>
+                  </View>
 
-            <TouchableOpacity
-              style={styles.rebookCancelledBtn}
-              onPress={() => handleAddService({ id: 'clean-bath', title: 'Bathroom Anti-Bacterial Cleaning', price: 499, rating: 4.81 })}
-            >
-              <Text style={styles.rebookCancelledText}>Book Service Again</Text>
-            </TouchableOpacity>
-          </View>
+                  <TouchableOpacity
+                    style={styles.rebookCancelledBtn}
+                    onPress={() => handleAddService({ id: `rebook-${bRef}`, title: bTitle, price: bPrice, rating: 4.81 })}
+                  >
+                    <Text style={styles.rebookCancelledText}>Book Service Again</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })
+          ) : (
+            <View style={styles.bookingCardCancelled}>
+              <View style={styles.cancelledHeaderRow}>
+                <View style={styles.cancelledBadgePill}>
+                  <Text style={styles.cancelledBadgeText}>✕ CANCELLED</Text>
+                </View>
+                <Text style={styles.bookingDateText}>04 Sep 2026</Text>
+              </View>
+
+              <View style={styles.cancelledBodyRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cancelledServiceTitle}>Bathroom Anti-Bacterial Cleaning</Text>
+                  <Text style={styles.refundText}>✓ Full refund of ₹499 processed to HDFC UPI (Ref #TXN-902148)</Text>
+                </View>
+                <Text style={styles.cancelledPriceText}>₹499</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.rebookCancelledBtn}
+                onPress={() => handleAddService({ id: 'clean-bath', title: 'Bathroom Anti-Bacterial Cleaning', price: 499, rating: 4.81 })}
+              >
+                <Text style={styles.rebookCancelledText}>Book Service Again</Text>
+              </TouchableOpacity>
+            </View>
+          )
         )}
       </ScrollView>
     );
@@ -6099,7 +6210,8 @@ export default function App() {
             sharedBooking={activeCustomerBooking}
             sharedLeads={partnerLeads}
             onAcceptLead={(leadId) => {
-              setPartnerLeads((prev) => prev.filter((l) => l.id !== leadId));
+              if (leadId) acceptedLeadIdsRef.current.add(leadId);
+              setPartnerLeads((prev) => prev.filter((l) => l.id !== leadId && l.bookingId !== leadId));
             }}
             onAddReviewReply={(revId, replyText) => {
               setPartnerReviews((prev) =>
