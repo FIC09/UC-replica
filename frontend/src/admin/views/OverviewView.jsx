@@ -20,7 +20,8 @@ import {
   Wallet,
   RotateCcw,
   Sparkles,
-  Info
+  Info,
+  RefreshCw
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
 import { parseSlotInfo, formatSlotDisplay } from '../../utils/slotDates';
@@ -95,7 +96,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* 1. Overview Page Title & Live Stream Header */}
-      <div className="admin-page-header">
+      <div className="admin-page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0', lineHeight: 1.25 }}>
             Operations &amp; Business Command Center
@@ -103,6 +104,65 @@ export function OverviewView({ onNavigate, onShowToast }) {
           <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.2 }}>
             Real-time platform telemetry, multi-hub metrics, dispatch fulfillment &amp; financial analytics
           </p>
+        </div>
+
+        {/* Live Stream Telemetry & Sync Time (Doc 3, Page 30, 31) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            backgroundColor: '#F0FDF4',
+            border: '1px solid #BBF7D0',
+            borderRadius: 20,
+            padding: '4px 12px',
+            fontSize: 12,
+            fontWeight: 700,
+            color: '#15803D'
+          }}>
+            <span style={{
+              width: 8,
+              height: 8,
+              borderRadius: '50%',
+              backgroundColor: '#16A34A',
+              display: 'inline-block',
+              animation: 'livePulse 1.8s infinite'
+            }} />
+            <span>LIVE TELEMETRY</span>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 12,
+            color: '#64748B',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #E2E8F0',
+            borderRadius: 8,
+            padding: '4px 10px'
+          }}>
+            <Clock size={13} color="#6E42E5" />
+            <span>Synced: <strong style={{ color: '#0F172A' }}>{lastSyncTime || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</strong></span>
+            <button
+              type="button"
+              onClick={() => fetchOverview(false)}
+              disabled={isRefreshing}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: isRefreshing ? 'wait' : 'pointer',
+                color: '#6E42E5',
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                marginLeft: 4
+              }}
+              title="Refresh Telemetry"
+            >
+              <RefreshCw size={12} className={isRefreshing ? 'animate-spin' : ''} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -393,7 +453,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
       </div>
 
       {/* 5. Booking & Revenue Trends Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="admin-trends-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         {/* Booking Volume Trend */}
         <div style={{
           backgroundColor: '#FFFFFF',
@@ -771,13 +831,13 @@ export function OverviewView({ onNavigate, onShowToast }) {
       </div>
 
       {/* 6. Top Categories & Metro Zone Fulfillment */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div className="admin-subgrid-2col" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
         {/* Top Categories */}
         <div style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 12,
           border: '1px solid #E2E8F0',
-          overflow: 'hidden',
+          overflowX: 'auto',
           boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
         }}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
@@ -810,7 +870,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
           backgroundColor: '#FFFFFF',
           borderRadius: 12,
           border: '1px solid #E2E8F0',
-          overflow: 'hidden',
+          overflowX: 'auto',
           boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
         }}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid #E2E8F0', backgroundColor: '#F8FAFC' }}>
@@ -819,19 +879,19 @@ export function OverviewView({ onNavigate, onShowToast }) {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 12.5 }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #E2E8F0', color: '#64748B', fontSize: 11.5 }}>
-                <th style={{ padding: '10px 16px' }}>Metro Hub</th>
-                <th style={{ padding: '10px 16px' }}>Active Pros</th>
-                <th style={{ padding: '10px 16px' }}>On-Time SLA</th>
-                <th style={{ padding: '10px 16px', textAlign: 'right' }}>Avg Rating</th>
+                <th style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>Metro Hub</th>
+                <th style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>Active Pros</th>
+                <th style={{ padding: '10px 16px', whiteSpace: 'nowrap' }}>On-Time SLA</th>
+                <th style={{ padding: '10px 16px', textAlign: 'right', whiteSpace: 'nowrap' }}>Avg Rating</th>
               </tr>
             </thead>
             <tbody>
               {(trends.cityPerformance || []).map(cp => (
                 <tr key={cp.city} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '10px 16px', fontWeight: 700, color: '#0F172A' }}>{cp.city}</td>
-                  <td style={{ padding: '10px 16px', color: '#475569' }}>{cp.activePros} technicians</td>
-                  <td style={{ padding: '10px 16px', color: '#16A34A', fontWeight: 700 }}>{cp.slaRate}</td>
-                  <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700 }}>⭐ {cp.rating}</td>
+                  <td style={{ padding: '10px 16px', fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap' }}>{cp.city}</td>
+                  <td style={{ padding: '10px 16px', color: '#475569', whiteSpace: 'nowrap' }}>{cp.activePros} technicians</td>
+                  <td style={{ padding: '10px 16px', color: '#16A34A', fontWeight: 700, whiteSpace: 'nowrap' }}>{cp.slaRate}</td>
+                  <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>⭐ {cp.rating}</td>
                 </tr>
               ))}
             </tbody>

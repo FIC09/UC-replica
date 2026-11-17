@@ -1024,10 +1024,41 @@ export function AuthModal({
                       marginBottom: 12,
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'space-between',
                       gap: 6
                     }}>
-                      <AlertCircle size={15} style={{ flexShrink: 0 }} />
-                      <span>{errorMsg}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                        <span>{errorMsg}</span>
+                      </div>
+                      {/not registered|register first/i.test(errorMsg) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMode('signup');
+                            setErrorMsg('');
+                            if (loginEmail.includes('@')) {
+                              setSignupEmail(loginEmail);
+                            } else {
+                              const digits = loginEmail.replace(/\D/g, '').slice(-10);
+                              if (digits) setSignupPhone(digits);
+                            }
+                          }}
+                          style={{
+                            background: '#DC2626',
+                            color: '#FFFFFF',
+                            border: 'none',
+                            borderRadius: 6,
+                            padding: '3px 8px',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          Register Now →
+                        </button>
+                      )}
                     </div>
                   )}
 

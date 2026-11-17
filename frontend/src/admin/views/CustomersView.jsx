@@ -618,7 +618,22 @@ export function CustomersView({ onShowToast, onNavigate }) {
                             {isAnonymised ? '?' : (c.name || 'U')[0].toUpperCase()}
                           </div>
                           <div>
-                            <div style={{ fontWeight: 700, color: '#0F172A' }}>{c.name}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <span style={{ fontWeight: 700, color: '#0F172A' }}>{c.name}</span>
+                              {(c.role === 'admin' || c.isAdmin) && (
+                                <span style={{
+                                  fontSize: 10,
+                                  fontWeight: 700,
+                                  padding: '1px 6px',
+                                  borderRadius: 4,
+                                  backgroundColor: '#EDE9FE',
+                                  color: '#6E42E5',
+                                  border: '1px solid #DDD6FE'
+                                }}>
+                                  Admin
+                                </span>
+                              )}
+                            </div>
                             <div style={{ fontSize: 11, color: '#64748B', fontFamily: 'monospace' }} title={c.id || c._id}>
                               ID: {formatCustomerId(c.id || c._id)}
                             </div>
@@ -805,10 +820,23 @@ export function CustomersView({ onShowToast, onNavigate }) {
               zIndex: 10
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                   <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', margin: 0 }}>
                     {selectedCust.name}
                   </h3>
+                  {(selectedCust.role === 'admin' || selectedCust.isAdmin) && (
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      backgroundColor: '#EDE9FE',
+                      color: '#6E42E5',
+                      border: '1px solid #DDD6FE'
+                    }}>
+                      Admin
+                    </span>
+                  )}
                   {renderStatusBadge(selectedCust.status)}
                 </div>
                 <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>

@@ -468,7 +468,7 @@ export function RefrigeratorServicePage({
               width: 19,
               height: 19,
               borderRadius: '50%',
-              backgroundColor: '#6E42E5',
+              backgroundColor: '#059669',
               color: '#FFFFFF'
             }}>
               <Star size={11} fill="#FFFFFF" color="#FFFFFF" />
@@ -937,7 +937,7 @@ export function RefrigeratorServicePage({
                               width: 16,
                               height: 16,
                               borderRadius: '50%',
-                              backgroundColor: '#6E42E5',
+                              backgroundColor: '#059669',
                               color: '#FFFFFF'
                             }}>
                               <Star size={10} fill="#FFFFFF" color="#FFFFFF" />

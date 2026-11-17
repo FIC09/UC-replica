@@ -1157,7 +1157,7 @@ export function SalonPrimeServicePage({
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, color: '#475569', fontWeight: 600 }}>
             <span style={{
-              background: '#6E42E5',
+              background: '#059669',
               color: '#FFFFFF',
               width: 18,
               height: 18,
@@ -1671,8 +1671,10 @@ export function SalonPrimeServicePage({
 
                                 {/* Star Rating & Review Count */}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, color: '#64748B', marginBottom: 10 }}>
-                                  <span style={{
-                                    background: '#6E42E5',
+                                  <span 
+                                    className="rating-circle-badge"
+                                    style={{
+                                    background: '#16A34A',
                                     color: '#FFFFFF',
                                     width: 15,
                                     height: 15,

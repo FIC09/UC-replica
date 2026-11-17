@@ -476,7 +476,7 @@ export function PayoutsView({ profile, showToast, onBalanceUpdate }) {
                   padding: '14px 18px'
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div className="pro-bank-req-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{req.id}</span>
                     <span style={{ fontSize: 12, color: '#64748b' }}>Submitted {req.submittedAt ? new Date(req.submittedAt).toLocaleDateString() : 'Recent'}</span>

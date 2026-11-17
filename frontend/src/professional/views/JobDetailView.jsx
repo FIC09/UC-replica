@@ -1900,14 +1900,14 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {(structuredChecklists?.photos || []).map(ph => (
                   <div key={ph.id} style={{ display: 'flex', gap: 12, padding: '10px 12px', background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0', alignItems: 'center' }}>
-                    <img src={ph.url} alt={ph.fileName} style={{ width: 54, height: 54, borderRadius: 8, objectFit: 'cover', border: '1px solid #cbd5e1' }} />
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a' }}>{ph.fileName}</div>
-                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                    <img src={ph.url} alt={ph.fileName} style={{ width: 54, height: 54, borderRadius: 8, objectFit: 'cover', border: '1px solid #cbd5e1', flexShrink: 0 }} />
+                    <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden' }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', wordBreak: 'break-all', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ph.fileName}</div>
+                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, wordBreak: 'break-word' }}>
                         Phase: <strong style={{ color: ph.phase === 'before' ? '#d97706' : '#059669', textTransform: 'uppercase' }}>{ph.phase}</strong> • Category: <strong>{ph.photoType}</strong> ({ph.fileSizeKb} KB)
                       </div>
                     </div>
-                    <span style={{ fontSize: 11, color: '#059669', fontWeight: 700, background: '#ecfdf5', padding: '3px 8px', borderRadius: 6 }}>
+                    <span style={{ fontSize: 11, color: '#059669', fontWeight: 700, background: '#ecfdf5', padding: '3px 8px', borderRadius: 6, flexShrink: 0, whiteSpace: 'nowrap' }}>
                       🔒 Protected
                     </span>
                   </div>

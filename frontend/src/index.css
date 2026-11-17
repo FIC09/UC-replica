@@ -951,12 +951,15 @@ img {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
   gap: 12px;
-  height: 400px;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 @media (max-width: 992px) {
   .uc-mosaic-grid {
     height: 340px;
+    flex: none;
   }
 }
 
@@ -965,6 +968,7 @@ img {
   flex-direction: column;
   gap: 12px;
   height: 100%;
+  min-height: 0;
 }
 
 .uc-mosaic-item-wrap {
@@ -1505,9 +1509,15 @@ img {
   color: #0F172A;
   background: #FFFFFF;
   border: 1.5px solid #E2E8F0;
-  border-radius: 0;
+  border-radius: 8px;
   padding: 6px 14px;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
   transition: all 0.15s;
 }
 
@@ -3652,6 +3662,7 @@ img {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16px;
   margin-bottom: 18px;
 }
 
@@ -3659,9 +3670,11 @@ img {
   font-size: 30px;
   font-weight: 800;
   color: #0F172A;
-  margin: 0 0 18px 0;
+  margin: 0;
   letter-spacing: -0.5px;
   font-family: var(--font-display, inherit);
+  flex: 1;
+  min-width: 0;
 }
 
 /* Social Proof Stats Row (Matches Homes Screenshot 2) */
@@ -3707,14 +3720,20 @@ img {
 }
 
 .homes-see-all-btn {
-  background: transparent;
+  background: #FFFFFF;
   border: 1px solid #E2E8F0;
-  padding: 6px 16px;
+  padding: 6px 14px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   color: #4F46E5;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
   transition: all 0.15s ease;
 }
 
@@ -4208,8 +4227,39 @@ img {
 }
 
 @media (max-width: 640px) {
+  .homes-section-header-flex {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-bottom: 14px !important;
+    width: 100% !important;
+  }
+
   .homes-section-title {
-    font-size: 24px;
+    font-size: 18px !important;
+    line-height: 1.25 !important;
+    margin: 0 !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    word-break: break-word !important;
+  }
+
+  .homes-see-all-btn {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    padding: 6px 14px !important;
+    border-radius: 8px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    align-self: center !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: max-content !important;
+    height: 34px !important;
+    min-height: 34px !important;
+    line-height: 1 !important;
   }
 
   .homes-cards-row-2 {
@@ -4219,6 +4269,64 @@ img {
   .homes-appliance-item.large {
     width: 100%;
     height: 230px;
+  }
+
+  /* Increase overly small Appliance Repair card images on mobile */
+  .homes-appliance-item {
+    min-width: 155px !important;
+    height: 200px !important;
+    padding: 14px 12px 0 12px !important;
+  }
+  .homes-appliance-item .appliance-item-name {
+    font-size: 13.5px !important;
+    line-height: 1.2 !important;
+    margin-bottom: 6px !important;
+  }
+  .homes-appliance-item .appliance-img-container {
+    height: 140px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .homes-appliance-item .appliance-img {
+    max-height: 95% !important;
+    max-width: 95% !important;
+    transform: scale(1.15) !important;
+    object-fit: contain !important;
+  }
+
+  /* Improve social proof stats row readability and alignment */
+  .homes-social-proof-section {
+    padding: 14px 0 !important;
+  }
+  .homes-social-proof-row {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    gap: 16px !important;
+    padding: 12px 14px !important;
+    background: #F8FAFC !important;
+    border-radius: 14px !important;
+    border: 1px solid #E2E8F0 !important;
+  }
+  .homes-social-stat-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+  }
+  .homes-social-stat-item .homes-social-icon {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  .homes-stat-value {
+    font-size: 20px !important;
+    font-weight: 800 !important;
+  }
+  .homes-stat-label {
+    font-size: 11px !important;
+    color: #64748B !important;
+    white-space: nowrap !important;
   }
 }
 
@@ -4324,13 +4432,43 @@ img {
 
 @media (max-width: 640px) {
   .homes-cleaning-cards-wrap {
-    flex-direction: column;
+    flex-direction: column !important;
+    gap: 16px !important;
+    width: 100% !important;
   }
   .homes-cleaning-card {
-    width: 100%;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    box-sizing: border-box !important;
+  }
+  .homes-cleaning-img-wrap {
+    width: 100% !important;
+    height: 180px !important;
   }
   .homes-epc-2row-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  .homes-epc-2row-grid .homes-svc-img-wrap.epc-clean-bg {
+    height: 125px !important;
+    padding: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 12px !important;
+  }
+  .homes-epc-2row-grid .homes-svc-img.contain-epc {
+    max-height: 100% !important;
+    max-width: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+  }
+  .homes-epc-2row-grid .homes-svc-title {
+    font-size: 13px !important;
+    line-height: 1.25 !important;
+    min-height: 32px !important;
   }
 }
 
@@ -4581,5 +4719,284 @@ select {
 }
 .typing-dot:nth-child(1) { animation-delay: -0.32s; }
 .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+/* ==========================================================================
+   MOBILE-ONLY RESPONSIVE RULES (PAGES 1-36 SPECIFICATION)
+   ========================================================================== */
+
+@media (max-width: 768px) {
+  /* Prevent horizontal page overflow on mobile viewports (320px - 430px) */
+  html, body {
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  .container-custom {
+    padding: 0 16px !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .uc-exact-hero-section {
+    padding: 16px 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .uc-exact-hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+    width: 100% !important;
+  }
+
+  .uc-doorstep-headline {
+    font-size: 26px !important;
+    line-height: 1.2 !important;
+    margin-bottom: 14px !important;
+  }
+
+  .uc-mosaic-grid {
+    height: 250px !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  /* Profile icon tap target & visibility */
+  .uc-profile-btn {
+    min-width: 44px !important;
+    min-height: 44px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Admin overview 2-column trend cards stacked on mobile to eliminate whitespace */
+  .admin-trends-grid,
+  .admin-subgrid-2col {
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  /* Support Quality subtabs position fix to prevent overlapping header */
+  .admin-support-subtabs {
+    position: relative !important;
+    top: 0 !important;
+    z-index: 10 !important;
+  }
+
+  /* Admin settings container usability on mobile */
+  .admin-page-body {
+    padding: 12px 14px !important;
+    gap: 12px !important;
+  }
+
+  .admin-card-responsive {
+    padding: 14px !important;
+  }
+
+  .admin-form-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Customer Checkout responsive layout and alignment */
+.uc-checkout-main-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 1fr);
+  gap: 36px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .uc-checkout-main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+}
+
+/* ==========================================================================
+   MOBILE RESPONSIVE ENHANCEMENTS (URBAN 16-11-26 PDF SPECIFICATION)
+   Target Viewports: 320px, 360px, 375px, 390px, 430px
+   Strictly mobile-only (@media max-width: 768px / max-width: 640px)
+   ========================================================================== */
+
+/* Universal Rating Star High-Visibility (Yellow/Green) */
+.rating-star,
+.homes-rating-star,
+.homes-svc-rating svg,
+.service-card-rating svg,
+.rating-star-icon,
+[data-rating-star="true"],
+svg.lucide-star {
+  color: #F59E0B !important;
+  fill: #F59E0B !important;
+}
+
+/* Green star badge pill for rating chips */
+.rating-circle-badge,
+.rating-badge-green {
+  background: #16A34A !important;
+  color: #FFFFFF !important;
+}
+
+@media (max-width: 768px) {
+  /* 1. Today's Operations: Territory Container & "Direct Doorstep" containment */
+  .pro-territory-container {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 12px 14px !important;
+  }
+
+  .pro-territory-wrap {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .pro-territory-tag-row {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .pro-doorstep-badge {
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  .pro-sync-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 40px !important;
+  }
+
+  /* 2. Profile Hero & Duty Command Card */
+  .pro-hero-duty-card {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    padding: 18px 16px !important;
+    gap: 16px !important;
+  }
+
+  .pro-hero-details {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+    width: 100% !important;
+  }
+
+  .pro-hero-actions {
+    width: 100% !important;
+  }
+
+  .pro-hero-actions button {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 44px !important;
+  }
+
+  /* 3. Today's Appointments Cards */
+  .pro-appointment-item {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+    padding: 14px 14px !important;
+  }
+
+  .pro-appointment-action-wrap {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding-top: 6px !important;
+    border-top: 1px solid #EEF2F6 !important;
+  }
+
+  .pro-appointment-action-wrap button {
+    min-height: 38px !important;
+    padding: 8px 16px !important;
+  }
+
+  /* 4. Money & Financial Ledgers: 6 Stages Breakdown & Itemized Ledger */
+  .pro-financial-stages-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .pro-ledger-table-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    width: 100% !important;
+  }
+
+  .pro-ledger-table {
+    min-width: 680px !important;
+  }
+
+  .pro-bank-req-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+
+  /* 5. Account Page: Frosted Metric Tiles & Menu Rows */
+  .pro-metrics-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .pro-menu-item-row {
+    padding: 14px 16px !important;
+    gap: 12px !important;
+  }
+
+  /* 6. Shift Availability & Working Hours */
+  .pro-availability-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .pro-hours-dropdowns {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* 7. Dispatch Broadcasts & Alerts */
+  .pro-notif-action-row {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .pro-notif-action-row button {
+    min-height: 36px !important;
+  }
+
+  /* 8. Jobs & Dispatches Details Card */
+  .pro-job-cust-loc {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  /* 9. Mobile Bottom Nav Clearance and Page Scrolling */
+  .pro-main-content {
+    padding-bottom: 84px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .pro-financial-stages-grid,
+  .pro-metrics-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .pro-hours-dropdowns {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
+
+
 
 

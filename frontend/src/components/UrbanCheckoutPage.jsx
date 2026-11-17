@@ -452,25 +452,98 @@ export function UrbanCheckoutPage({
     showToast('📍 Service address updated successfully!');
   };
 
-  // Slot selection state - Dynamically generated 3 dates (Today, Tomorrow, Day+2)
+  // Slot selection state - Dynamically generated dates for up to 30 days (full month)
   // Automatically advances when today's service slots complete (past 18:30) or clock reaches midnight
-  const [availableDates, setAvailableDates] = useState(() => getAvailableServiceDates());
+  const [availableDates, setAvailableDates] = useState(() => getAvailableServiceDates(new Date(), 30));
 
   const [selectedDate, setSelectedDate] = useState(() => {
-    const dates = getAvailableServiceDates();
+    const dates = getAvailableServiceDates(new Date(), 30);
     return dates[0]?.label || 'Today';
   });
 
-  const selectedDateObj = useMemo(() => {
-    return availableDates.find(d => d.label === selectedDate) || availableDates[0];
-  }, [availableDates, selectedDate]);
-
-  const isSelectedDateToday = selectedDateObj?.isToday || false;
+  const isSelectedDateToday = Boolean(selectedCalendarDate && selectedCalendarDate.getTime() === todayDate.getTime());
 
   const [selectedTime, setSelectedTime] = useState(() => {
     const dates = getAvailableServiceDates();
     return getFirstAvailableSlot(dates[0]?.isToday);
   });
+
+  // Manual custom time slot selection state
+  const [isCustomTimeMode, setIsCustomTimeMode] = useState(false);
+  const [customTimeValue, setCustomTimeValue] = useState(() => {
+    const d = new Date();
+    d.setHours(d.getHours() + 2, 0, 0, 0);
+    const hh = String(Math.min(20, Math.max(8, d.getHours()))).padStart(2, '0');
+    return `${hh}:00`;
+  });
+  const [customTimeError, setCustomTimeError] = useState('');
+
+  const CUSTOM_TIME_PRESETS = useMemo(() => [
+    { label: '08:30 AM', value: '08:30' },
+    { label: '09:30 AM', value: '09:30' },
+    { label: '10:30 AM', value: '10:30' },
+    { label: '11:30 AM', value: '11:30' },
+    { label: '01:00 PM', value: '13:00' },
+    { label: '02:30 PM', value: '14:30' },
+    { label: '03:30 PM', value: '15:30' },
+    { label: '04:30 PM', value: '16:30' },
+    { label: '05:30 PM', value: '17:30' },
+    { label: '06:30 PM', value: '18:30' },
+    { label: '07:30 PM', value: '19:30' },
+    { label: '08:30 PM', value: '20:30' }
+  ], []);
+
+  function formatCustomTimeToSlot(timeStr) {
+    if (!timeStr) return '';
+    const [hStr, mStr] = timeStr.split(':');
+    let h = parseInt(hStr, 10);
+    const m = parseInt(mStr || '0', 10);
+    if (isNaN(h)) return '';
+
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const displayH = h % 12 === 0 ? 12 : h % 12;
+    const formattedStart = `${String(displayH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`;
+
+    let endH = (h + 1);
+    const endAmpm = (endH >= 12 && endH < 24) ? 'PM' : 'AM';
+    const displayEndH = (endH % 12 === 0) ? 12 : (endH % 12);
+    const formattedEnd = `${String(displayEndH).padStart(2, '0')}:${String(m).padStart(2, '0')} ${endAmpm}`;
+
+    return `${formattedStart} - ${formattedEnd}`;
+  }
+
+  function handleCustomTimeChange(val) {
+    setCustomTimeValue(val);
+    const formatted = formatCustomTimeToSlot(val);
+    if (!formatted) return;
+
+    const isToday = selectedCalendarDate.getTime() === todayDate.getTime();
+    if (isToday && isSlotPassed(formatted, true)) {
+      setCustomTimeError('⚠️ This time has already passed today. Please pick an upcoming time.');
+    } else {
+      setCustomTimeError('');
+      setSelectedTime(formatted);
+    }
+  }
+
+  function handleSelectCustomTimeMode() {
+    setIsCustomTimeMode(true);
+    let val = customTimeValue;
+    const isToday = selectedCalendarDate.getTime() === todayDate.getTime();
+    if (isToday) {
+      const now = new Date();
+      const nextH = Math.min(20, Math.max(8, now.getHours() + 1));
+      val = `${String(nextH).padStart(2, '0')}:00`;
+      setCustomTimeValue(val);
+    }
+    const formatted = formatCustomTimeToSlot(val);
+    if (isToday && isSlotPassed(formatted, true)) {
+      setCustomTimeError('⚠️ Please select an upcoming arrival time.');
+    } else {
+      setCustomTimeError('');
+      if (formatted) setSelectedTime(formatted);
+    }
+  }
 
   // Full-month calendar navigation state (Bug 10)
   const todayDate = useMemo(() => {
@@ -573,15 +646,16 @@ export function UrbanCheckoutPage({
 
   // Keep selected date and time synchronized if current selection expires or passes
   useEffect(() => {
-    if (!availableDates.some(d => d.label === selectedDate)) {
-      if (availableDates[0]) {
-        setSelectedDate(availableDates[0].label);
-        setSelectedTime(getFirstAvailableSlot(availableDates[0].isToday));
+    const isToday = Boolean(selectedCalendarDate && selectedCalendarDate.getTime() === todayDate.getTime());
+    if (!selectedDate && availableDates[0]) {
+      setSelectedDate(availableDates[0].label);
+      if (!isCustomTimeMode) {
+        setSelectedTime(getFirstAvailableSlot(isToday));
       }
-    } else if (isSelectedDateToday && isSlotPassed(selectedTime, true)) {
+    } else if (isToday && !isCustomTimeMode && isSlotPassed(selectedTime, true)) {
       setSelectedTime(getFirstAvailableSlot(true));
     }
-  }, [availableDates, selectedDate, isSelectedDateToday, selectedTime]);
+  }, [availableDates, selectedDate, selectedCalendarDate, todayDate, selectedTime, isCustomTimeMode]);
 
   // Payment state
   const [paymentMethod, setPaymentMethod] = useState('gpay');
@@ -623,21 +697,66 @@ export function UrbanCheckoutPage({
     return () => { isMounted = false; };
   }, []);
 
-  const cartItems = Object.values(cart || {}).filter(item => {
-    const q = typeof item === 'number' ? item : (item?.qty ?? item?.quantity ?? 0);
-    return q > 0;
-  });
-  const itemsCount = cartItems.reduce((sum, item) => {
+  const cartItems = useMemo(() => {
+    return Object.values(cart || {}).filter(item => {
+      const q = typeof item === 'number' ? item : (item?.qty ?? item?.quantity ?? 0);
+      return q > 0;
+    });
+  }, [cart]);
+
+  // Individual item selection for checkout (Bug Report 3, Page 41)
+  const [selectedItemIds, setSelectedItemIds] = useState(() => new Set(cartItems.map(i => i.id)));
+  const knownCartIdsRef = React.useRef(new Set(cartItems.map(i => i.id)));
+
+  // Auto-select only genuinely new items added to cart, keep existing selection/unselection choices intact
+  useEffect(() => {
+    const currentCartIds = new Set(cartItems.map(i => i.id));
+    const knownIds = knownCartIdsRef.current;
+
+    const newlyAddedIds = [];
+    currentCartIds.forEach(id => {
+      if (!knownIds.has(id)) {
+        newlyAddedIds.push(id);
+      }
+    });
+
+    setSelectedItemIds(prev => {
+      let changed = false;
+      const next = new Set(prev);
+
+      newlyAddedIds.forEach(id => {
+        next.add(id);
+        changed = true;
+      });
+
+      next.forEach(id => {
+        if (!currentCartIds.has(id)) {
+          next.delete(id);
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+
+    knownCartIdsRef.current = currentCartIds;
+  }, [cartItems]);
+
+  const activeCheckoutItems = useMemo(() => {
+    return cartItems.filter(item => selectedItemIds.has(item.id));
+  }, [cartItems, selectedItemIds]);
+
+  const itemsCount = activeCheckoutItems.reduce((sum, item) => {
     const q = typeof item === 'number' ? item : (item?.qty ?? item?.quantity ?? 0);
     return sum + q;
   }, 0);
 
-  // Calculate pricing
-  const itemsSubtotal = cartItems.reduce((sum, item) => {
+  // Calculate pricing based on activeCheckoutItems
+  const itemsSubtotal = activeCheckoutItems.reduce((sum, item) => {
     const q = typeof item === 'number' ? item : (item?.qty ?? item?.quantity ?? 0);
     return sum + ((item.price || 0) * q);
   }, 0);
-  const originalSubtotal = cartItems.reduce((sum, item) => {
+  const originalSubtotal = activeCheckoutItems.reduce((sum, item) => {
     const q = typeof item === 'number' ? item : (item?.qty ?? item?.quantity ?? 0);
     const orig = (item.originalPrice && item.originalPrice > item.price) ? item.originalPrice : (item.price || 0);
     return sum + (orig * q);
@@ -646,7 +765,21 @@ export function UrbanCheckoutPage({
   const { bookingFee, isSurgeActive, surgeAmount, gstRate, maintenanceMode } = usePlatformSettings();
 
   const itemSavings = Math.max(0, originalSubtotal - itemsSubtotal);
-  const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+
+  // Dynamic percentage / flat coupon discount calculation (Bug Report 3, Page 40)
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon) return 0;
+    if (appliedCoupon.type === 'percentage') {
+      const pct = Number(appliedCoupon.discount || 25);
+      const calculated = Math.round((itemsSubtotal * pct) / 100);
+      if (appliedCoupon.maxDiscount && Number(appliedCoupon.maxDiscount) > 0 && Number(appliedCoupon.maxDiscount) !== 150) {
+        return Math.min(calculated, Number(appliedCoupon.maxDiscount));
+      }
+      return calculated;
+    }
+    return Number(appliedCoupon.discountAmount || appliedCoupon.discount || 0);
+  }, [appliedCoupon, itemsSubtotal]);
+
   const ucPlusDiscount = hasUCPlus ? Math.min(150, Math.round(itemsSubtotal * 0.1)) : 0;
   const totalSavings = itemSavings + couponDiscount + ucPlusDiscount;
 
@@ -802,9 +935,21 @@ export function UrbanCheckoutPage({
       showToast('⚠️ Your cart is empty. Add services first.');
       return;
     }
+    if (activeCheckoutItems.length === 0) {
+      showToast('⚠️ Please select at least one service item to checkout');
+      return;
+    }
     if (!flatNumber || !flatNumber.trim()) {
       handleOpenAddressModal();
       showToast('📍 Please enter your house / flat number to complete service address');
+      return;
+    }
+    if (isCustomTimeMode && customTimeError) {
+      showToast(customTimeError);
+      return;
+    }
+    if (!selectedTime) {
+      showToast('⚠️ Please select an arrival time slot');
       return;
     }
     setIsPaymentGatewayOpen(true);
@@ -834,7 +979,7 @@ export function UrbanCheckoutPage({
       serviceZone: locality || selectedLocality || 'Rayakottai Road',
       serviceName: firstItem.title || firstItem.name || 'Home Service',
       serviceCategory: firstItem.category || 'Home Services',
-      items: cartItems.map(i => ({
+      items: activeCheckoutItems.map(i => ({
         id: i.id,
         title: i.title || i.name || 'Service',
         name: i.title || i.name || 'Service',
@@ -915,28 +1060,51 @@ export function UrbanCheckoutPage({
           justifyContent: 'space-between'
         }}>
           {/* Logo & Checkout title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            {/* UC Square Badge */}
+          <div 
+            onClick={onBackHome}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: 10,
+              cursor: onBackHome ? 'pointer' : 'default'
+            }}
+            title="Return to Home"
+          >
+            {/* FIC Square Badge */}
             <div style={{
               width: 32,
               height: 32,
-              backgroundColor: '#000000',
+              backgroundColor: '#0F172A',
               borderRadius: 8,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#FFFFFF',
               fontWeight: 900,
-              fontSize: 14.5,
-              letterSpacing: -0.5,
-              userSelect: 'none'
+              fontSize: 13,
+              letterSpacing: -0.3,
+              userSelect: 'none',
+              flexShrink: 0
             }}>
-              UC
+              FIC
             </div>
+
+            {/* Brand Title */}
+            <div style={{ lineHeight: 1.15, display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: 13.5, fontWeight: 900, letterSpacing: -0.3, color: '#0F172A' }}>
+                Forge
+              </span>
+              <span style={{ fontSize: 11.5, fontWeight: 800, letterSpacing: -0.2, color: '#0F172A' }}>
+                India Connect
+              </span>
+            </div>
+
+            {/* Vertical Divider */}
+            <div style={{ width: 1, height: 22, backgroundColor: '#E2E8F0', margin: '0 4px' }} />
 
             {/* Checkout Title */}
             <h1 style={{
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: 800,
               color: '#111827',
               margin: 0,
@@ -1021,9 +1189,9 @@ export function UrbanCheckoutPage({
             </button>
           </div>
         ) : (
-          <div style={{
+          <div className="uc-checkout-main-grid" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gridTemplateColumns: 'minmax(0, 1.35fr) minmax(360px, 1fr)',
             gap: 36,
             alignItems: 'start'
           }}>
@@ -1643,53 +1811,335 @@ export function UrbanCheckoutPage({
                   </div>
                 </div>
 
-                {/* Section Header: Available Time Slots */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>
-                    Available Time Slots {isLoadingSlots ? '(Checking...)' : ''}
-                  </span>
-                  <span style={{ fontSize: 11, color: '#6B7280' }}>
-                    90 min doorstep window
-                  </span>
+                {/* Section Header: Mode Toggle (Standard Slots vs Manual Custom Time) */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  marginBottom: 10,
+                  backgroundColor: '#F3F4F6',
+                  borderRadius: 10,
+                  padding: 4
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomTimeMode(false);
+                      const isToday = selectedCalendarDate.getTime() === todayDate.getTime();
+                      if (isSlotPassed(selectedTime, isToday)) {
+                        setSelectedTime(getFirstAvailableSlot(isToday));
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '7px 10px',
+                      borderRadius: 8,
+                      border: 'none',
+                      backgroundColor: !isCustomTimeMode ? '#FFFFFF' : 'transparent',
+                      color: !isCustomTimeMode ? '#5E3BEE' : '#6B7280',
+                      fontWeight: !isCustomTimeMode ? 700 : 500,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      boxShadow: !isCustomTimeMode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <span>⚡ Available Slots</span>
+                    <span style={{
+                      fontSize: 10.5,
+                      backgroundColor: !isCustomTimeMode ? '#EDE9FE' : '#E5E7EB',
+                      color: !isCustomTimeMode ? '#5E3BEE' : '#6B7280',
+                      padding: '1px 6px',
+                      borderRadius: 10,
+                      fontWeight: 700
+                    }}>
+                      {SERVICE_TIME_SLOTS.length}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleSelectCustomTimeMode}
+                    style={{
+                      flex: 1,
+                      padding: '7px 10px',
+                      borderRadius: 8,
+                      border: 'none',
+                      backgroundColor: isCustomTimeMode ? '#5E3BEE' : 'transparent',
+                      color: isCustomTimeMode ? '#FFFFFF' : '#6B7280',
+                      fontWeight: isCustomTimeMode ? 700 : 500,
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      boxShadow: isCustomTimeMode ? '0 1px 3px rgba(94, 59, 238, 0.3)' : 'none',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6
+                    }}
+                  >
+                    <span>⏰ Pick Custom Time</span>
+                    <span style={{
+                      fontSize: 10,
+                      backgroundColor: isCustomTimeMode ? '#7C3AED' : '#E5E7EB',
+                      color: isCustomTimeMode ? '#FFFFFF' : '#4B5563',
+                      padding: '1px 5px',
+                      borderRadius: 10,
+                      fontWeight: 700
+                    }}>
+                      Manual
+                    </span>
+                  </button>
                 </div>
 
-                {/* Time slot chips with live capacity & double-booking prevention */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
-                  {SERVICE_TIME_SLOTS.map(t => {
-                    const isToday = selectedCalendarDate.getTime() === todayDate.getTime();
-                    const passed = isSlotPassed(t.label, isToday);
-                    const slotInfo = backendSlotsAvailability[t.label];
-                    const isFullyBooked = slotInfo && slotInfo.isAvailable === false;
-                    const isDisabled = passed || isFullyBooked;
-                    const isSel = selectedTime === t.label;
+                {!isCustomTimeMode ? (
+                  <>
+                    {/* Header info */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>
+                        Standard Time Slots {isLoadingSlots ? '(Checking...)' : ''}
+                      </span>
+                      <span style={{ fontSize: 11, color: '#6B7280' }}>
+                        90 min doorstep window
+                      </span>
+                    </div>
 
-                    return (
+                    {/* Time slot chips with live capacity & double-booking prevention */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, 1fr)',
+                      gap: 8,
+                      maxHeight: 260,
+                      overflowY: 'auto',
+                      paddingRight: 2
+                    }}>
+                      {SERVICE_TIME_SLOTS.map(t => {
+                        const isToday = selectedCalendarDate.getTime() === todayDate.getTime();
+                        const passed = isSlotPassed(t.label, isToday);
+                        const slotInfo = backendSlotsAvailability[t.label];
+                        const isFullyBooked = slotInfo && slotInfo.isAvailable === false;
+                        const isDisabled = passed || isFullyBooked;
+                        const isSel = selectedTime === t.label;
+
+                        return (
+                          <button
+                            key={t.id}
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() => {
+                              if (!isDisabled) {
+                                setSelectedTime(t.label);
+                                setIsCustomTimeMode(false);
+                              }
+                            }}
+                            style={{
+                              padding: '10px 12px',
+                              borderRadius: 8,
+                              border: isSel ? '2px solid #5E3BEE' : '1px solid #E5E7EB',
+                              backgroundColor: isDisabled ? '#F3F4F6' : (isSel ? '#F5F3FF' : '#FFFFFF'),
+                              color: isDisabled ? '#9CA3AF' : (isSel ? '#5E3BEE' : '#111827'),
+                              fontSize: 12.5,
+                              fontWeight: isSel ? 700 : 500,
+                              cursor: isDisabled ? 'not-allowed' : 'pointer',
+                              textAlign: 'center',
+                              opacity: isDisabled ? 0.55 : 1,
+                              boxShadow: isSel ? '0 1px 4px rgba(94, 59, 238, 0.25)' : 'none',
+                              transition: 'all 0.15s ease'
+                            }}
+                          >
+                            {t.label}
+                            {passed && <span style={{ fontSize: 10, display: 'block', color: '#9CA3AF' }}>(Past slot)</span>}
+                            {isFullyBooked && !passed && <span style={{ fontSize: 10, display: 'block', color: '#DC2626' }}>(Fully Booked)</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Manual time prompt card */}
+                    <div style={{
+                      marginTop: 10,
+                      padding: '10px 12px',
+                      borderRadius: 10,
+                      backgroundColor: '#F9FAFB',
+                      border: '1px dashed #D1D5DB',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 8
+                    }}>
+                      <div style={{ fontSize: 11.5, color: '#4B5563', lineHeight: 1.3 }}>
+                        <span style={{ fontWeight: 700, color: '#111827' }}>Need a specific time?</span>
+                        <div style={{ fontSize: 11, color: '#6B7280' }}>Choose any custom arrival time that fits you.</div>
+                      </div>
                       <button
-                        key={t.id}
                         type="button"
-                        disabled={isDisabled}
-                        onClick={() => !isDisabled && setSelectedTime(t.label)}
+                        onClick={handleSelectCustomTimeMode}
                         style={{
-                          padding: '8px 10px',
-                          borderRadius: 8,
-                          border: isSel ? '1.5px solid #5E3BEE' : '1px solid #E5E7EB',
-                          backgroundColor: isDisabled ? '#F3F4F6' : (isSel ? '#F5F3FF' : '#FFFFFF'),
-                          color: isDisabled ? '#9CA3AF' : (isSel ? '#5E3BEE' : '#374151'),
-                          fontSize: 12,
-                          fontWeight: 600,
-                          cursor: isDisabled ? 'not-allowed' : 'pointer',
-                          textAlign: 'center',
-                          opacity: isDisabled ? 0.55 : 1,
-                          transition: 'all 0.15s ease'
+                          padding: '6px 12px',
+                          backgroundColor: '#5E3BEE',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: 7,
+                          fontSize: 11.5,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 1px 2px rgba(94, 59, 238, 0.2)'
                         }}
                       >
-                        {t.label}
-                        {passed && <span style={{ fontSize: 10, display: 'block', color: '#9CA3AF' }}>(Past slot)</span>}
-                        {isFullyBooked && !passed && <span style={{ fontSize: 10, display: 'block', color: '#DC2626' }}>(Fully Booked)</span>}
+                        ⏰ Choose My Time →
                       </button>
-                    );
-                  })}
-                </div>
+                    </div>
+                  </>
+                ) : (
+                  /* Manual Custom Time Selection Card */
+                  <div style={{
+                    padding: 14,
+                    borderRadius: 12,
+                    backgroundColor: '#FAF5FF',
+                    border: '1.5px solid #DDD6FE'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: 15 }}>⏰</span>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#5B21B6' }}>
+                          Choose Your Preferred Arrival Time
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsCustomTimeMode(false)}
+                        style={{
+                          fontSize: 11,
+                          color: '#6B7280',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        Standard slots
+                      </button>
+                    </div>
+
+                    <p style={{ fontSize: 11.5, color: '#6B7280', margin: '0 0 12px 0' }}>
+                      Select any arrival time between 08:00 AM and 09:30 PM. Our technician will arrive within a 60–90 min window of your chosen time.
+                    </p>
+
+                    {/* Native Time Picker Input */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      marginBottom: 12,
+                      backgroundColor: '#FFFFFF',
+                      padding: '8px 12px',
+                      borderRadius: 10,
+                      border: '1px solid #C4B5FD'
+                    }}>
+                      <label htmlFor="custom-arrival-time" style={{ fontSize: 12, fontWeight: 700, color: '#4B5563', whiteSpace: 'nowrap' }}>
+                        Custom Time:
+                      </label>
+                      <input
+                        id="custom-arrival-time"
+                        type="time"
+                        min="08:00"
+                        max="21:30"
+                        step="900"
+                        value={customTimeValue}
+                        onChange={(e) => handleCustomTimeChange(e.target.value)}
+                        style={{
+                          flex: 1,
+                          padding: '6px 10px',
+                          borderRadius: 6,
+                          border: '1px solid #D1D5DB',
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: '#1F2937',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+
+                    {/* Quick Popular Presets */}
+                    <div style={{ marginBottom: 12 }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#6B7280', display: 'block', marginBottom: 6 }}>
+                        Or pick a popular quick time:
+                      </span>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+                        {CUSTOM_TIME_PRESETS.map(preset => {
+                          const isSel = customTimeValue === preset.value;
+                          const isToday = selectedCalendarDate.getTime() === todayDate.getTime();
+                          const formattedPreset = formatCustomTimeToSlot(preset.value);
+                          const passed = isToday && isSlotPassed(formattedPreset, true);
+
+                          return (
+                            <button
+                              key={preset.value}
+                              type="button"
+                              disabled={passed}
+                              onClick={() => handleCustomTimeChange(preset.value)}
+                              style={{
+                                padding: '6px 8px',
+                                borderRadius: 6,
+                                border: isSel ? '1.5px solid #5E3BEE' : '1px solid #E9D5FF',
+                                backgroundColor: passed ? '#F3F4F6' : (isSel ? '#5E3BEE' : '#FFFFFF'),
+                                color: passed ? '#9CA3AF' : (isSel ? '#FFFFFF' : '#4C1D95'),
+                                fontSize: 11,
+                                fontWeight: 600,
+                                cursor: passed ? 'not-allowed' : 'pointer',
+                                textAlign: 'center',
+                                opacity: passed ? 0.5 : 1,
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              {preset.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Error Notice */}
+                    {customTimeError && (
+                      <div style={{
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        backgroundColor: '#FEF2F2',
+                        border: '1px solid #FCA5A5',
+                        color: '#B91C1C',
+                        fontSize: 11.5,
+                        fontWeight: 600,
+                        marginBottom: 10
+                      }}>
+                        {customTimeError}
+                      </div>
+                    )}
+
+                    {/* Selected Active Slot Confirmation */}
+                    {selectedTime && !customTimeError && (
+                      <div style={{
+                        padding: '8px 12px',
+                        borderRadius: 8,
+                        backgroundColor: '#ECFDF5',
+                        border: '1px solid #A7F3D0',
+                        color: '#065F46',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                      }}>
+                        <span>✓ Selected Arrival:</span>
+                        <strong style={{ color: '#047857' }}>{selectedTime}</strong>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1752,11 +2202,41 @@ export function UrbanCheckoutPage({
                           gap: 12
                         }}
                       >
+                        {/* Checkbox for item selection */}
+                        <label 
+                          style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', margin: 0 }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedItemIds.has(item.id)}
+                            onChange={(e) => {
+                              const checked = e.target.checked;
+                              setSelectedItemIds(prev => {
+                                const next = new Set(prev);
+                                if (checked) {
+                                  next.add(item.id);
+                                } else {
+                                  next.delete(item.id);
+                                }
+                                return next;
+                              });
+                            }}
+                            style={{
+                              width: 17,
+                              height: 17,
+                              accentColor: '#6E42E5',
+                              cursor: 'pointer'
+                            }}
+                            title={selectedItemIds.has(item.id) ? "Uncheck to exclude from checkout" : "Check to include in checkout"}
+                          />
+                        </label>
+
                         {/* Service Title */}
                         <div style={{
                           fontSize: 14,
                           fontWeight: 600,
-                          color: '#111827',
+                          color: selectedItemIds.has(item.id) ? '#111827' : '#9CA3AF',
                           lineHeight: 1.35,
                           flex: 1
                         }}>
@@ -1823,7 +2303,7 @@ export function UrbanCheckoutPage({
                           <div style={{
                             fontSize: 14,
                             fontWeight: 800,
-                            color: '#111827'
+                            color: selectedItemIds.has(item.id) ? '#111827' : '#9CA3AF'
                           }}>
                             ₹{(item.price * item.qty).toLocaleString('en-IN')}
                           </div>
@@ -2317,34 +2797,38 @@ export function UrbanCheckoutPage({
               <button
                 type="button"
                 onClick={handleBookServiceClick}
-                disabled={maintenanceMode}
+                disabled={maintenanceMode || activeCheckoutItems.length === 0}
                 style={{
                   width: '100%',
                   padding: '15px 0',
-                  backgroundColor: maintenanceMode ? '#94A3B8' : '#5E3BEE',
+                  backgroundColor: (maintenanceMode || activeCheckoutItems.length === 0) ? '#94A3B8' : '#5E3BEE',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 12,
                   fontSize: 15,
                   fontWeight: 800,
-                  cursor: maintenanceMode ? 'not-allowed' : 'pointer',
+                  cursor: (maintenanceMode || activeCheckoutItems.length === 0) ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
-                  boxShadow: maintenanceMode ? 'none' : '0 4px 14px rgba(94, 59, 238, 0.35)',
+                  boxShadow: (maintenanceMode || activeCheckoutItems.length === 0) ? 'none' : '0 4px 14px rgba(94, 59, 238, 0.35)',
                   transition: 'background-color 0.15s, transform 0.15s'
                 }}
                 onMouseEnter={e => {
-                  e.currentTarget.style.backgroundColor = '#4F2CE0';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  if (!maintenanceMode && activeCheckoutItems.length > 0) {
+                    e.currentTarget.style.backgroundColor = '#4F2CE0';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }
                 }}
                 onMouseLeave={e => {
-                  e.currentTarget.style.backgroundColor = '#5E3BEE';
-                  e.currentTarget.style.transform = 'translateY(0)';
+                  if (!maintenanceMode && activeCheckoutItems.length > 0) {
+                    e.currentTarget.style.backgroundColor = '#5E3BEE';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
                 }}
               >
-                <span>Book Service • ₹{finalPayable.toLocaleString('en-IN')}</span>
+                <span>{activeCheckoutItems.length === 0 ? 'Select Services to Book' : `Book Service • ₹${finalPayable.toLocaleString('en-IN')}`}</span>
                 <ArrowRight size={16} />
               </button>
             </div>

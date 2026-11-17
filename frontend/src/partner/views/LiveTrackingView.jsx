@@ -116,6 +116,7 @@ export function LiveTrackingView({ showToast }) {
               width: 8,
               height: 8,
               borderRadius: '50%',
+              flexShrink: 0,
               backgroundColor: autoRefresh ? '#10B981' : '#94A3B8',
               boxShadow: autoRefresh ? '0 0 0 3px rgba(16, 185, 129, 0.2)' : 'none'
             }} />
@@ -201,6 +202,7 @@ export function LiveTrackingView({ showToast }) {
                           width: 30,
                           height: 30,
                           borderRadius: '50%',
+                          flexShrink: 0,
                           background: '#EDE9FE',
                           color: '#6D28D9',
                           fontSize: 12,

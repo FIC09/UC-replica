@@ -327,11 +327,10 @@ function App() {
   }
 
   function handleBackHome() {
-    if (window.history.state?.view && window.history.state.view !== 'home' && window.location.pathname !== '/') {
-      window.history.back();
-    } else {
-      navigateToView('home');
-    }
+    navigateToView('home');
+    try {
+      window.history.pushState({ view: 'home' }, '', '/');
+    } catch {}
   }
 
   useEffect(() => {
@@ -578,13 +577,7 @@ function App() {
               localStorage.setItem('uc_bookings', JSON.stringify(serverBookings));
             } catch {}
 
-            if (serverBookings.length > 0) {
-              const active = serverBookings.find(b => ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(b.status)) || null;
-              if (active) setLatestLiveBooking(active);
-              else setLatestLiveBooking(null);
-            } else {
-              setLatestLiveBooking(null);
-            }
+            // Note: latestLiveBooking is managed strictly by customerBookings & activeBookedOrderId
           }
         } catch (bErr) {
           console.warn('Initial bookings fetch note:', bErr.message);
@@ -911,6 +904,19 @@ function App() {
     } catch {}
   }, [bookings]);
 
+  // Live active booking and tracking session states
+  const [activeTrackingBooking, setActiveTrackingBooking] = useState(null);
+  const [latestLiveBooking, setLatestLiveBooking] = useState(null);
+  const [activeChatBooking, setActiveChatBooking] = useState(null);
+  const [isTrackingPillDismissed, setIsTrackingPillDismissed] = useState(false);
+  const [activeBookedOrderId, setActiveBookedOrderId] = useState(() => {
+    try {
+      return localStorage.getItem('uc_active_booked_order_id') || null;
+    } catch {
+      return null;
+    }
+  });
+
   async function handleConfirmOrder(bookingDetails) {
     const custName = user?.name || bookingDetails.customerName || bookingDetails.userName || 'Customer';
     const rawPhone = (user?.phone || bookingDetails.userPhone || '').toString().trim();
@@ -953,6 +959,11 @@ function App() {
     navigateToView('home');
     setActiveTrackingBooking(enriched);
     setLatestLiveBooking(enriched);
+    setActiveBookedOrderId(enriched.id);
+    setIsTrackingPillDismissed(false);
+    try {
+      localStorage.setItem('uc_active_booked_order_id', enriched.id);
+    } catch {}
 
     try {
       const serverRes = await bookingsApi.create(enriched);
@@ -1100,6 +1111,11 @@ function App() {
 
   function handleCancelBooking(id, reason) {
     const cleanId = String(id).replace(/^#/, '');
+    if (cleanId === String(activeBookedOrderId || '').replace(/^#/, '')) {
+      setActiveBookedOrderId(null);
+      setLatestLiveBooking(null);
+      try { localStorage.removeItem('uc_active_booked_order_id'); } catch {}
+    }
     setBookings(prev => {
       const updated = prev.map(b => {
         const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
@@ -1115,6 +1131,11 @@ function App() {
 
   function handleDeleteBookingHistory(id) {
     const cleanId = String(id).replace(/^#/, '');
+    if (cleanId === String(activeBookedOrderId || '').replace(/^#/, '')) {
+      setActiveBookedOrderId(null);
+      setLatestLiveBooking(null);
+      try { localStorage.removeItem('uc_active_booked_order_id'); } catch {}
+    }
     setBookings(prev => {
       const updated = prev.filter(b => {
         const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
@@ -1130,6 +1151,11 @@ function App() {
 
   function handleUpdateBookingStatus(id, newStatus, partnerName) {
     const cleanId = String(id).replace(/^#/, '');
+    if (['Completed', 'Cancelled'].includes(newStatus) && cleanId === String(activeBookedOrderId || '').replace(/^#/, '')) {
+      setActiveBookedOrderId(null);
+      setLatestLiveBooking(null);
+      try { localStorage.removeItem('uc_active_booked_order_id'); } catch {}
+    }
     setBookings(prev => {
       const next = prev.map(b => {
         const bId = String(b.id || b.bookingReference || '').replace(/^#/, '');
@@ -1270,12 +1296,38 @@ function App() {
 
   useEffect(() => {
     if (user && customerBookings.length > 0) {
-      const active = customerBookings.find(b => ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(b.status)) || null;
+      const targetId = activeBookedOrderId ? String(activeBookedOrderId).replace(/^#/, '') : null;
+      let active = null;
+      if (targetId) {
+        active = customerBookings.find(b => {
+          const bId = String(b.id || b.bookingReference || b._id || '').replace(/^#/, '');
+          return bId === targetId && ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(b.status);
+        });
+      }
+      if (!active) {
+        active = customerBookings.find(b =>
+          ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(b.status)
+        ) || null;
+      }
       setLatestLiveBooking(active);
+      if (active) {
+        const aId = String(active.id || active.bookingReference || active._id || '');
+        if (aId !== activeBookedOrderId) {
+          setActiveBookedOrderId(aId);
+          try { localStorage.setItem('uc_active_booked_order_id', aId); } catch {}
+        }
+      } else if (activeBookedOrderId) {
+        setActiveBookedOrderId(null);
+        try { localStorage.removeItem('uc_active_booked_order_id'); } catch {}
+      }
     } else {
       setLatestLiveBooking(null);
+      if (activeBookedOrderId) {
+        setActiveBookedOrderId(null);
+        try { localStorage.removeItem('uc_active_booked_order_id'); } catch {}
+      }
     }
-  }, [customerBookings, user]);
+  }, [customerBookings, user, activeBookedOrderId]);
 
   useEffect(() => {
     function triggerCrossTabLogout() {
@@ -1606,7 +1658,12 @@ function App() {
     setUser(null);
     setSavedAddresses([]);
     setIsAdminAuthenticated(false);
+    setLatestLiveBooking(null);
+    setActiveTrackingBooking(null);
+    setActiveChatBooking(null);
+    setActiveBookedOrderId(null);
     try {
+      localStorage.removeItem('uc_active_booked_order_id');
       localStorage.removeItem('uc_addresses');
       localStorage.removeItem('uc_user');
       sessionStorage.removeItem('uc_admin_auth');
@@ -1805,18 +1862,6 @@ function App() {
 
   const [editingServiceForAdmin, setEditingServiceForAdmin] = useState(null);
   const [selectedDetailService, setSelectedDetailService] = useState(null);
-  const [activeTrackingBooking, setActiveTrackingBooking] = useState(null);
-  const [latestLiveBooking, setLatestLiveBooking] = useState(() => {
-    try {
-      const saved = localStorage.getItem('uc_bookings');
-      if (saved) {
-        const list = JSON.parse(saved);
-        return list.find(b => ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(b.status)) || null;
-      }
-    } catch {}
-    return null;
-  });
-  const [activeChatBooking, setActiveChatBooking] = useState(null);
 
   function handleOpenCreateService() {
     setEditingServiceForAdmin('NEW');
@@ -2148,6 +2193,8 @@ function App() {
           onOpenCart={handleOpenCartView}
           onOpenCheckout={handleProceedToCheckout}
           showToast={showToast}
+          user={user}
+          onOpenAuth={handleOpenAuth}
         />
       ) : currentView === 'native-smart-locks-page' ? (
         <NativeSmartLocksPage
@@ -2161,6 +2208,8 @@ function App() {
           onOpenCart={handleOpenCartView}
           onOpenCheckout={handleProceedToCheckout}
           showToast={showToast}
+          user={user}
+          onOpenAuth={handleOpenAuth}
         />
       ) : currentView === 'electrician-service-page' ? (
         <ElectricianServicePage
@@ -2500,6 +2549,116 @@ function App() {
       />
 
       <main className="main-content">
+        {/* Customer Live Service Dashboard Card (Appears after booking a service - Homepage acts as Customer Dashboard) */}
+        {Boolean(user && latestLiveBooking && ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(latestLiveBooking.status)) && currentView === 'home' && (
+          <div className="uc-customer-live-dashboard-banner" style={{
+            maxWidth: 1240,
+            margin: '20px auto 14px auto',
+            padding: '0 24px'
+          }}>
+            <div style={{
+              background: 'linear-gradient(135deg, #1E1B4B 0%, #311042 50%, #4C1D95 100%)',
+              borderRadius: 16,
+              padding: '18px 24px',
+              color: '#FFFFFF',
+              boxShadow: '0 10px 25px -5px rgba(76, 29, 149, 0.3)',
+              border: '1.5px solid #8B5CF6',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: 16
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 14,
+                  background: 'rgba(255, 255, 255, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 24,
+                  flexShrink: 0
+                }}>
+                  🛵
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      backgroundColor: '#10B981',
+                      color: '#FFFFFF',
+                      padding: '2px 8px',
+                      borderRadius: 6
+                    }}>
+                      ● {latestLiveBooking.status || 'Active Service'}
+                    </span>
+                    <span style={{ fontSize: 12, color: '#C4B5FD', fontWeight: 600 }}>
+                      Booking #{latestLiveBooking.id || latestLiveBooking.bookingId || latestLiveBooking._id}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#FFFFFF', marginBottom: 2 }}>
+                    {latestLiveBooking.items?.[0]?.name || latestLiveBooking.serviceTitle || latestLiveBooking.category || 'Home Service'}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#E9D5FF' }}>
+                    Technician: <strong>{latestLiveBooking.assignedProfessional?.name || latestLiveBooking.assignedPartner || 'Technician Allocated'}</strong> • Scheduled Slot: <strong>{latestLiveBooking.slot || 'Today'}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={() => setActiveTrackingBooking(latestLiveBooking)}
+                  style={{
+                    padding: '9px 18px',
+                    backgroundColor: '#FFFFFF',
+                    color: '#4C1D95',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    borderRadius: 10,
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                    transition: 'transform 0.15s ease'
+                  }}
+                >
+                  <span>📍 Track Live Service</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveChatBooking(latestLiveBooking)}
+                  style={{
+                    padding: '9px 18px',
+                    backgroundColor: '#10B981',
+                    color: '#FFFFFF',
+                    fontWeight: 700,
+                    fontSize: 13,
+                    borderRadius: 10,
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    boxShadow: '0 2px 6px rgba(16, 185, 129, 0.3)',
+                    transition: 'transform 0.15s ease'
+                  }}
+                >
+                  <span>💬 Chat with Pro</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 2. Exact Hero Section from Screenshot */}
         <HeroSection
           activeNavTab={activeNavTab}
@@ -2737,20 +2896,25 @@ function App() {
       <OrderTrackingModal
         booking={activeTrackingBooking}
         onClose={() => setActiveTrackingBooking(null)}
+        onUpdateBookingStatus={handleUpdateBookingStatus}
+        onReturnHome={() => {
+          handleBackHome();
+          setActiveTrackingBooking(null);
+        }}
       />
 
-      {/* Persistent Floating Real-Time Live Order & Chat Bar */}
-      {latestLiveBooking && !activeTrackingBooking && !activeChatBooking && (
+      {/* Persistent Floating Real-Time Live Order & Chat Bar (Only shown on Customer Dashboard / Homepage after booking) */}
+      {Boolean(user && latestLiveBooking && ['Confirmed', 'Assigned', 'In Progress', 'En Route', 'Arrived'].includes(latestLiveBooking.status)) && !activeTrackingBooking && !activeChatBooking && !isTrackingPillDismissed && currentView === 'home' && (
         <div
           style={{
             position: 'fixed',
-            bottom: 24,
+            bottom: Object.keys(cart || {}).length > 0 ? 84 : 24,
             right: 24,
             zIndex: 9990,
             background: 'linear-gradient(135deg, #1E1B4B 0%, #4C1D95 100%)',
             color: '#FFFFFF',
             borderRadius: 50,
-            padding: '8px 16px 8px 14px',
+            padding: '8px 14px 8px 14px',
             display: 'flex',
             alignItems: 'center',
             gap: 12,
@@ -2814,6 +2978,29 @@ function App() {
           >
             <span>💬 Chat</span>
           </button>
+
+          {/* Dismiss button */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsTrackingPillDismissed(true);
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: '#DDD6FE',
+              fontSize: 14,
+              cursor: 'pointer',
+              padding: '2px 4px',
+              marginLeft: -2,
+              lineHeight: 1,
+              opacity: 0.8
+            }}
+            title="Hide tracking pill"
+          >
+            ✕
+          </button>
         </div>
       )}
 
@@ -2827,6 +3014,12 @@ function App() {
         onTrackBooking={(b) => {
           setActiveTrackingBooking(b);
           setLatestLiveBooking(b);
+          const bId = b?.id || b?.bookingReference || b?._id;
+          if (bId) {
+            setActiveBookedOrderId(bId);
+            setIsTrackingPillDismissed(false);
+            try { localStorage.setItem('uc_active_booked_order_id', bId); } catch {}
+          }
         }}
         onUpdateBookingSlot={handleUpdateBookingSlot}
         onUpdateBookingAddress={handleUpdateBookingAddress}

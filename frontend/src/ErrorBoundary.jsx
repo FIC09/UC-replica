@@ -61,19 +61,22 @@ export class ErrorBoundary extends React.Component {
                 {this.state.errorInfo?.componentStack}
               </pre>
             </details>
-            <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => window.location.reload()}
                 style={{
-                  padding: '10px 18px',
+                  padding: '12px 18px',
+                  minHeight: 44,
                   background: '#6E42E5',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 8,
                   fontWeight: 700,
                   fontSize: 13,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  flex: '1 1 auto',
+                  textAlign: 'center'
                 }}
               >
                 Reload Page
@@ -86,14 +89,17 @@ export class ErrorBoundary extends React.Component {
                   window.location.href = '/';
                 }}
                 style={{
-                  padding: '10px 18px',
+                  padding: '12px 18px',
+                  minHeight: 44,
                   background: '#EF4444',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 8,
                   fontWeight: 700,
                   fontSize: 13,
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  flex: '1 1 auto',
+                  textAlign: 'center'
                 }}
               >
                 Reset Local Storage & Reload

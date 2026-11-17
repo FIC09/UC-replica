@@ -377,7 +377,7 @@ export function MicrowaveServicePage({
                 width: 19,
                 height: 19,
                 borderRadius: '50%',
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#059669',
                 color: '#FFFFFF'
               }}>
                 <Star size={11.5} fill="#FFFFFF" color="#FFFFFF" />
@@ -586,7 +586,7 @@ export function MicrowaveServicePage({
               fontSize: 13,
               marginBottom: 16
             }}>
-              <Star size={12} fill="#0F172A" color="#0F172A" />
+              <Star size={12} fill="#F59E0B" color="#F59E0B" />
               <span style={{ fontWeight: 800, color: '#0F172A' }}>4.84</span>
               <span style={{ color: '#475569', borderBottom: '1px dotted #94A3B8', cursor: 'pointer' }}>
                 (61K reviews)
@@ -709,7 +709,7 @@ export function MicrowaveServicePage({
                           color: '#64748B',
                           marginBottom: 14
                         }}>
-                          <Star size={10} fill="#0F172A" color="#0F172A" />
+                          <Star size={10} fill="#F59E0B" color="#F59E0B" />
                           <span style={{ fontWeight: 800, color: '#0F172A' }}>{issue.rating}</span>
                           <span>({issue.reviews})</span>
                         </div>
@@ -848,7 +848,7 @@ export function MicrowaveServicePage({
                       {svc.title}
                     </h4>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748B', marginBottom: 6 }}>
-                      <Star size={11} fill="#0F172A" color="#0F172A" />
+                      <Star size={11} fill="#F59E0B" color="#F59E0B" />
                       <span style={{ fontWeight: 800, color: '#0F172A' }}>{svc.rating}</span>
                       <span>({svc.reviews})</span>
                       <span>• {svc.duration}</span>

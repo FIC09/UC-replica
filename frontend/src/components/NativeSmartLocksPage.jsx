@@ -30,11 +30,24 @@ export function NativeSmartLocksPage({
   onUpdateQty,
   onOpenCart,
   onOpenCheckout,
-  showToast = () => {}
+  showToast = () => {},
+  user,
+  onOpenAuth
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDetailLock, setSelectedDetailLock] = useState(null);
   const [currentHeroSlide, setCurrentHeroSlide] = useState(0);
+
+  const [offerIdx, setOfferIdx] = useState(0);
+  const BANK_OFFERS = [
+    { title: 'Flat 10% off upto ₹1250', sub: 'HDFC Bank Full Swipe Offer' },
+    { title: '₹1,500 Instant Discount', sub: 'ICICI Bank Credit Card EMI' },
+    { title: 'Flat ₹1,000 off', sub: 'Axis Bank Credit Card' },
+    { title: 'No Cost EMI from ₹1,708/mo', sub: 'All major banks applicable' },
+    { title: 'Flat ₹1,200 off', sub: 'SBI Card Full Swipe' },
+    { title: 'Extra ₹500 Cashback', sub: 'Pay with UPI / Cred' },
+    { title: 'Free Expert Installation', sub: 'Forge India Connect Promise' },
+  ];
 
   // Exact 3 Smart Lock Models matching Forge India Connect Screenshots 2 & 3
   const LOCK_MODELS = [
@@ -164,14 +177,14 @@ export function NativeSmartLocksPage({
                 fontSize: 14,
                 letterSpacing: -0.5
               }}>
-                UC
+                FIC
               </div>
               <div style={{ lineHeight: 1.1 }}>
                 <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: -0.4, color: '#0F172A' }}>
-                  Urban
+                  Forge
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.3, color: '#0F172A' }}>
-                  Company
+                  India Connect
                 </div>
               </div>
             </div>
@@ -289,14 +302,18 @@ export function NativeSmartLocksPage({
             </button>
 
             {/* User Profile button */}
-            <div style={{
-              width: 42,
-              height: 42,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer'
-            }} title="User Account">
+            <div
+              onClick={() => onOpenAuth ? onOpenAuth('login') : null}
+              style={{
+                width: 42,
+                height: 42,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+              title={user?.name ? `Logged in as ${user.name}` : 'Sign In / Account'}
+            >
               <CircleUserRound size={26} color="#111827" strokeWidth={1.5} />
             </div>
           </div>
@@ -341,7 +358,7 @@ export function NativeSmartLocksPage({
                 width: 18,
                 height: 18,
                 borderRadius: '50%',
-                backgroundColor: '#7C3AED',
+                backgroundColor: '#059669',
                 color: '#FFFFFF',
                 fontSize: 10
               }}>
@@ -545,13 +562,13 @@ export function NativeSmartLocksPage({
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 6,
+                        gap: 5,
                         marginBottom: 10,
                         fontSize: 12.5,
                         fontWeight: 700,
-                        color: '#6E42E5'
+                        color: '#0F172A'
                       }}>
-                        <span>★</span>
+                        <span style={{ color: '#F59E0B' }}>★</span>
                         <span style={{ borderBottom: '1px dashed #CBD5E1' }}>
                           {lock.rating} ({lock.reviews})
                         </span>
@@ -796,7 +813,7 @@ export function NativeSmartLocksPage({
               SIDEBAR COLUMN: BANK OFFER, UC PROMISE, CART PREVIEW
               ========================================================= */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {/* 1. Bank Offer Promo Card */}
+            {/* 1. Bank Offer Promo Card with Interactive Carousel */}
             <div style={{
               backgroundColor: '#FFFFFF',
               border: '1px solid #E2E8F0',
@@ -804,12 +821,16 @@ export function NativeSmartLocksPage({
               padding: '14px 16px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              gap: 12,
+              boxSizing: 'border-box'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                 <div style={{
                   width: 32,
                   height: 32,
+                  minWidth: 32,
+                  minHeight: 32,
                   borderRadius: '50%',
                   backgroundColor: '#DCFCE7',
                   color: '#16A34A',
@@ -817,28 +838,66 @@ export function NativeSmartLocksPage({
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 900,
-                  fontSize: 14
+                  fontSize: 14,
+                  flexShrink: 0
                 }}>
                   %
                 </div>
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>
-                    Flat 10% off upto ₹1250
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {BANK_OFFERS[offerIdx].title}
                   </div>
-                  <div style={{ fontSize: 11.5, color: '#64748B' }}>
-                    HDFC Bank Full Swipe Offer
+                  <div style={{ fontSize: 11.5, color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {BANK_OFFERS[offerIdx].sub}
                   </div>
                 </div>
               </div>
 
-              {/* Carousel indicator */}
-              <div style={{ textAlign: 'right', fontSize: 11, color: '#94A3B8', fontWeight: 600 }}>
-                <div>1/7</div>
-                <div style={{ display: 'flex', gap: 3, justifyContent: 'flex-end', marginTop: 3 }}>
-                  <span style={{ width: 8, height: 4, borderRadius: 2, backgroundColor: '#6E42E5' }} />
-                  <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#CBD5E1' }} />
-                  <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#CBD5E1' }} />
+              {/* Carousel navigation controls (contained strictly inside card) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setOfferIdx((offerIdx - 1 + BANK_OFFERS.length) % BANK_OFFERS.length)}
+                  style={{
+                    background: '#F1F5F9',
+                    border: 'none',
+                    borderRadius: 4,
+                    width: 24,
+                    height: 24,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#475569',
+                    fontSize: 10
+                  }}
+                  title="Previous offer"
+                >
+                  ◀
+                </button>
+                <div style={{ textAlign: 'center', fontSize: 11, color: '#94A3B8', fontWeight: 700, minWidth: 26 }}>
+                  {offerIdx + 1}/{BANK_OFFERS.length}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setOfferIdx((offerIdx + 1) % BANK_OFFERS.length)}
+                  style={{
+                    background: '#F1F5F9',
+                    border: 'none',
+                    borderRadius: 4,
+                    width: 24,
+                    height: 24,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#475569',
+                    fontSize: 10
+                  }}
+                  title="Next offer"
+                >
+                  ▶
+                </button>
               </div>
             </div>
 
@@ -1027,8 +1086,8 @@ export function NativeSmartLocksPage({
                 <h3 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: 0 }}>
                   {selectedDetailLock.title}
                 </h3>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#6E42E5', marginTop: 3 }}>
-                  ★ {selectedDetailLock.rating} ({selectedDetailLock.reviews})
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginTop: 3 }}>
+                  <span style={{ color: '#F59E0B' }}>★</span> {selectedDetailLock.rating} ({selectedDetailLock.reviews})
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', marginTop: 6 }}>
                   ₹{(selectedDetailLock.offerPrice || selectedDetailLock.price).toLocaleString('en-IN')}

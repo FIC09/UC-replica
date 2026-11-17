@@ -592,12 +592,12 @@ export function BathroomCleaningServicePage({
               gap: 8,
               marginBottom: 24
             }}>
-              {/* Purple Circle Star */}
+              {/* Emerald Green Circle Star */}
               <div style={{
                 width: 18,
                 height: 18,
                 borderRadius: '50%',
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#059669',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -1056,7 +1056,7 @@ export function BathroomCleaningServicePage({
                         fontWeight: 700,
                         color: '#111827'
                       }}>
-                        <Star size={12} fill="#6E42E5" color="#6E42E5" />
+                        <Star size={12} fill="#F59E0B" color="#F59E0B" />
                         <span>{product.rating}</span>
                         <span style={{ color: '#6B7280', fontWeight: 500 }}>
                           ({product.reviewsCount})

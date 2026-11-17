@@ -493,7 +493,7 @@ export function CockroachControlServicePage({
                 width: 18,
                 height: 18,
                 borderRadius: '50%',
-                backgroundColor: '#DC2626',
+                backgroundColor: '#059669',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -884,7 +884,7 @@ export function CockroachControlServicePage({
                       fontWeight: 700,
                       color: '#111827'
                     }}>
-                      <Star size={12} fill="#DC2626" color="#DC2626" />
+                      <Star size={12} fill="#F59E0B" color="#F59E0B" />
                       <span>{product.rating}</span>
                       <span style={{ color: '#6B7280', fontWeight: 500 }}>
                         ({product.reviewsCount})

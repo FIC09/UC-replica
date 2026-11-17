@@ -27,7 +27,8 @@ import {
   Key,
   Check,
   Bell,
-  ExternalLink
+  ExternalLink,
+  Menu
 } from 'lucide-react';
 import { adminClient } from './adminClient';
 
@@ -42,8 +43,21 @@ export function AdminLayout({
   children
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 1024);
   const [showGlobalSearch, setShowGlobalSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    function handleResize() {
+      const mobile = window.innerWidth <= 1024;
+      setIsMobile(mobile);
+      if (mobile) {
+        setSidebarCollapsed(true);
+      }
+    }
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   // Global search shortcut Ctrl+K or Cmd+K
   useEffect(() => {
     function handleKeyDown(e) {
@@ -168,19 +182,21 @@ export function AdminLayout({
       {/* COLLAPSIBLE LEFT SIDEBAR                              */}
       {/* ---------------------------------------------------- */}
       <aside style={{
-        width: sidebarCollapsed ? 74 : 260,
-        minWidth: sidebarCollapsed ? 74 : 260,
+        width: isMobile ? 260 : (sidebarCollapsed ? 74 : 260),
+        minWidth: isMobile ? 260 : (sidebarCollapsed ? 74 : 260),
         backgroundColor: '#FFFFFF',
         borderRight: '1px solid #E2E8F0',
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        transition: 'width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-        zIndex: 50,
-        position: 'sticky',
+        transition: 'transform 0.25s ease, width 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+        zIndex: isMobile ? 100 : 50,
+        position: isMobile ? 'fixed' : 'sticky',
         top: 0,
+        left: isMobile ? (sidebarCollapsed ? -280 : 0) : undefined,
         height: '100vh',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        boxShadow: isMobile && !sidebarCollapsed ? '4px 0 24px rgba(0,0,0,0.18)' : undefined
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
           {/* Brand Header - Aligned to exact 64px height of admin-page-header for a seamless dividing line */}
@@ -237,13 +253,14 @@ export function AdminLayout({
               type="button"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               title={sidebarCollapsed ? "Expand sidebar navigation" : "Collapse sidebar navigation"}
+              aria-label={sidebarCollapsed ? "Expand sidebar navigation" : "Collapse sidebar navigation"}
               style={{
-                width: 24,
-                height: 24,
+                width: 28,
+                height: 28,
                 borderRadius: 6,
                 border: '1px solid #E2E8F0',
                 backgroundColor: '#F8FAFC',
-                display: sidebarCollapsed ? 'none' : 'flex',
+                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
@@ -260,7 +277,7 @@ export function AdminLayout({
                 e.currentTarget.style.color = '#64748B';
               }}
             >
-              <ChevronLeft size={13} />
+              {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
             </button>
           </div>
 
@@ -301,7 +318,10 @@ export function AdminLayout({
                       <button
                         key={item.path}
                         type="button"
-                        onClick={() => onNavigate(item.path)}
+                        onClick={() => {
+                          onNavigate(item.path);
+                          if (isMobile) setSidebarCollapsed(true);
+                        }}
                         title={sidebarCollapsed ? item.label : undefined}
                         style={{
                           display: 'flex',
@@ -429,6 +449,20 @@ export function AdminLayout({
         </div>
       </aside>
 
+      {/* Mobile Drawer Backdrop Overlay (Doc 1, Page 3 Bug 6) */}
+      {isMobile && !sidebarCollapsed && (
+        <div
+          onClick={() => setSidebarCollapsed(true)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'blur(2px)',
+            zIndex: 90
+          }}
+        />
+      )}
+
       {/* ---------------------------------------------------- */}
       {/* MAIN APPLICATION CONTAINER                           */}
       {/* ---------------------------------------------------- */}
@@ -441,6 +475,76 @@ export function AdminLayout({
         maxHeight: '100vh',
         overflow: 'hidden'
       }}>
+        {/* Mobile Top Header with Hamburger Toggle (Doc 1, Page 3 Bug 6) */}
+        {isMobile && (
+          <header style={{
+            height: 54,
+            minHeight: 54,
+            backgroundColor: '#FFFFFF',
+            borderBottom: '1px solid #E2E8F0',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '0 16px',
+            zIndex: 40,
+            flexShrink: 0
+          }}>
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed(prev => !prev)}
+              aria-label="Toggle Navigation Menu"
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                border: '1px solid #E2E8F0',
+                backgroundColor: '#F8FAFC',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#0F172A'
+              }}
+            >
+              <Menu size={20} />
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 26,
+                height: 26,
+                backgroundColor: '#6E42E5',
+                color: '#FFFFFF',
+                borderRadius: 6,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 900,
+                fontSize: 11
+              }}>
+                FIC
+              </div>
+              <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>Admin Control Center</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowGlobalSearch(true)}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                border: '1px solid #E2E8F0',
+                backgroundColor: '#F8FAFC',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: '#64748B'
+              }}
+            >
+              <Search size={16} />
+            </button>
+          </header>
+        )}
 
 
         {/* MAIN BODY CONTENT */}

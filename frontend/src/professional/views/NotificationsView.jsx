@@ -1142,7 +1142,7 @@ export function NotificationsView({ onNavigate, showToast }) {
                     </div>
 
                     {/* Action Row */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                    <div className="pro-notif-action-row" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                       {n.deepLink && (
                         <button
                           type="button"

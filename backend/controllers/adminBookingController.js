@@ -14,6 +14,7 @@ import {
 } from '../services/assignmentEngine.js';
 import { broadcastTrackingUpdate } from '../routes/trackingRoutes.js';
 import { inMemoryBookings } from '../routes/bookingRoutes.js';
+import { sendWorkerNotification } from './professionalController.js';
 
 
 // Authoritative Database Persistence (Zero mock bookings)
@@ -584,6 +585,7 @@ export async function assignProfessional(req, res) {
     };
 
     const previousWorkerId = booking.assignedProfessional?.id;
+    const newAssignedProId = professionalId || assignedProData.id;
 
     booking.assignedPartner = professionalName;
     booking.assignedProfessional = assignedProData;
@@ -597,7 +599,6 @@ export async function assignProfessional(req, res) {
     await booking.save();
 
     // Free previously assigned worker if reassigned
-    const newAssignedProId = professionalId || assignedProData.id;
     if (previousWorkerId && previousWorkerId !== newAssignedProId) {
       WorkerApplication.updateOne(
         { $or: [{ id: previousWorkerId }, { applicationNumber: previousWorkerId }] },
@@ -727,6 +728,17 @@ export async function assignProfessional(req, res) {
           previousWorkerId
         }
       });
+    }
+
+    try {
+      sendWorkerNotification(newAssignedProId || professionalName, {
+        title: '🚨 New Priority Job Assigned',
+        message: `Order #${booking.id || booking.bookingReference} (${booking.serviceName || 'Home Service'}) has been assigned to you by Operations Admin. Scheduled for ${booking.slot || 'Upcoming Slot'}.`,
+        category: 'assignment_dispatches',
+        deepLink: '/professional/jobs'
+      });
+    } catch (notifErr) {
+      console.warn('sendWorkerNotification note:', notifErr.message);
     }
 
     return res.json({

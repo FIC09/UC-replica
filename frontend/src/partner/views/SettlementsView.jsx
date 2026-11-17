@@ -626,7 +626,7 @@ export function SettlementsView({ showToast, staff }) {
             <form onSubmit={handleBankChangeSubmit} style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div>
                 <label style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
-                  New Bank Name *
+                  New Bank Name <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -640,7 +640,7 @@ export function SettlementsView({ showToast, staff }) {
 
               <div>
                 <label style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
-                  Account Holder Name (Must match Entity Legal Name) *
+                  Account Holder Name (Must match Entity Legal Name) <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <input
                   type="text"
@@ -652,10 +652,10 @@ export function SettlementsView({ showToast, staff }) {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 12 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
-                    Corporate Account Number *
+                    Corporate Account Number <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
                     type="password"
@@ -668,7 +668,7 @@ export function SettlementsView({ showToast, staff }) {
                 </div>
                 <div>
                   <label style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
-                    IFSC Code *
+                    IFSC Code <span style={{ color: '#dc2626' }}>*</span>
                   </label>
                   <input
                     type="text"
@@ -694,8 +694,8 @@ export function SettlementsView({ showToast, staff }) {
                 />
               </div>
 
-              <div style={{ background: '#f8fafc', padding: 12, borderRadius: 8, fontSize: 12, color: '#64748b' }}>
-                Note: Submissions trigger an automated penny-drop verification and cancelled cheque audit. The existing account remains active until new credentials pass compliance review.
+              <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', color: '#6d28d9', padding: 12, borderRadius: 8, fontSize: 12.5, lineHeight: 1.4 }}>
+                <strong>Note:</strong> Submissions trigger an automated penny-drop verification and cancelled cheque audit. The existing account remains active until new credentials pass compliance review.
               </div>
 
               <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>

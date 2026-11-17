@@ -20,7 +20,7 @@ export async function getCustomers(req, res) {
       try {
         dbUsers = await User.find({
           $or: [
-            { role: { $in: ['user', 'customer'] } },
+            { role: { $nin: ['professional', 'partner'] } },
             { role: { $exists: false } },
             { role: null }
           ]

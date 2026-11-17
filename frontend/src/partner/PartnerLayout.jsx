@@ -160,23 +160,26 @@ export function PartnerLayout({
           <button
             type="button"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            aria-label={sidebarCollapsed ? "Expand sidebar navigation" : "Collapse sidebar navigation"}
+            title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             style={{
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
               borderRadius: 6,
-              width: 26,
-              height: 26,
-              display: sidebarCollapsed ? 'none' : 'flex',
+              width: 28,
+              height: 28,
+              display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               color: '#64748b',
               cursor: 'pointer',
-              transition: 'all 0.15s ease'
+              transition: 'all 0.15s ease',
+              flexShrink: 0
             }}
             onMouseEnter={e => { e.currentTarget.style.background = '#ede9fe'; e.currentTarget.style.color = '#7c3aed'; }}
             onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#64748b'; }}
           >
-            <ChevronLeft size={16} />
+            {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
           </button>
         </div>
 

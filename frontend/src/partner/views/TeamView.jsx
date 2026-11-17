@@ -313,7 +313,11 @@ export function TeamView({ showToast, staff }) {
                     <div style={{
                       width: 44,
                       height: 44,
+                      minWidth: 44,
+                      minHeight: 44,
+                      aspectRatio: '1 / 1',
                       borderRadius: '50%',
+                      flexShrink: 0,
                       background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
                       color: '#fff',
                       display: 'flex',

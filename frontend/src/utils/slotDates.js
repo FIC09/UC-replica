@@ -8,35 +8,44 @@
  */
 
 export const SERVICE_TIME_SLOTS = [
-  { id: '10-11', label: '10:00 AM - 11:00 AM', startHour: 10, startMinute: 0 },
-  { id: '14-15', label: '02:00 PM - 03:00 PM', startHour: 14, startMinute: 0 },
-  { id: '16-17', label: '04:00 PM - 05:00 PM', startHour: 16, startMinute: 0 },
-  { id: '18-19', label: '06:30 PM - 07:30 PM', startHour: 18, startMinute: 30 }
+  { id: '08-09', label: '08:00 AM - 09:00 AM', period: 'Morning', startHour: 8, startMinute: 0 },
+  { id: '09-10', label: '09:00 AM - 10:00 AM', period: 'Morning', startHour: 9, startMinute: 0 },
+  { id: '10-11', label: '10:00 AM - 11:00 AM', period: 'Morning', startHour: 10, startMinute: 0 },
+  { id: '11-12', label: '11:00 AM - 12:00 PM', period: 'Morning', startHour: 11, startMinute: 0 },
+  { id: '12-13', label: '12:00 PM - 01:00 PM', period: 'Afternoon', startHour: 12, startMinute: 0 },
+  { id: '13-14', label: '01:00 PM - 02:00 PM', period: 'Afternoon', startHour: 13, startMinute: 0 },
+  { id: '14-15', label: '02:00 PM - 03:00 PM', period: 'Afternoon', startHour: 14, startMinute: 0 },
+  { id: '15-16', label: '03:00 PM - 04:00 PM', period: 'Afternoon', startHour: 15, startMinute: 0 },
+  { id: '16-17', label: '04:00 PM - 05:00 PM', period: 'Evening', startHour: 16, startMinute: 0 },
+  { id: '17-18', label: '05:00 PM - 06:00 PM', period: 'Evening', startHour: 17, startMinute: 0 },
+  { id: '18-19', label: '06:30 PM - 07:30 PM', period: 'Evening', startHour: 18, startMinute: 30 },
+  { id: '19-20', label: '07:30 PM - 08:30 PM', period: 'Evening', startHour: 19, startMinute: 30 },
+  { id: '20-21', label: '08:30 PM - 09:30 PM', period: 'Night', startHour: 20, startMinute: 30 }
 ];
 
 const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 /**
- * Returns whether all service slots for today have completed (past 18:30 / 6:30 PM cutoff)
+ * Returns whether all service slots for today have completed (past 20:30 / 8:30 PM cutoff)
  */
 export function isTodayServiceCompleted(now = new Date()) {
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
-  // Cutoff is 18:30 (6:30 PM), the start of the final service slot for the day
-  return currentHour > 18 || (currentHour === 18 && currentMinute >= 30);
+  // Cutoff is 20:30 (8:30 PM), the start of the final service slot for the day
+  return currentHour > 20 || (currentHour === 20 && currentMinute >= 30);
 }
 
 /**
- * Returns exactly 3 service dates dynamically based on current time
+ * Returns available service dates dynamically based on current time (up to 30 days / full month)
  */
-export function getAvailableServiceDates(baseDate = new Date()) {
+export function getAvailableServiceDates(baseDate = new Date(), daysCount = 30) {
   const now = new Date(baseDate);
   const completedToday = isTodayServiceCompleted(now);
   const startOffset = completedToday ? 1 : 0;
 
   const dates = [];
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < daysCount; i++) {
     const offset = startOffset + i;
     const target = new Date(now);
     target.setDate(now.getDate() + offset);
@@ -78,13 +87,31 @@ export function getAvailableServiceDates(baseDate = new Date()) {
 export function isSlotPassed(slotLabel, isToday = false, now = new Date()) {
   if (!isToday) return false;
   const slot = SERVICE_TIME_SLOTS.find(s => s.label === slotLabel);
-  if (!slot) return false;
+  if (slot) {
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
 
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
+    if (currentHour > slot.startHour) return true;
+    if (currentHour === slot.startHour && currentMinute >= slot.startMinute) return true;
+    return false;
+  }
 
-  if (currentHour > slot.startHour) return true;
-  if (currentHour === slot.startHour && currentMinute >= slot.startMinute) return true;
+  // Handle custom manual time selection (e.g. "05:15 PM" or "05:15 PM - 06:15 PM")
+  if (typeof slotLabel === 'string') {
+    const match = slotLabel.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (match) {
+      let h = parseInt(match[1], 10);
+      const m = parseInt(match[2], 10);
+      const ampm = (match[3] || '').toUpperCase();
+      if (ampm === 'PM' && h < 12) h += 12;
+      if (ampm === 'AM' && h === 12) h = 0;
+
+      const currentHour = now.getHours();
+      const currentMinute = now.getMinutes();
+      if (currentHour > h) return true;
+      if (currentHour === h && currentMinute >= m) return true;
+    }
+  }
   return false;
 }
 

@@ -380,7 +380,7 @@ export function GeyserServicePage({
                 width: 18,
                 height: 18,
                 borderRadius: '50%',
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#059669',
                 color: '#FFFFFF'
               }}>
                 <Star size={11} fill="#FFFFFF" color="#FFFFFF" />
@@ -508,7 +508,7 @@ export function GeyserServicePage({
                                 width: 16,
                                 height: 16,
                                 borderRadius: '50%',
-                                backgroundColor: '#6E42E5',
+                                backgroundColor: '#059669',
                                 color: '#FFFFFF'
                               }}>
                                 <Star size={10} fill="#FFFFFF" color="#FFFFFF" />
@@ -1049,7 +1049,7 @@ export function GeyserServicePage({
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#64748B' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: '#6E42E5' }}>
-                    <Star size={13} fill="#6E42E5" color="#6E42E5" /> {optionsModalService.rating}
+                    <Star size={13} fill="#F59E0B" color="#F59E0B" /> {optionsModalService.rating}
                   </span>
                   <span>({optionsModalService.reviews})</span>
                   <span>•</span>
@@ -1101,7 +1101,7 @@ export function GeyserServicePage({
                       </h4>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748B', marginBottom: 4 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontWeight: 700, color: '#6E42E5' }}>
-                          <Star size={11} fill="#6E42E5" color="#6E42E5" /> {opt.rating}
+                          <Star size={11} fill="#F59E0B" color="#F59E0B" /> {opt.rating}
                         </span>
                         <span>({opt.reviews})</span>
                         {opt.duration && <span>• {opt.duration}</span>}
@@ -1267,7 +1267,7 @@ export function GeyserServicePage({
             </h3>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B', marginBottom: 12 }}>
-              <span style={{ color: '#6E42E5', fontWeight: 800 }}>★ {selectedDetailItem.rating}</span>
+              <span style={{ color: '#F59E0B', fontWeight: 800 }}>★ {selectedDetailItem.rating}</span>
               <span>({selectedDetailItem.reviews})</span>
               {selectedDetailItem.duration && <span>• {selectedDetailItem.duration}</span>}
             </div>

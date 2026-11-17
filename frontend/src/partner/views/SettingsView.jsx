@@ -330,12 +330,12 @@ export function SettingsView({ showToast, staff }) {
         gap: 18,
         boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #ffedd5', paddingBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, borderBottom: '1px solid #ffedd5', paddingBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <h2 style={{ fontSize: 16, fontWeight: 700, color: '#9a3412', margin: 0 }}>
               Statutory Business Details & Coverage
             </h2>
-            <span style={{ fontSize: 11.5, fontWeight: 700, background: '#ffedd5', color: '#c2410c', padding: '2px 8px', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, background: '#ffedd5', color: '#c2410c', padding: '3px 8px', borderRadius: 4, display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
               <Lock size={12} /> Platform Approval Required
             </span>
           </div>

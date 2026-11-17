@@ -113,7 +113,7 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
       id: 'quick-repairs',
       title: 'Electrician, Plumber & Carpenters',
       icon: '/images/categories/cat_repairs.jpg',
-      badge: '46 mins',
+      badge: null,
     },
     {
       id: 'cleaning-pest',
@@ -491,7 +491,7 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
               <p className="uc-native-card-desc">
                 6-in-1 Unlocking • Built-in Video Doorbell & Anti-Theft Security
               </p>
-              <div className="uc-native-card-cta uc-native-cta-secondary" >
+              <div className="uc-native-card-cta uc-native-cta-primary" >
                 <span>Explore Smart Locks</span>
                 <ArrowRight size={14} />
               </div>

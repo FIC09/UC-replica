@@ -33,7 +33,7 @@ import { useWebRtcVoiceCall } from '../utils/useWebRtcVoiceCall';
 import { WebRtcCallModal } from './WebRtcCallModal';
 import { WorkerReviewModal } from './WorkerReviewModal';
 
-export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) {
+export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, onReturnHome }) {
   // Stages:
   // 1: Confirmed (Safety PIN generated, order received)
   // 2: Partner Assigned (Rajesh Sharma assigned)
@@ -1561,7 +1561,16 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus }) 
             }}>
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  if (onReturnHome) {
+                    onReturnHome();
+                  } else {
+                    onClose();
+                    try {
+                      window.history.pushState({ view: 'home' }, '', '/');
+                    } catch {}
+                  }
+                }}
                 className="proceed-checkout-btn"
                 style={{
                   width: '100%',

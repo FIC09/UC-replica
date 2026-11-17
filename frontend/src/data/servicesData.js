@@ -2047,6 +2047,22 @@ export const FAQS = [
 
 export const COUPONS = [
   {
+    code: 'FORGE25',
+    discountAmount: 25,
+    discount: 25,
+    type: 'percentage',
+    minOrder: 399,
+    desc: '25% OFF on orders above ₹399',
+  },
+  {
+    code: 'FESTIVE25',
+    discountAmount: 25,
+    discount: 25,
+    type: 'percentage',
+    minOrder: 499,
+    desc: '25% festive discount on all eligible services',
+  },
+  {
     code: 'MUMBAI100',
     discountAmount: 100,
     minOrder: 399,

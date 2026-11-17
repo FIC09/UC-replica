@@ -249,16 +249,16 @@ export function SupportView({ onShowToast }) {
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       {/* 1. Standard Top Sticky Header matching exact 64px sidebar line */}
       <div className="admin-page-header">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0', lineHeight: 1.25, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', width: '100%' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <h2 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: '0 0 2px 0', lineHeight: 1.25 }}>
                 Support, Quality &amp; Warranty Disputes
               </h2>
               <span style={{
                 fontSize: 10.5,
                 fontWeight: 700,
-                padding: '2px 7px',
+                padding: '2px 8px',
                 borderRadius: 6,
                 backgroundColor: '#EEF2FF',
                 color: '#4F46E5',
@@ -268,7 +268,7 @@ export function SupportView({ onShowToast }) {
                 Strict SLA Tracking
               </span>
             </div>
-            <p style={{ fontSize: 12, color: '#64748B', margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <p style={{ fontSize: 12, color: '#64748B', margin: '3px 0 0 0', lineHeight: 1.3 }}>
               Manage customer, pro, and partner support tickets, conversation threads, internal staff notes, and warranty revisits.
             </p>
           </div>
@@ -276,7 +276,7 @@ export function SupportView({ onShowToast }) {
       </div>
 
       {/* 2. Sub-Tabs Bar */}
-      <div style={{
+      <div className="admin-support-subtabs" style={{
         backgroundColor: '#FFFFFF',
         borderBottom: '1px solid #E2E8F0',
         padding: '0 24px',

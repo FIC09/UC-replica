@@ -508,7 +508,7 @@ export function SettingsView({ onShowToast }) {
         </div>
 
         {/* Tab Panels Container */}
-        <div style={{
+        <div className="admin-card-responsive" style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 12,
           border: '1px solid #E2E8F0',
@@ -528,7 +528,7 @@ export function SettingsView({ onShowToast }) {
                 </p>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 18 }}>
+              <div className="admin-form-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
                 <FormField label="Platform Marketplace Name" required helper="Displayed across customer booking apps, technician portal and invoice headers.">
                   <input
                     type="text"
@@ -606,21 +606,21 @@ export function SettingsView({ onShowToast }) {
                 backgroundColor: '#F8FAFC',
                 border: '1px solid #E2E8F0',
                 borderRadius: 10,
-                padding: '16px 20px',
+                padding: '14px 16px',
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: 12
+                flexDirection: 'column',
+                gap: 10
               }}>
                 <div>
                   <div style={{ fontSize: 11, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Invoice &amp; Receipt Header Preview</div>
                   <div style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', marginTop: 2 }}>{settings.platformName}</div>
-                  <div style={{ fontSize: 12, color: '#475569' }}>Operated by: {settings.companyLegalName} • GSTIN: <span style={{ fontFamily: 'monospace' }}>{settings.gstinNumber}</span></div>
+                  <div style={{ fontSize: 12, color: '#475569', wordBreak: 'break-word' }}>
+                    Operated by: {settings.companyLegalName} • GSTIN: <span style={{ fontFamily: 'monospace' }}>{settings.gstinNumber}</span>
+                  </div>
                 </div>
-                <div style={{ textAlign: 'right', fontSize: 12, color: '#64748B' }}>
-                  <div>Helpline: <strong>{settings.supportHelpline}</strong></div>
-                  <div>Support: <strong>{settings.supportEmail}</strong></div>
+                <div style={{ fontSize: 12, color: '#64748B', borderTop: '1px solid #E2E8F0', paddingTop: 8 }}>
+                  <div>Helpline: <strong style={{ color: '#0F172A' }}>{settings.supportHelpline}</strong></div>
+                  <div>Support: <strong style={{ color: '#0F172A' }}>{settings.supportEmail}</strong></div>
                 </div>
               </div>
             </div>

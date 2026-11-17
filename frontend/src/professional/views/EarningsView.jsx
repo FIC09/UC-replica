@@ -247,7 +247,9 @@ export function EarningsView({ onNavigate, showToast }) {
             ● Dynamic Live Calculation
           </span>
         </div>
-        <div style={{
+        <div 
+          className="pro-financial-stages-grid"
+          style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
           gap: 14
@@ -364,8 +366,8 @@ export function EarningsView({ onNavigate, showToast }) {
           </span>
         </div>
 
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+        <div className="pro-ledger-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table className="pro-ledger-table" style={{ width: '100%', minWidth: 680, borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
                 <th style={{ padding: '12px 10px', fontWeight: 600 }}>REF / DATE</th>

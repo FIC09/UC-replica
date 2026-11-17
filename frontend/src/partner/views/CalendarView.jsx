@@ -163,7 +163,7 @@ export function CalendarView({ showToast, onNavigate }) {
                               }}
                             >
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7c3aed' }}>
+                                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7c3aed', whiteSpace: 'nowrap' }}>
                                   #{s.booking.id}
                                 </span>
                                 <span style={{ fontSize: 10, fontWeight: 600, color: '#6b21a8', background: '#e9d5ff', padding: '1px 5px', borderRadius: 4 }}>
@@ -215,20 +215,20 @@ export function CalendarView({ showToast, onNavigate }) {
         gap: 12
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#0f172a', fontWeight: 600 }}>
             <span style={{ width: 12, height: 12, borderRadius: 3, background: '#f3e8ff', border: '1px solid #d8b4fe' }}></span>
-            Booked & Dispatched
+            Booked &amp; Dispatched
           </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#475569', fontWeight: 500 }}>
             <span style={{ width: 12, height: 12, borderRadius: 3, background: '#f8fafc', border: '1px dashed #cbd5e1' }}></span>
             Open for Allocation
           </span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#64748b' }}>
             <span style={{ width: 12, height: 12, borderRadius: 3, background: '#f1f5f9' }}></span>
             Leave / Unavailable
           </span>
         </div>
-        <div>
+        <div style={{ color: '#64748b', fontSize: 12 }}>
           Platform policy: Minimum 30 min travel buffer between appointments in Mumbai West.
         </div>
       </div>

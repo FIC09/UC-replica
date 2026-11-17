@@ -63,7 +63,7 @@ export function CheckoutModal({
     }
   }, [user, isOpen]);
 
-  const availableDates = getAvailableServiceDates();
+  const availableDates = getAvailableServiceDates(new Date(), 30);
 
   // Slot state
   const [selectedDate, setSelectedDate] = useState(() => availableDates[0]?.label || 'Today');

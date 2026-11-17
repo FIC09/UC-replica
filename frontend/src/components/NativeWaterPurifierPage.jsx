@@ -26,7 +26,9 @@ export function NativeWaterPurifierPage({
   onUpdateQty,
   onOpenCart,
   onOpenCheckout,
-  showToast = () => {}
+  showToast = () => {},
+  user,
+  onOpenAuth
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDetailModel, setSelectedDetailModel] = useState(null);
@@ -98,6 +100,17 @@ export function NativeWaterPurifierPage({
     }
   ];
 
+  const [offerIdx, setOfferIdx] = useState(0);
+  const BANK_OFFERS = [
+    { title: 'Flat ₹1250 off', sub: 'HDFC Bank CC, No cost EMI' },
+    { title: '₹1,500 Instant Discount', sub: 'ICICI Bank Credit Card EMI' },
+    { title: 'Flat ₹1,000 off', sub: 'Axis Bank Credit Card' },
+    { title: 'No Cost EMI from ₹983/mo', sub: 'All major banks applicable' },
+    { title: 'Flat ₹1,200 off', sub: 'SBI Card Full Swipe' },
+    { title: 'Extra ₹500 Cashback', sub: 'Pay with UPI / Cred' },
+    { title: 'Free 2-Yr Comprehensive Warranty', sub: 'Forge India Connect Promise' },
+  ];
+
   // Filter models by search query
   const filteredModels = PURIFIER_MODELS.filter(m => 
     m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -152,14 +165,14 @@ export function NativeWaterPurifierPage({
                 fontSize: 14,
                 letterSpacing: -0.5
               }}>
-                UC
+                FIC
               </div>
               <div style={{ lineHeight: 1.1 }}>
                 <div style={{ fontSize: 15, fontWeight: 900, letterSpacing: -0.4, color: '#0F172A' }}>
-                  Urban
+                  Forge
                 </div>
                 <div style={{ fontSize: 13, fontWeight: 800, letterSpacing: -0.3, color: '#0F172A' }}>
-                  Company
+                  India Connect
                 </div>
               </div>
             </div>
@@ -271,20 +284,25 @@ export function NativeWaterPurifierPage({
             </button>
 
             {/* User Profile avatar */}
-            <div style={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              backgroundColor: '#F1F5F9',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 13,
-              fontWeight: 800,
-              color: '#334155',
-              border: '1px solid #E2E8F0'
-            }}>
-              S
+            <div
+              onClick={() => onOpenAuth ? onOpenAuth('login') : null}
+              title={user?.name ? `Logged in as ${user.name}` : 'Sign In / Account'}
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: '50%',
+                backgroundColor: '#F1F5F9',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 13,
+                fontWeight: 800,
+                color: '#334155',
+                border: '1px solid #E2E8F0',
+                cursor: 'pointer'
+              }}
+            >
+              {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
           </div>
         </div>
@@ -330,7 +348,7 @@ export function NativeWaterPurifierPage({
                 width: 18,
                 height: 18,
                 borderRadius: '50%',
-                backgroundColor: '#7C3AED',
+                backgroundColor: '#059669',
                 color: '#FFFFFF',
                 fontSize: 10
               }}>
@@ -418,13 +436,13 @@ export function NativeWaterPurifierPage({
                       <div style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: 6,
+                        gap: 5,
                         marginBottom: 10,
                         fontSize: 12.5,
                         fontWeight: 700,
-                        color: '#6E42E5'
+                        color: '#0F172A'
                       }}>
-                        <span>★</span>
+                        <span style={{ color: '#F59E0B' }}>★</span>
                         <span>{model.rating} ({model.reviews})</span>
                       </div>
 
@@ -626,7 +644,7 @@ export function NativeWaterPurifierPage({
               COLUMN 3: RIGHT SIDEBAR (BANK OFFER, UC PROMISE, CART)
               ========================================================= */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            {/* 1. Bank Offer Promo Card */}
+            {/* 1. Bank Offer Promo Card with Interactive Carousel */}
             <div style={{
               backgroundColor: '#FFFFFF',
               border: '1px solid #E2E8F0',
@@ -634,12 +652,16 @@ export function NativeWaterPurifierPage({
               padding: '14px 16px',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              gap: 12,
+              boxSizing: 'border-box'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
                 <div style={{
                   width: 32,
                   height: 32,
+                  minWidth: 32,
+                  minHeight: 32,
                   borderRadius: '50%',
                   backgroundColor: '#DCFCE7',
                   color: '#16A34A',
@@ -647,31 +669,70 @@ export function NativeWaterPurifierPage({
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 900,
-                  fontSize: 14
+                  fontSize: 14,
+                  flexShrink: 0
                 }}>
                   %
                 </div>
-                <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A' }}>
-                    Flat ₹1250 off
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {BANK_OFFERS[offerIdx].title}
                   </div>
-                  <div style={{ fontSize: 11.5, color: '#64748B' }}>
-                    HDFC Bank CC, No cost EMI
+                  <div style={{ fontSize: 11.5, color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {BANK_OFFERS[offerIdx].sub}
                   </div>
                 </div>
               </div>
 
-              {/* Carousel indicator */}
-              <div style={{ textAlign: 'right', fontSize: 11, color: '#94A3B8', fontWeight: 600, display: 'flex', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 3, justifyContent: 'flex-end' }}>
-                  <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#CBD5E1' }} />
-                  <span style={{ width: 8, height: 4, borderRadius: 2, backgroundColor: '#6E42E5' }} />
-                  <span style={{ width: 4, height: 4, borderRadius: '50%', backgroundColor: '#CBD5E1' }} />
+              {/* Carousel navigation controls (contained strictly inside card) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => setOfferIdx((offerIdx - 1 + BANK_OFFERS.length) % BANK_OFFERS.length)}
+                  style={{
+                    background: '#F1F5F9',
+                    border: 'none',
+                    borderRadius: 4,
+                    width: 24,
+                    height: 24,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#475569',
+                    fontSize: 10
+                  }}
+                  title="Previous offer"
+                >
+                  ◀
+                </button>
+                <div style={{ textAlign: 'center', fontSize: 11, color: '#94A3B8', fontWeight: 700, minWidth: 26 }}>
+                  {offerIdx + 1}/{BANK_OFFERS.length}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setOfferIdx((offerIdx + 1) % BANK_OFFERS.length)}
+                  style={{
+                    background: '#F1F5F9',
+                    border: 'none',
+                    borderRadius: 4,
+                    width: 24,
+                    height: 24,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: '#475569',
+                    fontSize: 10
+                  }}
+                  title="Next offer"
+                >
+                  ▶
+                </button>
               </div>
             </div>
 
-            {/* 2. UC Promise Card */}
+            {/* 2. FIC Promise Card */}
             <div style={{
               backgroundColor: '#FFFFFF',
               border: '1px solid #E2E8F0',
@@ -686,7 +747,7 @@ export function NativeWaterPurifierPage({
                   color: '#0F172A',
                   margin: 0
                 }}>
-                  UC Promise
+                  FIC Promise
                 </h3>
 
                 {/* Quality Assured Rainbow / Holographic Seal */}

@@ -377,9 +377,6 @@ export function HomesSections({
                   />
                 </div>
                 <h4 className="homes-card-clean-title">Laptop Repair</h4>
-                <span className="clean-sub-arrival">
-                  <Zap size={11} fill="#16A34A" /> In 44 mins
-                </span>
               </div>
 
               {/* 5. AC Service */}
@@ -431,7 +428,7 @@ export function HomesSections({
                   </div>
                   <h4 className="homes-svc-title">{svc.title}</h4>
                   <div className="homes-svc-rating">
-                    <Star size={12} fill="#0F172A" color="#0F172A" />
+                    <Star size={12} fill="#F59E0B" color="#F59E0B" />
                     <span>{svc.rating || 4.9}</span>
                   </div>
                   <div className="homes-svc-price-row">
@@ -452,7 +449,7 @@ export function HomesSections({
                 </div>
                 <h4 className="homes-svc-title">Intense cleaning (2 bathroom)</h4>
                 <div className="homes-svc-rating">
-                  <Star size={12} fill="#0F172A" color="#0F172A" />
+                  <Star size={12} fill="#F59E0B" color="#F59E0B" />
                   <span>4.81</span>
                 </div>
                 <div className="homes-svc-price-row">
@@ -472,7 +469,7 @@ export function HomesSections({
                 </div>
                 <h4 className="homes-svc-title">Intense bathroom cleaning</h4>
                 <div className="homes-svc-rating">
-                  <Star size={12} fill="#0F172A" color="#0F172A" />
+                  <Star size={12} fill="#F59E0B" color="#F59E0B" />
                   <span>4.81</span>
                 </div>
                 <div className="homes-svc-price-row">
@@ -491,7 +488,7 @@ export function HomesSections({
                 </div>
                 <h4 className="homes-svc-title">Foam-jet AC service</h4>
                 <div className="homes-svc-rating">
-                  <Star size={12} fill="#0F172A" color="#0F172A" />
+                  <Star size={12} fill="#F59E0B" color="#F59E0B" />
                   <span>4.75</span>
                 </div>
                 <div className="homes-svc-price-row">
@@ -510,7 +507,7 @@ export function HomesSections({
                 </div>
                 <h4 className="homes-svc-title">AC check-up</h4>
                 <div className="homes-svc-rating">
-                  <Star size={12} fill="#0F172A" color="#0F172A" />
+                  <Star size={12} fill="#F59E0B" color="#F59E0B" />
                   <span>4.73</span>
                 </div>
                 <div className="homes-svc-price-row">
@@ -528,7 +525,7 @@ export function HomesSections({
                 </div>
                 <h4 className="homes-svc-title">Furnished apartment - Home deep cleaning</h4>
                 <div className="homes-svc-rating">
-                  <Star size={12} fill="#0F172A" color="#0F172A" />
+                  <Star size={12} fill="#F59E0B" color="#F59E0B" />
                   <span>4.79</span>
                 </div>
                 <div className="homes-svc-price-row">
@@ -759,7 +756,7 @@ export function HomesSections({
                 <h4 className="homes-svc-title">{svc.name}</h4>
                 
                 <div className="homes-svc-rating">
-                  <Star size={12} fill="#0F172A" color="#0F172A" />
+                  <Star size={12} fill="#F59E0B" color="#F59E0B" />
                   <span>{svc.rating}</span>
                   {svc.isInstant && (
                     <span className="clean-instant-tag">

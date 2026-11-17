@@ -403,14 +403,16 @@ export function ReportsView({ showToast, staff }) {
                       <td style={{ padding: '12px 16px', fontWeight: 600, color: '#16a34a' }}>{p.onTimeRate || '0%'}</td>
                       <td style={{ padding: '12px 16px', fontWeight: 700, color: '#d97706' }}>★ {p.rating || 0}</td>
                       <td style={{ padding: '12px 16px', color: '#475569' }}>{p.revisitRate || '0%'}</td>
-                      <td style={{ padding: '12px 16px' }}>
+                      <td style={{ padding: '12px 16px', whiteSpace: 'nowrap' }}>
                         <span style={{
-                          padding: '3px 8px',
-                          borderRadius: 4,
-                          fontSize: 11.5,
+                          display: 'inline-block',
+                          padding: '4px 10px',
+                          borderRadius: 6,
+                          fontSize: 12,
                           fontWeight: 700,
                           background: p.sampleSizeMet ? '#dcfce7' : '#fee2e2',
-                          color: p.sampleSizeMet ? '#16a34a' : '#dc2626'
+                          color: p.sampleSizeMet ? '#16a34a' : '#dc2626',
+                          whiteSpace: 'nowrap'
                         }}>
                           {p.sampleSizeMet ? 'Certified (≥10 jobs)' : 'Probationary (<10 jobs)'}
                         </span>

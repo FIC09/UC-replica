@@ -409,31 +409,31 @@ export function BookingsView({ showToast, staff, onNavigate }) {
               <tbody>
                 {paginated.map(b => (
                   <tr key={b.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0f172a' }}>
+                    <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>
                       #{b.id}
                     </td>
-                    <td style={{ padding: '14px 16px' }}>
+                    <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                       <div style={{ fontWeight: 600, color: '#0f172a' }}>{b.userName}</div>
                       <div style={{ fontSize: 11.5, color: '#64748b' }}>
                         {isReadOnlyStaff ? '••••••••' + (b.userPhone ? b.userPhone.slice(-4) : '0000') : b.userPhone}
                       </div>
                     </td>
-                    <td style={{ padding: '14px 16px', color: '#334155' }}>
+                    <td style={{ padding: '14px 16px', color: '#334155', verticalAlign: 'middle' }}>
                       {b.serviceName}
                     </td>
-                    <td style={{ padding: '14px 16px', color: '#64748b' }}>
+                    <td style={{ padding: '14px 16px', color: '#64748b', verticalAlign: 'middle' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <Clock size={13} color="#7c3aed" />
                         <span>{formatSlotDisplay(b.slot, b.scheduledDate, b.createdAt) || '11:00 AM - 01:00 PM'}</span>
                       </div>
                     </td>
-                    <td style={{ padding: '14px 16px', color: '#475569' }}>
+                    <td style={{ padding: '14px 16px', color: '#475569', verticalAlign: 'middle' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                         <MapPin size={13} color="#64748b" />
                         <span>{b.serviceZone || b.city || 'Mumbai Central'}</span>
                       </div>
                     </td>
-                    <td style={{ padding: '14px 16px' }}>
+                    <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                       {b.assignedProfessional ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <HardHat size={14} color="#7c3aed" />
@@ -452,7 +452,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
                         </span>
                       )}
                     </td>
-                    <td style={{ padding: '14px 16px' }}>
+                    <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                       <span style={{
                         padding: '4px 9px',
                         borderRadius: 6,
@@ -471,11 +471,11 @@ export function BookingsView({ showToast, staff, onNavigate }) {
                       </span>
                     </td>
                     {canViewFinances && (
-                      <td style={{ padding: '14px 16px', fontWeight: 600, color: '#16a34a' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 600, color: '#16a34a', verticalAlign: 'middle' }}>
                         ₹{Number(b.netAgencyShare || (b.totalAmount * 0.82) || 0).toLocaleString('en-IN')}
                       </td>
                     )}
-                    <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                    <td style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle' }}>
                       <button
                         onClick={() => handleOpenDetail(b)}
                         style={{

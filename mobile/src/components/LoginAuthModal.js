@@ -28,7 +28,7 @@ export default function LoginAuthModal({
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Sign Up Fields
   const [name, setName] = useState('');
@@ -204,12 +204,12 @@ export default function LoginAuthModal({
     setLoading(true);
     try {
       const result = await mobileApi.verifyEmailOtp({
-        email: email.trim(),
+        email: (email || '').trim(),
         enteredOtp: cleanOtp,
         role: selectedRole,
-        name: name.trim() || 'User',
-        phone: phone.trim(),
-        password: password.trim()
+        name: (name || '').trim() || 'User',
+        phone: (phone || '').trim(),
+        password: (password || '').trim()
       });
 
       if (result.success && result.user) {

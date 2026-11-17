@@ -219,8 +219,8 @@ export function OverviewView({ onNavigate, showToast, staff }) {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: 14
+          gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+          gap: 12
         }}>
           {/* 1. Today's Bookings */}
           <div
@@ -559,8 +559,8 @@ export function OverviewView({ onNavigate, showToast, staff }) {
         flexWrap: 'wrap',
         gap: 12
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Info size={18} color="#7c3aed" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Info size={24} color="#7c3aed" style={{ flexShrink: 0 }} />
           <span style={{ fontSize: 13, color: '#475569' }}>
             <strong>Revenue Accounting Note:</strong> Gross Booking Value (₹{Number(metrics.grossBookingValue || 0).toLocaleString('en-IN')}) represents total customer price inclusive of taxes. Net Business Earnings (₹{Number(metrics.netBusinessEarnings || 0).toLocaleString('en-IN')}) is your agency take-home after platform commission and GST deductions.
           </span>
@@ -572,7 +572,7 @@ export function OverviewView({ onNavigate, showToast, staff }) {
       </div>
 
       {/* QUEUES & ALERTS SECTION (Assignment Queue, Expiring Docs, Training, Low Stock, Disputes) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 20 }}>
         {/* Assignment Queue */}
         <div style={{
           background: '#ffffff',
@@ -590,9 +590,10 @@ export function OverviewView({ onNavigate, showToast, staff }) {
             </div>
             <button
               onClick={() => onNavigate('/partner/bookings')}
-              style={{ fontSize: 12.5, fontWeight: 600, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer' }}
+              style={{ fontSize: 12.5, fontWeight: 600, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
             >
-              View All
+              <span>View All</span>
+              <ChevronRight size={14} />
             </button>
           </div>
 
@@ -795,9 +796,10 @@ export function OverviewView({ onNavigate, showToast, staff }) {
             </h3>
             <button
               onClick={() => onNavigate('/partner/bookings')}
-              style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer' }}
+              style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
             >
-              View All <ChevronRight size={14} style={{ display: 'inline' }} />
+              <span>View All</span>
+              <ChevronRight size={14} />
             </button>
           </div>
 

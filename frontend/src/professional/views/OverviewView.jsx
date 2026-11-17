@@ -368,7 +368,9 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
       {/* ----------------------------------------------------------------- */}
       {/* 1. OPERATIONAL NODE & SYNC RIBBON                                  */}
       {/* ----------------------------------------------------------------- */}
-      <div style={{
+      <div 
+        className="pro-territory-container"
+        style={{
         background: '#FFFFFF',
         border: '1px solid #E2E8F0',
         borderRadius: 14,
@@ -382,36 +384,41 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
         marginBottom: 20,
         boxShadow: '0 1px 3px rgba(0,0,0,0.03)'
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <div className="pro-territory-wrap" style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', minWidth: 0, flex: '1 1 auto' }}>
+          <div className="pro-territory-tag-row" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', minWidth: 0 }}>
             <span style={{
               width: 8,
               height: 8,
               borderRadius: '50%',
               background: '#10B981',
               display: 'inline-block',
+              flexShrink: 0,
               boxShadow: '0 0 0 3px rgba(16, 185, 129, 0.2)'
             }} />
-            <span style={{ fontWeight: 700, color: '#0F172A', fontSize: 13.5 }}>
+            <span style={{ fontWeight: 700, color: '#0F172A', fontSize: 13.5, wordBreak: 'break-word' }}>
               Service Territory: {dashboardData?.availability?.operationalCity || profile?.operationalCity || 'Krishnagiri Town'}
             </span>
-            <span style={{
+            <span 
+              className="pro-doorstep-badge"
+              style={{
               background: '#ECFDF5',
               color: '#059669',
               padding: '2px 8px',
               borderRadius: 6,
               fontSize: 11,
-              fontWeight: 700
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}>
               Direct Doorstep
             </span>
           </div>
 
-          <span style={{ color: '#CBD5E1' }}>•</span>
+          <span className="pro-territory-dot" style={{ color: '#CBD5E1' }}>•</span>
           <span style={{ color: '#64748B', fontSize: 12.5 }}>
             Tamil Nadu · Real-time Dispatches Active
           </span>
-          <span style={{ color: '#CBD5E1' }}>•</span>
+          <span className="pro-territory-dot" style={{ color: '#CBD5E1' }}>•</span>
           <span style={{
             background: '#F1F5F9',
             color: '#334155',
@@ -419,7 +426,8 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             borderRadius: 6,
             fontSize: 11.5,
             fontWeight: 600,
-            border: '1px solid #E2E8F0'
+            border: '1px solid #E2E8F0',
+            whiteSpace: 'nowrap'
           }}>
             Shift: {dashboardData?.availability?.workingHours?.start || '08:00'} - {dashboardData?.availability?.workingHours?.end || '20:00'}
           </span>
@@ -428,6 +436,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
         <button
           onClick={loadDashboard}
           disabled={refreshing}
+          className="pro-sync-btn"
           style={{
             background: '#F8FAFC',
             border: '1px solid #E2E8F0',
@@ -457,7 +466,9 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
       {/* ----------------------------------------------------------------- */}
       {/* 2. PROFILE HERO & DUTY COMMAND BAR                                */}
       {/* ----------------------------------------------------------------- */}
-      <div style={{
+      <div 
+        className="pro-hero-duty-card"
+        style={{
         background: isOnline
           ? 'linear-gradient(135deg, #3B0764 0%, #6B21A8 50%, #7C3AED 100%)'
           : 'linear-gradient(135deg, #1E293B 0%, #334155 100%)',
@@ -488,7 +499,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
         }} />
 
         {/* Left Side: Avatar & Bio Details */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 22, zIndex: 1, minWidth: 0, flex: '1 1 auto' }}>
+        <div className="pro-hero-details" style={{ display: 'flex', alignItems: 'center', gap: 22, zIndex: 1, minWidth: 0, flex: '1 1 auto' }}>
           {/* Avatar Ring */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{
@@ -618,7 +629,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
         </div>
 
         {/* Right Side: Shift Duty Toggle & Emergency SOS Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, zIndex: 1, flexShrink: 0 }}>
+        <div className="pro-hero-actions" style={{ display: 'flex', alignItems: 'center', gap: 12, zIndex: 1, flexShrink: 0 }}>
           {isApproved && (
             <button
               onClick={onToggleOnline}
@@ -1274,6 +1285,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                 {filteredAppointments.map(job => (
                   <div
                     key={job.id}
+                    className="pro-appointment-item"
                     style={{
                       display: 'flex',
                       flexWrap: 'wrap',
@@ -1287,7 +1299,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                       transition: 'all 0.15s ease'
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div className="pro-appointment-action-wrap" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{
                         width: 48,
                         height: 48,
@@ -1332,7 +1344,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div className="pro-appointment-action-wrap" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: 16, fontWeight: 800, color: '#059669' }}>
                           ₹{job.payout}

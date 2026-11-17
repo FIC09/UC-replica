@@ -234,7 +234,9 @@ export function AvailabilityView({ profile, onToggleOnline, showToast }) {
       </div>
 
       {/* Grid: Shift Timings, Breaks & Buffer Slots */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 24, marginBottom: 24, alignItems: 'start' }}>
+      <div 
+        className="pro-availability-grid"
+        style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 24, marginBottom: 24, alignItems: 'start' }}>
         
         {/* Working Hours & Working Days */}
         <div style={{
@@ -248,7 +250,9 @@ export function AvailabilityView({ profile, onToggleOnline, showToast }) {
             Daily Working Hours (Declared Availability)
           </h3>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+          <div 
+            className="pro-hours-dropdowns"
+            style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: '#64748b', display: 'block', marginBottom: 6 }}>
                 Shift Start Time

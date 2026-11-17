@@ -593,7 +593,7 @@ export function FullHomeCleaningServicePage({
                 width: 18,
                 height: 18,
                 borderRadius: '50%',
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#059669',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -766,30 +766,6 @@ export function FullHomeCleaningServicePage({
               }}
             />
 
-            {/* Status Feedback Badge (Bug 14) */}
-            {hasStartedVideo && (
-              <div style={{
-                position: 'absolute',
-                top: 16,
-                right: 16,
-                zIndex: 20,
-                background: isPlayingVideo ? 'rgba(16, 185, 129, 0.9)' : 'rgba(239, 68, 68, 0.9)',
-                backdropFilter: 'blur(4px)',
-                color: '#FFFFFF',
-                padding: '5px 12px',
-                borderRadius: 20,
-                fontSize: 12,
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
-              }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#FFFFFF' }} />
-                <span>{isPlayingVideo ? 'Playing Live Demonstration' : 'Paused — Click to Resume'}</span>
-              </div>
-            )}
-
             <div style={{
               position: 'absolute',
               inset: 0,
@@ -808,42 +784,13 @@ export function FullHomeCleaningServicePage({
                 fontSize: 30,
                 fontWeight: 800,
                 letterSpacing: '-0.5px',
-                margin: '0 0 16px 0',
+                margin: 0,
                 textShadow: '0 3px 12px rgba(0,0,0,0.85)',
                 lineHeight: 1.2
               }}>
                 Complete home transformation <br />
                 <span style={{ color: '#FDE047' }}>with mechanized care...</span>
               </h2>
-
-              <button
-                type="button"
-                onClick={toggleVideo}
-                title={isPlayingVideo ? "Pause" : "Watch Full Home Cleaning in Action"}
-                style={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 255, 255, 0.92)',
-                  backdropFilter: 'blur(8px)',
-                  border: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
-                  transition: 'transform 0.15s ease',
-                  color: '#111827'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.08)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              >
-                {isPlayingVideo ? (
-                  <Pause size={24} fill="#111827" strokeWidth={0} />
-                ) : (
-                  <Play size={24} fill="#111827" strokeWidth={0} style={{ marginLeft: 3 }} />
-                )}
-              </button>
             </div>
 
             <div style={{
@@ -865,16 +812,6 @@ export function FullHomeCleaningServicePage({
                 <div style={{ fontSize: 12, opacity: 0.9 }}>
                   Restores 98% of tile shine, grout brightness & removes sticky grime
                 </div>
-              </div>
-              <div style={{
-                backgroundColor: 'rgba(0,0,0,0.6)',
-                backdropFilter: 'blur(4px)',
-                padding: '4px 10px',
-                borderRadius: 20,
-                fontSize: 11,
-                fontWeight: 700
-              }}>
-                1:30 MIN PREVIEW
               </div>
             </div>
           </div>
@@ -1013,7 +950,7 @@ export function FullHomeCleaningServicePage({
                       fontWeight: 700,
                       color: '#111827'
                     }}>
-                      <Star size={12} fill="#6E42E5" color="#6E42E5" />
+                      <Star size={12} fill="#F59E0B" color="#F59E0B" />
                       <span>{product.rating}</span>
                       <span style={{ color: '#6B7280', fontWeight: 500 }}>
                         ({product.reviewsCount})

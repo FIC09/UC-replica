@@ -611,7 +611,6 @@ export function PartnerOnboardingModal({
                           type="text"
                           maxLength={6}
                           placeholder="Enter 6-digit OTP from email"
-                          placeholder="6-digit OTP"
                           value={otpCode}
                           onChange={(e) => {
                             const val = e.target.value.replace(/\D/g, '').slice(0, 6);

@@ -88,6 +88,7 @@ export function ProfessionalLayout({
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [unreadAlertsCount, setUnreadAlertsCount] = useState(0);
   const [openTicketsCount, setOpenTicketsCount] = useState(0);
+  const [activeJobsCount, setActiveJobsCount] = useState(0);
   const { isSurgeActive, surgeAmount } = usePlatformSettings();
 
   useEffect(() => {
@@ -108,18 +109,43 @@ export function ProfessionalLayout({
       } catch (err) {
         // silent
       }
+      try {
+        const [jobsRes, offersRes] = await Promise.allSettled([
+          professionalClient.getJobs({ tab: 'all' }),
+          professionalClient.getJobOffers()
+        ]);
+        let jobBadgeCount = 0;
+        if (offersRes.status === 'fulfilled' && offersRes.value?.success && Array.isArray(offersRes.value.offers)) {
+          jobBadgeCount += offersRes.value.offers.length;
+        }
+        if (jobsRes.status === 'fulfilled' && jobsRes.value?.success && Array.isArray(jobsRes.value.jobs)) {
+          const assignedJobs = jobsRes.value.jobs.filter(j => 
+            j.status === 'Assigned' || j.status === 'Confirmed'
+          );
+          jobBadgeCount += assignedJobs.length;
+        }
+        setActiveJobsCount(jobBadgeCount);
+      } catch (err) {
+        // silent
+      }
     };
 
     fetchCounts();
-    const interval = setInterval(fetchCounts, 4000);
+    const interval = setInterval(fetchCounts, 3500);
     const handleSync = () => fetchCounts();
     window.addEventListener('focus', handleSync);
     window.addEventListener('uc:support-tickets-updated', handleSync);
+    window.addEventListener('uc:jobs-updated', handleSync);
+    window.addEventListener('uc:booking-assigned', handleSync);
+    window.addEventListener('storage', handleSync);
 
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', handleSync);
       window.removeEventListener('uc:support-tickets-updated', handleSync);
+      window.removeEventListener('uc:jobs-updated', handleSync);
+      window.removeEventListener('uc:booking-assigned', handleSync);
+      window.removeEventListener('storage', handleSync);
     };
   }, []);
 
@@ -348,6 +374,25 @@ export function ProfessionalLayout({
                   >
                     <IconComponent size={18} color={active ? '#7C3AED' : '#64748B'} />
                     <span>{item.label}</span>
+                    {item.path === '/professional/jobs' && activeJobsCount > 0 && (
+                      <span style={{
+                        marginLeft: 'auto',
+                        backgroundColor: '#7C3AED',
+                        color: '#FFFFFF',
+                        fontSize: 10.5,
+                        fontWeight: 800,
+                        padding: '1px 7px',
+                        borderRadius: 10,
+                        minWidth: 18,
+                        height: 18,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 1px 3px rgba(124, 58, 237, 0.35)'
+                      }}>
+                        {activeJobsCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -741,7 +786,9 @@ export function ProfessionalLayout({
         {/* ---------------------------------------------------- */}
         {/* MAIN BODY CONTENT (Matches AdminLayout scroll area)  */}
         {/* ---------------------------------------------------- */}
-        <main style={{
+        <main 
+          className="pro-main-content"
+          style={{
           flex: 1,
           minHeight: 0,
           padding: 0,
@@ -811,6 +858,27 @@ export function ProfessionalLayout({
               )}
               <IconComponent size={20} color={active ? '#7c3aed' : '#64748b'} />
               <span>{tab.label}</span>
+              {tab.path === '/professional/jobs' && activeJobsCount > 0 && (
+                <span style={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 'calc(50% - 18px)',
+                  backgroundColor: '#7C3AED',
+                  color: '#FFFFFF',
+                  fontSize: 9.5,
+                  fontWeight: 800,
+                  minWidth: 16,
+                  height: 16,
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0 4px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                }}>
+                  {activeJobsCount}
+                </span>
+              )}
             </button>
           );
         })}
@@ -832,15 +900,19 @@ export function ProfessionalLayout({
           .pro-desktop-sidebar {
             position: fixed !important;
             top: 0 !important;
-            bottom: 60px !important;
-            left: -280px !important;
-            height: calc(100vh - 60px) !important;
-            z-index: 99 !important;
+            bottom: 0 !important;
+            left: -290px !important;
+            width: 280px !important;
+            height: 100vh !important;
+            z-index: 150 !important;
             transition: left 0.25s ease-in-out;
-            box-shadow: 4px 0 20px rgba(0,0,0,0.15);
+            box-shadow: 4px 0 20px rgba(0,0,0,0.2);
           }
           .pro-desktop-sidebar.mobile-open {
             left: 0 !important;
+          }
+          .pro-main-content {
+            padding-bottom: 84px !important;
           }
           .pro-hamburger-btn {
             display: flex !important;

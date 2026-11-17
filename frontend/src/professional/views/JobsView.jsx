@@ -101,7 +101,35 @@ export function JobsView({ onNavigate, showToast }) {
     socket.on('OFFER_REJECTED', handleOfferEvent);
     socket.on('ASSIGNMENT_ACCEPTED', handleOfferEvent);
 
+    let syncChannel = null;
+    try {
+      syncChannel = new BroadcastChannel('uc_sync_channel');
+      syncChannel.onmessage = (e) => {
+        if (e.data?.type === 'BOOKING_UPDATED' || e.data?.type === 'BOOKING_CREATED') {
+          loadData();
+          fetchOffers();
+        }
+      };
+    } catch {}
+
+    const handleWindowSync = () => {
+      loadData();
+      fetchOffers();
+    };
+    window.addEventListener('focus', handleWindowSync);
+    window.addEventListener('uc:booking-assigned', handleWindowSync);
+    window.addEventListener('storage', handleWindowSync);
+
+    const pollInterval = setInterval(() => {
+      loadData();
+    }, 4000);
+
     return () => {
+      clearInterval(pollInterval);
+      if (syncChannel) syncChannel.close();
+      window.removeEventListener('focus', handleWindowSync);
+      window.removeEventListener('uc:booking-assigned', handleWindowSync);
+      window.removeEventListener('storage', handleWindowSync);
       socket.off('realtime:event');
       socket.off('DISPATCH_OFFER', handleOfferEvent);
       socket.off('OFFER_EXPIRED', handleOfferEvent);
@@ -132,6 +160,7 @@ export function JobsView({ onNavigate, showToast }) {
           setJobs(res.jobs);
         }
       }
+      window.dispatchEvent(new CustomEvent('uc:jobs-updated'));
     } catch (err) {
       console.warn('Load jobs error:', err);
     } finally {
@@ -185,6 +214,7 @@ export function JobsView({ onNavigate, showToast }) {
         showToast(res.message || 'Offer accepted! Job added to your schedule.');
         setActiveTab('upcoming');
       }
+      window.dispatchEvent(new CustomEvent('uc:jobs-updated'));
     } catch (err) {
       showToast(err.message || 'Failed to accept offer.');
       loadData();
@@ -198,7 +228,8 @@ export function JobsView({ onNavigate, showToast }) {
       await professionalClient.declineJobOffer(declineOfferModal.id, declineReason);
       showToast('Offer declined.');
       setDeclineOfferModal(null);
-      loadData();
+      await loadData();
+      window.dispatchEvent(new CustomEvent('uc:jobs-updated'));
     } catch (err) {
       showToast(err.message || 'Failed to decline offer.');
     } finally {
@@ -296,6 +327,100 @@ export function JobsView({ onNavigate, showToast }) {
           />
         </div>
       </div>
+
+      {/* High-Priority Admin Assignment Banner (Doc 1, Page 1 Bug 1) */}
+      {(() => {
+        const newlyAssignedJob = jobs.find(j => j.status === 'Assigned');
+        if (!newlyAssignedJob) return null;
+        return (
+          <div style={{
+            background: 'linear-gradient(135deg, #1E1B4B 0%, #4338CA 100%)',
+            color: '#FFFFFF',
+            borderRadius: 14,
+            padding: '16px 20px',
+            marginBottom: 20,
+            boxShadow: '0 10px 25px -5px rgba(67, 56, 202, 0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 14,
+            border: '1.5px solid rgba(255,255,255,0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: 12,
+                background: 'rgba(255,255,255,0.2)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 22
+              }}>
+                🚨
+              </div>
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 900, background: '#EF4444', color: '#FFFFFF', padding: '2px 8px', borderRadius: 4, letterSpacing: '0.05em' }}>
+                    PRIORITY ASSIGNMENT
+                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 800 }}>
+                    Order Assigned by Operations Admin
+                  </span>
+                </div>
+                <div style={{ fontSize: 12.5, color: '#E0E7FF', marginTop: 4, display: 'flex', flexWrap: 'wrap', gap: '4px 12px' }}>
+                  <span><strong>Order:</strong> #{newlyAssignedJob.id || newlyAssignedJob.bookingReference}</span>
+                  <span><strong>Service:</strong> {newlyAssignedJob.serviceName || 'Home Service'}</span>
+                  <span><strong>Customer:</strong> {newlyAssignedJob.customer || newlyAssignedJob.userName || newlyAssignedJob.customerName || 'Customer'}</span>
+                  <span><strong>Scheduled:</strong> {newlyAssignedJob.slot || newlyAssignedJob.scheduledSlot || 'Upcoming Slot'}</span>
+                  <span style={{ background: 'rgba(255,255,255,0.2)', padding: '1px 6px', borderRadius: 4 }}>
+                    <strong>Status:</strong> {newlyAssignedJob.status || 'Assigned'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                type="button"
+                onClick={() => handleLifecycleTransition(newlyAssignedJob, 'En Route')}
+                style={{
+                  backgroundColor: '#10B981',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  borderRadius: 8,
+                  padding: '9px 18px',
+                  fontSize: 13,
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <span>Acknowledge & Start Trip →</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => onNavigate(`/professional/jobs/${newlyAssignedJob.id}`)}
+                style={{
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  color: '#FFFFFF',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  borderRadius: 8,
+                  padding: '9px 14px',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer'
+                }}
+              >
+                View Details
+              </button>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* High-Priority Incoming Offer Banner (displayed anywhere across tabs) */}
       {offers.filter(o => o.remainingSeconds == null || o.remainingSeconds > 0).length > 0 && (() => {
@@ -723,7 +848,9 @@ export function JobsView({ onNavigate, showToast }) {
               )}
 
               {/* Customer & Location (Booking Access Policy: phone & full address masked unless en route) */}
-              <div style={{
+              <div 
+                className="pro-job-cust-loc"
+                style={{
                 background: '#f8fafc',
                 borderRadius: 10,
                 padding: '14px 18px',
@@ -734,7 +861,7 @@ export function JobsView({ onNavigate, showToast }) {
                 <div>
                   <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Customer</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginTop: 2 }}>{job.customer}</div>
-                  <div style={{ fontSize: 13, color: '#2563eb', marginTop: 2 }}>📞 {job.phone}</div>
+                  <div style={{ fontSize: 13, color: '#2563eb', marginTop: 2, whiteSpace: 'nowrap' }}>📞 {job.phone}</div>
                   {job.isPhoneMasked && (
                     <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
                       (Masked per Access Policy until En Route)
@@ -743,7 +870,7 @@ export function JobsView({ onNavigate, showToast }) {
                 </div>
                 <div>
                   <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Service Location</div>
-                  <div style={{ fontSize: 13, color: '#334155', fontWeight: 500, marginTop: 2 }}>{job.address}</div>
+                  <div style={{ fontSize: 13, color: '#334155', fontWeight: 500, marginTop: 2, wordBreak: 'break-word' }}>{job.address}</div>
                   <div style={{ fontSize: 12, color: '#059669', marginTop: 2, fontWeight: 600 }}>📍 Area: {job.area}</div>
                 </div>
               </div>

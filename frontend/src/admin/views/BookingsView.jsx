@@ -187,23 +187,38 @@ export function BookingsView({ onShowToast, onNavigate }) {
     return () => clearTimeout(safetyTimer);
   }, [loading]);
 
-  const fetchBookingsList = (showLoadingSpinner = true) => {
+  const fetchBookingsList = (showLoadingSpinner = true, customPage = null, filterOverrides = null) => {
     if (showLoadingSpinner) {
       setLoading(true);
     }
-    const current = filtersRef.current || {};
+    const current = {
+      search,
+      statusFilter,
+      paymentFilter,
+      cityFilter,
+      categoryFilter,
+      partnerFilter,
+      assignedFilter,
+      dateRangeFilter,
+      sortBy,
+      sortOrder,
+      page,
+      ...(filtersRef.current || {}),
+      ...(filterOverrides || {})
+    };
+    const effectivePage = customPage !== null ? customPage : (current.page || page);
     const params = {
-      search: current.search || search,
-      status: current.statusFilter || statusFilter,
-      paymentStatus: current.paymentFilter || paymentFilter,
-      city: current.cityFilter || cityFilter,
-      category: current.categoryFilter || categoryFilter,
-      partnerAgency: current.partnerFilter || partnerFilter,
-      assigned: current.assignedFilter || assignedFilter,
-      dateRange: current.dateRangeFilter || dateRangeFilter,
+      search: current.search !== undefined ? current.search : search,
+      status: current.statusFilter !== undefined ? current.statusFilter : statusFilter,
+      paymentStatus: current.paymentFilter !== undefined ? current.paymentFilter : paymentFilter,
+      city: current.cityFilter !== undefined ? current.cityFilter : cityFilter,
+      category: current.categoryFilter !== undefined ? current.categoryFilter : categoryFilter,
+      partnerAgency: current.partnerFilter !== undefined ? current.partnerFilter : partnerFilter,
+      assigned: current.assignedFilter !== undefined ? current.assignedFilter : assignedFilter,
+      dateRange: current.dateRangeFilter !== undefined ? current.dateRangeFilter : dateRangeFilter,
       sortBy: current.sortBy || sortBy,
       sortOrder: current.sortOrder || sortOrder,
-      page: current.page || page,
+      page: effectivePage,
       limit: 10
     };
 
@@ -230,6 +245,12 @@ export function BookingsView({ onShowToast, onNavigate }) {
           setLoading(false);
         }
       });
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    if (filtersRef.current) filtersRef.current.page = newPage;
+    fetchBookingsList(true, newPage, { page: newPage });
   };
 
   // Automatic Real-Time Synchronization Engine (BroadcastChannel + LocalStorage + Focus + 3s Silent Poll)
@@ -502,6 +523,12 @@ export function BookingsView({ onShowToast, onNavigate }) {
     })
       .then(() => {
         onShowToast && onShowToast(`✓ Professional ${pro.applicantName || pro.name} assigned to ${selectedBooking.id}`);
+        window.dispatchEvent(new CustomEvent('uc:booking-assigned', { 
+          detail: { bookingId: selectedBooking.id, professionalId: pro.id || pro._id } 
+        }));
+        try {
+          localStorage.setItem('uc_last_assigned_timestamp', Date.now().toString());
+        } catch {}
         setShowAssignModal(false);
         fetchBookingsList();
         if (selectedBooking) {
@@ -1175,7 +1202,16 @@ export function BookingsView({ onShowToast, onNavigate }) {
         }}>
           {/* 1. Total Unassigned */}
           <div
-            onClick={() => { setAssignedFilter(assignedFilter === 'unassigned' ? 'ALL' : 'unassigned'); setPage(1); }}
+            onClick={() => {
+              const nextVal = assignedFilter === 'unassigned' ? 'ALL' : 'unassigned';
+              setAssignedFilter(nextVal);
+              setPage(1);
+              if (filtersRef.current) {
+                filtersRef.current.assignedFilter = nextVal;
+                filtersRef.current.page = 1;
+              }
+              fetchBookingsList(true, 1, { assignedFilter: nextVal, page: 1 });
+            }}
             style={{
               backgroundColor: assignedFilter === 'unassigned' ? '#FFFBEB' : '#FFFFFF',
               borderRadius: 8,
@@ -1213,7 +1249,16 @@ export function BookingsView({ onShowToast, onNavigate }) {
 
           {/* 2. Pending Offers */}
           <div
-            onClick={() => { setStatusFilter(statusFilter === 'Pending' ? 'ALL' : 'Pending'); setPage(1); }}
+            onClick={() => {
+              const nextVal = statusFilter === 'Pending' ? 'ALL' : 'Pending';
+              setStatusFilter(nextVal);
+              setPage(1);
+              if (filtersRef.current) {
+                filtersRef.current.statusFilter = nextVal;
+                filtersRef.current.page = 1;
+              }
+              fetchBookingsList(true, 1, { statusFilter: nextVal, page: 1 });
+            }}
             style={{
               backgroundColor: statusFilter === 'Pending' ? '#F5F3FF' : '#FFFFFF',
               borderRadius: 8,
@@ -1251,7 +1296,16 @@ export function BookingsView({ onShowToast, onNavigate }) {
 
           {/* 3. Auto-Assigned */}
           <div
-            onClick={() => { setAssignedFilter(assignedFilter === 'assigned' ? 'ALL' : 'assigned'); setPage(1); }}
+            onClick={() => {
+              const nextVal = assignedFilter === 'assigned' ? 'ALL' : 'assigned';
+              setAssignedFilter(nextVal);
+              setPage(1);
+              if (filtersRef.current) {
+                filtersRef.current.assignedFilter = nextVal;
+                filtersRef.current.page = 1;
+              }
+              fetchBookingsList(true, 1, { assignedFilter: nextVal, page: 1 });
+            }}
             style={{
               backgroundColor: assignedFilter === 'assigned' ? '#EFF6FF' : '#FFFFFF',
               borderRadius: 8,
@@ -1289,7 +1343,16 @@ export function BookingsView({ onShowToast, onNavigate }) {
 
           {/* 4. Manually Assigned */}
           <div
-            onClick={() => { setAssignedFilter(assignedFilter === 'assigned' ? 'ALL' : 'assigned'); setPage(1); }}
+            onClick={() => {
+              const nextVal = assignedFilter === 'assigned' ? 'ALL' : 'assigned';
+              setAssignedFilter(nextVal);
+              setPage(1);
+              if (filtersRef.current) {
+                filtersRef.current.assignedFilter = nextVal;
+                filtersRef.current.page = 1;
+              }
+              fetchBookingsList(true, 1, { assignedFilter: nextVal, page: 1 });
+            }}
             style={{
               backgroundColor: '#FFFFFF',
               borderRadius: 8,
@@ -1327,7 +1390,16 @@ export function BookingsView({ onShowToast, onNavigate }) {
 
           {/* 5. Rejected / Expired */}
           <div
-            onClick={() => { setStatusFilter(statusFilter === 'Cancelled' ? 'ALL' : 'Cancelled'); setPage(1); }}
+            onClick={() => {
+              const nextVal = statusFilter === 'Cancelled' ? 'ALL' : 'Cancelled';
+              setStatusFilter(nextVal);
+              setPage(1);
+              if (filtersRef.current) {
+                filtersRef.current.statusFilter = nextVal;
+                filtersRef.current.page = 1;
+              }
+              fetchBookingsList(true, 1, { statusFilter: nextVal, page: 1 });
+            }}
             style={{
               backgroundColor: statusFilter === 'Cancelled' ? '#FFF1F2' : '#FFFFFF',
               borderRadius: 8,
@@ -1364,16 +1436,30 @@ export function BookingsView({ onShowToast, onNavigate }) {
           </div>
 
           {/* 6. Awaiting Owner Attention */}
-          <div style={{
-            backgroundColor: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '#FEF2F2' : '#FFFFFF',
-            borderRadius: 8,
-            padding: '8px 12px',
-            border: (assignmentStats.awaitingOwnerAttention || 0) > 0 ? '1.5px solid #F87171' : '1px solid #E2E8F0',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
-          }}>
+          <div 
+            onClick={() => {
+              const nextVal = assignedFilter === 'unassigned' ? 'ALL' : 'unassigned';
+              setAssignedFilter(nextVal);
+              setPage(1);
+              if (filtersRef.current) {
+                filtersRef.current.assignedFilter = nextVal;
+                filtersRef.current.page = 1;
+              }
+              fetchBookingsList(true, 1, { assignedFilter: nextVal, page: 1 });
+            }}
+            title="Click to toggle unassigned / awaiting attention filter"
+            style={{
+              backgroundColor: assignedFilter === 'unassigned' ? '#FEF2F2' : '#FFFFFF',
+              borderRadius: 8,
+              padding: '8px 12px',
+              border: assignedFilter === 'unassigned' ? '1.5px solid #EF4444' : '1px solid #E2E8F0',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
+              cursor: 'pointer'
+            }}
+          >
             <div style={{
               width: 30,
               height: 30,
@@ -1409,7 +1495,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
           gap: 10
         }}>
           {/* Search & Main Row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <div style={{
               display: 'flex',
               alignItems: 'center',
@@ -1418,8 +1504,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
               border: '1px solid #CBD5E1',
               borderRadius: 6,
               padding: '6px 12px',
-              flex: '1 1 200px',
-              minWidth: 180,
+              flex: '1 1 240px',
+              minWidth: 200,
               height: 36,
               boxSizing: 'border-box'
             }}>
@@ -1556,7 +1642,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
             </select>
 
             {/* Live Count Indicator & Reset */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 'auto' }}>
               <span style={{
                 fontSize: 12,
                 fontWeight: 700,
@@ -1611,22 +1697,22 @@ export function BookingsView({ onShowToast, onNavigate }) {
         overflow: 'hidden',
         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
       }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <table style={{ width: '100%', minWidth: 1540, tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
             <thead>
               <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Booking Ref</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Customer</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Service & Category</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Mode</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Assignment Status</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Partner Agency</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>City & Zone</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Scheduled Slot</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Status</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Payment</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Total (₹)</th>
-                <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569', textAlign: 'right' }}>Actions</th>
+                <th style={{ width: 130, padding: '14px 16px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'left' }}>Booking Ref</th>
+                <th style={{ width: 170, padding: '14px 16px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'left' }}>Customer</th>
+                <th style={{ width: 180, padding: '14px 16px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'left' }}>Service & Category</th>
+                <th style={{ width: 110, padding: '14px 16px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'center' }}>Mode</th>
+                <th style={{ width: 160, padding: '14px 16px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'center' }}>Assignment Status</th>
+                <th style={{ width: 130, padding: '14px 16px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'left' }}>Partner Agency</th>
+                <th style={{ width: 140, padding: '14px 16px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'left' }}>City & Zone</th>
+                <th style={{ width: 190, padding: '14px 16px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'left' }}>Scheduled Slot</th>
+                <th style={{ width: 120, padding: '14px 16px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'center' }}>Status</th>
+                <th style={{ width: 100, padding: '14px 16px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'center' }}>Payment</th>
+                <th style={{ width: 100, padding: '14px 16px', fontWeight: 600, color: '#475569', whiteSpace: 'nowrap', verticalAlign: 'middle', textAlign: 'right' }}>Total (₹)</th>
+                <th style={{ width: 210, padding: '14px 16px', fontWeight: 600, color: '#475569', textAlign: 'right', whiteSpace: 'nowrap', verticalAlign: 'middle' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1689,12 +1775,12 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       onMouseLeave={e => e.currentTarget.style.backgroundColor = '#FFFFFF'}
                     >
                       {/* Booking Reference */}
-                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#6E42E5' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#6E42E5', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                         {b.id || b.bookingReference}
                       </td>
 
                       {/* Customer */}
-                      <td style={{ padding: '14px 16px' }}>
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                         <div style={{ fontWeight: 600, color: '#0F172A' }}>{b.userName || b.customerName}</div>
                         <div style={{ fontSize: 12, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                           {b.customerId && (
@@ -1719,7 +1805,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       </td>
 
                       {/* Service & Category */}
-                      <td style={{ padding: '14px 16px' }}>
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                         <div style={{ fontWeight: 500, color: '#1E293B' }}>{b.serviceName}</div>
                         <div style={{ fontSize: 11, color: '#64748B', display: 'flex', alignItems: 'center', gap: 4 }}>
                           <span style={{ backgroundColor: '#F1F5F9', padding: '1px 6px', borderRadius: 4 }}>
@@ -1732,48 +1818,52 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       </td>
 
                       {/* Assignment Mode */}
-                      <td style={{ padding: '14px 16px' }}>
-                        {renderModePill(b)}
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                          {renderModePill(b)}
+                        </div>
                       </td>
 
                       {/* Assignment Status */}
-                      <td style={{ padding: '14px 16px' }}>
-                        {renderAssignmentBadge(b)}
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                          {renderAssignmentBadge(b)}
+                        </div>
                       </td>
 
                       {/* Partner Agency */}
-                      <td style={{ padding: '14px 16px', color: '#475569' }}>
+                      <td style={{ padding: '14px 16px', color: '#475569', verticalAlign: 'middle' }}>
                         {b.partnerAgency || b.assignedBusinessPartner?.name || 'Direct Pro'}
                       </td>
 
                       {/* City & Zone */}
-                      <td style={{ padding: '14px 16px' }}>
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                         <div style={{ fontWeight: 500, color: '#0F172A' }}>{b.city || 'Mumbai'}</div>
                         <div style={{ fontSize: 11, color: '#64748B' }}>{b.serviceZone || b.locality || 'Metro'}</div>
                       </td>
 
                       {/* Scheduled Slot */}
-                      <td style={{ padding: '14px 16px', color: '#334155' }}>
+                      <td style={{ padding: '14px 16px', color: '#334155', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                         {(() => {
                           const slotInfo = parseSlotInfo(b.slot, b.scheduledDate, b.createdAt);
                           return (
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
                               <Clock
-                                size={13}
+                                size={14}
                                 color={slotInfo.isToday ? '#2563EB' : (slotInfo.isPast ? '#94A3B8' : '#64748B')}
-                                style={{ marginTop: 2, flexShrink: 0 }}
+                                style={{ flexShrink: 0 }}
                               />
-                              <div>
+                              <div style={{ whiteSpace: 'nowrap' }}>
                                 <div style={{
                                   fontWeight: 600,
                                   fontSize: 13,
                                   color: slotInfo.isToday ? '#1D4ED8' : (slotInfo.isPast ? '#475569' : '#0F172A'),
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: 5,
-                                  flexWrap: 'wrap'
+                                  gap: 6,
+                                  whiteSpace: 'nowrap'
                                 }}>
-                                  <span>{slotInfo.datePart}</span>
+                                  <span style={{ whiteSpace: 'nowrap' }}>{slotInfo.datePart}</span>
                                   {slotInfo.isPast && (
                                     <span style={{
                                       fontSize: 9.5,
@@ -1783,7 +1873,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
                                       background: '#F1F5F9',
                                       color: '#64748B',
                                       border: '1px solid #E2E8F0',
-                                      textTransform: 'uppercase'
+                                      textTransform: 'uppercase',
+                                      whiteSpace: 'nowrap'
                                     }}>
                                       Past
                                     </span>
@@ -1797,14 +1888,15 @@ export function BookingsView({ onShowToast, onNavigate }) {
                                       background: '#EFF6FF',
                                       color: '#1D4ED8',
                                       border: '1px solid #BFDBFE',
-                                      textTransform: 'uppercase'
+                                      textTransform: 'uppercase',
+                                      whiteSpace: 'nowrap'
                                     }}>
                                       Today
                                     </span>
                                   )}
                                 </div>
                                 {slotInfo.timePart && (
-                                  <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 1 }}>
+                                  <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 2, whiteSpace: 'nowrap' }}>
                                     {slotInfo.timePart}
                                   </div>
                                 )}
@@ -1815,41 +1907,45 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       </td>
 
                       {/* Status */}
-                      <td style={{ padding: '14px 16px' }}>
-                        {renderStatusBadge(b.status)}
-                        {(() => {
-                          const hasBefore = b.beforeWorkPhoto?.url || (b.structuredChecklists?.photos || []).some(p => p.phase === 'before');
-                          const hasAfter = b.afterWorkPhoto?.url || (b.structuredChecklists?.photos || []).some(p => p.phase === 'after');
-                          if (!hasBefore && !hasAfter) return null;
-                          return (
-                            <div style={{ marginTop: 4, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                              {hasBefore && (
-                                <span style={{ fontSize: 10, background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }} title="Pre-work photo attached">
-                                  📷 Pre ✓
-                                </span>
-                              )}
-                              {hasAfter && (
-                                <span style={{ fontSize: 10, background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }} title="Post-work photo attached">
-                                  📷 Post ✓
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })()}
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center' }}>
+                          {renderStatusBadge(b.status)}
+                          {(() => {
+                            const hasBefore = b.beforeWorkPhoto?.url || (b.structuredChecklists?.photos || []).some(p => p.phase === 'before');
+                            const hasAfter = b.afterWorkPhoto?.url || (b.structuredChecklists?.photos || []).some(p => p.phase === 'after');
+                            if (!hasBefore && !hasAfter) return null;
+                            return (
+                              <div style={{ marginTop: 4, display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'center' }}>
+                                {hasBefore && (
+                                  <span style={{ fontSize: 10, background: '#EFF6FF', color: '#1D4ED8', border: '1px solid #BFDBFE', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }} title="Pre-work photo attached">
+                                    📷 Pre ✓
+                                  </span>
+                                )}
+                                {hasAfter && (
+                                  <span style={{ fontSize: 10, background: '#ECFDF5', color: '#047857', border: '1px solid #A7F3D0', padding: '1px 5px', borderRadius: 4, fontWeight: 700 }} title="Post-work photo attached">
+                                    📷 Post ✓
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </td>
 
                       {/* Payment */}
-                      <td style={{ padding: '14px 16px' }}>
-                        {renderPaymentBadge(b.paymentStatus)}
+                      <td style={{ padding: '14px 16px', verticalAlign: 'middle', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                          {renderPaymentBadge(b.paymentStatus)}
+                        </div>
                       </td>
 
                       {/* Total */}
-                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F172A' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0F172A', verticalAlign: 'middle', textAlign: 'right', whiteSpace: 'nowrap' }}>
                         ₹{b.totalAmount || b.amount || 0}
                       </td>
 
                       {/* Actions */}
-                      <td style={{ padding: '14px 16px', textAlign: 'right' }}>
+                      <td style={{ padding: '14px 16px', textAlign: 'right', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
                           {/* Visible Assign Worker button for eligible bookings */}
                           {((!b.assignedPartner && !b.assignedProfessional?.name) || ['UNASSIGNED', 'OFFERED', 'EXPIRED', 'REJECTED', 'AWAITING_OWNER_ATTENTION'].includes(b.assignmentStatus)) && b.status !== 'Completed' && b.status !== 'Cancelled' && (
@@ -1983,7 +2079,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button
               disabled={page <= 1}
-              onClick={() => setPage(prev => Math.max(1, prev - 1))}
+              onClick={() => handlePageChange(Math.max(1, page - 1))}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -2005,7 +2101,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
 
             <button
               disabled={page >= (pagination.totalPages || 1)}
-              onClick={() => setPage(prev => prev + 1)}
+              onClick={() => handlePageChange(page + 1)}
               style={{
                 display: 'flex',
                 alignItems: 'center',

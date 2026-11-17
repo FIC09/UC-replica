@@ -448,7 +448,9 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
         </div>
 
         {/* 4 Frosted Glass Metric Tiles */}
-        <div style={{
+        <div 
+          className="pro-metrics-grid"
+          style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(4, 1fr)',
           gap: 12,
@@ -678,6 +680,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
                 <div
                   key={itemIdx}
                   onClick={() => onNavigate(item.path)}
+                  className="pro-menu-item-row"
                   style={{
                     display: 'flex',
                     alignItems: 'center',

@@ -689,7 +689,7 @@ export function ACServicePage({
           {/* Rating & Bookings (★ 4.78 (14.2 M bookings)) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16 }}>
             <span style={{
-              backgroundColor: '#7C3AED',
+              backgroundColor: '#059669',
               color: '#FFFFFF',
               borderRadius: '50%',
               width: 18,
@@ -1119,7 +1119,7 @@ export function ACServicePage({
                   </h4>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#64748B', marginBottom: 4 }}>
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: '#6E42E5' }}>
-                      <Star size={13} fill="#6E42E5" color="#6E42E5" /> 4.75
+                      <Star size={13} fill="#F59E0B" color="#F59E0B" /> 4.75
                     </span>
                     <span>(3M reviews)</span>
                   </div>
@@ -1204,7 +1204,7 @@ export function ACServicePage({
                       </h4>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#64748B', marginBottom: 4 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: '#6E42E5' }}>
-                          <Star size={13} fill="#6E42E5" color="#6E42E5" /> {service.rating}
+                          <Star size={13} fill="#F59E0B" color="#F59E0B" /> {service.rating}
                         </span>
                         <span>({service.reviews})</span>
                       </div>
@@ -1395,7 +1395,7 @@ export function ACServicePage({
                       </h4>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#64748B', marginBottom: 4 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: '#6E42E5' }}>
-                          <Star size={13} fill="#6E42E5" color="#6E42E5" /> {service.rating}
+                          <Star size={13} fill="#F59E0B" color="#F59E0B" /> {service.rating}
                         </span>
                         <span>({service.reviews})</span>
                       </div>
@@ -1530,7 +1530,7 @@ export function ACServicePage({
                       </h4>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#64748B', marginBottom: 4 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: '#6E42E5' }}>
-                          <Star size={13} fill="#6E42E5" color="#6E42E5" /> {service.rating}
+                          <Star size={13} fill="#F59E0B" color="#F59E0B" /> {service.rating}
                         </span>
                         <span>({service.reviews})</span>
                       </div>
@@ -1726,7 +1726,7 @@ export function ACServicePage({
                       </h4>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#64748B', marginBottom: 4 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: '#6E42E5' }}>
-                          <Star size={13} fill="#6E42E5" color="#6E42E5" /> {service.rating}
+                          <Star size={13} fill="#F59E0B" color="#F59E0B" /> {service.rating}
                         </span>
                         <span style={{ borderBottom: '1px dotted #94A3B8', cursor: 'pointer' }}>
                           ({service.reviews})
@@ -2151,7 +2151,7 @@ export function ACServicePage({
               {selectedDetailService.title}
             </h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#64748B', marginBottom: 12 }}>
-              <span style={{ color: '#6E42E5', fontWeight: 800 }}>★ {selectedDetailService.rating}</span>
+              <span style={{ color: '#F59E0B', fontWeight: 800 }}>★ {selectedDetailService.rating}</span>
               <span>({selectedDetailService.reviews})</span>
               {selectedDetailService.duration && <span>• {selectedDetailService.duration}</span>}
             </div>
@@ -2244,7 +2244,7 @@ export function ACServicePage({
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#64748B' }}>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: '#6E42E5' }}>
-                    <Star size={13} fill="#6E42E5" color="#6E42E5" /> {optionsModalService.rating}
+                    <Star size={13} fill="#F59E0B" color="#F59E0B" /> {optionsModalService.rating}
                   </span>
                   <span>({optionsModalService.reviews})</span>
                   <span>•</span>
@@ -2296,7 +2296,7 @@ export function ACServicePage({
                       </h4>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748B', marginBottom: 4 }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontWeight: 700, color: '#6E42E5' }}>
-                          <Star size={11} fill="#6E42E5" color="#6E42E5" /> {opt.rating}
+                          <Star size={11} fill="#F59E0B" color="#F59E0B" /> {opt.rating}
                         </span>
                         <span>({opt.reviews})</span>
                         {opt.duration && <span>• {opt.duration}</span>}
