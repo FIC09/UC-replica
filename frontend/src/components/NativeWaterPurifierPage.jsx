@@ -125,24 +125,10 @@ export function NativeWaterPurifierPage({
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', color: '#111827', fontFamily: 'inherit' }}>
       {/* 1. Header Bar matching Screenshot exactly */}
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #F1F5F9',
-        padding: '12px 24px'
-      }}>
-        <div style={{
-          maxWidth: 1200,
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 20
-        }}>
+      <header className="native-page-header">
+        <div className="native-page-header-row">
           {/* Left: Brand Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="native-page-header-left">
             <div 
               onClick={onBackHome}
               style={{ 
@@ -179,44 +165,22 @@ export function NativeWaterPurifierPage({
           </div>
 
           {/* Center: Location dropdown + Search input */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, maxWidth: 620 }}>
+          <div className="native-page-header-center">
             {/* Location Pill */}
             <div
+              className="native-page-loc-pill"
               onClick={onOpenLocationModal}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: '1px solid #E2E8F0',
-                backgroundColor: '#FFFFFF',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#334155',
-                whiteSpace: 'nowrap'
-              }}
               title="Change Delivery Location"
             >
-              <MapPin size={15} color="#64748B" />
-              <span style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <MapPin size={15} color="#64748B" style={{ flexShrink: 0 }} />
+              <span className="native-loc-text">
                 4744+HMQ, {selectedLocality}
               </span>
-              <ChevronDown size={14} color="#64748B" />
+              <ChevronDown size={14} color="#64748B" style={{ flexShrink: 0 }} />
             </div>
 
             {/* Search Input Box */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 14px',
-              borderRadius: 8,
-              border: '1px solid #E2E8F0',
-              backgroundColor: '#F8FAFC',
-              flex: 1
-            }}>
+            <div className="native-page-search-box">
               <Search size={16} color="#64748B" />
               <input
                 type="text"
@@ -246,7 +210,7 @@ export function NativeWaterPurifierPage({
           </div>
 
           {/* Right: Cart & User Account */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div className="native-page-header-right">
             <button
               type="button"
               onClick={onOpenCart}
@@ -309,17 +273,12 @@ export function NativeWaterPurifierPage({
       </header>
 
       {/* 2. Main Page 3-Column Content Layout */}
-      <main style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 20px 80px' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '260px minmax(0, 1fr) 300px',
-          gap: 32,
-          alignItems: 'start'
-        }}>
+      <main className="native-purifier-main-wrap">
+        <div className="native-purifier-main-grid">
           {/* =========================================================
               COLUMN 1: LEFT HERO TITLE & VIEW SERVICES BUTTON
               ========================================================= */}
-          <div>
+          <div className="native-purifier-hero-col">
             <h1 style={{
               fontSize: 32,
               fontWeight: 900,
@@ -392,7 +351,7 @@ export function NativeWaterPurifierPage({
           {/* =========================================================
               COLUMN 2: MIDDLE MAIN CATALOGUE (MODELS LIST)
               ========================================================= */}
-          <div id="native-models-section">
+          <div id="native-models-section" className="native-purifier-models-col">
             <h2 style={{
               fontSize: 24,
               fontWeight: 800,
@@ -411,17 +370,13 @@ export function NativeWaterPurifierPage({
                 return (
                   <div
                     key={model.id}
+                    className="native-purifier-model-row"
                     style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      justifyContent: 'space-between',
-                      gap: 24,
-                      padding: '24px 0',
                       borderBottom: idx !== filteredModels.length - 1 ? '1px solid #F1F5F9' : 'none'
                     }}
                   >
                     {/* Left: Model Details */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                    <div className="native-purifier-model-info">
                       <h3 style={{
                         fontSize: 18,
                         fontWeight: 800,
@@ -479,25 +434,8 @@ export function NativeWaterPurifierPage({
                     </div>
 
                     {/* Right: Product Image Box with Discount Banner & Add button */}
-                    <div style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      flexShrink: 0
-                    }}>
-                      <div style={{
-                        width: 125,
-                        height: 120,
-                        borderRadius: 12,
-                        backgroundColor: '#F8FAFC',
-                        border: '1px solid #E2E8F0',
-                        position: 'relative',
-                        overflow: 'hidden',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: 10
-                      }}>
+                    <div className="native-purifier-model-action">
+                      <div className="native-purifier-model-img-box">
                         {/* Purple Offer Pill Banner at Top of Image */}
                         {model.offerBanner && (
                           <div style={{
@@ -643,9 +581,9 @@ export function NativeWaterPurifierPage({
           {/* =========================================================
               COLUMN 3: RIGHT SIDEBAR (BANK OFFER, UC PROMISE, CART)
               ========================================================= */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div className="native-purifier-sidebar-col" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {/* 1. Bank Offer Promo Card with Interactive Carousel */}
-            <div style={{
+            <div className="native-bank-offer-card" style={{
               backgroundColor: '#FFFFFF',
               border: '1px solid #E2E8F0',
               borderRadius: 14,
@@ -861,6 +799,24 @@ export function NativeWaterPurifierPage({
           </div>
         </div>
       </main>
+
+      {/* Mobile Sticky Bottom Cart Bar */}
+      {totalCartCount > 0 && (
+        <div className="native-mobile-bottom-cart-bar">
+          <div>
+            <div style={{ fontSize: 12, color: '#94A3B8', fontWeight: 600 }}>{totalCartCount} item{totalCartCount > 1 ? 's' : ''} added</div>
+            <div style={{ fontSize: 16, fontWeight: 900, color: '#FFFFFF' }}>₹{cartSubtotal.toLocaleString('en-IN')}</div>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenCheckout}
+            className="native-mobile-checkout-btn"
+          >
+            <span>Proceed to Checkout</span>
+            <ArrowRight size={16} />
+          </button>
+        </div>
+      )}
 
       {/* 3. Detail Modal for Purifier Model */}
       {selectedDetailModel && (

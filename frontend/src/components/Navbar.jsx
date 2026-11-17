@@ -145,8 +145,8 @@ export function Navbar({
             </div>
           </div>
 
-          {/* Exact Header Nav Tabs: Homes, Native, Beauty */}
-          <nav className="uc-sublinks">
+          {/* Exact Header Nav Tabs: Homes, Native, Beauty (Desktop view) */}
+          <nav className="uc-sublinks uc-sublinks-desktop">
             <span
               className={`uc-sublink-item ${activeNavTab === 'homes' ? 'active' : ''}`}
               onClick={() => onSelectNavTab ? onSelectNavTab('homes') : onSelectCategory('all')}
@@ -627,6 +627,40 @@ export function Navbar({
           </div>
         </div>
       </div>
+
+      {/* Mobile Category Navigation Bar (Homes | Native | Beauty) */}
+      <nav className="uc-sublinks-mobile" aria-label="Main Category Navigation">
+        <button
+          type="button"
+          className={`uc-mobile-sublink-btn ${activeNavTab === 'homes' ? 'active' : ''}`}
+          onClick={() => {
+            if (onSelectNavTab) onSelectNavTab('homes');
+            if (onSelectCategory) onSelectCategory('all');
+          }}
+        >
+          Homes
+        </button>
+        <button
+          type="button"
+          className={`uc-mobile-sublink-btn ${activeNavTab === 'native' ? 'active' : ''}`}
+          onClick={() => {
+            if (onSelectNavTab) onSelectNavTab('native');
+            if (onSelectCategory) onSelectCategory('native-ro');
+          }}
+        >
+          Native
+        </button>
+        <button
+          type="button"
+          className={`uc-mobile-sublink-btn ${activeNavTab === 'beauty' ? 'active' : ''}`}
+          onClick={() => {
+            if (onSelectNavTab) onSelectNavTab('beauty');
+            if (onSelectCategory) onSelectCategory('womens-salon');
+          }}
+        >
+          Beauty
+        </button>
+      </nav>
     </header>
   );
 }

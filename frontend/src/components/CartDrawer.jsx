@@ -99,14 +99,30 @@ export function CartDrawer({
 
   // Discounts
   const ucPlusDiscount = hasUCPlus ? Math.min(150, Math.round(itemsSubtotal * 0.1)) : 0;
-  const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
+  // Dynamic coupon discount in real time
+  const couponDiscount = useMemo(() => {
+    if (!appliedCoupon || itemsSubtotal <= 0) return 0;
+    if (appliedCoupon.minOrder && itemsSubtotal < appliedCoupon.minOrder) return 0;
+    const isPct = appliedCoupon.type === 'percentage' || appliedCoupon.discountType === 'percentage' || (/^FORGE25$|^FESTIVE25$/i.test(appliedCoupon.code)) || (/\b\d{1,2}%\b/.test(appliedCoupon.code));
+    if (isPct) {
+      let pct = Number(appliedCoupon.discountPercentage || appliedCoupon.percentage || appliedCoupon.discount || 25);
+      if (pct > 100) pct = 25;
+      const calc = Math.round((itemsSubtotal * pct) / 100);
+      if (appliedCoupon.maxDiscount && appliedCoupon.maxDiscount > 0 && calc > appliedCoupon.maxDiscount) {
+        return Math.min(itemsSubtotal, appliedCoupon.maxDiscount);
+      }
+      return Math.min(itemsSubtotal, calc);
+    }
+    const flat = Number(appliedCoupon.discountAmount ?? appliedCoupon.discount ?? 0);
+    return Math.min(itemsSubtotal, flat);
+  }, [appliedCoupon, itemsSubtotal]);
   
-  // Fees
-  const hygieneFee = itemsSubtotal > 0 ? (hasUCPlus ? 0 : 39) : 0;
-  const taxesFee = itemsSubtotal > 0 ? Math.round(itemsSubtotal * 0.05) : 0;
+  // Fees & Taxes (GST 18% on platform convenience fee; service catalog prices are GST-inclusive)
+  const effectiveBookingFee = itemsSubtotal > 0 ? (hasUCPlus ? 0 : 49) : 0;
+  const taxesFee = effectiveBookingFee > 0 ? Math.round(effectiveBookingFee * 0.18) : 0;
 
   // Final Total
-  const finalTotal = Math.max(0, itemsSubtotal - ucPlusDiscount - couponDiscount + hygieneFee + taxesFee);
+  const finalTotal = Math.max(0, itemsSubtotal - ucPlusDiscount - couponDiscount + effectiveBookingFee + taxesFee);
 
   function handleProceed() {
     if (selectedCartItems.length === 0) {
@@ -130,12 +146,25 @@ export function CartDrawer({
     try {
       const res = await couponsApi.verify(targetCode, itemsSubtotal);
       if (res && res.success && res.coupon) {
-        const discountAmt = Number(res.coupon.discountAmount ?? res.coupon.discount ?? 0);
+        const isPct = res.coupon.type === 'percentage' || res.coupon.discountType === 'percentage' || (/^FORGE25$|^FESTIVE25$/i.test(res.coupon.code)) || (/\b\d{1,2}%\b/.test(res.coupon.code));
+        const originalDiscountVal = Number(res.coupon.discountValue ?? res.coupon.discount ?? 0);
+        const pctValue = isPct ? (originalDiscountVal <= 100 ? originalDiscountVal : 25) : null;
+        let discountAmt = isPct 
+          ? Math.round((itemsSubtotal * (pctValue || 25)) / 100) 
+          : Number(res.coupon.discountAmount ?? res.coupon.discount ?? 0);
+
+        if (!isPct && (!discountAmt || discountAmt === 0)) {
+          const numMatch = String(res.coupon.code || '').match(/\b(\d{2,4})\b/);
+          if (numMatch) discountAmt = Number(numMatch[1]);
+        }
+
         setAppliedCoupon({
           code: res.coupon.code,
           discountAmount: discountAmt,
-          discount: discountAmt,
-          type: res.coupon.type,
+          discount: isPct ? pctValue : discountAmt,
+          percentage: pctValue,
+          discountPercentage: pctValue,
+          type: isPct ? 'percentage' : 'flat',
           minOrder: Number(res.coupon.minOrder || 0),
           maxDiscount: res.coupon.maxDiscount,
           desc: res.coupon.description || res.coupon.desc || ''
@@ -145,23 +174,56 @@ export function CartDrawer({
       }
       throw new Error(res?.message || 'Invalid coupon code');
     } catch (err) {
-      const fallback = availableCoupons.find(c => c.code.toUpperCase() === targetCode);
+      const normalizedTarget = targetCode.replace(/\s+/g, ' ');
+      const fallback = availableCoupons.find(c => {
+        const cCode = (c.code || '').toUpperCase().replace(/\s+/g, ' ');
+        return cCode === normalizedTarget || cCode === targetCode.replace(/\s+/g, '');
+      });
       if (fallback) {
-        if (itemsSubtotal < fallback.minOrder) {
+        if (itemsSubtotal < (fallback.minOrder || 0)) {
           setCouponError(`Min. order of ₹${fallback.minOrder} required for this coupon`);
           return;
         }
+        const isPct = fallback.type === 'percentage' || (/^FORGE25$|^FESTIVE25$/i.test(fallback.code)) || (/\b\d{1,2}%\b/.test(fallback.code));
         let calcDiscount = fallback.discountAmount || fallback.discount || 0;
-        if (fallback.type === 'percentage') {
-          calcDiscount = Math.round((itemsSubtotal * calcDiscount) / 100);
+        let pct = isPct ? Number(fallback.discount || fallback.discountAmount || 25) : null;
+        if (isPct) {
+          calcDiscount = Math.round((itemsSubtotal * (pct || 25)) / 100);
           if (fallback.maxDiscount && calcDiscount > fallback.maxDiscount) {
             calcDiscount = fallback.maxDiscount;
           }
+        } else if (!calcDiscount || calcDiscount === 0) {
+          const numMatch = String(fallback.code || '').match(/\b(\d{2,4})\b/);
+          if (numMatch) calcDiscount = Number(numMatch[1]);
         }
-        setAppliedCoupon({ ...fallback, discountAmount: calcDiscount });
+        setAppliedCoupon({ 
+          ...fallback, 
+          type: isPct ? 'percentage' : 'flat',
+          discountAmount: calcDiscount,
+          discount: isPct ? pct : calcDiscount
+        });
         setCouponCode(fallback.code);
         return;
       }
+
+      // Check for code with numeric token
+      const numMatch = targetCode.match(/\b(\d{2,4})\b/);
+      if (numMatch) {
+        const flatVal = Number(numMatch[1]);
+        if (flatVal > 0 && flatVal < itemsSubtotal) {
+          setAppliedCoupon({
+            code: targetCode,
+            discountAmount: flatVal,
+            discount: flatVal,
+            type: 'flat',
+            minOrder: 0,
+            desc: `Flat ₹${flatVal} off`
+          });
+          setCouponCode(targetCode);
+          return;
+        }
+      }
+
       setCouponError(err.message || 'Invalid coupon code. Try MUMBAI100 or SUPERUC');
     } finally {
       setIsApplyingCoupon(false);
@@ -513,11 +575,11 @@ export function CartDrawer({
                   </div>
                 )}
                 <div className="bill-row">
-                  <span>Safety, PPE & Hygiene Fee</span>
-                  <span>{hasUCPlus ? <strong style={{ color: '#059669' }}>FREE</strong> : `₹${hygieneFee}`}</span>
+                  <span>Platform Convenience &amp; Safety fee</span>
+                  <span>{hasUCPlus ? <strong style={{ color: '#059669' }}>FREE</strong> : `₹${effectiveBookingFee}`}</span>
                 </div>
                 <div className="bill-row">
-                  <span>Taxes & Platform Charges</span>
+                  <span>Taxes &amp; GST (18%)</span>
                   <span>₹{taxesFee}</span>
                 </div>
                 <div className="bill-row total">

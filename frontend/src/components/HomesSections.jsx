@@ -750,8 +750,13 @@ export function HomesSections({
                   }
                 }}
               >
-                <div className="homes-svc-img-wrap epc-clean-bg">
-                  <img src={svc.image} alt={svc.name} className="homes-svc-img contain-epc" />
+                <div className="homes-svc-img-wrap epc-clean-bg" style={{ overflow: 'hidden', padding: 0 }}>
+                  <img 
+                    src={svc.image} 
+                    alt={svc.name} 
+                    className="homes-svc-img epc-fitted-img contain-epc" 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center', display: 'block' }}
+                  />
                 </div>
                 <h4 className="homes-svc-title">{svc.name}</h4>
                 

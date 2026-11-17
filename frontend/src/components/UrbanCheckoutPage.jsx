@@ -6,7 +6,6 @@ import {
   Minus, 
   Check, 
   Percent, 
-  ShieldCheck, 
   Clock, 
   MapPin, 
   CreditCard, 
@@ -452,6 +451,24 @@ export function UrbanCheckoutPage({
     showToast('📍 Service address updated successfully!');
   };
 
+  // Full-month calendar navigation state
+  const todayDate = useMemo(() => {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return t;
+  }, []);
+
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => {
+    const t = new Date();
+    t.setHours(0, 0, 0, 0);
+    return t;
+  });
+
   // Slot selection state - Dynamically generated dates for up to 30 days (full month)
   // Automatically advances when today's service slots complete (past 18:30) or clock reaches midnight
   const [availableDates, setAvailableDates] = useState(() => getAvailableServiceDates(new Date(), 30));
@@ -544,24 +561,6 @@ export function UrbanCheckoutPage({
       if (formatted) setSelectedTime(formatted);
     }
   }
-
-  // Full-month calendar navigation state (Bug 10)
-  const todayDate = useMemo(() => {
-    const t = new Date();
-    t.setHours(0, 0, 0, 0);
-    return t;
-  }, []);
-
-  const [calendarMonth, setCalendarMonth] = useState(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
-  });
-
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState(() => {
-    const t = new Date();
-    t.setHours(0, 0, 0, 0);
-    return t;
-  });
 
   const [backendSlotsAvailability, setBackendSlotsAvailability] = useState({});
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -766,18 +765,24 @@ export function UrbanCheckoutPage({
 
   const itemSavings = Math.max(0, originalSubtotal - itemsSubtotal);
 
-  // Dynamic percentage / flat coupon discount calculation (Bug Report 3, Page 40)
+  // Dynamic percentage / flat coupon discount calculation in real time
   const couponDiscount = useMemo(() => {
-    if (!appliedCoupon) return 0;
-    if (appliedCoupon.type === 'percentage') {
-      const pct = Number(appliedCoupon.discount || 25);
+    if (!appliedCoupon || itemsSubtotal <= 0) return 0;
+    if (appliedCoupon.minOrder && itemsSubtotal < appliedCoupon.minOrder) {
+      return 0;
+    }
+    const isPct = appliedCoupon.type === 'percentage' || appliedCoupon.discountType === 'percentage' || (/^FORGE25$|^FESTIVE25$/i.test(appliedCoupon.code)) || (/\b\d{1,2}%\b/.test(appliedCoupon.code));
+    if (isPct) {
+      let pct = Number(appliedCoupon.discountPercentage || appliedCoupon.percentage || appliedCoupon.discount || 25);
+      if (pct > 100) pct = 25;
       const calculated = Math.round((itemsSubtotal * pct) / 100);
       if (appliedCoupon.maxDiscount && Number(appliedCoupon.maxDiscount) > 0 && Number(appliedCoupon.maxDiscount) !== 150) {
-        return Math.min(calculated, Number(appliedCoupon.maxDiscount));
+        return Math.min(itemsSubtotal, Math.min(calculated, Number(appliedCoupon.maxDiscount)));
       }
-      return calculated;
+      return Math.min(itemsSubtotal, calculated);
     }
-    return Number(appliedCoupon.discountAmount || appliedCoupon.discount || 0);
+    const flat = Number(appliedCoupon.discountAmount ?? appliedCoupon.discount ?? 0);
+    return Math.min(itemsSubtotal, flat);
   }, [appliedCoupon, itemsSubtotal]);
 
   const ucPlusDiscount = hasUCPlus ? Math.min(150, Math.round(itemsSubtotal * 0.1)) : 0;
@@ -786,7 +791,11 @@ export function UrbanCheckoutPage({
   const effectiveBookingFee = itemsSubtotal > 0 ? (hasUCPlus ? 0 : (bookingFee ?? 49)) : 0;
   const effectiveSurgeFee = (itemsSubtotal > 0 && isSurgeActive) ? (surgeAmount ?? 49) : 0;
   const effectiveGstRate = (gstRate ?? 18) / 100;
-  const taxesFee = itemsSubtotal > 0 ? Math.round(itemsSubtotal * effectiveGstRate) : 0;
+  // Standard on-demand service app pricing: Service catalog prices are GST-inclusive.
+  // Taxes & GST (18%) are applied to platform convenience & surge fees.
+  const taxesFee = (effectiveBookingFee + effectiveSurgeFee) > 0 
+    ? Math.round((effectiveBookingFee + effectiveSurgeFee) * effectiveGstRate) 
+    : 0;
   const finalPayable = Math.max(0, itemsSubtotal - couponDiscount - ucPlusDiscount + effectiveBookingFee + effectiveSurgeFee + taxesFee);
 
   // Determine Category Name for right column header (e.g. AC, Electrician, Plumber)
@@ -814,12 +823,25 @@ export function UrbanCheckoutPage({
       // 1. Verify coupon dynamically against the backend MongoDB database
       const res = await couponsApi.verify(target, itemsSubtotal);
       if (res && res.success && res.coupon) {
-        const discountAmt = Number(res.coupon.discountAmount ?? res.coupon.discount ?? 0);
+        const isPct = res.coupon.type === 'percentage' || res.coupon.discountType === 'percentage' || (/^FORGE25$|^FESTIVE25$/i.test(res.coupon.code)) || (/\b\d{1,2}%\b/.test(res.coupon.code));
+        const originalDiscountVal = Number(res.coupon.discountValue ?? res.coupon.discount ?? 0);
+        const pctValue = isPct ? (originalDiscountVal <= 100 ? originalDiscountVal : 25) : null;
+        let discountAmt = isPct 
+          ? Math.round((itemsSubtotal * (pctValue || 25)) / 100) 
+          : Number(res.coupon.discountAmount ?? res.coupon.discount ?? 0);
+
+        if (!isPct && (!discountAmt || discountAmt === 0)) {
+          const numMatch = String(res.coupon.code || '').match(/\b(\d{2,4})\b/);
+          if (numMatch) discountAmt = Number(numMatch[1]);
+        }
+
         const applied = {
           code: res.coupon.code,
           discountAmount: discountAmt,
-          discount: discountAmt,
-          type: res.coupon.type,
+          discount: isPct ? pctValue : discountAmt,
+          percentage: pctValue,
+          discountPercentage: pctValue,
+          type: isPct ? 'percentage' : 'flat',
           minOrder: Number(res.coupon.minOrder || 0),
           maxDiscount: res.coupon.maxDiscount,
           desc: res.coupon.description || res.coupon.desc || ''
@@ -832,21 +854,39 @@ export function UrbanCheckoutPage({
       throw new Error(res?.message || `Coupon "${target}" could not be applied`);
     } catch (err) {
       // 2. Client-side fallback for static/offline coupons
-      const fallback = availableCoupons.find(c => c.code.toUpperCase() === target);
+      const normalizedTarget = target.replace(/\s+/g, ' ');
+      const fallback = availableCoupons.find(c => {
+        const cCode = (c.code || '').toUpperCase().replace(/\s+/g, ' ');
+        return cCode === normalizedTarget || cCode === target.replace(/\s+/g, '');
+      });
       if (fallback) {
-        if (itemsSubtotal < fallback.minOrder) {
+        if (itemsSubtotal < (fallback.minOrder || 0)) {
           setCouponError(`Min order of ₹${fallback.minOrder} required for ${fallback.code}`);
           return;
         }
-        let calcDiscount = fallback.discountAmount || fallback.discount || 0;
-        if (fallback.type === 'percentage') {
-          calcDiscount = Math.round((itemsSubtotal * calcDiscount) / 100);
-          if (fallback.maxDiscount && Number(fallback.maxDiscount) > 0 && Number(fallback.maxDiscount) !== 150 && calcDiscount > Number(fallback.maxDiscount)) {
-            calcDiscount = Number(fallback.maxDiscount);
-          }
+        const isPct = fallback.type === 'percentage' || (/^FORGE25$|^FESTIVE25$/i.test(fallback.code)) || (/\b\d{1,2}%\b/.test(fallback.code));
+        let pct = isPct ? Number(fallback.discount || fallback.discountAmount || 25) : null;
+        if (pct && pct > 100) pct = 25;
+        let calcDiscount = isPct
+          ? Math.round((itemsSubtotal * pct) / 100)
+          : Number(fallback.discountAmount || fallback.discount || 0);
+
+        if (!isPct && (!calcDiscount || calcDiscount === 0)) {
+          const numMatch = String(fallback.code || '').match(/\b(\d{2,4})\b/);
+          if (numMatch) calcDiscount = Number(numMatch[1]);
         }
+
+        if (isPct && fallback.maxDiscount && Number(fallback.maxDiscount) > 0 && Number(fallback.maxDiscount) !== 150 && calcDiscount > Number(fallback.maxDiscount)) {
+          calcDiscount = Number(fallback.maxDiscount);
+        }
+        calcDiscount = Math.min(itemsSubtotal, calcDiscount);
+
         setAppliedCoupon({
           ...fallback,
+          type: isPct ? 'percentage' : 'flat',
+          percentage: pct,
+          discountPercentage: pct,
+          discount: isPct ? pct : calcDiscount,
           discountAmount: calcDiscount
         });
         setCouponCode('');
@@ -854,11 +894,24 @@ export function UrbanCheckoutPage({
         return;
       }
 
-      if (target === 'AUTO100' || target === 'SAVE100') {
-        setAppliedCoupon({ code: target, discountAmount: 100 });
-        setCouponCode('');
-        showToast('🎉 Applied coupon: Saved ₹100!');
-        return;
+      // 3. Fallback for code with numeric token (e.g. "DIL DIWALI 250", "AUTO100", "SAVE100")
+      const numMatch = target.match(/\b(\d{2,4})\b/);
+      if (numMatch) {
+        const flatVal = Number(numMatch[1]);
+        if (flatVal > 0 && flatVal < itemsSubtotal) {
+          const applied = {
+            code: target,
+            discountAmount: flatVal,
+            discount: flatVal,
+            type: 'flat',
+            minOrder: 0,
+            desc: `Flat ₹${flatVal} off`
+          };
+          setAppliedCoupon(applied);
+          setCouponCode('');
+          showToast(`🎉 Applied ${target}: Saved ₹${flatVal}!`);
+          return;
+        }
       }
 
       setCouponError(err.message || `Invalid coupon code "${target}". Try MUMBAI100, FIRST50 or SUPERUC`);
@@ -992,9 +1045,9 @@ export function UrbanCheckoutPage({
         subtotal: itemsSubtotal,
         discount: totalSavings,
         couponCode: appliedCoupon?.code || '',
-        convenienceFee: 49,
-        taxes: Math.round(finalPayable * 0.18),
-        surgeFee: 0,
+        convenienceFee: effectiveBookingFee,
+        taxes: taxesFee,
+        surgeFee: effectiveSurgeFee,
         total: finalPayable
       },
       address: fullAddress,
@@ -1113,23 +1166,6 @@ export function UrbanCheckoutPage({
             }}>
               Checkout
             </h1>
-          </div>
-
-          {/* Secure Safe Badge */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            fontSize: 12.5,
-            fontWeight: 700,
-            color: '#059669',
-            background: '#ECFDF5',
-            padding: '5px 10px',
-            borderRadius: 999,
-            border: '1px solid #A7F3D0'
-          }}>
-            <ShieldCheck size={14} />
-            <span>100% Safe &amp; Secure Checkout</span>
           </div>
         </div>
       </header>
@@ -2401,12 +2437,14 @@ export function UrbanCheckoutPage({
                     </div>
                     <div style={{
                       fontSize: 12.5,
-                      color: appliedCoupon ? '#059669' : '#6B7280',
+                      color: appliedCoupon ? (appliedCoupon.minOrder && itemsSubtotal < appliedCoupon.minOrder ? '#DC2626' : '#059669') : '#6B7280',
                       fontWeight: appliedCoupon ? 700 : 500,
                       marginTop: 2
                     }}>
                       {appliedCoupon 
-                        ? `Applied "${appliedCoupon.code}" (Saved ₹${appliedCoupon.discountAmount})`
+                        ? (appliedCoupon.minOrder && itemsSubtotal < appliedCoupon.minOrder
+                            ? `⚠️ Add ₹${(appliedCoupon.minOrder - itemsSubtotal).toLocaleString('en-IN')} more to use "${appliedCoupon.code}"`
+                            : `Applied "${appliedCoupon.code}" (Saved ₹${couponDiscount.toLocaleString('en-IN')})`)
                         : 'Have a coupon code? Enter below to apply'
                       }
                     </div>
@@ -2601,23 +2639,22 @@ export function UrbanCheckoutPage({
                     gap: 10,
                     fontSize: 13.5
                   }}>
-                    {/* Line 1: Item Total MRP */}
+                    {/* Line 1: Item Total */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
-                      <span>{itemSavings > 0 ? 'Item total (MRP)' : 'Item total'}</span>
-                      <span style={{ fontWeight: 700, color: '#111827' }}>
-                        ₹{(itemSavings > 0 ? originalSubtotal : itemsSubtotal).toLocaleString('en-IN')}
-                      </span>
+                      <span>Item total</span>
+                      <div>
+                        {itemSavings > 0 && (
+                          <span style={{ fontSize: 13, color: '#9CA3AF', textDecoration: 'line-through', marginRight: 8 }}>
+                            ₹{originalSubtotal.toLocaleString('en-IN')}
+                          </span>
+                        )}
+                        <span style={{ fontWeight: 700, color: '#111827' }}>
+                          ₹{itemsSubtotal.toLocaleString('en-IN')}
+                        </span>
+                      </div>
                     </div>
 
-                    {/* Line 2: Catalog Discount */}
-                    {itemSavings > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669' }}>
-                        <span>Item catalog discount</span>
-                        <span style={{ fontWeight: 700 }}>-₹{itemSavings.toLocaleString('en-IN')}</span>
-                      </div>
-                    )}
-
-                    {/* Line 3: UC Plus 10% Member Discount */}
+                    {/* Line 2: UC Plus 10% Member Discount */}
                     {hasUCPlus && ucPlusDiscount > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2628,7 +2665,7 @@ export function UrbanCheckoutPage({
                       </div>
                     )}
 
-                    {/* Line 4: Coupon Discount */}
+                    {/* Line 3: Coupon Discount */}
                     {couponDiscount > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', color: '#059669' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -2639,13 +2676,13 @@ export function UrbanCheckoutPage({
                       </div>
                     )}
 
-                    {/* Line 5: Convenience & Booking fee */}
+                    {/* Line 4: Convenience & Booking fee */}
                     <div style={{ display: 'flex', justifyContent: 'space-between', color: '#374151' }}>
                       <span>Platform Convenience &amp; Safety fee</span>
                       <span>
                         {hasUCPlus ? (
                           <span>
-                            <span style={{ textDecoration: 'line-through', color: '#9CA3AF', marginRight: 6 }}>₹{effectiveBookingFee}</span>
+                            <span style={{ textDecoration: 'line-through', color: '#9CA3AF', marginRight: 6 }}>₹{bookingFee ?? 49}</span>
                             <strong style={{ color: '#059669' }}>FREE</strong>
                           </span>
                         ) : (
@@ -2654,7 +2691,7 @@ export function UrbanCheckoutPage({
                       </span>
                     </div>
 
-                    {/* Line 5b: Monsoon / Weather Surge (Real-time dynamic) */}
+                    {/* Line 5: Monsoon / Weather Surge (Real-time dynamic) */}
                     {isSurgeActive && effectiveSurgeFee > 0 && (
                       <div style={{ display: 'flex', justifyContent: 'space-between', color: '#B45309', fontWeight: 700 }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>

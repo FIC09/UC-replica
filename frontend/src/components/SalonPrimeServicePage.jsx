@@ -988,7 +988,7 @@ export function SalonPrimeServicePage({
     <div className="salon-prime-page" style={{ background: '#F8FAFC', minHeight: '100vh', paddingBottom: 100, color: '#0F172A', fontFamily: 'inherit' }}>
       
       {/* 1. TOP STICKY HEADER */}
-      <header style={{
+      <header className="salon-page-header" style={{
         position: 'sticky',
         top: 0,
         zIndex: 100,
@@ -997,10 +997,10 @@ export function SalonPrimeServicePage({
         padding: '12px 24px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
       }}>
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+        <div className="salon-page-header-row" style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
           
           {/* Left: UC Brand Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="salon-page-brand" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div onClick={onBackHome} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
               <div style={{
                 background: '#0F172A',
@@ -1020,10 +1020,11 @@ export function SalonPrimeServicePage({
           </div>
 
           {/* Middle: Location Pill & Search in Salon Prime */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, maxWidth: 680 }}>
+          <div className="salon-page-middle-wrap" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, maxWidth: 680 }}>
             {/* Location Pill */}
             <button
               type="button"
+              className="salon-page-loc-pill"
               onClick={onOpenLocationModal}
               style={{
                 background: '#F8FAFC',
@@ -1049,7 +1050,7 @@ export function SalonPrimeServicePage({
             </button>
 
             {/* Search Box */}
-            <div style={{
+            <div className="salon-page-search-box" style={{
               flex: 1,
               position: 'relative',
               background: '#F8FAFC',
@@ -1088,7 +1089,7 @@ export function SalonPrimeServicePage({
           </div>
 
           {/* Right: Cart Button & Profile */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="salon-page-right-wrap" style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <button
               type="button"
               onClick={onOpenCheckout || onOpenCart}
@@ -1148,14 +1149,14 @@ export function SalonPrimeServicePage({
       </header>
 
       {/* 2. MAIN 3-COLUMN LAYOUT */}
-      <main style={{ maxWidth: 1280, margin: '24px auto 0', padding: '0 24px' }}>
+      <main className="salon-main-wrap" style={{ maxWidth: 1280, margin: '24px auto 0', padding: '0 24px' }}>
         
         {/* Page Title & Star Rating Header */}
         <div style={{ marginBottom: 20 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 900, margin: '0 0 6px', color: '#0F172A', letterSpacing: -0.5 }}>
+          <h1 className="salon-page-title" style={{ fontSize: 32, fontWeight: 900, margin: '0 0 6px', color: '#0F172A', letterSpacing: -0.5 }}>
             Salon Prime
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, color: '#475569', fontWeight: 600 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, color: '#475569', fontWeight: 600, flexWrap: 'wrap' }}>
             <span style={{
               background: '#059669',
               color: '#FFFFFF',
@@ -1192,12 +1193,12 @@ export function SalonPrimeServicePage({
         </div>
 
         {/* 3-Column Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '270px 1fr 310px', gap: 28, alignItems: 'start' }}>
+        <div className="salon-prime-main-grid" style={{ display: 'grid', gridTemplateColumns: '270px 1fr 310px', gap: 28, alignItems: 'start' }}>
           
           {/* ========================================================= */}
           {/* LEFT COLUMN: "Select a service" Sticky Sidebar            */}
           {/* ========================================================= */}
-          <aside style={{
+          <aside className="salon-aside-selector" style={{
             position: 'sticky',
             top: 84,
             background: '#FFFFFF',
@@ -1220,7 +1221,7 @@ export function SalonPrimeServicePage({
             </div>
 
             {/* Service Grid Tiles */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="salon-service-tiles-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {SERVICE_CATEGORIES.map(cat => {
                 const isActive = activeCategoryTab === cat.id;
                 return (
@@ -1347,11 +1348,11 @@ export function SalonPrimeServicePage({
           {/* ========================================================= */}
           {/* CENTER COLUMN: Hero Carousel + Exact Sections Feed         */}
           {/* ========================================================= */}
-          <section style={{ display: 'flex', flexDirection: 'column', gap: 32, minWidth: 0 }}>
+          <section className="salon-catalogue-col" style={{ display: 'flex', flexDirection: 'column', gap: 32, minWidth: 0 }}>
             
             {/* Top Carousel Banner */}
             {activeCategoryTab === 'all' && !searchQuery && (
-              <div style={{
+              <div className="salon-hero-banner" style={{
                 position: 'relative',
                 borderRadius: 18,
                 overflow: 'hidden',
@@ -1362,7 +1363,7 @@ export function SalonPrimeServicePage({
                 color: '#FFFFFF'
               }}>
                 {/* Left Text */}
-                <div style={{ flex: 1.2, padding: '36px 32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 2 }}>
+                <div className="salon-hero-banner-text" style={{ flex: 1.2, padding: '36px 32px', display: 'flex', flexDirection: 'column', justifyContent: 'center', zIndex: 2 }}>
                   <span style={{
                     alignSelf: 'flex-start',
                     background: HERO_SLIDES[activeBannerSlide].badgeColor,
@@ -1387,7 +1388,7 @@ export function SalonPrimeServicePage({
                 </div>
 
                 {/* Right Visual Image */}
-                <div style={{ flex: 1.1, position: 'relative', minHeight: 250 }}>
+                <div className="salon-hero-banner-img" style={{ flex: 1.1, position: 'relative', minHeight: 250 }}>
                   <img
                     src={HERO_SLIDES[activeBannerSlide].imgSrc}
                     alt={HERO_SLIDES[activeBannerSlide].title}
@@ -1979,10 +1980,10 @@ export function SalonPrimeServicePage({
           {/* ========================================================= */}
           {/* RIGHT COLUMN: Promo Voucher + UC Promise + Sticky Cart Bar */}
           {/* ========================================================= */}
-          <aside style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <aside className="salon-sidebar-col" style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 16 }}>
             
             {/* Promo Voucher Card */}
-            <div style={{
+            <div className="salon-promo-voucher-card" style={{
               background: '#FFFFFF',
               border: '1px solid #E2E8F0',
               borderRadius: 14,
@@ -2105,6 +2106,24 @@ export function SalonPrimeServicePage({
           </aside>
         </div>
       </main>
+
+      {/* Mobile Sticky Bottom Floating Cart Bar */}
+      {cartCount > 0 && (
+        <div className="salon-mobile-bottom-cart-bar" onClick={onOpenCheckout || onOpenCart}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <div style={{ fontSize: 16, fontWeight: 900 }}>
+              ₹{cartSubtotal.toLocaleString('en-IN')}
+            </div>
+            <div style={{ fontSize: 12, color: '#E9D5FF', textDecoration: 'line-through' }}>
+              ₹{Math.round(cartSubtotal * 1.15).toLocaleString('en-IN')}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14, fontWeight: 800 }}>
+            <span>View Cart ({cartCount})</span>
+            <ChevronRight size={16} />
+          </div>
+        </div>
+      )}
 
       {/* 4. "EDIT YOUR PACKAGE" CUSTOMIZATION MODAL */}
       {isCustomizeModalOpen && (

@@ -379,6 +379,7 @@ export function SalonRoyaleServicePage({
       
       {/* 1. TOP STICKY NAVBAR */}
       <header
+        className="salon-page-header"
         style={{
           position: 'sticky',
           top: 0,
@@ -389,7 +390,7 @@ export function SalonRoyaleServicePage({
           boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
         }}
       >
-        <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
+        <div className="salon-page-header-row" style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 20 }}>
           {/* Left: Brand */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div onClick={onBackHome} style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer' }}>
@@ -413,9 +414,10 @@ export function SalonRoyaleServicePage({
           </div>
 
           {/* Middle: Location & Search bar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, maxWidth: 680 }}>
+          <div className="salon-page-middle-wrap" style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, maxWidth: 680 }}>
             <button
               type="button"
+              className="salon-page-loc-pill"
               onClick={onOpenLocationModal}
               style={{
                 background: '#F8FAFC',
@@ -440,6 +442,7 @@ export function SalonRoyaleServicePage({
             </button>
 
             <div
+              className="salon-page-search-box"
               style={{
                 flex: 1,
                 display: 'flex',
@@ -515,14 +518,14 @@ export function SalonRoyaleServicePage({
       </header>
 
       {/* 2. MAIN CONTAINER WITH 3-COLUMN LAYOUT */}
-      <div style={{ maxWidth: 1280, margin: '24px auto', padding: '0 24px' }}>
+      <div className="salon-main-wrap" style={{ maxWidth: 1280, margin: '24px auto', padding: '0 24px' }}>
         
         {/* Title & Rating */}
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontSize: 32, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
+          <h1 className="salon-page-title" style={{ fontSize: 32, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0', letterSpacing: '-0.02em' }}>
             Salon Royale
           </h1>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             <div
               style={{
                 display: 'inline-flex',
@@ -546,10 +549,11 @@ export function SalonRoyaleServicePage({
         </div>
 
         {/* 3 Columns: Left Navigation Sidebar | Center Services Catalogue | Right UC Promise & Floating Cart */}
-        <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr 300px', gap: 32, alignItems: 'start' }}>
+        <div className="salon-men-main-grid" style={{ display: 'grid', gridTemplateColumns: '240px 1fr 300px', gap: 32, alignItems: 'start' }}>
           
           {/* Left Column: Select a Service (Sidebar) */}
           <aside
+            className="salon-men-aside-selector"
             style={{
               position: 'sticky',
               top: 80,
@@ -646,7 +650,7 @@ export function SalonRoyaleServicePage({
           </aside>
 
           {/* Center Column: Services Sections */}
-          <main style={{ minWidth: 0 }}>
+          <main className="salon-men-catalogue-col" style={{ minWidth: 0 }}>
             {displayedSections.map((sec) => (
               <section
                 key={sec.id}
@@ -952,7 +956,7 @@ export function SalonRoyaleServicePage({
           </main>
 
           {/* Right Column: UC Promise & Sticky Cart */}
-          <div style={{ position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div className="salon-men-sidebar-col" style={{ position: 'sticky', top: 80, display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* UC Promise Card */}
             <div
               style={{

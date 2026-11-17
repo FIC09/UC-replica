@@ -399,7 +399,7 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
               onClick={() => handleCategoryClick('womens-salon', 'Radiant glow skin therapy')}
             >
               <img 
-                src="/images/beauty_korean_glow_facial.jpg" 
+                src="/images/spotlight_massage.jpg" 
                 alt="Radiant glow skin therapy" 
                 className="uc-spotlight-bg-img"
               />

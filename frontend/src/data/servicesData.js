@@ -2063,6 +2063,22 @@ export const COUPONS = [
     desc: '25% festive discount on all eligible services',
   },
   {
+    code: 'DIL DIWALI 250',
+    discountAmount: 250,
+    discount: 250,
+    type: 'flat',
+    minOrder: 499,
+    desc: 'Flat ₹250 off on all Diwali festive bookings',
+  },
+  {
+    code: 'DIWALI250',
+    discountAmount: 250,
+    discount: 250,
+    type: 'flat',
+    minOrder: 499,
+    desc: 'Flat ₹250 off on all bookings',
+  },
+  {
     code: 'MUMBAI100',
     discountAmount: 100,
     minOrder: 399,

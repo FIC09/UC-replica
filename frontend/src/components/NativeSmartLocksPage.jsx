@@ -137,24 +137,10 @@ export function NativeSmartLocksPage({
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', color: '#111827', fontFamily: 'inherit' }}>
       {/* 1. Exact Header Bar matching Screenshot */}
-      <header style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-        backgroundColor: '#FFFFFF',
-        borderBottom: '1px solid #F1F5F9',
-        padding: '12px 24px'
-      }}>
-        <div style={{
-          maxWidth: 1200,
-          margin: '0 auto',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 20
-        }}>
+      <header className="native-page-header">
+        <div className="native-page-header-row">
           {/* Left: Brand Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="native-page-header-left">
             <div 
               onClick={onBackHome}
               style={{ 
@@ -191,44 +177,22 @@ export function NativeSmartLocksPage({
           </div>
 
           {/* Center: Location dropdown + Search input */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, maxWidth: 620 }}>
+          <div className="native-page-header-center">
             {/* Location Pill */}
             <div
+              className="native-page-loc-pill"
               onClick={onOpenLocationModal}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: '1px solid #E2E8F0',
-                backgroundColor: '#FFFFFF',
-                cursor: 'pointer',
-                fontSize: 13,
-                fontWeight: 600,
-                color: '#334155',
-                whiteSpace: 'nowrap'
-              }}
               title="Change Delivery Location"
             >
-              <MapPin size={15} color="#64748B" />
-              <span style={{ maxWidth: 170, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <MapPin size={15} color="#64748B" style={{ flexShrink: 0 }} />
+              <span className="native-loc-text">
                 4744+HMQ, {selectedLocality}
               </span>
-              <ChevronDown size={14} color="#64748B" />
+              <ChevronDown size={14} color="#64748B" style={{ flexShrink: 0 }} />
             </div>
 
             {/* Search Input Box */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              padding: '8px 14px',
-              borderRadius: 8,
-              border: '1px solid #E2E8F0',
-              backgroundColor: '#F8FAFC',
-              flex: 1
-            }}>
+            <div className="native-page-search-box">
               <Search size={16} color="#64748B" />
               <input
                 type="text"
@@ -258,7 +222,7 @@ export function NativeSmartLocksPage({
           </div>
 
           {/* Right: Cart & User Account (Matches Screenshot) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="native-page-header-right">
             <button
               type="button"
               onClick={onOpenCart}
@@ -322,12 +286,7 @@ export function NativeSmartLocksPage({
 
       {/* 2. Top Hero Section with Video Showcase Banner (Matches Screenshot 1 exactly) */}
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: '36px 20px 24px' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '260px 1fr',
-          gap: 32,
-          alignItems: 'start'
-        }}>
+        <div className="native-locks-hero-grid">
           {/* Left Title & Action Button */}
           <div>
             <h1 style={{
@@ -509,12 +468,7 @@ export function NativeSmartLocksPage({
 
       {/* 3. Catalogue & Sidebar Layout (Matches Screenshots 2 & 3) */}
       <main id="native-locks-catalogue" style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px 80px' }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1fr) 300px',
-          gap: 36,
-          alignItems: 'start'
-        }}>
+        <div className="native-locks-main-grid">
           {/* =========================================================
               MAIN COLUMN: FEATURE LOCK LIST (Screenshots 2 & 3)
               ========================================================= */}
@@ -814,7 +768,7 @@ export function NativeSmartLocksPage({
               ========================================================= */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             {/* 1. Bank Offer Promo Card with Interactive Carousel */}
-            <div style={{
+            <div className="native-bank-offer-card" style={{
               backgroundColor: '#FFFFFF',
               border: '1px solid #E2E8F0',
               borderRadius: 14,

@@ -27,6 +27,28 @@ const DEFAULT_COUPONS = [
     isActive: true,
   },
   {
+    code: 'DIL DIWALI 250',
+    discount: 250,
+    discountAmount: 250,
+    type: 'flat',
+    minOrder: 499,
+    maxDiscount: 250,
+    description: 'Flat ₹250 Diwali celebration discount on all services',
+    desc: 'Flat ₹250 Diwali celebration discount on all services',
+    isActive: true,
+  },
+  {
+    code: 'DIWALI250',
+    discount: 250,
+    discountAmount: 250,
+    type: 'flat',
+    minOrder: 499,
+    maxDiscount: 250,
+    description: 'Flat ₹250 Diwali celebration discount on all services',
+    desc: 'Flat ₹250 Diwali celebration discount on all services',
+    isActive: true,
+  },
+  {
     code: 'MUMBAI100',
     discount: 100,
     discountAmount: 100,
@@ -141,14 +163,22 @@ router.post('/verify', async (req, res) => {
     }
 
     let calculatedDiscount = Number(coupon.discount || coupon.discountAmount || 0);
-    const isPercentage = coupon.type === 'percentage' || (/25/i.test(coupon.code) && (coupon.discount === 25 || coupon.discountAmount === 25));
-    if (isPercentage || coupon.type === 'percentage') {
-      const pct = (coupon.type === 'percentage' && coupon.discount) ? Number(coupon.discount) : 25;
+    const isPercentage = coupon.type === 'percentage' || (/^FORGE25$|^FESTIVE25$/i.test(coupon.code)) || (/\b\d{1,2}%\b/.test(coupon.code));
+    let pct = null;
+    if (isPercentage) {
+      pct = (coupon.type === 'percentage' && coupon.discount && coupon.discount <= 100) ? Number(coupon.discount) : 25;
       calculatedDiscount = Math.round((orderAmount * pct) / 100);
       const maxLimit = Number(coupon.maxDiscount || 0);
       // Only cap if maxDiscount is explicitly set, greater than 0, and not an erroneous legacy 150 cap on a 25% coupon
       if (maxLimit > 0 && calculatedDiscount > maxLimit && maxLimit !== 150) {
         calculatedDiscount = maxLimit;
+      }
+    } else {
+      if (!calculatedDiscount || calculatedDiscount === 0) {
+        const numMatch = String(coupon.code || '').match(/\b(\d{2,4})\b/);
+        if (numMatch) {
+          calculatedDiscount = Number(numMatch[1]);
+        }
       }
     }
 
@@ -160,9 +190,12 @@ router.post('/verify', async (req, res) => {
       success: true,
       coupon: {
         code: coupon.code,
-        discount: calculatedDiscount,
+        discount: isPercentage ? pct : calculatedDiscount,
+        discountValue: isPercentage ? pct : calculatedDiscount,
+        percentage: isPercentage ? pct : null,
+        discountPercentage: isPercentage ? pct : null,
         discountAmount: calculatedDiscount,
-        type: coupon.type || 'flat',
+        type: isPercentage ? 'percentage' : (coupon.type || 'flat'),
         minOrder: minOrder,
         maxDiscount: coupon.maxDiscount,
         description: coupon.description || coupon.desc || '',
