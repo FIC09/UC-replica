@@ -389,7 +389,62 @@ export function PaymentGatewayModal({
   });
 
   const [paymentStage, setPaymentStage] = useState('gateway');
+  const [mobileView, setMobileView] = useState('list'); // 'list' | 'detail' (mobile master-detail navigation)
   const [processingStatus, setProcessingStatus] = useState('Connecting to NPCI Payments Switch...');
+
+  // Standardized Payment Methods definition
+  const paymentMethods = useMemo(() => [
+    {
+      id: 'qr',
+      name: 'Scan & Pay (UPI QR)',
+      shortName: 'UPI QR',
+      desc: 'Scan with any UPI app',
+      icon: <InstantQRIcon size={36} />
+    },
+    {
+      id: 'gpay',
+      name: 'Google Pay (GPay)',
+      shortName: 'GPay',
+      desc: 'Instant UPI Pay & Collect',
+      icon: <GPayIcon size={36} />
+    },
+    {
+      id: 'phonepe',
+      name: 'PhonePe',
+      shortName: 'PhonePe',
+      desc: 'Instant UPI & Mobile',
+      icon: <PhonePeIcon size={36} />
+    },
+    {
+      id: 'paytm',
+      name: 'Paytm',
+      shortName: 'Paytm',
+      desc: 'Instant UPI & QR',
+      icon: <PaytmIcon size={36} />
+    },
+    {
+      id: 'card',
+      name: 'Credit / Debit Card',
+      shortName: 'Card',
+      desc: 'Visa, Master, RuPay, Amex',
+      icon: <CardBrandIcon size={36} />
+    },
+    {
+      id: 'netbanking',
+      name: 'Net Banking',
+      shortName: 'NetBanking',
+      desc: 'All Major Indian Banks',
+      icon: <NetBankingIcon size={36} />
+    },
+    ...(!hideCOD ? [{
+      id: 'cod',
+      name: 'Cash on Delivery',
+      shortName: 'COD',
+      desc: 'COD (Pay after service)',
+      descColor: '#059669',
+      icon: <CODBrandIcon size={36} />
+    }] : [])
+  ], [hideCOD]);
 
   // Transaction Metadata
   const [txnId, setTxnId] = useState('');
@@ -465,6 +520,7 @@ export function PaymentGatewayModal({
       const initial = (initialMethod === 'cod' && hideCOD) ? 'qr' : (initialMethod === 'upi' ? 'qr' : (initialMethod || 'qr'));
       setActiveTab(initial);
       setPaymentStage('gateway');
+      setMobileView('list');
       setShowQrCode(false);
       setUpiTimer(300);
       setResendTimer(30);
@@ -865,6 +921,144 @@ export function PaymentGatewayModal({
           0% { transform: scale(0.95); opacity: 0.8; }
           100% { transform: scale(1.4); opacity: 0; }
         }
+
+        .payment-gateway-body {
+          display: grid;
+          grid-template-columns: 260px 1fr;
+          min-height: 480px;
+          flex: 1;
+          overflow: hidden;
+        }
+        .payment-sidebar {
+          background-color: #F8FAFC;
+          border-right: 1px solid #E2E8F0;
+          padding: 16px 12px;
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          overflow-y: auto;
+          width: 260px;
+          box-sizing: border-box;
+        }
+        .payment-details-panel {
+          padding: 24px 28px;
+          display: flex;
+          flex-direction: column;
+          justifyContent: space-between;
+          overflow-y: auto;
+          flex: 1;
+          box-sizing: border-box;
+        }
+        .mobile-gateway-topbar {
+          display: none;
+        }
+        .mobile-method-chips-strip {
+          display: none;
+        }
+
+        @media (max-width: 768px) {
+          .payment-gateway-overlay {
+            padding: 8px !important;
+          }
+          .payment-gateway-card {
+            max-height: 96vh !important;
+            border-radius: 16px !important;
+            width: 100% !important;
+          }
+          .payment-gateway-header {
+            padding: 12px 14px !important;
+          }
+          .payment-gateway-header-subtext {
+            display: none !important;
+          }
+          .payment-gateway-header-brand-title {
+            font-size: 14px !important;
+          }
+          .payment-gateway-header-amount-label {
+            font-size: 10px !important;
+          }
+          .payment-gateway-header-amount {
+            font-size: 18px !important;
+          }
+          .payment-gateway-body {
+            display: flex !important;
+            flex-direction: column !important;
+            min-height: 0 !important;
+            flex: 1 !important;
+            overflow: hidden !important;
+          }
+          .payment-sidebar {
+            width: 100% !important;
+            border-right: none !important;
+            padding: 12px !important;
+            flex: 1 !important;
+          }
+          .payment-details-panel {
+            width: 100% !important;
+            padding: 14px 12px !important;
+            flex: 1 !important;
+          }
+          .payment-sidebar.mobile-hidden {
+            display: none !important;
+          }
+          .payment-details-panel.mobile-hidden {
+            display: none !important;
+          }
+          .mobile-gateway-topbar {
+            display: flex !important;
+            align-items: center !important;
+            justifyContent: space-between !important;
+            padding: 8px 10px !important;
+            background-color: #F1F5F9 !important;
+            border-radius: 10px !important;
+            margin-bottom: 12px !important;
+            border: 1px solid #E2E8F0 !important;
+          }
+          .mobile-gateway-back-btn {
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+            background: none !important;
+            border: none !important;
+            color: #6E42E5 !important;
+            font-size: 12.5px !important;
+            font-weight: 800 !important;
+            cursor: pointer !important;
+            padding: 4px 6px !important;
+          }
+          .mobile-method-chips-strip {
+            display: flex !important;
+            gap: 6px !important;
+            overflow-x: auto !important;
+            padding-bottom: 8px !important;
+            margin-bottom: 12px !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: none !important;
+          }
+          .mobile-method-chips-strip::-webkit-scrollbar {
+            display: none !important;
+          }
+          .mobile-method-chip {
+            flex-shrink: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 5px !important;
+            padding: 6px 12px !important;
+            border-radius: 999px !important;
+            font-size: 11.5px !important;
+            font-weight: 700 !important;
+            border: 1.5px solid #E2E8F0 !important;
+            background-color: #FFFFFF !important;
+            color: #334155 !important;
+            cursor: pointer !important;
+            transition: all 0.15s ease !important;
+          }
+          .mobile-method-chip.active {
+            border-color: #6E42E5 !important;
+            background-color: #F5F3FF !important;
+            color: #6E42E5 !important;
+          }
+        }
       `}</style>
 
       <div
@@ -886,21 +1080,25 @@ export function PaymentGatewayModal({
         {/* ========================================================= */}
         {/* TOP HEADER: BRANDING, AMOUNT & CLOSE                      */}
         {/* ========================================================= */}
-        <div style={{
-          backgroundColor: '#0F172A',
-          color: '#FFFFFF',
-          padding: '16px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: '1px solid #1E293B',
-          position: 'relative'
-        }}>
+        <div 
+          className="payment-gateway-header"
+          style={{
+            backgroundColor: '#0F172A',
+            color: '#FFFFFF',
+            padding: '16px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottom: '1px solid #1E293B',
+            position: 'relative'
+          }}
+        >
           {/* Left: Forge India Connect SafePay Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
             <div style={{
-              width: 38,
-              height: 38,
+              width: 36,
+              height: 36,
+              minWidth: 36,
               borderRadius: 10,
               background: 'linear-gradient(135deg, #6E42E5 0%, #4338CA 100%)',
               display: 'flex',
@@ -908,43 +1106,43 @@ export function PaymentGatewayModal({
               justifyContent: 'center',
               boxShadow: '0 2px 8px rgba(110, 66, 229, 0.45)',
               fontWeight: 900,
-              fontSize: 14,
+              fontSize: 13,
               color: '#FFFFFF',
               letterSpacing: 0.5
             }}>
               FIC
             </div>
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 16, fontWeight: 900, color: '#FFFFFF', letterSpacing: -0.2 }}>
-                  Forge India Connect SafePay
+            <div style={{ minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                <span className="payment-gateway-header-brand-title" style={{ fontSize: 15, fontWeight: 900, color: '#FFFFFF', letterSpacing: -0.2 }}>
+                  FIC SafePay
                 </span>
                 <span style={{
-                  fontSize: 10,
+                  fontSize: 9.5,
                   fontWeight: 900,
                   backgroundColor: '#059669',
                   color: '#FFFFFF',
-                  padding: '2px 7px',
+                  padding: '2px 6px',
                   borderRadius: 4,
-                  letterSpacing: 0.6
+                  letterSpacing: 0.5
                 }}>
                   NPCI VERIFIED
                 </span>
               </div>
-              <div style={{ fontSize: 11.5, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
-                <Lock size={12} color="#10B981" />
-                <span>256-Bit SSL Bank Encrypted Real-Time Gateway</span>
+              <div className="payment-gateway-header-subtext" style={{ fontSize: 11, color: '#94A3B8', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                <Lock size={11} color="#10B981" />
+                <span>256-Bit SSL Bank Encrypted</span>
               </div>
             </div>
           </div>
 
           {/* Right: Amount to Pay & Close Button */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <div className="payment-gateway-header-amount-label" style={{ fontSize: 10, fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Amount to pay
               </div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#38BDF8', letterSpacing: -0.5 }}>
+              <div className="payment-gateway-header-amount" style={{ fontSize: 20, fontWeight: 900, color: '#38BDF8', letterSpacing: -0.5 }}>
                 ₹{amount.toLocaleString('en-IN')}
               </div>
             </div>
@@ -957,6 +1155,7 @@ export function PaymentGatewayModal({
                 style={{
                   width: 32,
                   height: 32,
+                  minWidth: 32,
                   borderRadius: '50%',
                   backgroundColor: '#1E293B',
                   border: 'none',
@@ -1696,95 +1895,42 @@ export function PaymentGatewayModal({
         )}
 
         {/* ========================================================= */}
-        {/* STAGE 0: MAIN PAYMENT GATEWAY INTERFACE (DEFAULT)         */}
+        {/* STAGE 0: MAIN PAYMENT GATEWAY INTERFACE (RESPONSIVE)      */}
         {/* ========================================================= */}
         {paymentStage === 'gateway' && (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: '260px 1fr',
-            minHeight: 480,
-            flex: 1,
-            overflow: 'hidden'
-          }}>
+          <div className="payment-gateway-body">
             {/* ------------------------------------------------------- */}
             {/* LEFT SIDEBAR: PAYMENT OPTIONS LIST                      */}
             {/* ------------------------------------------------------- */}
-            <div style={{
-              backgroundColor: '#F8FAFC',
-              borderRight: '1px solid #E2E8F0',
-              padding: '16px 12px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              overflowY: 'auto'
-            }}>
+            <div className={`payment-sidebar ${mobileView === 'detail' ? 'mobile-hidden' : ''}`}>
               <div style={{ fontSize: 11, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', padding: '4px 10px 8px', letterSpacing: 0.5 }}>
                 Payment Options
               </div>
 
-              {[
-                {
-                  id: 'qr',
-                  name: 'Scan & Pay (UPI QR)',
-                  desc: 'Scan with any UPI app',
-                  icon: <InstantQRIcon size={36} />
-                },
-                {
-                  id: 'gpay',
-                  name: 'Google Pay (GPay)',
-                  desc: 'Instant UPI Pay & Collect',
-                  icon: <GPayIcon size={36} />
-                },
-                {
-                  id: 'phonepe',
-                  name: 'PhonePe',
-                  desc: 'Instant UPI & Mobile',
-                  icon: <PhonePeIcon size={36} />
-                },
-                {
-                  id: 'paytm',
-                  name: 'Paytm',
-                  desc: 'Instant UPI & QR',
-                  icon: <PaytmIcon size={36} />
-                },
-                {
-                  id: 'card',
-                  name: 'Credit / Debit Card',
-                  desc: 'Visa, Master, RuPay, Amex',
-                  icon: <CardBrandIcon size={36} />
-                },
-                {
-                  id: 'netbanking',
-                  name: 'Net Banking',
-                  desc: 'All Major Indian Banks',
-                  icon: <NetBankingIcon size={36} />
-                },
-                ...(!hideCOD ? [{
-                  id: 'cod',
-                  name: 'Cash on Delivery',
-                  desc: 'COD (Pay after service)',
-                  descColor: '#059669',
-                  icon: <CODBrandIcon size={36} />
-                }] : [])
-              ].map(method => {
+              {paymentMethods.map(method => {
                 const isSelected = activeTab === method.id;
                 return (
                   <button
                     key={method.id}
                     type="button"
-                    onClick={() => { setActiveTab(method.id); setShowQrCode(false); }}
+                    onClick={() => { 
+                      setActiveTab(method.id); 
+                      setShowQrCode(false); 
+                      setMobileView('detail');
+                    }}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '10px 12px',
+                      padding: '11px 12px',
                       borderRadius: 12,
-                      border: isSelected ? '1.5px solid #6E42E5' : '1px solid transparent',
-                      backgroundColor: isSelected ? '#FFFFFF' : 'transparent',
+                      border: isSelected ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
+                      backgroundColor: isSelected ? '#FFFFFF' : '#FFFFFF',
                       boxShadow: isSelected ? '0 3px 10px rgba(110, 66, 229, 0.12)' : 'none',
                       cursor: 'pointer',
                       textAlign: 'left',
-                      transition: 'all 0.15s ease'
+                      transition: 'all 0.15s ease',
+                      width: '100%'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -1798,7 +1944,7 @@ export function PaymentGatewayModal({
                         </div>
                       </div>
                     </div>
-                    {isSelected && <ChevronRight size={16} color="#6E42E5" style={{ flexShrink: 0, marginLeft: 6 }} />}
+                    <ChevronRight size={16} color={isSelected ? '#6E42E5' : '#94A3B8'} style={{ flexShrink: 0, marginLeft: 6 }} />
                   </button>
                 );
               })}
@@ -1814,13 +1960,39 @@ export function PaymentGatewayModal({
             {/* ------------------------------------------------------- */}
             {/* RIGHT PANEL: PAYMENT METHOD DETAILS & ACTION CTA        */}
             {/* ------------------------------------------------------- */}
-            <div style={{
-              padding: '24px 28px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-              overflowY: 'auto'
-            }}>
+            <div className={`payment-details-panel ${mobileView === 'list' ? 'mobile-hidden' : ''}`}>
+
+              {/* Mobile Back Bar (Only visible on mobile) */}
+              <div className="mobile-gateway-topbar">
+                <button
+                  type="button"
+                  onClick={() => setMobileView('list')}
+                  className="mobile-gateway-back-btn"
+                >
+                  <ChevronLeft size={18} />
+                  <span>All Payment Options</span>
+                </button>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#475569' }}>
+                  {currentMethodName}
+                </span>
+              </div>
+
+              {/* Mobile Quick Method Selector Chips (Only visible on mobile) */}
+              <div className="mobile-method-chips-strip">
+                {paymentMethods.map(m => {
+                  const isSelected = activeTab === m.id;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => { setActiveTab(m.id); setShowQrCode(false); }}
+                      className={`mobile-method-chip ${isSelected ? 'active' : ''}`}
+                    >
+                      <span>{m.shortName}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
               {/* ==================== 0. DEDICATED INSTANT QR PANEL ==================== */}
               {activeTab === 'qr' && (

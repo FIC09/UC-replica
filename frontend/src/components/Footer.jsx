@@ -270,11 +270,12 @@ export function Footer({
               background-checked via Aadhaar KYC, and equipped with standard-grade tools and protective gear. 
               All bookings are covered under our 30-Day Service Guarantee and ₹10,000 Property Damage Protection.
             </p>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div className="footer-uc-bottom-row">
               <div className="footer-uc-copyright">
-                © 2026 Forge India Connect Technologies India Pvt. Ltd. All rights reserved. • ISO 9001:2015 Quality Assured • CIN: U74999KA2024PTC184920
+                © 2026 Forge India Connect Technologies India Pvt. Ltd. All rights reserved.
+                <span className="footer-uc-corp-info"> • ISO 9001:2015 Quality Assured • CIN: U74999KA2024PTC184920</span>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16, fontSize: 11.5, color: '#64748B' }}>
+              <div className="footer-uc-badges-bar">
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                   <ShieldCheck size={13} color="#059669" /> 100% Safe Payments
                 </span>
