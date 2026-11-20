@@ -28,7 +28,7 @@ import {
 import { adminClient } from '../adminClient';
 import { usePlatformSettings } from '../../utils/usePlatformSettings';
 
-export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
+export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavigate }) {
   const { platformTakeRate } = usePlatformSettings();
   // Navigation tabs: 'transactions' | 'payouts' | 'refunds' | 'reconciliation'
   const [activeTab, setActiveTab] = useState(defaultTab);
@@ -456,7 +456,13 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
 
           <button
             type="button"
-            onClick={() => onNavigate ? onNavigate('/admin/promotions') : null}
+            onClick={() => {
+              if (onNavigate) {
+                onNavigate('/admin/promotions');
+              } else {
+                window.location.pathname = '/admin/promotions';
+              }
+            }}
             style={{
               padding: '10px 16px',
               fontSize: 13.5,
@@ -514,7 +520,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
       {activeTab === 'transactions' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* KPI Summary Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16 }}>
+          <div className="admin-kpi-grid" style={{ marginBottom: 4 }}>
             <div style={{ backgroundColor: '#FFFFFF', padding: '16px 20px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Gross Captured Volume</div>
               <div style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
@@ -578,7 +584,8 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
                 border: '1px solid #D1D5DB',
                 borderRadius: 8,
                 padding: '8px 12px',
-                width: 280
+                flex: '1 1 240px',
+                maxWidth: '100%'
               }}>
                 <Search size={16} color="#64748B" />
                 <input
@@ -665,10 +672,10 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             border: '1px solid #E2E8F0',
-            overflow: 'hidden',
+            overflowX: 'auto',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
           }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+            <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
                 <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontSize: 12, fontWeight: 700 }}>
                   <th style={{ padding: '12px 18px' }}>Transaction & Order</th>
@@ -948,7 +955,8 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
                 border: '1px solid #D1D5DB',
                 borderRadius: 8,
                 padding: '8px 12px',
-                width: 280
+                flex: '1 1 240px',
+                maxWidth: '100%'
               }}>
                 <Search size={16} color="#64748B" />
                 <input
@@ -1009,10 +1017,10 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             border: '1px solid #E2E8F0',
-            overflow: 'hidden',
+            overflowX: 'auto',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
           }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+            <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
                 <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontSize: 12, fontWeight: 700 }}>
                   <th style={{ padding: '12px 18px' }}>Payout ID</th>
@@ -1212,7 +1220,8 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
               border: '1px solid #D1D5DB',
               borderRadius: 8,
               padding: '8px 12px',
-              width: 280
+              flex: '1 1 240px',
+              maxWidth: '100%'
             }}>
               <Search size={16} color="#64748B" />
               <input
@@ -1252,10 +1261,10 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             border: '1px solid #E2E8F0',
-            overflow: 'hidden',
+            overflowX: 'auto',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
           }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+            <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
                 <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontSize: 12, fontWeight: 700 }}>
                   <th style={{ padding: '12px 18px' }}>Refund & Booking</th>
@@ -1401,10 +1410,10 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast }) {
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             border: '1px solid #E2E8F0',
-            overflow: 'hidden',
+            overflowX: 'auto',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
           }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+            <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
               <thead>
                 <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0', color: '#475569', fontSize: 12, fontWeight: 700 }}>
                   <th style={{ padding: '12px 18px' }}>Exception ID</th>

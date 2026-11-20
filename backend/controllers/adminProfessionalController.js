@@ -536,3 +536,84 @@ export async function addProfessionalNote(req, res) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
+// 12. Settle Worker Payout (Bug 07)
+export async function settleProfessionalPayout(req, res) {
+  try {
+    const { id } = req.params;
+    const { amount, paymentMode = 'NEFT/IMPS', utrReference = '', notes = '' } = req.body;
+
+    const settleAmt = Number(amount);
+    if (!settleAmt || settleAmt <= 0) {
+      return res.status(400).json({ success: false, error: 'Settlement amount must be greater than zero.' });
+    }
+
+    const isMongoId = id?.match(/^[0-9a-fA-F]{24}$/);
+    const worker = await WorkerApplication.findOne(isMongoId ? { $or: [{ id }, { _id: id }, { applicationNumber: id }] } : { $or: [{ id }, { applicationNumber: id }] });
+
+    if (!worker) {
+      return res.status(404).json({ success: false, error: `Professional #${id} not found.` });
+    }
+
+    const currentBal = Number(worker.walletBalance || 0);
+    const newBal = Math.max(0, currentBal - settleAmt);
+    worker.walletBalance = newBal;
+
+    if (!Array.isArray(worker.settlements)) {
+      worker.settlements = [];
+    }
+
+    const settlementRecord = {
+      id: `SET-${Date.now()}`,
+      amount: settleAmt,
+      period: new Date().toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+      status: 'Processed',
+      batchId: `BATCH-${Date.now()}`,
+      paidAt: new Date(),
+      utrReference: utrReference || `UTR${Date.now()}`,
+      paymentMode,
+      notes: notes || 'Admin initiated direct payout settlement'
+    };
+
+    worker.settlements.unshift(settlementRecord);
+
+    worker.internalNotes = worker.internalNotes || [];
+    worker.internalNotes.push({
+      id: `note-${Date.now()}`,
+      note: `Admin settled ₹${settleAmt.toLocaleString('en-IN')} via ${paymentMode}. UTR: ${settlementRecord.utrReference}. Remaining balance: ₹${newBal.toLocaleString('en-IN')}`,
+      author: req.admin?.name || 'Finance Operations',
+      authorRole: req.admin?.role || 'Admin',
+      createdAt: new Date()
+    });
+
+    await worker.save();
+
+    // Audit Log
+    try {
+      const { AuditLog } = await import('../models/AuditLog.js');
+      await AuditLog.create({
+        action: 'PROFESSIONAL_PAYOUT_SETTLED',
+        performedBy: req.admin?.email || 'admin@forgeindia.in',
+        targetEntity: 'WorkerApplication',
+        targetId: worker.id || worker._id.toString(),
+        details: {
+          settledAmount: settleAmt,
+          previousBalance: currentBal,
+          newBalance: newBal,
+          utrReference: settlementRecord.utrReference,
+          paymentMode
+        }
+      });
+    } catch {}
+
+    return res.json({
+      success: true,
+      message: `Successfully settled ₹${settleAmt.toLocaleString('en-IN')} to ${worker.applicantName || 'Professional'}.`,
+      settlement: settlementRecord,
+      newWalletBalance: newBal,
+      professional: worker
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}

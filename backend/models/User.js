@@ -87,6 +87,21 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'Bandra West',
   },
+  dateOfBirth: {
+    type: String,
+    default: '',
+  },
+  avatar: {
+    type: String,
+    default: '',
+  },
+  bankDetails: {
+    accountHolderName: { type: String, default: '' },
+    accountNumber: { type: String, default: '' },
+    ifscCode: { type: String, default: '' },
+    bankName: { type: String, default: '' },
+    updatedAt: { type: Date, default: Date.now }
+  },
   suspendReason: {
     type: String,
     default: '',

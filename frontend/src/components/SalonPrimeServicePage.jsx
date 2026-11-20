@@ -28,7 +28,10 @@ export function SalonPrimeServicePage({
   onOpenCart,
   onOpenCheckout,
   showToast = () => {},
-  monsoonSurge = false
+  monsoonSurge = false,
+  user = null,
+  onOpenAuth,
+  onOpenProfile
 }) {
   const [activeCategoryTab, setActiveCategoryTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -965,7 +968,12 @@ export function SalonPrimeServicePage({
 
   function handleSaveCustomization() {
     setIsCustomizeModalOpen(false);
-    showToast(`✅ Customized "${customizingPackage?.title || 'Package'}": ${selectedWax} + ${selectedFacial}`);
+    if (customizingPackage) {
+      handleAddService({
+        ...customizingPackage,
+        selectedOption: `${selectedWax} + ${selectedFacial} + ${selectedManiPedi}`
+      });
+    }
   }
 
   function handleCategoryTileClick(catId) {
@@ -1131,19 +1139,32 @@ export function SalonPrimeServicePage({
               )}
             </button>
 
-            <div style={{
-              width: 38,
-              height: 38,
-              borderRadius: '50%',
-              background: '#F1F5F9',
-              border: '1px solid #E2E8F0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#475569'
-            }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (user && onOpenProfile) {
+                  onOpenProfile();
+                } else if (onOpenAuth) {
+                  onOpenAuth();
+                }
+              }}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: '50%',
+                background: user ? '#6E42E5' : '#F1F5F9',
+                border: '1px solid #E2E8F0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: user ? '#FFFFFF' : '#475569',
+                cursor: 'pointer',
+                transition: 'all 0.15s ease'
+              }}
+              title={user ? `Profile: ${user.name}` : 'Login / Register'}
+            >
               <User size={18} />
-            </div>
+            </button>
           </div>
         </div>
       </header>
@@ -1758,7 +1779,13 @@ export function SalonPrimeServicePage({
                                   {qty === 0 ? (
                                     <button
                                       type="button"
-                                      onClick={() => handleAddService(service)}
+                                      onClick={() => {
+                                        if (service.optionsCount && (service.title.includes('Mani-Pedi') || service.title.includes('Combo') || service.title.includes('Package') || service.isPackage)) {
+                                          handleOpenCustomize(service);
+                                        } else {
+                                          handleAddService(service);
+                                        }
+                                      }}
                                       style={{
                                         background: '#FFFFFF',
                                         border: '1.5px solid #CBD5E1',
@@ -1834,7 +1861,13 @@ export function SalonPrimeServicePage({
                                   {qty === 0 ? (
                                     <button
                                       type="button"
-                                      onClick={() => handleAddService(service)}
+                                      onClick={() => {
+                                        if (service.optionsCount && (service.title.includes('Mani-Pedi') || service.title.includes('Combo') || service.title.includes('Package') || service.isPackage)) {
+                                          handleOpenCustomize(service);
+                                        } else {
+                                          handleAddService(service);
+                                        }
+                                      }}
                                       style={{
                                         background: '#FFFFFF',
                                         border: '1.5px solid #6E42E5',
@@ -1982,46 +2015,6 @@ export function SalonPrimeServicePage({
           {/* ========================================================= */}
           <aside className="salon-sidebar-col" style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 16 }}>
             
-            {/* Promo Voucher Card */}
-            <div className="salon-promo-voucher-card" style={{
-              background: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: 14,
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 6,
-                  background: '#ECFDF5',
-                  color: '#059669',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 900,
-                  fontSize: 14
-                }}>
-                  %
-                </div>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0F172A' }}>
-                    Get 25% off upto 200
-                  </div>
-                  <div style={{ fontSize: 11, color: '#64748B' }}>
-                    For new salon users
-                  </div>
-                </div>
-              </div>
-              <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700 }}>
-                1/2
-              </span>
-            </div>
-
             {/* UC Promise Card with Iridescent Quality Assured Badge */}
             <div style={{
               background: '#FFFFFF',

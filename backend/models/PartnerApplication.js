@@ -76,6 +76,10 @@ const partnerApplicationSchema = new mongoose.Schema({
     trim: true,
     default: '',
   },
+  dateOfBirth: {
+    type: String,
+    default: '',
+  },
   password: {
     type: String,
     default: '',

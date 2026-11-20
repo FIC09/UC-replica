@@ -402,6 +402,7 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
                 src="/images/spotlight_massage.jpg" 
                 alt="Radiant glow skin therapy" 
                 className="uc-spotlight-bg-img"
+                onError={(e) => { e.currentTarget.src = '/images/beauty_potli_massage.jpg'; }}
               />
               <div className="uc-spotlight-content">
                 <div>
@@ -598,11 +599,12 @@ export function HeroSection({ activeNavTab = 'homes', onSelectCategory, onSelect
                   key={index}
                   className="uc-tile-item"
                   onClick={() => handleCategoryClick(item.id, item.title)}
+                  style={{ cursor: 'pointer' }}
                 >
                   {/* Clean rounded icon box */}
                   <div className="uc-tile-icon-box">
                     {item.badge === 'Sale' && (
-                      <span className="uc-tile-sale-badge">Sale</span>
+                      <span className="uc-tile-sale-badge" style={{ backgroundColor: '#DC2626' }}>Sale</span>
                     )}
                     <img
                       src={item.icon}

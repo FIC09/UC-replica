@@ -1127,9 +1127,9 @@ router.post('/:id/review', async (req, res) => {
     booking.rating = numRating;
     booking.review = commentText;
     booking.reviewedAt = new Date();
-    // Reviews require admin approval before being published to public landing page
-    booking.reviewIsPublished = false;
-    booking.reviewStatus = 'Pending';
+    // Verified customer reviews are auto-published immediately to ensure transparent ratings (Bug 08)
+    booking.reviewIsPublished = true;
+    booking.reviewStatus = 'Approved';
 
     if (customerName) {
       booking.userName = customerName;
@@ -1153,7 +1153,7 @@ router.post('/:id/review', async (req, res) => {
         booking.timeline.push({
           id: `tl-${Date.now()}`,
           status: 'Reviewed',
-          title: 'Customer Review Submitted (Pending Admin Approval)',
+          title: 'Customer Review Published',
           description: `Customer rated ${numRating}★: "${commentText.slice(0, 100)}${commentText.length > 100 ? '...' : ''}"`,
           actor: customerName || booking.customerName || booking.userName || 'Customer',
           actorRole: 'Customer',
@@ -1170,8 +1170,8 @@ router.post('/:id/review', async (req, res) => {
     plainBooking.rating = numRating;
     plainBooking.review = commentText;
     plainBooking.reviewedAt = booking.reviewedAt;
-    plainBooking.reviewIsPublished = false;
-    plainBooking.reviewStatus = 'Pending';
+    plainBooking.reviewIsPublished = true;
+    plainBooking.reviewStatus = 'Approved';
     if (customerName) {
       plainBooking.userName = customerName;
       plainBooking.customerName = customerName;

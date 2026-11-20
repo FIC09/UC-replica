@@ -27,6 +27,7 @@ export function Navbar({
   onOpenCart,
   onOpenAuth,
   user,
+  onOpenProfile,
   onOpenBookings,
   bookingsCount,
   onOpenAddresses,
@@ -514,6 +515,36 @@ export function Navbar({
                             </>
                           ) : (
                             <>
+                              {onOpenProfile && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setShowProfileMenu(false);
+                                    onOpenProfile();
+                                  }}
+                                  style={{
+                                    width: '100%',
+                                    padding: '7px 8px',
+                                    background: 'none',
+                                    color: '#111827',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    fontSize: '12.5px',
+                                    fontWeight: '600',
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 8
+                                  }}
+                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                >
+                                  <User size={14} color="#6E42E5" />
+                                  <span>My Profile</span>
+                                </button>
+                              )}
+
                               {onOpenBookings && (
                                 <button
                                   type="button"

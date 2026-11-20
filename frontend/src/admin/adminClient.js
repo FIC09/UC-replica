@@ -349,6 +349,10 @@ export const adminClient = {
     method: 'POST',
     body: JSON.stringify({ note })
   }),
+  settleProfessional: (id, data) => fetchWithFallback(`/professionals/${id}/settle`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
 
   // Real-Time Business Partners Operations
   getPartners: (params = {}) => {
@@ -389,6 +393,10 @@ export const adminClient = {
   addPartnerNote: (id, note) => fetchWithFallback(`/partners/${id}/notes`, {
     method: 'POST',
     body: JSON.stringify({ note })
+  }),
+  settlePartner: (id, data) => fetchWithFallback(`/partners/${id}/settle`, {
+    method: 'POST',
+    body: JSON.stringify(data)
   }),
 
   // Real-Time Service Catalogue Operations
@@ -443,6 +451,11 @@ export const adminClient = {
   },
 
   // Payments & Ledger
+  getCustomerPayments: (params = {}) => {
+    const q = new URLSearchParams(params).toString();
+    return fetchWithFallback(`/customer-payments?${q}`, {}, { success: true, count: 0, kpis: {}, payments: [] });
+  },
+
   getPayments: (params = {}) => {
     const q = new URLSearchParams(params).toString();
     return fetchWithFallback(`/payments?${q}`, {}, { success: true, transactions: [], payments: [] });

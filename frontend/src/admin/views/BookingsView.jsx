@@ -2149,7 +2149,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
           }}>
             {/* Drawer Header */}
             <div style={{
-              padding: '20px 24px',
+              padding: '16px 18px',
               borderBottom: '1px solid #E2E8F0',
               display: 'flex',
               alignItems: 'center',
@@ -2157,11 +2157,13 @@ export function BookingsView({ onShowToast, onNavigate }) {
               backgroundColor: '#FFFFFF',
               position: 'sticky',
               top: 0,
-              zIndex: 10
+              zIndex: 10,
+              flexWrap: 'wrap',
+              gap: 10
             }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', margin: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', margin: 0 }}>
                     {selectedBooking.id || selectedBooking.bookingReference}
                   </h3>
                   {renderStatusBadge(selectedBooking.status)}

@@ -486,3 +486,84 @@ export async function addPartnerNote(req, res) {
     return res.status(500).json({ success: false, error: err.message });
   }
 }
+
+// Settle Partner Payout (Bug 07)
+export async function settlePartnerPayout(req, res) {
+  try {
+    const { id } = req.params;
+    const { amount, paymentMode = 'NEFT/IMPS', utrReference = '', notes = '' } = req.body;
+
+    const settleAmt = Number(amount);
+    if (!settleAmt || settleAmt <= 0) {
+      return res.status(400).json({ success: false, error: 'Settlement amount must be greater than zero.' });
+    }
+
+    const isMongoId = id?.match(/^[0-9a-fA-F]{24}$/);
+    const partner = await PartnerApplication.findOne(isMongoId ? { $or: [{ id }, { _id: id }] } : { id });
+
+    if (!partner) {
+      return res.status(404).json({ success: false, error: `Partner #${id} not found.` });
+    }
+
+    const currentBal = Number(partner.walletBalance || 0);
+    const newBal = Math.max(0, currentBal - settleAmt);
+    partner.walletBalance = newBal;
+
+    if (!Array.isArray(partner.settlements)) {
+      partner.settlements = [];
+    }
+
+    const settlementRecord = {
+      id: `SET-${Date.now()}`,
+      amount: settleAmt,
+      period: new Date().toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }),
+      status: 'Processed',
+      batchId: `BATCH-${Date.now()}`,
+      paidAt: new Date(),
+      utrReference: utrReference || `UTR${Date.now()}`,
+      paymentMode,
+      notes: notes || 'Admin initiated agency payout settlement'
+    };
+
+    partner.settlements.unshift(settlementRecord);
+
+    partner.internalNotes = partner.internalNotes || [];
+    partner.internalNotes.push({
+      id: `note-${Date.now()}`,
+      note: `Admin settled ₹${settleAmt.toLocaleString('en-IN')} via ${paymentMode}. UTR: ${settlementRecord.utrReference}. Remaining balance: ₹${newBal.toLocaleString('en-IN')}`,
+      author: req.admin?.name || 'Finance Operations',
+      authorRole: req.admin?.role || 'Admin',
+      createdAt: new Date()
+    });
+
+    await partner.save();
+
+    // Audit Log
+    try {
+      const { AuditLog } = await import('../models/AuditLog.js');
+      await AuditLog.create({
+        action: 'PARTNER_PAYOUT_SETTLED',
+        performedBy: req.admin?.email || 'admin@forgeindia.in',
+        targetEntity: 'PartnerApplication',
+        targetId: partner.id || partner._id.toString(),
+        details: {
+          settledAmount: settleAmt,
+          previousBalance: currentBal,
+          newBalance: newBal,
+          utrReference: settlementRecord.utrReference,
+          paymentMode
+        }
+      });
+    } catch {}
+
+    return res.json({
+      success: true,
+      message: `Successfully settled ₹${settleAmt.toLocaleString('en-IN')} to ${partner.businessName || 'Business Partner'}.`,
+      settlement: settlementRecord,
+      newWalletBalance: newBal,
+      partner
+    });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: err.message });
+  }
+}

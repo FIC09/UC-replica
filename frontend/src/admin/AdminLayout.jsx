@@ -9,7 +9,8 @@ import {
   Building2, 
   Wrench, 
   Navigation,
-  CreditCard, 
+  CreditCard,
+  Receipt,
   Wallet, 
   RotateCcw, 
   HelpCircle, 
@@ -131,6 +132,12 @@ export function AdminLayout({
       title: 'SERVICES & CATALOGUE',
       items: [
         { path: '/admin/services', label: 'Services Catalogue', icon: Wrench }
+      ]
+    },
+    {
+      title: 'CUSTOMER PAYMENTS',
+      items: [
+        { path: '/admin/customer-payments', label: 'Customer Payments', icon: Receipt, badge: 'Real-Time' }
       ]
     },
     {

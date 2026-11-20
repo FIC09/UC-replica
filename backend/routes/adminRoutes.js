@@ -84,7 +84,8 @@ import {
   assignSkillsAndCoverage,
   scheduleTraining,
   requestInformationCorrection,
-  addProfessionalNote
+  addProfessionalNote,
+  settleProfessionalPayout
 } from '../controllers/adminProfessionalController.js';
 
 import {
@@ -96,7 +97,8 @@ import {
   restorePartner,
   verifyPartnerDocument,
   updateSettlementMode,
-  addPartnerNote
+  addPartnerNote,
+  settlePartnerPayout
 } from '../controllers/adminPartnerController.js';
 
 import {
@@ -118,6 +120,7 @@ import {
 
 import {
   getTransactions,
+  getCustomerPayments,
   getPayoutStatements,
   releasePayoutStatement,
   getRefundRequests,
@@ -232,6 +235,7 @@ router.put('/professionals/:id/skills-coverage', requireAdminAuth, requirePermis
 router.post('/professionals/:id/schedule-training', requireAdminAuth, requirePermission('training', 'create'), scheduleTraining);
 router.post('/professionals/:id/request-correction', requireAdminAuth, requirePermission('professionals', 'edit'), requestInformationCorrection);
 router.post('/professionals/:id/notes', requireAdminAuth, requirePermission('professionals', 'edit'), addProfessionalNote);
+router.post('/professionals/:id/settle', requireAdminAuth, requirePermission('payouts', 'payout'), settleProfessionalPayout);
 
 // ==========================================
 // 6. BUSINESS PARTNERS (Franchise Agencies)
@@ -245,6 +249,7 @@ router.post('/partners/:id/restore', requireAdminAuth, requirePermission('partne
 router.put('/partners/:id/verify-document', requireAdminAuth, requirePermission('partners', 'approve'), verifyPartnerDocument);
 router.put('/partners/:id/settlement-mode', requireAdminAuth, requirePermission('payouts', 'edit'), updateSettlementMode);
 router.post('/partners/:id/notes', requireAdminAuth, requirePermission('partners', 'edit'), addPartnerNote);
+router.post('/partners/:id/settle', requireAdminAuth, requirePermission('payouts', 'payout'), settlePartnerPayout);
 
 // ==========================================
 // 7. SERVICE CATALOGUE & SPECIFICATIONS
@@ -268,6 +273,7 @@ router.get('/locations/check-serviceability', checkServiceability);
 // ==========================================
 // 9. PAYMENTS & TRANSACTIONS (Integer Minor Units)
 // ==========================================
+router.get('/customer-payments', requireAdminAuth, requirePermission('payments', 'view'), getCustomerPayments);
 router.get('/payments', requireAdminAuth, requirePermission('payments', 'view'), getTransactions);
 router.get('/payments/transactions', requireAdminAuth, requirePermission('payments', 'view'), getTransactions);
 router.get('/payments/reconciliation', requireAdminAuth, requirePermission('payments', 'view'), getReconciliationExceptions);

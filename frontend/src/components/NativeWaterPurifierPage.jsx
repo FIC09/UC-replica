@@ -401,14 +401,34 @@ export function NativeWaterPurifierPage({
                         <span>{model.rating} ({model.reviews})</span>
                       </div>
 
-                      {/* Price row */}
+                      {/* Price row with strike-through MRP & discount badge (Bug 20) */}
                       <div style={{
-                        fontSize: 14.5,
-                        fontWeight: 800,
-                        color: '#0F172A',
-                        marginBottom: 12
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: 8,
+                        marginBottom: 12,
+                        flexWrap: 'wrap'
                       }}>
-                        Starts at ₹{model.price.toLocaleString('en-IN')}
+                        <span style={{ fontSize: 15.5, fontWeight: 800, color: '#0F172A' }}>
+                          ₹{model.price.toLocaleString('en-IN')}
+                        </span>
+                        {model.originalPrice && model.originalPrice > model.price && (
+                          <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>
+                            ₹{model.originalPrice.toLocaleString('en-IN')}
+                          </span>
+                        )}
+                        {model.originalPrice && model.originalPrice > model.price && (
+                          <span style={{
+                            fontSize: 11,
+                            fontWeight: 800,
+                            color: '#15803D',
+                            backgroundColor: '#DCFCE7',
+                            padding: '1px 6px',
+                            borderRadius: 4
+                          }}>
+                            {Math.round(((model.originalPrice - model.price) / model.originalPrice) * 100)}% OFF
+                          </span>
+                        )}
                       </div>
 
                       {/* View details link */}

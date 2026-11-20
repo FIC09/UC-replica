@@ -10,6 +10,7 @@ import { CustomersView } from './views/CustomersView';
 import { ProfessionalsView } from './views/ProfessionalsView';
 import { PartnersView } from './views/PartnersView';
 import { ServicesView } from './views/ServicesView';
+import { CustomerPaymentsView } from './views/CustomerPaymentsView';
 import { PaymentsView } from './views/PaymentsView';
 import { PayoutsView } from './views/PayoutsView';
 import { RefundsView } from './views/RefundsView';
@@ -287,8 +288,10 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
         return <PartnersView onShowToast={showToast} />;
       case '/admin/services':
         return <ServicesView onShowToast={showToast} />;
+      case '/admin/customer-payments':
+        return <CustomerPaymentsView onShowToast={showToast} onNavigate={handleNavigate} />;
       case '/admin/payments':
-        return <PaymentsView onShowToast={showToast} />;
+        return <PaymentsView onShowToast={showToast} onNavigate={handleNavigate} />;
       case '/admin/payouts':
         return <PayoutsView onShowToast={showToast} />;
       case '/admin/refunds':

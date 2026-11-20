@@ -55,6 +55,39 @@ export function PartnersView({ onShowToast, onNavigate }) {
   const [newCommissionRate, setNewCommissionRate] = useState('18%');
   const [newPartnerNote, setNewPartnerNote] = useState('');
 
+  // Partner Payout Settlement State (Bug 07)
+  const [showPayoutModal, setShowPayoutModal] = useState(false);
+  const [payoutAmount, setPayoutAmount] = useState(0);
+  const [payoutPaymentMode, setPayoutPaymentMode] = useState('NEFT');
+  const [payoutUtr, setPayoutUtr] = useState('');
+  const [payoutNotes, setPayoutNotes] = useState('Agency payroll and fleet payout');
+  const [isSettlingPayout, setIsSettlingPayout] = useState(false);
+
+  function handleSettlePartnerPayout(e) {
+    e.preventDefault();
+    if (!selectedPartner || Number(payoutAmount) <= 0) return;
+    setIsSettlingPayout(true);
+    adminClient.settlePartner(selectedPartner.id || selectedPartner._id, {
+      amount: Number(payoutAmount),
+      paymentMode: payoutPaymentMode,
+      utrReference: payoutUtr || `UTR-${Date.now().toString().slice(-8)}`,
+      notes: payoutNotes
+    })
+      .then(() => {
+        onShowToast && onShowToast(`✓ Agency payout of ₹${Number(payoutAmount).toLocaleString()} settled successfully`);
+        setShowPayoutModal(false);
+        fetchPartnersList();
+        setSelectedPartner(prev => ({
+          ...prev,
+          walletBalance: Math.max(0, (prev.walletBalance || 0) - Number(payoutAmount))
+        }));
+      })
+      .catch(err => {
+        onShowToast && onShowToast(`Settlement error: ${err.message}`);
+      })
+      .finally(() => setIsSettlingPayout(false));
+  }
+
   // New Partner Form State
   const initialNewPartner = {
     businessName: '',
@@ -1155,6 +1188,37 @@ export function PartnersView({ onShowToast, onNavigate }) {
                       </div>
                     </div>
                   </div>
+
+                  <div style={{ backgroundColor: '#F8FAFC', padding: '14px', borderRadius: 8, border: '1px solid #E2E8F0', marginTop: 12 }}>
+                    <div style={{ fontSize: 11, color: '#64748B' }}>Agency Wallet Balance (Unsettled)</div>
+                    <div style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
+                      ₹{(selectedPartner.walletBalance || 0).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: 11, color: '#64748B', marginBottom: 8 }}>Aggregated corporate disbursements</div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPayoutAmount(selectedPartner.walletBalance || 0);
+                        setPayoutUtr(`UTR-${Date.now().toString().slice(-8)}`);
+                        setShowPayoutModal(true);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: (selectedPartner.walletBalance || 0) > 0 ? '#059669' : '#64748B',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: 6,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: (selectedPartner.walletBalance || 0) > 0 ? 'pointer' : 'default',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 6
+                      }}
+                    >
+                      <span>⚡ Settle Partner Payout</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1571,6 +1635,130 @@ export function PartnersView({ onShowToast, onNavigate }) {
                 Confirm {nextStatusAction}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* ======================================================== */}
+      {/* SETTLE PARTNER PAYOUT MODAL (BUG 07)                      */}
+      {/* ======================================================== */}
+      {showPayoutModal && selectedPartner && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          zIndex: 1100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20
+        }}>
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 12,
+            width: '100%',
+            maxWidth: 480,
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', margin: '0 0 6px 0' }}>
+              ⚡ Settle Agency Partner Payout
+            </h3>
+            <p style={{ fontSize: 12, color: '#64748B', margin: '0 0 16px 0' }}>
+              Disburse aggregated technician fleet earnings to <strong>{selectedPartner.businessName}</strong> ({selectedPartner.id}). Settled funds will be deducted from partner wallet.
+            </p>
+
+            <form onSubmit={handleSettlePartnerPayout} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                  Disbursement Amount (₹):
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max={selectedPartner.walletBalance || 999999}
+                  value={payoutAmount}
+                  onChange={e => setPayoutAmount(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 14, fontWeight: 700, boxSizing: 'border-box' }}
+                />
+                <span style={{ fontSize: 11, color: '#64748B', marginTop: 2, display: 'block' }}>
+                  Available Agency Balance: ₹{(selectedPartner.walletBalance || 0).toLocaleString()}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                    Disbursement Mode:
+                  </label>
+                  <select
+                    value={payoutPaymentMode}
+                    onChange={e => setPayoutPaymentMode(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, backgroundColor: '#FFFFFF' }}
+                  >
+                    <option value="NEFT">NEFT Corporate Bank</option>
+                    <option value="IMPS">IMPS Immediate</option>
+                    <option value="RTGS">RTGS High-Value</option>
+                    <option value="UPI">UPI Corporate Virtual</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                    UTR / Bank Reference:
+                  </label>
+                  <input
+                    type="text"
+                    value={payoutUtr}
+                    onChange={e => setPayoutUtr(e.target.value)}
+                    required
+                    placeholder="e.g. UTR-98214102"
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                  Settlement Audit Note:
+                </label>
+                <input
+                  type="text"
+                  value={payoutNotes}
+                  onChange={e => setPayoutNotes(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPayoutModal(false)}
+                  style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSettlingPayout || Number(payoutAmount) <= 0}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: 6,
+                    border: 'none',
+                    backgroundColor: isSettlingPayout ? '#94A3B8' : '#059669',
+                    color: '#FFFFFF',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: isSettlingPayout ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {isSettlingPayout ? 'Processing...' : 'Confirm & Release Agency Payout'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

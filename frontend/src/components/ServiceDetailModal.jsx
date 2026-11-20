@@ -90,6 +90,18 @@ export function ServiceDetailModal({
                     ₹{service.originalPrice}
                   </span>
                 )}
+                {service.originalPrice && service.originalPrice > service.price && (
+                  <span style={{
+                    fontSize: 11,
+                    fontWeight: 800,
+                    color: '#15803D',
+                    backgroundColor: '#DCFCE7',
+                    padding: '2px 6px',
+                    borderRadius: 4
+                  }}>
+                    {Math.round(((service.originalPrice - service.price) / service.originalPrice) * 100)}% OFF
+                  </span>
+                )}
               </div>
               <span style={{ fontSize: 12, color: '#059669', fontWeight: 700 }}>
                 Inclusive of all taxes & single-use kit

@@ -106,19 +106,6 @@ export function Footer({
                   </a>
                 </li>
                 <li>
-                  <a 
-                    href="#categories" 
-                    onClick={handleScrollToCategories}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
-                    title="Browse verified service categories available near you"
-                  >
-                    <span>Categories near you</span>
-                    <span style={{ fontSize: 11, background: '#E0E7FF', color: '#4338CA', padding: '1px 6px', borderRadius: 10, fontWeight: 700 }}>
-                      {selectedCity}
-                    </span>
-                  </a>
-                </li>
-                <li>
                   <a href="#contact" onClick={(e) => { e.preventDefault(); setActiveModal('contact'); }}>
                     Contact us
                   </a>

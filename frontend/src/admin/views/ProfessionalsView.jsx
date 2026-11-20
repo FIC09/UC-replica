@@ -94,6 +94,45 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
 
   const [newProNote, setNewProNote] = useState('');
 
+  // Settlement Modal State (Bug 07)
+  const [showSettlementModal, setShowSettlementModal] = useState(false);
+  const [settlementAmount, setSettlementAmount] = useState(0);
+  const [settlementPaymentMode, setSettlementPaymentMode] = useState('NEFT');
+  const [settlementUtr, setSettlementUtr] = useState('');
+  const [settlementNotes, setSettlementNotes] = useState('Professional wallet payout');
+  const [isSettling, setIsSettling] = useState(false);
+
+  function handleSettleProfessional(e) {
+    e.preventDefault();
+    if (!selectedPro || Number(settlementAmount) <= 0) return;
+    setIsSettling(true);
+    adminClient.settleProfessional(selectedPro.id || selectedPro._id, {
+      amount: Number(settlementAmount),
+      paymentMode: settlementPaymentMode,
+      utrReference: settlementUtr || `UTR-${Date.now().toString().slice(-8)}`,
+      notes: settlementNotes
+    })
+      .then(() => {
+        onShowToast && onShowToast(`✓ Payout of ₹${Number(settlementAmount).toLocaleString()} settled successfully`);
+        setShowSettlementModal(false);
+        fetchProfessionalsList();
+        if (proDetail) {
+          setProDetail(prev => ({
+            ...prev,
+            walletBalance: Math.max(0, (prev.walletBalance || 0) - Number(settlementAmount))
+          }));
+        }
+        setSelectedPro(prev => ({
+          ...prev,
+          walletBalance: Math.max(0, (prev.walletBalance || 0) - Number(settlementAmount))
+        }));
+      })
+      .catch(err => {
+        onShowToast && onShowToast(`Settlement error: ${err.message}`);
+      })
+      .finally(() => setIsSettling(false));
+  }
+
   // Fetch Professionals List
   const fetchProfessionalsList = () => {
     setLoading(true);
@@ -1618,6 +1657,30 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                         ₹{(selectedPro.walletBalance || 0).toLocaleString()}
                       </div>
                       <div style={{ fontSize: 11, color: '#64748B' }}>Direct Bank / UPI Settlement</div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSettlementAmount(selectedPro.walletBalance || 0);
+                          setSettlementUtr(`UTR-${Date.now().toString().slice(-8)}`);
+                          setShowSettlementModal(true);
+                        }}
+                        style={{
+                          marginTop: 8,
+                          padding: '6px 12px',
+                          backgroundColor: (selectedPro.walletBalance || 0) > 0 ? '#059669' : '#64748B',
+                          color: '#FFFFFF',
+                          border: 'none',
+                          borderRadius: 6,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: (selectedPro.walletBalance || 0) > 0 ? 'pointer' : 'default',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 6
+                        }}
+                      >
+                        <span>⚡ Settle Payout</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -2354,6 +2417,130 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                   style={{ padding: '9px 20px', borderRadius: 8, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                 >
                   Register Professional
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* ======================================================== */}
+      {/* SETTLE PAYOUT MODAL (BUG 07)                              */}
+      {/* ======================================================== */}
+      {showSettlementModal && selectedPro && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.5)',
+          zIndex: 1100,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20
+        }}>
+          <div style={{
+            backgroundColor: '#FFFFFF',
+            borderRadius: 12,
+            width: '100%',
+            maxWidth: 480,
+            padding: '24px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+          }}>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0F172A', margin: '0 0 6px 0' }}>
+              ⚡ Settle Professional Payout
+            </h3>
+            <p style={{ fontSize: 12, color: '#64748B', margin: '0 0 16px 0' }}>
+              Process payout for <strong>{selectedPro.applicantName || selectedPro.name}</strong> ({selectedPro.id}). Settled funds will be deducted from wallet balance.
+            </p>
+
+            <form onSubmit={handleSettleProfessional} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                  Disbursement Amount (₹):
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max={selectedPro.walletBalance || 999999}
+                  value={settlementAmount}
+                  onChange={e => setSettlementAmount(e.target.value)}
+                  required
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 14, fontWeight: 700, boxSizing: 'border-box' }}
+                />
+                <span style={{ fontSize: 11, color: '#64748B', marginTop: 2, display: 'block' }}>
+                  Available Wallet Balance: ₹{(selectedPro.walletBalance || 0).toLocaleString()}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                    Disbursement Mode:
+                  </label>
+                  <select
+                    value={settlementPaymentMode}
+                    onChange={e => setSettlementPaymentMode(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, backgroundColor: '#FFFFFF' }}
+                  >
+                    <option value="NEFT">NEFT Direct Bank</option>
+                    <option value="IMPS">IMPS Immediate</option>
+                    <option value="RTGS">RTGS High-Value</option>
+                    <option value="UPI">UPI Instant Pay</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                    UTR / Bank Reference:
+                  </label>
+                  <input
+                    type="text"
+                    value={settlementUtr}
+                    onChange={e => setSettlementUtr(e.target.value)}
+                    required
+                    placeholder="e.g. UTR-82914710"
+                    style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                  Settlement Audit Note:
+                </label>
+                <input
+                  type="text"
+                  value={settlementNotes}
+                  onChange={e => setSettlementNotes(e.target.value)}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 14 }}>
+                <button
+                  type="button"
+                  onClick={() => setShowSettlementModal(false)}
+                  style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #CBD5E1', backgroundColor: '#FFFFFF', color: '#475569', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSettling || Number(settlementAmount) <= 0}
+                  style={{
+                    padding: '8px 18px',
+                    borderRadius: 6,
+                    border: 'none',
+                    backgroundColor: isSettling ? '#94A3B8' : '#059669',
+                    color: '#FFFFFF',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: isSettling ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {isSettling ? 'Processing...' : 'Confirm & Release Payout'}
                 </button>
               </div>
             </form>

@@ -401,6 +401,22 @@ export default function LoginAuthModal({
                       👷 Working Partner
                     </Text>
                   </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[
+                      styles.roleChip,
+                      selectedRole === 'admin' && styles.roleChipActive
+                    ]}
+                    onPress={() => setSelectedRole('admin')}
+                  >
+                    <Text
+                      style={[
+                        styles.roleChipText,
+                        selectedRole === 'admin' && styles.roleChipTextActive
+                      ]}
+                    >
+                      🛡️ Admin
+                    </Text>
+                  </TouchableOpacity>
                 </View>
 
                 {/* Email or Phone */}

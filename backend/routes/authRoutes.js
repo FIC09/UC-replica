@@ -976,33 +976,92 @@ router.get('/me', async (req, res) => {
   }
 });
 
-// 6. Update profile / UC Plus status
+// 6. Update profile / UC Plus status / Bank Details
 router.put('/profile', async (req, res) => {
   try {
-    const { phone, name, email, hasUCPlus, id } = req.body;
+    const { phone, name, email, hasUCPlus, id, city, locality, dateOfBirth, bankDetails } = req.body;
     const filter = {};
-    if (email && email.trim()) {
+    if (id) {
+      filter._id = id;
+    } else if (email && email.trim()) {
       filter.email = email.trim().toLowerCase();
     } else if (phone && phone.trim()) {
       filter.phone = phone.trim();
-    } else if (id) {
-      filter._id = id;
     } else {
-      return res.status(400).json({ success: false, message: 'Email or phone number is required' });
+      return res.status(400).json({ success: false, message: 'User identifier (id, email or phone) is required' });
+    }
+
+    const updateFields = {
+      ...(name && { name: name.trim() }),
+      ...(email !== undefined && { email: email.trim() }),
+      ...(phone !== undefined && { phone: phone.trim() }),
+      ...(city && { city: city.trim() }),
+      ...(locality && { locality: locality.trim() }),
+      ...(dateOfBirth !== undefined && { dateOfBirth: dateOfBirth.trim() }),
+      ...(hasUCPlus !== undefined && { hasUCPlus }),
+    };
+
+    if (bankDetails && typeof bankDetails === 'object') {
+      updateFields.bankDetails = {
+        accountHolderName: bankDetails.accountHolderName ? bankDetails.accountHolderName.trim() : '',
+        accountNumber: bankDetails.accountNumber ? bankDetails.accountNumber.trim() : '',
+        ifscCode: bankDetails.ifscCode ? bankDetails.ifscCode.trim().toUpperCase() : '',
+        bankName: bankDetails.bankName ? bankDetails.bankName.trim() : '',
+        updatedAt: new Date()
+      };
     }
 
     const user = await User.findOneAndUpdate(
       filter,
-      { 
-        ...(name && { name: name.trim() }),
-        ...(email !== undefined && { email: email.trim() }),
-        ...(phone !== undefined && { phone: phone.trim() }),
-        ...(hasUCPlus !== undefined && { hasUCPlus }),
-      },
-      { new: true, upsert: true }
+      updateFields,
+      { new: true, upsert: false }
     );
 
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User account not found' });
+    }
+
     res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// 7. Change Password
+router.post('/change-password', async (req, res) => {
+  try {
+    const { id, email, phone, currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ success: false, message: 'Both current password and new password are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, message: 'New password must be at least 6 characters long' });
+    }
+
+    const filter = {};
+    if (id) filter._id = id;
+    else if (email) filter.email = email.trim().toLowerCase();
+    else if (phone) filter.phone = phone.trim();
+    else return res.status(400).json({ success: false, message: 'User identifier is required' });
+
+    const user = await User.findOne(filter);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // If user has a password set, verify current password
+    if (user.password) {
+      const isMatch = await bcrypt.compare(currentPassword, user.password).catch(() => false);
+      if (!isMatch && currentPassword !== user.password) {
+        return res.status(400).json({ success: false, message: 'Current password does not match' });
+      }
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.json({ success: true, message: 'Password updated successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

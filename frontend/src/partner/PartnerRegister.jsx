@@ -7,7 +7,9 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
   const [formData, setFormData] = useState({
     businessName: '',
     ownerName: '',
+    dateOfBirth: '',
     email: '',
+    password: '',
     phone: '',
     businessType: 'LLP',
     category: 'ac-appliances',
@@ -37,8 +39,25 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
       setError('Authorized Owner Name is required.');
       return false;
     }
+    if (!formData.dateOfBirth) {
+      setError('Date of Birth of authorized representative is required.');
+      return false;
+    }
+    const dob = new Date(formData.dateOfBirth);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) age--;
+    if (age < 18) {
+      setError('Authorized representative must be at least 18 years of age.');
+      return false;
+    }
     if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       setError('Please provide a valid corporate email address.');
+      return false;
+    }
+    if (!formData.password || formData.password.length < 6) {
+      setError('Please create a portal login password with at least 6 characters.');
       return false;
     }
     if (cleanPhone.length !== 10) {
@@ -107,16 +126,15 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 24,
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif'
+      padding: 16
     }}>
       <div style={{
-        background: '#ffffff',
+        background: '#fff',
         borderRadius: 16,
+        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01)',
+        border: '1px solid #e2e8f0',
         width: '100%',
         maxWidth: 640,
-        boxShadow: '0 10px 30px rgba(0,0,0,0.06)',
-        border: '1px solid #e2e8f0',
         overflow: 'hidden'
       }}>
         {/* Banner */}
@@ -159,7 +177,7 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
             {step === 1 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
-                  1. Company & Operating Details
+                  1. Company &amp; Operating Details
                 </h3>
 
                 <div>
@@ -204,6 +222,35 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
                       <option value="Partnership Firm">Partnership Firm</option>
                       <option value="Proprietorship">Sole Proprietorship</option>
                     </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                      Authorized Representative DOB *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                      value={formData.dateOfBirth}
+                      onChange={e => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5 }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#334155', display: 'block', marginBottom: 4 }}>
+                      Create Portal Password *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Min. 6 characters"
+                      value={formData.password}
+                      onChange={e => setFormData({ ...formData, password: e.target.value })}
+                      style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5 }}
+                    />
                   </div>
                 </div>
 
@@ -285,8 +332,8 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
                       })}
                       style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13.5 }}
                     >
-                      <option value="ac-appliances">AC & Home Appliances</option>
-                      <option value="cleaning-pest">Home Cleaning & Pest Control</option>
+                      <option value="ac-appliances">AC &amp; Home Appliances</option>
+                      <option value="cleaning-pest">Home Cleaning &amp; Pest Control</option>
                     </select>
                   </div>
                 </div>
@@ -308,14 +355,14 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
                       cursor: 'pointer'
                     }}
                   >
-                    Proceed to Tax & Banking <ArrowRight size={16} />
+                    Proceed to Tax &amp; Banking <ArrowRight size={16} />
                   </button>
                 </div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>
-                  2. Statutory Tax & Corporate Settlement Account
+                  2. Statutory Tax &amp; Corporate Settlement Account
                 </h3>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>

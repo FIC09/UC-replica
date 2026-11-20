@@ -517,42 +517,20 @@ export function MyBookingsModal({
                             <AlertTriangle size={13} />
                             <span>Cancel</span>
                           </button>
-
-                          {/* DELETE: Permanently Delete Booking */}
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (window.confirm(`Permanently delete booking #${b.id || b.bookingReference}? This will remove it from the database.`)) {
-                                onDeleteBookingHistory(b.id || b.bookingReference);
-                              }
-                            }}
-                            style={{
-                              padding: '8px 12px',
-                              borderRadius: 8,
-                              background: '#FEE2E2',
-                              color: '#DC2626',
-                              border: '1px solid #FECACA',
-                              fontSize: 12,
-                              fontWeight: 700,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              cursor: 'pointer'
-                            }}
-                            title="Permanently remove booking from database"
-                          >
-                            <Trash2 size={13} />
-                            <span>Delete</span>
-                          </button>
                         </>
                       )}
 
-                      {/* If Cancelled or Completed: Allow permanently deleting history record */}
+                      {/* If Cancelled or Completed: Permanent history record */}
                       {!isActive && (
                         <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
                           <span style={{ fontSize: 12, color: isCancelled ? '#DC2626' : '#059669', fontWeight: 600 }}>
                             {isCancelled ? 'Booking was cancelled' : '✓ Service completed'}
                           </span>
+                          <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 500 }}>
+                            Booking #{b.id || b.bookingReference} (Permanent Record)
+                          </span>
+                        </div>
+                      )}
 
                           {!isCancelled && (
                             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -603,38 +581,8 @@ export function MyBookingsModal({
                               </button>
                             </div>
                           )}
-
-                          {isCancelled && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (window.confirm('Delete this record from your booking history?')) {
-                                  onDeleteBookingHistory(b.id);
-                                }
-                              }}
-                              style={{
-                                padding: '5px 10px',
-                                borderRadius: 6,
-                                background: '#FEE2E2',
-                                color: '#DC2626',
-                                fontSize: 11,
-                                fontWeight: 700,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                cursor: 'pointer',
-                                border: 'none'
-                              }}
-                              title="Remove cancelled booking from history"
-                            >
-                              <Trash2 size={12} />
-                              <span>Delete</span>
-                            </button>
-                          )}
                         </div>
-                      )}
                     </div>
-                  </div>
                 );
               })}
             </div>
@@ -870,31 +818,9 @@ export function MyBookingsModal({
                         cursor: 'pointer'
                       }}
                     >
-                      Mark as Cancelled
+                      Confirm Cancellation
                     </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (cancellingBooking) {
-                        onDeleteBookingHistory(cancellingBooking.id || cancellingBooking.bookingReference);
-                        setCancellingBooking(null);
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      background: '#FEF2F2',
-                      color: '#B91C1C',
-                      border: '1px solid #FECACA',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    🗑️ Delete Permanently from Database
-                  </button>
                 </div>
               </div>
             </div>

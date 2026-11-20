@@ -219,14 +219,9 @@ export function OperationsView({ onNavigate, onShowToast }) {
       </div>
 
       {/* Main Body Content */}
-      <div style={{ padding: '24px 32px' }}>
+      <div style={{ padding: '24px 32px' }} className="admin-page-body">
         {/* Metric Cards Banner */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-        gap: 16,
-        marginBottom: 24
-      }}>
+      <div className="admin-kpi-grid" style={{ marginBottom: 24 }}>
         <div style={{
           background: '#FFFFFF',
           borderRadius: 12,
@@ -309,7 +304,7 @@ export function OperationsView({ onNavigate, onShowToast }) {
       </div>
 
       {/* Main Grid: Interactive Map & Live Worker Dispatch List */}
-      <div style={{
+      <div className="ops-live-grid" style={{
         display: 'grid',
         gridTemplateColumns: 'minmax(320px, 420px) 1fr',
         gap: 20,
@@ -329,14 +324,16 @@ export function OperationsView({ onNavigate, onShowToast }) {
             borderBottom: '1px solid #E2E8F0',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between'
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 10
           }}>
             <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>
               Active Professionals ({filteredSessions.length})
             </span>
 
             {/* Filter buttons */}
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               {['all', 'assigned', 'en_route', 'arrived', 'in_progress'].map(f => (
                 <button
                   key={f}

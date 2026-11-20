@@ -26,6 +26,7 @@ import BookingCheckoutFlowModal from './src/components/BookingCheckoutFlowModal'
 import LiveOrderChatModal from './src/components/LiveOrderChatModal';
 import CartViewModal from './src/components/CartViewModal';
 import LiveVoIPCallModal from './src/components/LiveVoIPCallModal';
+import CustomerPaymentsAdminModal from './src/components/CustomerPaymentsAdminModal';
 
 const { width } = Dimensions.get('window');
 
@@ -2468,6 +2469,10 @@ export default function App() {
         userName: userProfile.name
       }));
     }
+    if (userProfile?.role === 'admin') {
+      setActiveTab('profile');
+      setShowCustomerPaymentsAdminModal(true);
+    }
     syncActiveBooking(userProfile);
   };
 
@@ -2580,6 +2585,7 @@ export default function App() {
 
   // Live Tracking & Reviews State (syncs customer and partner views)
   const [showTrackingModal, setShowTrackingModal] = useState(false);
+  const [showCustomerPaymentsAdminModal, setShowCustomerPaymentsAdminModal] = useState(false);
   const [showCustomerChatModal, setShowCustomerChatModal] = useState(false);
   const [partnerReviews, setPartnerReviews] = useState([]);
   const [userBookings, setUserBookings] = useState([]);
@@ -3945,6 +3951,31 @@ export default function App() {
             <View style={{ flex: 1 }}>
               <Text style={styles.profileMenuTitle}>Payment Methods & Wallet</Text>
               <Text style={styles.profileMenuSub}>Saved UPI, credit/debit cards & refunds</Text>
+            </View>
+            <Text style={styles.profileMenuChevron}>›</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Admin & Business Operations Section */}
+        <View style={styles.profileMenuGroup}>
+          <Text style={styles.profileMenuSectionTitle}>Admin & Business Operations</Text>
+
+          <TouchableOpacity
+            style={styles.profileMenuItem}
+            activeOpacity={0.7}
+            onPress={() => setShowCustomerPaymentsAdminModal(true)}
+          >
+            <View style={[styles.profileMenuIconBox, { backgroundColor: '#EEF2FF' }]}>
+              <Text style={styles.profileMenuIcon}>📊</Text>
+            </View>
+            <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={styles.profileMenuTitle}>Customer Payments</Text>
+                <View style={{ backgroundColor: '#DCFCE7', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: '#166534' }}>REAL-TIME</Text>
+                </View>
+              </View>
+              <Text style={styles.profileMenuSub}>Admin live billing, gateway records & price calculations</Text>
             </View>
             <Text style={styles.profileMenuChevron}>›</Text>
           </TouchableOpacity>
@@ -8154,6 +8185,12 @@ export default function App() {
         onUpdateStage={(newStage) => {
           setActiveCustomerBooking((prev) => ({ ...prev, stage: newStage }));
         }}
+      />
+
+      {/* 23A. ADMIN REAL-TIME CUSTOMER PAYMENTS LEDGER & BILLING MODAL */}
+      <CustomerPaymentsAdminModal
+        visible={showCustomerPaymentsAdminModal}
+        onRequestClose={() => setShowCustomerPaymentsAdminModal(false)}
       />
 
       {/* 23B. REAL-TIME CUSTOMER DIRECT LIVE CHAT MODAL */}

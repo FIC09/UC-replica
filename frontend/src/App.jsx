@@ -36,6 +36,9 @@ import {
   AuthModal
 } from './components/AuthModal';
 import {
+  MyProfileModal
+} from './components/MyProfileModal';
+import {
   MyBookingsModal
 } from './components/MyBookingsModal';
 import {
@@ -1413,6 +1416,7 @@ function App() {
     setIsAuthModalOpen(true);
   }
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [isBookingsModalOpen, setIsBookingsModalOpen] = useState(false);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
@@ -2329,6 +2333,9 @@ function App() {
           onOpenCheckout={handleProceedToCheckout}
           showToast={showToast}
           monsoonSurge={monsoonSurge}
+          user={user}
+          onOpenAuth={() => handleOpenAuth('login')}
+          onOpenProfile={() => setIsProfileModalOpen(true)}
         />
       ) : currentView === 'hair-studio-page' ? (
         <HairStudioWomenServicePage
@@ -2442,6 +2449,7 @@ function App() {
         onOpenCart={handleOpenCartView}
         onOpenAuth={() => handleOpenAuth('login')}
         user={user}
+        onOpenProfile={() => setIsProfileModalOpen(true)}
         onOpenBookings={() => setIsBookingsModalOpen(true)}
         bookingsCount={(user ? customerBookings : bookings).filter(b => b.status !== 'Cancelled').length}
         activeBooking={latestLiveBooking}
@@ -2780,12 +2788,6 @@ function App() {
             {/* The Urban Company Promise */}
             <UCPromiseSection />
 
-            {/* Dual Onboarding Opportunities: Worker & Partner */}
-            <OnboardingShowcaseSection
-              onOpenWorkerOnboarding={() => setIsWorkerOnboardingOpen(true)}
-              onOpenPartnerOnboarding={() => setIsPartnerOnboardingOpen(true)}
-            />
-
             {/* Verified Customer Reviews */}
             <CustomerReviewsSection />
 
@@ -3003,6 +3005,20 @@ function App() {
           </button>
         </div>
       )}
+
+      {/* Dedicated Customer My Profile & Account Management Modal (Bug 10, Bug 11, Bug 12) */}
+      <MyProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        currentUser={user}
+        onUpdateUser={(updated) => {
+          setUser(updated);
+          try { localStorage.setItem('uc_user', JSON.stringify(updated)); } catch {}
+        }}
+        onOpenBookings={() => setIsBookingsModalOpen(true)}
+        onOpenAddresses={() => setIsAddressModalOpen(true)}
+        showToast={showToast}
+      />
 
       {/* 6. My Bookings Modal */}
       <MyBookingsModal

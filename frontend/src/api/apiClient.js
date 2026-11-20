@@ -76,6 +76,7 @@ export const authApi = {
   },
   getMe: (phone) => request(`/auth/me${phone ? `?phone=${encodeURIComponent(phone)}` : ''}`),
   updateProfile: (profileData) => request('/auth/profile', { method: 'PUT', body: profileData }),
+  changePassword: (data) => request('/auth/change-password', { method: 'POST', body: data }),
 };
 
 // 2. Services Catalogue API

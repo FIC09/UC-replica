@@ -458,8 +458,8 @@ export function CustomersView({ onShowToast, onNavigate }) {
           border: '1px solid #CBD5E1',
           borderRadius: 8,
           padding: '8px 14px',
-          flex: '1 1 280px',
-          minWidth: 260
+          flex: '1 1 220px',
+          minWidth: 180
         }}>
           <Search size={16} color="#64748B" />
           <input

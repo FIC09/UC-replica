@@ -350,7 +350,8 @@ export function ReviewsView({ onShowToast }) {
             border: '1px solid #D1D5DB',
             borderRadius: 8,
             padding: '8px 12px',
-            width: 280
+            flex: '1 1 240px',
+            maxWidth: '100%'
           }}>
             <Search size={16} color="#64748B" />
             <input

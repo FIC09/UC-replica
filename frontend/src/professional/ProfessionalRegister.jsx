@@ -7,6 +7,8 @@ const DRAFT_STORAGE_KEY = 'uc_pro_application_draft';
 const INITIAL_FORM = {
   // Step 1: Personal & Contact
   applicantName: '',
+  dateOfBirth: '',
+  password: '',
   phone: '',
   email: '',
   avatar: 'PRO',
@@ -107,6 +109,19 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
         showToast('Please enter your full legal name.');
         return false;
       }
+      if (!formData.dateOfBirth) {
+        showToast('Please enter your Date of Birth.');
+        return false;
+      }
+      const dob = new Date(formData.dateOfBirth);
+      const today = new Date();
+      let age = today.getFullYear() - dob.getFullYear();
+      const m = today.getMonth() - dob.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+      if (age < 18) {
+        showToast('Applicant must be at least 18 years of age to register.');
+        return false;
+      }
       const rawDigits = (formData.phone || '').replace(/\D/g, '');
       if (!/^[6-9]\d{9}$/.test(rawDigits)) {
         showToast('Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.');
@@ -118,6 +133,10 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
           showToast('Please enter a valid email address.');
           return false;
         }
+      }
+      if (!formData.password || formData.password.length < 6) {
+        showToast('Please create a dashboard login password with at least 6 characters.');
+        return false;
       }
       return true;
     }
@@ -516,6 +535,48 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
                   value={formData.applicantName}
                   onChange={(e) => updateField('applicantName', e.target.value)}
                   placeholder="e.g. Vikram Ramesh Salvi"
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    borderRadius: 10,
+                    border: '1px solid #cbd5e1',
+                    fontSize: 14,
+                    boxSizing: 'border-box'
+                  }}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>
+                  Date of Birth (Min. 18 Years) *
+                </label>
+                <input
+                  type="date"
+                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                  value={formData.dateOfBirth}
+                  onChange={(e) => updateField('dateOfBirth', e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px',
+                    borderRadius: 10,
+                    border: '1px solid #cbd5e1',
+                    fontSize: 14,
+                    boxSizing: 'border-box'
+                  }}
+                  required
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>
+                  Create Password (Min. 6 characters) *
+                </label>
+                <input
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => updateField('password', e.target.value)}
+                  placeholder="Create secure portal password"
                   style={{
                     width: '100%',
                     padding: '12px 14px',

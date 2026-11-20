@@ -1,24 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   CheckCircle2, 
   ArrowRight, 
   ArrowLeft, 
   ShieldCheck, 
-  DollarSign, 
-  Briefcase, 
-  Award, 
-  Sparkles, 
   Building2, 
-  MapPin, 
-  Check, 
-  FileText, 
   Users, 
   AlertCircle,
   Mail,
   Lock,
   Eye,
-  EyeOff
+  EyeOff,
+  Briefcase,
+  CreditCard,
+  Calendar,
+  Phone,
+  UploadCloud,
+  FileText
 } from 'lucide-react';
 import { CATEGORIES } from '../data/servicesData';
 import { partnerApi, authApi } from '../api/apiClient';
@@ -29,23 +28,24 @@ export function PartnerOnboardingModal({
   onPartnerApplied,
   selectedCity = 'Mumbai'
 }) {
-  const [step, setStep] = useState(1); // 1: Business Details, 2: Fleet & Documentation, 3: Success
+  const [step, setStep] = useState(1); // 1: Business & Owner, 2: Fleet & Verification, 3: Payout Bank Account, 4: Success
 
-  // Form State
+  // STEP 1: Business & Authorized Owner Details
   const [businessName, setBusinessName] = useState('');
+  const [businessType, setBusinessType] = useState('Partnership / LLP');
   const [ownerName, setOwnerName] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [businessType, setBusinessType] = useState('Partnership / LLP');
-  const [selectedCategory, setSelectedCategory] = useState('ac-appliances');
-  const [fleetSize, setFleetSize] = useState('6-15 Technicians');
-  const [coverageLocalities, setCoverageLocalities] = useState('Bandra, Andheri, Powai');
-  const [gstNumber, setGstNumber] = useState('');
-  const [monthlyCapacity, setMonthlyCapacity] = useState('150-300 jobs/month');
-  const [submittedPartnerApp, setSubmittedPartnerApp] = useState(null);
-  const [error, setError] = useState('');
+  const [registeredAddress, setRegisteredAddress] = useState('');
+  const [city, setCity] = useState(selectedCity || 'Mumbai');
+  const [stateName, setStateName] = useState('Maharashtra');
+  const [pinCode, setPinCode] = useState('');
+  const [contactPersonName, setContactPersonName] = useState('');
+  const [contactPersonPhone, setContactPersonPhone] = useState('');
 
   // Email Verification State
   const [isEmailVerified, setIsEmailVerified] = useState(false);
@@ -54,6 +54,26 @@ export function PartnerOnboardingModal({
   const [isSendingOtp, setIsSendingOtp] = useState(false);
   const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  // STEP 2: Fleet & Operations State
+  const [selectedCategory, setSelectedCategory] = useState('ac-appliances');
+  const [fleetSize, setFleetSize] = useState('6-15 Technicians');
+  const [coverageLocalities, setCoverageLocalities] = useState('Bandra, Andheri, Powai');
+  const [gstNumber, setGstNumber] = useState('');
+  const [panNumber, setPanNumber] = useState('');
+  const [monthlyCapacity, setMonthlyCapacity] = useState('150-300 jobs/month');
+  const [attachedCertName, setAttachedCertName] = useState('');
+
+  // STEP 3: Settlement Bank Account State (Bug 06)
+  const [accountHolderName, setAccountHolderName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [confirmAccountNumber, setConfirmAccountNumber] = useState('');
+  const [ifscCode, setIfscCode] = useState('');
+  const [bankName, setBankName] = useState('HDFC Bank Ltd');
+  const [accountType, setAccountType] = useState('Current Corporate Account');
+
+  const [submittedPartnerApp, setSubmittedPartnerApp] = useState(null);
+  const [error, setError] = useState('');
 
   // Countdown timer for OTP resend cooldown
   useEffect(() => {
@@ -90,7 +110,7 @@ export function PartnerOnboardingModal({
         setResendCooldown(30);
         setOtpCode('');
       } else {
-        setError(res?.message || 'Failed to send verification code to your email. Please check your email configuration.');
+        setError(res?.message || 'Failed to dispatch verification code. Please check your network.');
       }
     } catch (err) {
       setError(err.message || 'Error communicating with verification service.');
@@ -127,61 +147,161 @@ export function PartnerOnboardingModal({
     }
   }
 
-  function handleNext(e) {
+  // Validate Step 1 (Business & Owner)
+  function handleNextStep1(e) {
     e.preventDefault();
+    setError('');
+
     if (!businessName.trim()) {
-      setError('Please provide your registered Company / Business Name.');
+      setError('Please enter your registered Business / Company Name.');
       return;
     }
     if (!ownerName.trim()) {
-      setError('Please enter the Managing Partner / Director name.');
+      setError('Please enter the Authorized Director / Owner Name.');
       return;
     }
+
+    // Date of Birth Validation (Bug 05)
+    if (!dateOfBirth) {
+      setError('Date of Birth of authorized representative is required.');
+      return;
+    }
+    const dob = new Date(dateOfBirth);
+    const today = new Date();
+    if (isNaN(dob.getTime()) || dob > today) {
+      setError('Please enter a valid past Date of Birth.');
+      return;
+    }
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    if (age < 18) {
+      setError('Authorized representative must be at least 18 years of age.');
+      return;
+    }
+
+    // Mobile Validation
     const cleanPhone = phoneNumber.replace(/\D/g, '');
-    if (cleanPhone.length !== 10) {
-      setError('Please enter a valid 10-digit business phone number.');
+    if (cleanPhone.length !== 10 || !/^[6-9]/.test(cleanPhone)) {
+      setError('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
       return;
     }
-    const cleanEmail = email.trim();
+
+    // Email Validation
+    const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-      setError('Please enter a valid official business email address (e.g. operations@agency.in) for partner login.');
+      setError('Please enter a valid official business email address.');
       return;
     }
-    if (!isEmailVerified) {
-      setError('Please click the "Verify" button on your official email address and enter the OTP before proceeding.');
-      return;
-    }
+
+    // Password Validation
     if (!password || password.length < 6) {
-      setError('Please create a secure password of at least 6 characters for your partner portal login.');
+      setError('Please create a password of at least 6 characters.');
       return;
     }
-    setError('');
+    if (confirmPassword && password !== confirmPassword) {
+      setError('Password and Confirm Password do not match.');
+      return;
+    }
+
+    // Address & PIN Code
+    if (!registeredAddress.trim()) {
+      setError('Please enter your registered corporate/office address.');
+      return;
+    }
+    const cleanPin = pinCode.replace(/\D/g, '');
+    if (cleanPin.length !== 6) {
+      setError('Please enter a valid 6-digit postal PIN code.');
+      return;
+    }
+
     setStep(2);
   }
 
-  function handleSubmitPartner(e) {
+  // Validate Step 2 (Fleet & Operations)
+  function handleNextStep2(e) {
     e.preventDefault();
-    const cleanGst = gstNumber.trim().toUpperCase();
-    if (cleanGst && cleanGst.length !== 10 && cleanGst.length !== 15) {
-      setError('Please provide a valid 10-character Company PAN (e.g. AABCB1234K) or 15-character Business GSTIN (e.g. 27AABCA1234F1Z5).');
+    setError('');
+
+    if (!selectedCategory) {
+      setError('Please select primary service fleet domain.');
       return;
     }
+
+    // GST / PAN validation
+    const cleanGst = gstNumber.trim().toUpperCase();
+    if (cleanGst && cleanGst.length !== 15) {
+      setError('GSTIN must be exactly 15 characters (e.g. 27AABCA1234F1Z5).');
+      return;
+    }
+
+    const cleanPan = panNumber.trim().toUpperCase();
+    if (cleanPan && !/^[A-Z]{5}[0-9]{4}[A-Z]{1}$/.test(cleanPan)) {
+      setError('PAN number must follow standard 10-character Indian format (e.g. AABCB1234K).');
+      return;
+    }
+
+    setStep(3);
+  }
+
+  // Validate Step 3 & Submit Application (Bug 06)
+  function handleSubmitPartner(e) {
+    e.preventDefault();
     setError('');
+
+    if (!accountHolderName.trim()) {
+      setError('Please enter the Corporate Bank Account Holder Name.');
+      return;
+    }
+    const cleanAcc = accountNumber.replace(/\D/g, '');
+    if (cleanAcc.length < 9 || cleanAcc.length > 18) {
+      setError('Bank account number must be between 9 and 18 digits.');
+      return;
+    }
+    if (accountNumber.trim() !== confirmAccountNumber.trim()) {
+      setError('Bank Account Number and Confirm Account Number do not match.');
+      return;
+    }
+    const cleanIfsc = ifscCode.trim().toUpperCase();
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(cleanIfsc)) {
+      setError('Please enter a valid 11-character Indian IFSC code (e.g. HDFC0000002).');
+      return;
+    }
+
     const catObj = CATEGORIES.find(c => c.id === selectedCategory);
     const newPartnerApp = {
       id: `PTR-${Date.now().toString().slice(-5)}`,
       businessName: businessName.trim(),
       ownerName: ownerName.trim(),
+      dateOfBirth,
       phone: phoneNumber.trim(),
       email: email.trim().toLowerCase(),
-      password: password,
+      password,
       businessType,
       category: selectedCategory,
       categoryName: catObj ? catObj.name : 'Multi-Service Fleet',
       fleetSize,
-      city: `${coverageLocalities}, ${selectedCity}`,
+      city: `${coverageLocalities}, ${city}`,
+      registeredAddress: registeredAddress.trim(),
+      state: stateName,
+      pinCode: pinCode.trim(),
       gstNumber: gstNumber.trim() || 'GST Pending Verification',
+      panNumber: panNumber.trim() || undefined,
       monthlyCapacity,
+      contactPerson: {
+        name: contactPersonName.trim() || ownerName.trim(),
+        phone: contactPersonPhone.trim() || phoneNumber.trim()
+      },
+      settlementAccount: {
+        bankName: bankName.trim(),
+        accountHolderName: accountHolderName.trim(),
+        accountNumber: cleanAcc,
+        ifscCode: cleanIfsc,
+        accountType,
+        status: 'Pending Review'
+      },
       appliedAt: new Date().toLocaleString('en-IN', { 
         day: '2-digit', 
         month: 'short', 
@@ -197,20 +317,31 @@ export function PartnerOnboardingModal({
     if (onPartnerApplied) {
       onPartnerApplied(newPartnerApp);
     }
-    // Also dispatch directly to partnerApi for immediate backend persistence
     partnerApi.submit(newPartnerApp).catch(err => console.warn('Direct partnerApi submit sync:', err));
-    setStep(3);
+    setStep(4);
   }
 
   function handleReset() {
     setStep(1);
     setBusinessName('');
     setOwnerName('');
+    setDateOfBirth('');
     setPhoneNumber('');
     setEmail('');
     setPassword('');
+    setConfirmPassword('');
     setShowPassword(false);
+    setRegisteredAddress('');
+    setPinCode('');
+    setContactPersonName('');
+    setContactPersonPhone('');
     setGstNumber('');
+    setPanNumber('');
+    setAttachedCertName('');
+    setAccountHolderName('');
+    setAccountNumber('');
+    setConfirmAccountNumber('');
+    setIfscCode('');
     setError('');
     setIsEmailVerified(false);
     setIsOtpSent(false);
@@ -222,8 +353,8 @@ export function PartnerOnboardingModal({
     <div className="onboarding-modal-overlay" style={{
       position: 'fixed',
       inset: 0,
-      background: 'rgba(9, 13, 22, 0.88)',
-      backdropFilter: 'blur(10px)',
+      background: 'rgba(15, 23, 42, 0.65)',
+      backdropFilter: 'blur(8px)',
       zIndex: 9999,
       display: 'flex',
       alignItems: 'center',
@@ -231,23 +362,23 @@ export function PartnerOnboardingModal({
       padding: 16
     }}>
       <div style={{
-        background: '#0F172A',
-        color: '#F8FAFC',
+        background: '#FFFFFF',
+        color: '#0F172A',
         width: '100%',
         maxWidth: 780,
         maxHeight: '92vh',
-        borderRadius: 0,
-        border: '1px solid #334155',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.65)',
+        borderRadius: 16,
+        border: '1px solid #E2E8F0',
+        boxShadow: '0 25px 60px rgba(0,0,0,0.15)',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden'
       }}>
-        {/* Header Banner */}
+        {/* Header Banner - High contrast Forge India Connect Light Theme */}
         <div style={{
-          background: 'linear-gradient(135deg, #1E1B4B 0%, #0F172A 65%, #064E3B 120%)',
-          padding: '20px 24px',
-          borderBottom: '1px solid #1E293B',
+          background: 'linear-gradient(135deg, #F5F3FF 0%, #FFFFFF 60%, #EDE9FE 100%)',
+          padding: '22px 28px',
+          borderBottom: '1px solid #E2E8F0',
           position: 'relative'
         }}>
           <button
@@ -260,12 +391,12 @@ export function PartnerOnboardingModal({
               position: 'absolute',
               top: 18,
               right: 18,
-              background: '#1E293B',
-              border: '1px solid #334155',
-              color: '#94A3B8',
+              background: '#F1F5F9',
+              border: '1px solid #CBD5E1',
+              color: '#475569',
               width: 32,
               height: 32,
-              borderRadius: 0,
+              borderRadius: 8,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -279,717 +410,527 @@ export function PartnerOnboardingModal({
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            background: 'rgba(110, 66, 229, 0.2)',
-            border: '1px solid #A78BFA',
-            color: '#A78BFA',
+            background: '#EDE9FE',
+            border: '1px solid #C4B5FD',
+            color: '#6D28D9',
             padding: '3px 10px',
-            borderRadius: 0,
+            borderRadius: 6,
             fontSize: 11,
             fontWeight: 800,
             marginBottom: 8
           }}>
             <Building2 size={13} />
-            <span>ENTERPRISE & FLEET PARTNER NETWORK</span>
+            <span>ENTERPRISE &amp; FLEET PARTNER NETWORK</span>
           </div>
 
-          <h2 style={{ fontSize: 22, fontWeight: 900, color: '#FFFFFF', margin: '0 0 6px 0', letterSpacing: -0.5 }}>
-            Partner Onboarding — Register Service Business or Fleet
+          <h2 style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', margin: '0 0 6px 0', letterSpacing: -0.5 }}>
+            Partner Onboarding — Agency &amp; Fleet Registration
           </h2>
-          <p style={{ fontSize: 13, color: '#94A3B8', margin: 0 }}>
-            Scale your service company, agency or technician fleet with guaranteed Forge India Connect enterprise order dispatch.
+          <p style={{ fontSize: 13, color: '#64748B', margin: 0 }}>
+            Scale your service company or agency fleet with guaranteed Forge India Connect enterprise dispatch &amp; unified settlements.
           </p>
 
           {/* Stepper */}
-          {step < 3 && (
-            <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+          {step < 4 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 18 }}>
               <div style={{
-                flex: 1,
-                padding: '6px 12px',
-                background: step === 1 ? '#6E42E5' : '#1E293B',
-                color: step === 1 ? '#fff' : '#64748B',
+                padding: '8px 12px',
+                background: step === 1 ? '#6E42E5' : '#F1F5F9',
+                color: step === 1 ? '#FFFFFF' : '#64748B',
                 fontSize: 12,
                 fontWeight: 700,
-                borderRadius: 0,
+                borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6
+                gap: 6,
+                border: step === 1 ? '1px solid #6E42E5' : '1px solid #E2E8F0'
               }}>
-                <span>1. Business Details</span>
+                <span>1. Business &amp; Owner</span>
               </div>
               <div style={{
-                flex: 1,
-                padding: '6px 12px',
-                background: step === 2 ? '#6E42E5' : '#1E293B',
-                color: step === 2 ? '#fff' : '#64748B',
+                padding: '8px 12px',
+                background: step === 2 ? '#6E42E5' : '#F1F5F9',
+                color: step === 2 ? '#FFFFFF' : '#64748B',
                 fontSize: 12,
                 fontWeight: 700,
-                borderRadius: 0,
+                borderRadius: 8,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 6
+                gap: 6,
+                border: step === 2 ? '1px solid #6E42E5' : '1px solid #E2E8F0'
               }}>
-                <span>2. Fleet Capacity & Compliance</span>
+                <span>2. Fleet &amp; Capacity</span>
+              </div>
+              <div style={{
+                padding: '8px 12px',
+                background: step === 3 ? '#6E42E5' : '#F1F5F9',
+                color: step === 3 ? '#FFFFFF' : '#64748B',
+                fontSize: 12,
+                fontWeight: 700,
+                borderRadius: 8,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                border: step === 3 ? '1px solid #6E42E5' : '1px solid #E2E8F0'
+              }}>
+                <span>3. Settlement Account</span>
               </div>
             </div>
           )}
         </div>
 
         {/* Modal Scrollable Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '24px 28px', backgroundColor: '#FFFFFF' }}>
           {error && (
             <div style={{
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              padding: '10px 14px',
-              borderRadius: 0,
-              background: 'rgba(239, 68, 68, 0.15)',
-              border: '1px solid #EF4444',
-              color: '#FCA5A5',
-              fontSize: 12.5,
+              padding: '12px 16px',
+              borderRadius: 8,
+              background: '#FEE2E2',
+              border: '1px solid #FCA5A5',
+              color: '#B91C1C',
+              fontSize: 13,
               fontWeight: 700,
-              marginBottom: 16
+              marginBottom: 18
             }}>
-              <AlertCircle size={16} />
+              <AlertCircle size={17} style={{ flexShrink: 0 }} />
               <span>{error}</span>
             </div>
           )}
 
-          {/* STEP 1: BUSINESS & FOUNDER DETAILS */}
+          {/* STEP 1: BUSINESS & OWNER DETAILS */}
           {step === 1 && (
-            <form onSubmit={handleNext}>
-              {/* Partner Business Highlights */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 12,
-                background: '#131D33',
-                border: '1px solid #1E293B',
-                padding: '14px 18px',
-                borderRadius: 0,
-                marginBottom: 20
-              }}>
+            <form onSubmit={handleNextStep1} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                 <div>
-                  <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700 }}>Order Dispatch</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: '#A78BFA' }}>High-Volume</div>
-                  <div style={{ fontSize: 11, color: '#64748B' }}>Direct API booking routing</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700 }}>Fleet Dashboard</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: '#10B981' }}>Live Tracking</div>
-                  <div style={{ fontSize: 11, color: '#64748B' }}>Real-time technician GPS</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700 }}>Payout Frequency</div>
-                  <div style={{ fontSize: 18, fontWeight: 900, color: '#FBBF24' }}>Weekly Direct</div>
-                  <div style={{ fontSize: 11, color: '#64748B' }}>T+2 automated settlement</div>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                    Company / Business / Agency Name *
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Registered Business / Agency Name *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Apex Multi-Services Fleet LLP"
+                    placeholder="e.g. Apex Home Solutions LLP"
                     value={businessName}
                     onChange={(e) => setBusinessName(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#1E293B',
-                      border: '1px solid #334155',
-                      borderRadius: 0,
-                      padding: '10px 14px',
-                      color: '#FFFFFF',
-                      fontSize: 13.5
-                    }}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                    Managing Partner / Director Name *
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Business Entity Type *
+                  </label>
+                  <select
+                    value={businessType}
+                    onChange={(e) => setBusinessType(e.target.value)}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px', fontSize: 13.5, backgroundColor: '#FFFFFF' }}
+                  >
+                    <option value="Partnership / LLP">Partnership / LLP</option>
+                    <option value="Private Limited Company">Private Limited (Pvt Ltd)</option>
+                    <option value="Sole Proprietorship">Sole Proprietorship Agency</option>
+                    <option value="Authorized Franchise">Authorized Franchise Partner</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Authorized Director / Owner Name *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Rajesh Khurana"
+                    placeholder="e.g. Vikram Malhotra"
                     value={ownerName}
                     onChange={(e) => setOwnerName(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#1E293B',
-                      border: '1px solid #334155',
-                      borderRadius: 0,
-                      padding: '10px 14px',
-                      color: '#FFFFFF',
-                      fontSize: 13.5
-                    }}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, boxSizing: 'border-box' }}
                   />
+                </div>
+
+                {/* Date of Birth Field (Bug 05) */}
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+                    <Calendar size={13} color="#6E42E5" />
+                    <span>Owner / Representative Date of Birth *</span>
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 14px', fontSize: 13.5, boxSizing: 'border-box' }}
+                  />
+                  <span style={{ fontSize: 11, color: '#64748B', marginTop: 3, display: 'block' }}>
+                    Age must be at least 18 years.
+                  </span>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              {/* Mobile and Email */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                    Business Contact Number *
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+                    <Phone size={13} color="#6E42E5" />
+                    <span>Business Contact Mobile *</span>
                   </label>
                   <input
                     type="tel"
                     inputMode="numeric"
-                    pattern="[0-9]{10}"
                     maxLength={10}
                     required
-                    placeholder="Enter 10-digit mobile number"
+                    placeholder="10-digit mobile"
                     value={phoneNumber}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
-                      setPhoneNumber(digits);
-                      if (error) setError('');
-                    }}
-                    onKeyDown={(e) => {
-                      if (
-                        !/[0-9]/.test(e.key) &&
-                        !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End'].includes(e.key) &&
-                        !e.ctrlKey &&
-                        !e.metaKey
-                      ) {
-                        e.preventDefault();
-                      }
-                    }}
-                    style={{
-                      width: '100%',
-                      background: '#1E293B',
-                      border: error && phoneNumber.length !== 10 ? '1px solid #EF4444' : '1px solid #334155',
-                      borderRadius: 0,
-                      padding: '10px 14px',
-                      color: '#FFFFFF',
-                      fontSize: 13.5
-                    }}
+                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, boxSizing: 'border-box' }}
                   />
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                    <span style={{ fontSize: 11, color: '#94A3B8' }}>
-                      Only 10 digits allowed
-                    </span>
-                    <span style={{ 
-                      fontSize: 11, 
-                      fontWeight: 600,
-                      color: phoneNumber.length === 10 ? '#10B981' : '#94A3B8' 
-                    }}>
-                      {phoneNumber.length}/10
-                    </span>
-                  </div>
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                    <Mail size={14} color="#8B5CF6" />
-                    <span>Official Email Address (for Portal Login) *</span>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+                    <Mail size={13} color="#6E42E5" />
+                    <span>Corporate Email Address *</span>
                   </label>
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    background: isEmailVerified ? 'rgba(139, 92, 246, 0.08)' : '#1E293B',
-                    border: isEmailVerified ? '1.5px solid #8B5CF6' : '1px solid #334155',
-                    padding: '3px 6px 3px 12px',
-                    gap: 8,
-                    boxSizing: 'border-box'
-                  }}>
+                  <div style={{ display: 'flex', gap: 6 }}>
                     <input
                       type="email"
                       required
-                      disabled={isEmailVerified}
-                      placeholder="operations@apexservices.in"
+                      placeholder="e.g. operations@agency.in"
                       value={email}
-                      onChange={(e) => {
-                        setEmail(e.target.value);
-                        if (isEmailVerified) setIsEmailVerified(false);
-                        if (isOtpSent) setIsOtpSent(false);
-                        if (error) setError('');
-                      }}
+                      onChange={(e) => setEmail(e.target.value.toLowerCase())}
                       style={{
-                        width: '100%',
-                        background: 'transparent',
-                        border: 'none',
-                        outline: 'none',
-                        color: isEmailVerified ? '#DDD6FE' : '#FFFFFF',
+                        flex: 1,
+                        background: '#F8FAFC',
+                        border: isEmailVerified ? '1.5px solid #10B981' : '1px solid #CBD5E1',
+                        borderRadius: 8,
+                        padding: '10px 14px',
                         fontSize: 13.5,
-                        padding: '7px 0',
-                        fontWeight: isEmailVerified ? 600 : 400
+                        boxSizing: 'border-box'
                       }}
                     />
-                    {isEmailVerified ? (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        background: 'rgba(139, 92, 246, 0.2)',
-                        color: '#C4B5FD',
-                        padding: '4px 8px',
-                        fontSize: 11.5,
-                        fontWeight: 700,
-                        flexShrink: 0
-                      }}>
-                        <CheckCircle2 size={13} color="#A78BFA" />
-                        <span>Verified</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsEmailVerified(false);
-                            setIsOtpSent(false);
-                            setOtpCode('');
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            fontSize: 11,
-                            color: '#94A3B8',
-                            marginLeft: 4,
-                            padding: 0,
-                            textDecoration: 'underline'
-                          }}
-                        >
-                          Change
-                        </button>
-                      </div>
-                    ) : (
+                    {!isEmailVerified && (
                       <button
                         type="button"
-                        disabled={isSendingOtp || !email.trim() || !email.includes('@')}
+                        disabled={isSendingOtp || !email.includes('@')}
                         onClick={handleSendEmailOtp}
                         style={{
-                          background: (isSendingOtp || !email.trim() || !email.includes('@')) ? '#334155' : '#8B5CF6',
-                          color: (isSendingOtp || !email.trim() || !email.includes('@')) ? '#64748B' : '#FFFFFF',
+                          background: '#6E42E5',
+                          color: '#FFFFFF',
                           border: 'none',
-                          padding: '6px 12px',
-                          fontSize: 11.5,
+                          borderRadius: 8,
+                          padding: '0 14px',
+                          fontSize: 12,
                           fontWeight: 700,
-                          cursor: (isSendingOtp || !email.trim() || !email.includes('@')) ? 'not-allowed' : 'pointer',
-                          flexShrink: 0,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 5,
-                          transition: 'all 0.15s ease'
+                          cursor: 'pointer',
+                          flexShrink: 0
                         }}
                       >
-                        {isSendingOtp ? (
-                          <>
-                            <div className="animate-spin" style={{ width: 11, height: 11, border: '2px solid #FFFFFF', borderTopColor: 'transparent', borderRadius: '50%' }} />
-                            <span>Sending...</span>
-                          </>
-                        ) : (
-                          <span>{isOtpSent ? 'Resend' : 'Verify'}</span>
-                        )}
+                        {isSendingOtp ? 'Sending...' : (isOtpSent ? 'Resend' : 'Verify')}
                       </button>
                     )}
                   </div>
-
-                  {/* Inline OTP Box when OTP is sent */}
                   {isOtpSent && !isEmailVerified && (
-                    <div style={{
-                      background: 'rgba(15, 23, 42, 0.95)',
-                      border: '1.5px solid #8B5CF6',
-                      padding: '10px 12px',
-                      marginTop: 8,
-                      animation: 'fadeIn 0.2s ease'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#C4B5FD' }}>
-                          Enter 6-Digit Email OTP
-                        </span>
-                        <span style={{ fontSize: 10.5, color: '#94A3B8' }}>
-                          Sent to {email}
-                        </span>
-                      </div>
-
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <input
-                          type="text"
-                          maxLength={6}
-                          placeholder="Enter 6-digit OTP from email"
-                          value={otpCode}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, '').slice(0, 6);
-                            setOtpCode(val);
-                            if (error) setError('');
-                          }}
-                          style={{
-                            flex: 1,
-                            background: '#1E293B',
-                            border: '1px solid #475569',
-                            color: '#FFFFFF',
-                            fontSize: 14,
-                            fontWeight: 700,
-                            letterSpacing: '3px',
-                            textAlign: 'center',
-                            padding: '6px 8px',
-                            outline: 'none'
-                          }}
-                        />
-                        <button
-                          type="button"
-                          disabled={isVerifyingOtp || otpCode.length !== 6}
-                          onClick={handleVerifyEmailOtp}
-                          style={{
-                            background: (isVerifyingOtp || otpCode.length !== 6) ? '#334155' : '#8B5CF6',
-                            color: (isVerifyingOtp || otpCode.length !== 6) ? '#64748B' : '#FFFFFF',
-                            border: 'none',
-                            padding: '6px 14px',
-                            fontSize: 12,
-                            fontWeight: 700,
-                            cursor: (isVerifyingOtp || otpCode.length !== 6) ? 'not-allowed' : 'pointer'
-                          }}
-                        >
-                          {isVerifyingOtp ? 'Verifying...' : 'Verify OTP'}
-                        </button>
-                      </div>
-
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 6, fontSize: 10.5 }}>
-                        <span style={{ color: '#94A3B8' }}>Didn't receive email? Check spam.</span>
-                        {resendCooldown > 0 ? (
-                          <span style={{ color: '#64748B' }}>Resend in {resendCooldown}s</span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleSendEmailOtp}
-                            disabled={isSendingOtp}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: '#A78BFA',
-                              cursor: 'pointer',
-                              fontWeight: 700,
-                              textDecoration: 'underline',
-                              padding: 0
-                            }}
-                          >
-                            Resend Code
-                          </button>
-                        )}
-                      </div>
+                    <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                      <input
+                        type="text"
+                        maxLength={6}
+                        placeholder="Enter 6-digit OTP"
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        style={{ flex: 1, padding: '8px 12px', border: '1px solid #CBD5E1', borderRadius: 8, fontSize: 13 }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyEmailOtp}
+                        style={{ background: '#6E42E5', color: '#fff', border: 'none', borderRadius: 8, padding: '0 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        {isVerifyingOtp ? 'Checking...' : 'Confirm OTP'}
+                      </button>
                     </div>
                   )}
-
-                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
-                    Your enterprise login username on the partner portal
-                  </div>
                 </div>
               </div>
 
-              {/* Password and Entity Structure Row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              {/* Password and Confirm Password */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                    <Lock size={14} color={isEmailVerified ? '#8B5CF6' : '#64748B'} />
-                    <span>Create Portal Password (min. 6 characters) *</span>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+                    <Lock size={13} color="#6E42E5" />
+                    <span>Create Portal Password (Min. 6 Characters) *</span>
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type={showPassword ? 'text' : 'password'}
                       required
-                      disabled={!isEmailVerified}
-                      placeholder={isEmailVerified ? "Enter a secure password" : "🔒 Verify official email first to create password"}
+                      placeholder="Enter portal password"
                       value={password}
-                      onChange={(e) => {
-                        setPassword(e.target.value);
-                        if (error) setError('');
-                      }}
-                      style={{
-                        width: '100%',
-                        background: isEmailVerified ? '#1E293B' : '#0F172A',
-                        border: isEmailVerified ? '1px solid #334155' : '1px dashed #334155',
-                        opacity: isEmailVerified ? 1 : 0.6,
-                        cursor: isEmailVerified ? 'text' : 'not-allowed',
-                        padding: '10px 40px 10px 14px',
-                        color: '#FFFFFF',
-                        fontSize: 13.5,
-                        boxSizing: 'border-box'
-                      }}
+                      onChange={(e) => setPassword(e.target.value)}
+                      style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 40px 10px 14px', fontSize: 13.5, boxSizing: 'border-box' }}
                     />
-                    {isEmailVerified && (
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        title={showPassword ? 'Hide password' : 'Show password'}
-                        style={{
-                          position: 'absolute',
-                          right: 8,
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#94A3B8',
-                          cursor: 'pointer',
-                          padding: 6,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ 
-                    fontSize: 11, 
-                    color: isEmailVerified ? '#94A3B8' : '#F59E0B', 
-                    marginTop: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 4
-                  }}>
-                    {isEmailVerified ? (
-                      'Used along with your verified email to log in once approved'
-                    ) : (
-                      <>
-                        <span>🔒</span>
-                        <span>Verify your official email above to set portal password</span>
-                      </>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#64748B', cursor: 'pointer' }}
+                    >
+                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                    </button>
                   </div>
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                    Entity Structure / Business Type
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Confirm Portal Password *
                   </label>
-                  <select
-                    value={businessType}
-                    onChange={(e) => setBusinessType(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#1E293B',
-                      border: '1px solid #334155',
-                      borderRadius: 0,
-                      padding: '10px 14px',
-                      color: '#FFFFFF',
-                      fontSize: 13.5,
-                      boxSizing: 'border-box'
-                    }}
-                  >
-                    <option value="Partnership / LLP">Partnership / LLP</option>
-                    <option value="Private Limited Company">Private Limited Company</option>
-                    <option value="Sole Proprietorship">Sole Proprietorship</option>
-                    <option value="Franchise Operator">Franchise Operator</option>
-                  </select>
+                  <input
+                    type="password"
+                    required
+                    placeholder="Confirm portal password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, boxSizing: 'border-box' }}
+                  />
                 </div>
               </div>
 
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                  Primary Business Category
+              {/* Registered Corporate Address */}
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                  Registered Corporate / Office Address *
                 </label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  style={{
-                    width: '100%',
-                    background: '#1E293B',
-                    border: '1px solid #334155',
-                    borderRadius: 0,
-                    padding: '10px 14px',
-                    color: '#FFFFFF',
-                    fontSize: 13.5
-                  }}
-                >
-                    {CATEGORIES.filter(c => c.id !== 'all').map(c => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Unit 402, Trade Square, Senapati Bapat Marg"
+                  value={registeredAddress}
+                  onChange={(e) => setRegisteredAddress(e.target.value)}
+                  style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    City *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px', fontSize: 13, boxSizing: 'border-box' }}
+                  />
                 </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    State *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={stateName}
+                    onChange={(e) => setStateName(e.target.value)}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    PIN Code *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    placeholder="e.g. 400013"
+                    value={pinCode}
+                    onChange={(e) => setPinCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px', fontSize: 13, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
 
               <button
                 type="submit"
                 style={{
-                  width: '100%',
+                  marginTop: 10,
                   background: '#6E42E5',
                   color: '#FFFFFF',
                   border: 'none',
-                  borderRadius: 0,
-                  padding: '12px 20px',
+                  borderRadius: 8,
+                  padding: '13px 20px',
                   fontSize: 14,
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 8,
-                  transition: 'background 0.15s'
+                  gap: 8
                 }}
               >
-                <span>Continue to Fleet & Compliance (Step 2 of 2)</span>
+                <span>Continue to Fleet &amp; Operations (Step 2 of 3)</span>
                 <ArrowRight size={16} />
               </button>
             </form>
           )}
 
-          {/* STEP 2: FLEET CAPACITY & COMPLIANCE */}
+          {/* STEP 2: FLEET & OPERATIONS */}
           {step === 2 && (
-            <form onSubmit={handleSubmitPartner}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <form onSubmit={handleNextStep2} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 6 }}>
+                  Primary Fleet Service Category *
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+                  {CATEGORIES.filter(c => c.id !== 'all').map(cat => {
+                    const isSelected = selectedCategory === cat.id;
+                    return (
+                      <div
+                        key={cat.id}
+                        onClick={() => setSelectedCategory(cat.id)}
+                        style={{
+                          background: isSelected ? '#F5F3FF' : '#F8FAFC',
+                          border: isSelected ? '2px solid #6E42E5' : '1px solid #E2E8F0',
+                          borderRadius: 8,
+                          padding: '12px 14px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          transition: 'all 0.15s'
+                        }}
+                      >
+                        <Building2 size={16} color={isSelected ? '#6E42E5' : '#64748B'} />
+                        <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? '#5B21B6' : '#1E293B' }}>
+                          {cat.name}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                    Fleet / Technician Team Size
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Active Technician Fleet Size *
                   </label>
                   <select
                     value={fleetSize}
                     onChange={(e) => setFleetSize(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#1E293B',
-                      border: '1px solid #334155',
-                      borderRadius: 0,
-                      padding: '10px 14px',
-                      color: '#FFFFFF',
-                      fontSize: 13.5
-                    }}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px', fontSize: 13.5, backgroundColor: '#FFFFFF' }}
                   >
-                    <option value="1-5 Technicians">1–5 Technicians (Small Fleet)</option>
-                    <option value="6-15 Technicians">6–15 Technicians (Growing Agency)</option>
-                    <option value="16-50 Technicians">16–50 Technicians (Established Enterprise)</option>
-                    <option value="50+ Technicians">50+ Technicians (Large Multi-hub Partner)</option>
+                    <option value="1-5 Technicians">1–5 Dedicated Technicians</option>
+                    <option value="6-15 Technicians">6–15 Technicians (Standard Fleet)</option>
+                    <option value="16-30 Technicians">16–30 Technicians (Regional Agency)</option>
+                    <option value="30+ Technicians">30+ Technicians (Enterprise Contractor)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                    Monthly Order Capacity
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Monthly Order Fulfilment Capacity *
                   </label>
                   <select
                     value={monthlyCapacity}
                     onChange={(e) => setMonthlyCapacity(e.target.value)}
-                    style={{
-                      width: '100%',
-                      background: '#1E293B',
-                      border: '1px solid #334155',
-                      borderRadius: 0,
-                      padding: '10px 14px',
-                      color: '#FFFFFF',
-                      fontSize: 13.5
-                    }}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px', fontSize: 13.5, backgroundColor: '#FFFFFF' }}
                   >
                     <option value="50-150 jobs/month">50–150 jobs / month</option>
                     <option value="150-300 jobs/month">150–300 jobs / month</option>
                     <option value="300-600 jobs/month">300–600 jobs / month</option>
-                    <option value="600+ jobs/month">600+ jobs / month</option>
+                    <option value="600+ jobs/month">600+ jobs / month (High-Volume)</option>
                   </select>
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                  Target Coverage Localities / Zones *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Bandra, Andheri, Powai, Kurla"
+                  value={coverageLocalities}
+                  onChange={(e) => setCoverageLocalities(e.target.value)}
+                  style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              {/* Tax & Legal Identifiers */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1', display: 'block', marginBottom: 6 }}>
-                    City & Coverage Localities
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Business GSTIN (15 Characters)
                   </label>
                   <input
                     type="text"
-                    value={coverageLocalities}
-                    onChange={(e) => setCoverageLocalities(e.target.value)}
-                    placeholder="e.g. Bandra, Andheri, Powai, Juhu"
-                    style={{
-                      width: '100%',
-                      background: '#1E293B',
-                      border: '1px solid #334155',
-                      borderRadius: 0,
-                      padding: '10px 14px',
-                      color: '#FFFFFF',
-                      fontSize: 13.5
-                    }}
+                    maxLength={15}
+                    placeholder="e.g. 27AABCA1234F1Z5"
+                    value={gstNumber}
+                    onChange={(e) => setGstNumber(e.target.value.toUpperCase())}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, letterSpacing: 1, boxSizing: 'border-box' }}
                   />
                 </div>
 
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <label style={{ fontSize: 12, fontWeight: 700, color: '#CBD5E1' }}>
-                      Business GSTIN or Company PAN
-                    </label>
-                    <span style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: (gstNumber.length === 10 || gstNumber.length === 15) ? '#10B981' : '#94A3B8'
-                    }}>
-                      {gstNumber.length === 10 ? '✓ 10-char PAN' : (gstNumber.length === 15 ? '✓ 15-char GSTIN' : `${gstNumber.length}/15`)}
-                    </span>
-                  </div>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      maxLength={15}
-                      autoCapitalize="characters"
-                      placeholder="e.g. 27AABCA1234F1Z5 or AABCB1234K"
-                      value={gstNumber}
-                      onChange={(e) => {
-                        const clean = e.target.value.replace(/[^a-zA-Z0-9]/g, '').slice(0, 15).toUpperCase();
-                        setGstNumber(clean);
-                        if (error) setError('');
-                      }}
-                      onKeyDown={(e) => {
-                        if (
-                          !/[a-zA-Z0-9]/.test(e.key) &&
-                          !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Home', 'End', 'Enter'].includes(e.key) &&
-                          !e.ctrlKey &&
-                          !e.metaKey
-                        ) {
-                          e.preventDefault();
-                        }
-                      }}
-                      style={{
-                        width: '100%',
-                        background: '#1E293B',
-                        border: error && gstNumber && gstNumber.length !== 10 && gstNumber.length !== 15 ? '1px solid #EF4444' : ((gstNumber.length === 10 || gstNumber.length === 15) ? '1px solid #10B981' : '1px solid #334155'),
-                        borderRadius: 0,
-                        padding: '10px 38px 10px 14px',
-                        color: '#FFFFFF',
-                        fontSize: 13.5,
-                        textTransform: 'uppercase',
-                        letterSpacing: 1.2,
-                        outline: 'none'
-                      }}
-                    />
-                    {(gstNumber.length === 10 || gstNumber.length === 15) && (
-                      <div style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                        <CheckCircle2 size={16} color="#10B981" />
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 4 }}>
-                    Max 15 characters. Enter 10-char PAN (e.g. AABCB1234K) or 15-char GSTIN (e.g. 27AABCA1234F1Z5).
-                  </div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Company / Firm PAN (10 Characters)
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={10}
+                    placeholder="e.g. AABCB1234K"
+                    value={panNumber}
+                    onChange={(e) => setPanNumber(e.target.value.toUpperCase())}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, letterSpacing: 1, boxSizing: 'border-box' }}
+                  />
                 </div>
               </div>
 
-              {/* B2B Partner SLA Agreement */}
+              {/* Certificate Upload Simulation */}
               <div style={{
-                background: 'rgba(110, 66, 229, 0.12)',
-                border: '1px solid rgba(139, 92, 246, 0.3)',
-                padding: '14px 16px',
-                borderRadius: 0,
-                marginBottom: 20,
-                fontSize: 12.5,
-                color: '#EDE9FE',
-                lineHeight: 1.5
+                border: '1.5px dashed #CBD5E1',
+                borderRadius: 10,
+                padding: '16px',
+                textAlign: 'center',
+                background: '#F8FAFC'
               }}>
-                <div style={{ fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <ShieldCheck size={16} color="#A78BFA" />
-                  <span>Forge India Connect Enterprise Partner Agreement</span>
-                </div>
-                Registered business partners receive bulk dispatch orders, priority settlement, access to the Partner Pro ERP dashboard, and dedicated Forge India Connect account manager assistance.
+                <UploadCloud size={24} color="#6E42E5" style={{ margin: '0 auto 6px' }} />
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B' }}>Upload Incorporation / GST Certificate</div>
+                <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>PDF / Scanned certificate up to 10MB</div>
+                <button
+                  type="button"
+                  onClick={() => setAttachedCertName('business_incorporation_cert.pdf')}
+                  style={{
+                    marginTop: 8,
+                    padding: '5px 12px',
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: 6,
+                    fontSize: 11.5,
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {attachedCertName ? `✓ Attached: ${attachedCertName}` : 'Select Document File'}
+                </button>
               </div>
 
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
                 <button
                   type="button"
                   onClick={() => setStep(1)}
                   style={{
                     padding: '12px 18px',
-                    borderRadius: 0,
-                    background: '#1E293B',
-                    border: '1px solid #334155',
-                    color: '#94A3B8',
+                    borderRadius: 8,
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    color: '#475569',
                     fontSize: 13.5,
                     fontWeight: 700,
                     cursor: 'pointer'
@@ -1005,7 +946,7 @@ export function PartnerOnboardingModal({
                     background: '#6E42E5',
                     color: '#FFFFFF',
                     border: 'none',
-                    borderRadius: 0,
+                    borderRadius: 8,
                     padding: '12px 20px',
                     fontSize: 14,
                     fontWeight: 800,
@@ -1013,105 +954,239 @@ export function PartnerOnboardingModal({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: 8,
-                    transition: 'background 0.15s'
+                    gap: 8
                   }}
                 >
-                  <CheckCircle2 size={16} />
-                  <span>Submit Partner Registration (Direct to Admin)</span>
+                  <span>Continue to Settlement Account (Step 3 of 3)</span>
+                  <ArrowRight size={16} />
                 </button>
               </div>
             </form>
           )}
 
-          {/* STEP 3: SUCCESS CONFIRMATION */}
-          {step === 3 && submittedPartnerApp && (
-            <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+          {/* STEP 3: SETTLEMENT BANK ACCOUNT (Bug 06) */}
+          {step === 3 && (
+            <form onSubmit={handleSubmitPartner} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{
-                width: 60,
-                height: 60,
-                background: 'rgba(110, 66, 229, 0.2)',
-                border: '2px solid #8B5CF6',
-                borderRadius: 0,
+                background: '#F5F3FF',
+                border: '1px solid #DDD6FE',
+                padding: '14px 18px',
+                borderRadius: 10,
+                fontSize: 12.5,
+                color: '#5B21B6',
+                lineHeight: 1.5
+              }}>
+                <div style={{ fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <CreditCard size={16} color="#6E42E5" />
+                  <span>Corporate Payout &amp; Settlement Account</span>
+                </div>
+                All aggregated customer payouts for jobs completed by your fleet will be transferred exclusively into this corporate account. Individual technician payouts under agency fleets are routed through your agency payroll.
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                  Corporate Account Holder Name (as per Bank Records) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Apex Home Solutions LLP"
+                  value={accountHolderName}
+                  onChange={(e) => setAccountHolderName(e.target.value)}
+                  style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Bank Name *
+                  </label>
+                  <select
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px', fontSize: 13.5, backgroundColor: '#FFFFFF' }}
+                  >
+                    <option value="HDFC Bank Ltd">HDFC Bank Ltd</option>
+                    <option value="ICICI Bank Ltd">ICICI Bank Ltd</option>
+                    <option value="State Bank of India">State Bank of India</option>
+                    <option value="Axis Bank Ltd">Axis Bank Ltd</option>
+                    <option value="Kotak Mahindra Bank">Kotak Mahindra Bank</option>
+                    <option value="Standard Chartered Bank">Standard Chartered Bank</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Account Type *
+                  </label>
+                  <select
+                    value={accountType}
+                    onChange={(e) => setAccountType(e.target.value)}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '9px 12px', fontSize: 13.5, backgroundColor: '#FFFFFF' }}
+                  >
+                    <option value="Current Corporate Account">Current Corporate Account</option>
+                    <option value="Business Account">Business Current Account</option>
+                    <option value="LLP Special Account">LLP Special Account</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Corporate Account Number *
+                  </label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    required
+                    placeholder="Enter corporate account number"
+                    value={accountNumber}
+                    onChange={(e) => setAccountNumber(e.target.value.replace(/\D/g, ''))}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                    Confirm Account Number *
+                  </label>
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    required
+                    placeholder="Re-enter corporate account number"
+                    value={confirmAccountNumber}
+                    onChange={(e) => setConfirmAccountNumber(e.target.value.replace(/\D/g, ''))}
+                    style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'block', marginBottom: 5 }}>
+                  Bank IFSC Code (11 Characters) *
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={11}
+                  placeholder="e.g. HDFC0000002"
+                  value={ifscCode}
+                  onChange={(e) => setIfscCode(e.target.value.toUpperCase())}
+                  style={{ width: '100%', background: '#F8FAFC', border: '1px solid #CBD5E1', borderRadius: 8, padding: '10px 14px', fontSize: 13.5, letterSpacing: 1, boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  style={{
+                    padding: '12px 18px',
+                    borderRadius: 8,
+                    background: '#FFFFFF',
+                    border: '1px solid #CBD5E1',
+                    color: '#475569',
+                    fontSize: 13.5,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Back
+                </button>
+
+                <button
+                  type="submit"
+                  style={{
+                    flex: 1,
+                    background: '#6E42E5',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    borderRadius: 8,
+                    padding: '12px 20px',
+                    fontSize: 14,
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8
+                  }}
+                >
+                  <CheckCircle2 size={16} />
+                  <span>Submit Partner &amp; Fleet Application</span>
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* STEP 4: SUCCESS CONFIRMATION */}
+          {step === 4 && submittedPartnerApp && (
+            <div style={{ textAlign: 'center', padding: '24px 12px' }}>
+              <div style={{
+                width: 64,
+                height: 64,
+                background: '#EDE9FE',
+                border: '2px solid #7C3AED',
+                borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 16px'
               }}>
-                <CheckCircle2 size={32} color="#A78BFA" />
+                <CheckCircle2 size={34} color="#7C3AED" />
               </div>
 
-              <h3 style={{ fontSize: 22, fontWeight: 900, color: '#FFFFFF', marginBottom: 8 }}>
-                Partner Registration Received!
+              <h3 style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', marginBottom: 8 }}>
+                Partner Application Submitted!
               </h3>
-              <p style={{ fontSize: 13.5, color: '#94A3B8', maxWidth: 480, margin: '0 auto 20px', lineHeight: 1.5 }}>
-                Thank you, <strong style={{ color: '#fff' }}>{submittedPartnerApp.businessName}</strong>. Your partner fleet registration has been routed directly to the Forge India Connect Operations Admin Hub for enterprise verification and order allocation.
+              <p style={{ fontSize: 13.5, color: '#64748B', maxWidth: 500, margin: '0 auto 20px', lineHeight: 1.5 }}>
+                Thank you, <strong>{submittedPartnerApp.ownerName}</strong> ({submittedPartnerApp.businessName}). Your fleet onboarding request has been logged and assigned to the Enterprise Compliance Desk.
               </p>
 
-              {/* Application Details Summary Card */}
+              {/* Summary Card */}
               <div style={{
-                background: '#131D33',
-                border: '1px solid #1E293B',
-                borderRadius: 0,
-                padding: '16px 20px',
+                background: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: 12,
+                padding: '18px 22px',
                 maxWidth: 480,
-                margin: '0 auto 18px',
+                margin: '0 auto 24px',
                 textAlign: 'left',
                 fontSize: 13
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid #1E293B' }}>
-                  <span style={{ color: '#94A3B8' }}>Partner ID:</span>
-                  <strong style={{ color: '#A78BFA' }}>{submittedPartnerApp.id}</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid #E2E8F0' }}>
+                  <span style={{ color: '#64748B' }}>Partner Reference:</span>
+                  <strong style={{ color: '#6E42E5' }}>{submittedPartnerApp.id}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
-                  <span style={{ color: '#94A3B8' }}>Official Login Email:</span>
-                  <strong style={{ color: '#38BDF8' }}>{submittedPartnerApp.email}</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
+                  <span style={{ color: '#64748B' }}>Corporate Email:</span>
+                  <strong style={{ color: '#0F172A' }}>{submittedPartnerApp.email}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
-                  <span style={{ color: '#94A3B8' }}>Account Password:</span>
-                  <span style={{ color: '#10B981', fontWeight: 700 }}>•••••••• (Configured & Saved)</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
+                  <span style={{ color: '#64748B' }}>Fleet Size:</span>
+                  <strong style={{ color: '#0F172A' }}>{submittedPartnerApp.fleetSize}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
-                  <span style={{ color: '#94A3B8' }}>Managing Director:</span>
-                  <span style={{ color: '#fff' }}>{submittedPartnerApp.ownerName}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #1E293B' }}>
-                  <span style={{ color: '#94A3B8' }}>Category & Fleet:</span>
-                  <strong style={{ color: '#fff' }}>{submittedPartnerApp.categoryName} ({submittedPartnerApp.fleetSize})</strong>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
+                  <span style={{ color: '#64748B' }}>Settlement Bank:</span>
+                  <span style={{ color: '#0F172A', fontWeight: 600 }}>{submittedPartnerApp.settlementAccount?.bankName} (••••{submittedPartnerApp.settlementAccount?.accountNumber?.slice(-4)})</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8 }}>
-                  <span style={{ color: '#94A3B8' }}>Current Status:</span>
+                  <span style={{ color: '#64748B' }}>Compliance Status:</span>
                   <span style={{
-                    background: 'rgba(245, 158, 11, 0.2)',
-                    color: '#F59E0B',
-                    border: '1px solid #F59E0B',
+                    background: '#FEF3C7',
+                    color: '#92400E',
+                    border: '1px solid #FDE68A',
                     padding: '2px 8px',
-                    borderRadius: 0,
+                    borderRadius: 6,
                     fontSize: 11,
                     fontWeight: 800
                   }}>
-                    ● Awaiting Admin Approval
+                    ● Awaiting Agreement Verification
                   </span>
                 </div>
-              </div>
-
-              {/* Admin Verification Notice */}
-              <div style={{
-                background: 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgba(16, 185, 129, 0.3)',
-                padding: '12px 16px',
-                maxWidth: 480,
-                margin: '0 auto 20px',
-                textAlign: 'left',
-                fontSize: 12.5,
-                color: '#D1FAE5',
-                lineHeight: 1.5
-              }}>
-                <div style={{ fontWeight: 800, color: '#34D399', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <ShieldCheck size={16} />
-                  <span>Submitted to Admin Operations Dashboard</span>
-                </div>
-                Your agency profile and credentials have been forwarded to the Admin Dashboard. Once the operations team verifies and clicks <strong>Approve Agency</strong>, your full Partner ERP dashboard will be unlocked.
               </div>
 
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -1119,16 +1194,10 @@ export function PartnerOnboardingModal({
                   type="button"
                   onClick={() => {
                     try {
+                      sessionStorage.setItem('uc_partner_token', 'TOKEN-' + submittedPartnerApp.id);
                       localStorage.setItem('uc_partner_token', 'TOKEN-' + submittedPartnerApp.id);
                       localStorage.setItem('uc_partner_id', submittedPartnerApp.id);
-                      localStorage.setItem('uc_partner_profile', JSON.stringify(submittedPartnerApp));
-                      localStorage.setItem('uc_partner_staff', JSON.stringify({
-                        id: 'STF-OWNER-01',
-                        partnerId: submittedPartnerApp.id,
-                        name: submittedPartnerApp.ownerName,
-                        role: 'Business Owner',
-                        status: 'Pending Review'
-                      }));
+                      localStorage.setItem('uc_partner_user', JSON.stringify(submittedPartnerApp));
                     } catch {}
                     handleReset();
                     onClose();
@@ -1139,18 +1208,17 @@ export function PartnerOnboardingModal({
                     background: '#6E42E5',
                     color: '#FFFFFF',
                     border: 'none',
-                    borderRadius: 0,
+                    borderRadius: 8,
                     padding: '12px 24px',
                     fontSize: 14,
                     fontWeight: 800,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 8,
-                    boxShadow: '0 4px 14px rgba(110, 66, 229, 0.3)'
+                    gap: 8
                   }}
                 >
-                  <span>Go to Partner Dashboard (Awaiting Approval)</span>
+                  <span>Go to Partner Portal</span>
                   <ArrowRight size={16} />
                 </button>
 
@@ -1161,17 +1229,17 @@ export function PartnerOnboardingModal({
                     onClose();
                   }}
                   style={{
-                    background: '#1E293B',
-                    color: '#CBD5E1',
-                    border: '1px solid #334155',
-                    borderRadius: 0,
+                    background: '#FFFFFF',
+                    color: '#475569',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: 8,
                     padding: '12px 20px',
                     fontSize: 13.5,
                     fontWeight: 700,
                     cursor: 'pointer'
                   }}
                 >
-                  Done & Return to Homepage
+                  Done &amp; Return to Marketplace
                 </button>
               </div>
             </div>
