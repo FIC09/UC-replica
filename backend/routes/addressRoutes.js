@@ -3,15 +3,28 @@ import { Address } from '../models/Address.js';
 
 const router = express.Router();
 
-// GET all addresses for a user
+// GET all addresses for a user (Strict Customer Privacy & Isolation)
 router.get('/', async (req, res) => {
   try {
-    const { phone } = req.query;
-    let query = {};
-    if (phone) {
-      query.userPhone = phone;
+    const { phone, userId, email } = req.query;
+    if (!phone && !userId && !email) {
+      // Enforce strict customer privacy: never leak all addresses if user context is missing
+      return res.json({ success: true, count: 0, addresses: [] });
     }
-    const addresses = await Address.find(query).sort({ isDefault: -1, createdAt: -1 });
+
+    const conditions = [];
+    if (phone) {
+      const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+      conditions.push({ userPhone: new RegExp(cleanPhone || phone, 'i') });
+    }
+    if (userId) {
+      conditions.push({ userId });
+    }
+    if (email) {
+      conditions.push({ userEmail: new RegExp(`^${email.trim()}$`, 'i') });
+    }
+
+    const addresses = await Address.find({ $or: conditions }).sort({ isDefault: -1, createdAt: -1 });
     res.json({ success: true, count: addresses.length, addresses });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -36,12 +49,18 @@ router.post('/', async (req, res) => {
       }
     }
 
-    // If marked default, unset other defaults
+    // If marked default, unset other defaults for this user
     if (addressData.isDefault) {
-      await Address.updateMany(
-        { userPhone: addressData.userPhone || '+91 98201 44521' },
-        { isDefault: false }
-      );
+      const cond = [];
+      if (addressData.userId) cond.push({ userId: addressData.userId });
+      if (addressData.userPhone) {
+        const cleanPhone = addressData.userPhone.replace(/\D/g, '').slice(-10);
+        cond.push({ userPhone: new RegExp(cleanPhone || addressData.userPhone, 'i') });
+      }
+      if (addressData.userEmail) cond.push({ userEmail: addressData.userEmail });
+      if (cond.length > 0) {
+        await Address.updateMany({ $or: cond }, { isDefault: false });
+      }
     }
 
     const newAddress = await Address.create(addressData);

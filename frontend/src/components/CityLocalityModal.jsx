@@ -208,7 +208,7 @@ export function CityLocalityModal({
           alignItems: 'center'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MapPin size={20} color="#6E42E5" />
+            <MapPin size={20} color="#0B57D0" />
             <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
               Select Location in {activeCity}
             </h3>
@@ -245,15 +245,15 @@ export function CityLocalityModal({
               gap: 12,
               padding: '14px 18px',
               borderRadius: 0,
-              background: isLocating ? '#EDE9FE' : '#F4F0FF',
-              border: '1.5px solid #DDD6FE',
-              color: '#6E42E5',
+              background: isLocating ? '#E8F1FF' : '#E8F1FF',
+              border: '1.5px solid #E4E7EC',
+              color: '#0B57D0',
               fontWeight: 700,
               fontSize: 14,
               marginBottom: 14,
               cursor: isLocating ? 'wait' : 'pointer',
               transition: 'all 0.2s ease',
-              boxShadow: '0 2px 6px rgba(110, 66, 229, 0.08)'
+              boxShadow: '0 2px 6px rgba(11, 87, 208, 0.08)'
             }}
           >
             {isLocating ? (
@@ -263,7 +263,7 @@ export function CityLocalityModal({
               </>
             ) : (
               <>
-                <Navigation size={18} fill="#6E42E5" />
+                <Navigation size={18} fill="#0B57D0" />
                 <span>Detect Current Location (GPS)</span>
               </>
             )}
@@ -295,9 +295,9 @@ export function CityLocalityModal({
                     style={{
                       padding: '6px 12px',
                       borderRadius: 6,
-                      border: isCityActive ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
-                      background: isCityActive ? '#F5F3FF' : '#FFFFFF',
-                      color: isCityActive ? '#6E42E5' : '#475569',
+                      border: isCityActive ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
+                      background: isCityActive ? '#E8F1FF' : '#FFFFFF',
+                      color: isCityActive ? '#0B57D0' : '#475569',
                       fontSize: 12,
                       fontWeight: 700,
                       cursor: 'pointer',
@@ -383,11 +383,11 @@ export function CityLocalityModal({
                     style={{
                       padding: '10px 14px',
                       borderRadius: 0,
-                      border: `1.5px solid ${isSelected ? '#6E42E5' : '#E2E8F0'}`,
-                      background: isSelected ? '#F5F3FF' : '#FFFFFF',
+                      border: `1.5px solid ${isSelected ? '#0B57D0' : '#E2E8F0'}`,
+                      background: isSelected ? '#E8F1FF' : '#FFFFFF',
                       fontSize: 13,
                       fontWeight: 600,
-                      color: isSelected ? '#6E42E5' : '#334155',
+                      color: isSelected ? '#0B57D0' : '#334155',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -396,7 +396,7 @@ export function CityLocalityModal({
                     }}
                   >
                     <span>{loc}</span>
-                    {isSelected && <Check size={14} color="#6E42E5" strokeWidth={3} />}
+                    {isSelected && <Check size={14} color="#0B57D0" strokeWidth={3} />}
                   </div>
                 );
               })}

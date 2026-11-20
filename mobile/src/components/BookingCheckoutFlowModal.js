@@ -1266,7 +1266,7 @@ export default function BookingCheckoutFlowModal({
                 <View
                   style={[
                     styles.radioOuter,
-                    selectedBank === b.id && { borderColor: '#5E3BEE' }
+                    selectedBank === b.id && { borderColor: '#0B57D0' }
                   ]}
                 >
                   {selectedBank === b.id && <View style={styles.radioInner} />}
@@ -1675,7 +1675,7 @@ const styles = StyleSheet.create({
     color: '#111827',
   },
   currentMonthBadge: {
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#E8F1FF',
     paddingHorizontal: 7,
     paddingVertical: 2,
     borderRadius: 4,
@@ -1683,7 +1683,7 @@ const styles = StyleSheet.create({
   currentMonthBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#5E3BEE',
+    color: '#0B57D0',
   },
   monthNavBtn: {
     width: 28,
@@ -1735,13 +1735,13 @@ const styles = StyleSheet.create({
   },
   dayCellToday: {
     borderWidth: 1.5,
-    borderColor: '#DDD6FE',
-    backgroundColor: '#FAF5FF',
+    borderColor: '#E4E7EC',
+    backgroundColor: '#E8F1FF',
   },
   dayCellSelected: {
-    backgroundColor: '#5E3BEE', // Vibrant purple matching screenshot 2
+    backgroundColor: '#0B57D0', // Vibrant purple matching screenshot 2
     borderWidth: 1.5,
-    borderColor: '#5E3BEE',
+    borderColor: '#0B57D0',
   },
   dayCellText: {
     fontSize: 12,
@@ -1752,7 +1752,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   dayCellTextToday: {
-    color: '#7C3AED',
+    color: '#0B57D0',
     fontWeight: '800',
   },
   dayCellTextSelected: {
@@ -1763,7 +1763,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#0B57D0',
     position: 'absolute',
     bottom: 3,
   },
@@ -1825,8 +1825,8 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   timeSlotCardSelected: {
-    borderColor: '#5E3BEE',
-    backgroundColor: '#FAF5FF',
+    borderColor: '#0B57D0',
+    backgroundColor: '#E8F1FF',
     borderWidth: 1.5,
   },
   timeSlotText: {
@@ -1838,7 +1838,7 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
   },
   timeSlotTextSelected: {
-    color: '#5E3BEE',
+    color: '#0B57D0',
     fontWeight: '800',
   },
   timeSlotSubText: {
@@ -1853,7 +1853,7 @@ const styles = StyleSheet.create({
   },
   stepBackLinkText: {
     fontSize: 12.5,
-    color: '#5E3BEE',
+    color: '#0B57D0',
     fontWeight: '700',
   },
   addressOuterCard: {
@@ -1892,9 +1892,9 @@ const styles = StyleSheet.create({
     color: '#059669',
   },
   addressGpsPill: {
-    backgroundColor: '#FAF5FF',
+    backgroundColor: '#E8F1FF',
     borderWidth: 1,
-    borderColor: '#DDD6FE',
+    borderColor: '#E4E7EC',
     borderRadius: 6,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -1906,29 +1906,29 @@ const styles = StyleSheet.create({
   addressGpsPillText: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#0B57D0',
   },
   addressGpsPillTextLocked: {
     color: '#059669',
   },
   gpsVerifiedBadgePill: {
-    backgroundColor: '#F5F3FF',
+    backgroundColor: '#E8F1FF',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
     borderWidth: 1,
-    borderColor: '#DDD6FE',
+    borderColor: '#E4E7EC',
     marginLeft: 6,
   },
   gpsVerifiedBadgeText: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#7C3AED',
+    color: '#0B57D0',
   },
   addressChangeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#6E42E5',
+    color: '#0B57D0',
     marginLeft: 4,
   },
   addressInnerBox: {
@@ -1949,7 +1949,7 @@ const styles = StyleSheet.create({
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: '#7C3AED',
+    borderColor: '#0B57D0',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1957,7 +1957,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#7C3AED',
+    backgroundColor: '#0B57D0',
   },
   addressTagText: {
     fontSize: 14,
@@ -2129,8 +2129,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   paymentTabBtnActive: {
-    borderColor: '#5E3BEE',
-    backgroundColor: '#FAF5FF',
+    borderColor: '#0B57D0',
+    backgroundColor: '#E8F1FF',
     borderWidth: 1.5,
   },
   // Sharp Vector Badge Icons (replacing system emojis)
@@ -2138,7 +2138,7 @@ const styles = StyleSheet.create({
     width: 24,
     height: 18,
     borderRadius: 4,
-    backgroundColor: '#5E3BEE',
+    backgroundColor: '#0B57D0',
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
@@ -2227,7 +2227,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   paymentTabTextActive: {
-    color: '#5E3BEE',
+    color: '#0B57D0',
     fontWeight: '800',
   },
   paymentFormBox: {
@@ -2262,8 +2262,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   upiAppChipActive: {
-    borderColor: '#5E3BEE',
-    backgroundColor: '#FAF5FF',
+    borderColor: '#0B57D0',
+    backgroundColor: '#E8F1FF',
     borderWidth: 1.5,
   },
   upiAppText: {
@@ -2272,7 +2272,7 @@ const styles = StyleSheet.create({
     color: '#334155',
   },
   upiAppTextActive: {
-    color: '#5E3BEE',
+    color: '#0B57D0',
     fontWeight: '800',
   },
   // Crisp Vector App Logos
@@ -2300,7 +2300,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     color: '#5F259F',
-    backgroundColor: '#EDE9FE',
+    backgroundColor: '#E8F1FF',
     width: 17,
     height: 17,
     textAlign: 'center',
@@ -2448,7 +2448,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F1F5F9',
   },
   bankRowActive: {
-    backgroundColor: '#FAF5FF',
+    backgroundColor: '#E8F1FF',
     paddingHorizontal: 8,
     borderRadius: 6,
   },
@@ -2507,7 +2507,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
   },
   couponApplyBtn: {
-    backgroundColor: '#5E3BEE',
+    backgroundColor: '#0B57D0',
     paddingHorizontal: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -2706,7 +2706,7 @@ const styles = StyleSheet.create({
   processingStatusText: {
     fontSize: 12.5,
     fontWeight: '700',
-    color: '#5E3BEE',
+    color: '#0B57D0',
     textAlign: 'center',
     marginBottom: 8,
   },

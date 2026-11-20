@@ -334,7 +334,7 @@ export function JobsView({ onNavigate, showToast }) {
         if (!newlyAssignedJob) return null;
         return (
           <div style={{
-            background: 'linear-gradient(135deg, #1E1B4B 0%, #4338CA 100%)',
+            background: 'linear-gradient(135deg, #1E1B4B 0%, #0849B1 100%)',
             color: '#FFFFFF',
             borderRadius: 14,
             padding: '16px 20px',
@@ -427,7 +427,7 @@ export function JobsView({ onNavigate, showToast }) {
         const topOffer = offers.find(o => o.remainingSeconds == null || o.remainingSeconds > 0);
         return (
           <div style={{
-            background: 'linear-gradient(135deg, #6D28D9 0%, #4F46E5 100%)',
+            background: 'linear-gradient(135deg, #0849B1 0%, #0B57D0 100%)',
             color: '#FFFFFF',
             borderRadius: 14,
             padding: '16px 20px',
@@ -534,9 +534,9 @@ export function JobsView({ onNavigate, showToast }) {
               setCurrentPage(1);
             }}
             style={{
-              background: activeTab === tab.id ? '#7c3aed' : '#f8fafc',
+              background: activeTab === tab.id ? '#0B57D0' : '#f8fafc',
               color: activeTab === tab.id ? '#ffffff' : '#475569',
-              border: `1px solid ${activeTab === tab.id ? '#7c3aed' : '#cbd5e1'}`,
+              border: `1px solid ${activeTab === tab.id ? '#0B57D0' : '#cbd5e1'}`,
               padding: '8px 16px',
               borderRadius: 8,
               fontSize: 13,
@@ -550,8 +550,8 @@ export function JobsView({ onNavigate, showToast }) {
             <span>{tab.label}</span>
             {tab.badge && (
               <span style={{
-                background: activeTab === tab.id ? '#ffffff' : '#7c3aed',
-                color: activeTab === tab.id ? '#7c3aed' : '#ffffff',
+                background: activeTab === tab.id ? '#ffffff' : '#0B57D0',
+                color: activeTab === tab.id ? '#0B57D0' : '#ffffff',
                 fontSize: 10,
                 padding: '2px 6px',
                 borderRadius: 10,
@@ -775,7 +775,7 @@ export function JobsView({ onNavigate, showToast }) {
                 background: '#ffffff',
                 borderRadius: 14,
                 border: job.status === 'In Progress' ? '2px solid #059669' :
-                  job.status === 'Arrived' ? '2px solid #7c3aed' :
+                  job.status === 'Arrived' ? '2px solid #0B57D0' :
                   job.status === 'En Route' ? '2px solid #d97706' : '1px solid #e2e8f0',
                 padding: '20px 24px',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.04)',
@@ -794,11 +794,11 @@ export function JobsView({ onNavigate, showToast }) {
                     <span style={{
                       background: job.status === 'Completed' ? '#ecfdf5' :
                         job.status === 'In Progress' ? '#dbeafe' :
-                        job.status === 'Arrived' ? '#ede9fe' :
+                        job.status === 'Arrived' ? '#E8F1FF' :
                         job.status === 'En Route' ? '#fef3c7' : '#f1f5f9',
                       color: job.status === 'Completed' ? '#059669' :
                         job.status === 'In Progress' ? '#1e40af' :
-                        job.status === 'Arrived' ? '#6b21a8' :
+                        job.status === 'Arrived' ? '#0B57D0' :
                         job.status === 'En Route' ? '#92400e' : '#475569',
                       padding: '3px 10px',
                       borderRadius: 12,
@@ -898,7 +898,7 @@ export function JobsView({ onNavigate, showToast }) {
                     type="button"
                     onClick={() => setSelectedChatJob(job)}
                     style={{
-                      background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                      background: 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)',
                       color: '#ffffff',
                       border: 'none',
                       padding: '8px 14px',
@@ -909,7 +909,7 @@ export function JobsView({ onNavigate, showToast }) {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 6,
-                      boxShadow: '0 2px 6px rgba(79, 70, 229, 0.25)'
+                      boxShadow: '0 2px 6px rgba(11, 87, 208, 0.25)'
                     }}
                   >
                     💬 Chat
@@ -961,7 +961,7 @@ export function JobsView({ onNavigate, showToast }) {
                     <button
                       onClick={() => handleLifecycleTransition(job, 'Arrived')}
                       style={{
-                        background: '#7c3aed',
+                        background: '#0B57D0',
                         color: '#ffffff',
                         border: 'none',
                         padding: '9px 18px',
@@ -1217,8 +1217,8 @@ export function JobsView({ onNavigate, showToast }) {
                     gap: 10,
                     padding: '10px 12px',
                     borderRadius: 8,
-                    background: declineReason === opt.key ? '#faf5ff' : '#f8fafc',
-                    border: `1px solid ${declineReason === opt.key ? '#c084fc' : '#e2e8f0'}`,
+                    background: declineReason === opt.key ? '#E8F1FF' : '#f8fafc',
+                    border: `1px solid ${declineReason === opt.key ? '#E8F1FF' : '#e2e8f0'}`,
                     cursor: 'pointer',
                     fontSize: 13,
                     color: '#1e293b'

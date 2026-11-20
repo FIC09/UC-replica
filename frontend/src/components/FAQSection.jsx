@@ -16,7 +16,7 @@ export function FAQSection() {
           <span style={{
             fontSize: 12,
             fontWeight: 800,
-            color: '#6E42E5',
+            color: '#0B57D0',
             textTransform: 'uppercase',
             letterSpacing: 1
           }}>
@@ -43,7 +43,7 @@ export function FAQSection() {
               <div key={index} className={`faq-item ${isOpen ? 'open' : ''}`}>
                 <div className="faq-header" onClick={() => toggleFaq(index)}>
                   <span className="faq-question">{faq.q}</span>
-                  {isOpen ? <ChevronUp size={18} color="#6E42E5" /> : <ChevronDown size={18} color="#64748B" />}
+                  {isOpen ? <ChevronUp size={18} color="#0B57D0" /> : <ChevronDown size={18} color="#64748B" />}
                 </div>
                 {isOpen && (
                   <div className="faq-body">

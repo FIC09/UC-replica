@@ -183,8 +183,8 @@ export function ServiceDetailModal({
                       width: 24,
                       height: 24,
                       borderRadius: 0,
-                      background: '#F4F0FF',
-                      color: '#6E42E5',
+                      background: '#E8F1FF',
+                      color: '#0B57D0',
                       fontSize: 12,
                       fontWeight: 800,
                       display: 'flex',
@@ -203,7 +203,7 @@ export function ServiceDetailModal({
 
           {/* Forge India Connect Promise Card */}
           <div style={{
-            background: 'linear-gradient(135deg, #F8FAFC 0%, #EEF2FF 100%)',
+            background: 'linear-gradient(135deg, #F8FAFC 0%, #E8F1FF 100%)',
             border: '1px solid #E0E7FF',
             borderRadius: 0,
             padding: 16,
@@ -211,12 +211,12 @@ export function ServiceDetailModal({
             alignItems: 'center',
             gap: 12
           }}>
-            <ShieldCheck size={28} color="#6E42E5" style={{ flexShrink: 0 }} />
+            <ShieldCheck size={28} color="#0B57D0" style={{ flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: 13.5, fontWeight: 800, color: '#1E1B4B' }}>
                 Forge India Connect 30-Day Assurance
               </div>
-              <div style={{ fontSize: 12, color: '#4338CA', lineHeight: 1.35 }}>
+              <div style={{ fontSize: 12, color: '#0849B1', lineHeight: 1.35 }}>
                 100% verified professionals, single-use sanitary packaging, and free re-work if not completely satisfied.
               </div>
             </div>
@@ -248,9 +248,9 @@ export function ServiceDetailModal({
                     style={{
                       padding: '7px 14px',
                       borderRadius: 0,
-                      background: '#F4F0FF',
+                      background: '#E8F1FF',
                       border: '1px solid #E4DAFF',
-                      color: '#6E42E5',
+                      color: '#0B57D0',
                       fontSize: 12.5,
                       fontWeight: 700,
                       display: 'flex',

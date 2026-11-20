@@ -865,7 +865,7 @@ export function ElectricianPlumberCarpenterModal({
                       style={{
                         background: 'transparent',
                         border: 'none',
-                        color: '#6E42E5',
+                        color: '#0B57D0',
                         fontSize: 12,
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -971,9 +971,9 @@ export function ElectricianPlumberCarpenterModal({
                             borderRadius: 999,
                             fontSize: 11.5,
                             fontWeight: isActive ? 700 : 500,
-                            border: isActive ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
-                            background: isActive ? '#F5F3FF' : '#FFFFFF',
-                            color: isActive ? '#6E42E5' : '#475569',
+                            border: isActive ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
+                            background: isActive ? '#E8F1FF' : '#FFFFFF',
+                            color: isActive ? '#0B57D0' : '#475569',
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
                             transition: 'all 0.15s'
@@ -1038,9 +1038,9 @@ export function ElectricianPlumberCarpenterModal({
                               display: 'inline-block',
                               fontSize: 9.5,
                               fontWeight: 800,
-                              color: '#6E42E5',
-                              background: '#F5F3FF',
-                              border: '1px solid #DDD6FE',
+                              color: '#0B57D0',
+                              background: '#E8F1FF',
+                              border: '1px solid #E4E7EC',
                               padding: '2px 6px',
                               borderRadius: 4,
                               marginBottom: 4,
@@ -1116,7 +1116,7 @@ export function ElectricianPlumberCarpenterModal({
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              background: '#6E42E5',
+                              background: '#0B57D0',
                               color: '#FFFFFF',
                               borderRadius: 8,
                               padding: '3px 8px',
@@ -1163,8 +1163,8 @@ export function ElectricianPlumberCarpenterModal({
                                 width: 84,
                                 padding: '5px 0',
                                 background: '#FFFFFF',
-                                color: '#6E42E5',
-                                border: '1.5px solid #6E42E5',
+                                color: '#0B57D0',
+                                border: '1.5px solid #0B57D0',
                                 borderRadius: 8,
                                 fontSize: 12,
                                 fontWeight: 800,
@@ -1173,12 +1173,12 @@ export function ElectricianPlumberCarpenterModal({
                                 textAlign: 'center'
                               }}
                               onMouseEnter={e => {
-                                e.currentTarget.style.background = '#6E42E5';
+                                e.currentTarget.style.background = '#0B57D0';
                                 e.currentTarget.style.color = '#FFFFFF';
                               }}
                               onMouseLeave={e => {
                                 e.currentTarget.style.background = '#FFFFFF';
-                                e.currentTarget.style.color = '#6E42E5';
+                                e.currentTarget.style.color = '#0B57D0';
                               }}
                             >
                               Add +
@@ -1214,7 +1214,7 @@ export function ElectricianPlumberCarpenterModal({
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
-                      <ShoppingBag size={15} color="#A78BFA" />
+                      <ShoppingBag size={15} color="#0B57D0" />
                     </div>
                     <div>
                       <div style={{ fontSize: 12, fontWeight: 700 }}>
@@ -1233,7 +1233,7 @@ export function ElectricianPlumberCarpenterModal({
                       if (onOpenCart) onOpenCart();
                     }}
                     style={{
-                      background: '#6E42E5',
+                      background: '#0B57D0',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: 8,

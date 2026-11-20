@@ -580,7 +580,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
           style={{
             background: stage === 6
               ? 'linear-gradient(135deg, #059669 0%, #10B981 100%)'
-              : 'linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #4C1D95 100%)',
+              : 'linear-gradient(135deg, #1E1B4B 0%, #312E81 50%, #0B57D0 100%)',
             color: '#FFFFFF',
             padding: '16px 22px',
             position: 'relative',
@@ -678,7 +678,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
             {!hasAssignedPro ? (
               <div style={{
                 padding: '16px 20px',
-                background: assignmentStatus === 'AWAITING_OWNER_ATTENTION' ? '#FEF2F2' : '#F5F3FF',
+                background: assignmentStatus === 'AWAITING_OWNER_ATTENTION' ? '#FEF2F2' : '#E8F1FF',
                 borderBottom: '1px solid #E2E8F0',
                 flexShrink: 0
               }}>
@@ -687,8 +687,8 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
                     width: 44,
                     height: 44,
                     borderRadius: '50%',
-                    backgroundColor: assignmentStatus === 'AWAITING_OWNER_ATTENTION' ? '#FEE2E2' : '#EDE9FE',
-                    color: assignmentStatus === 'AWAITING_OWNER_ATTENTION' ? '#DC2626' : '#7C3AED',
+                    backgroundColor: assignmentStatus === 'AWAITING_OWNER_ATTENTION' ? '#FEE2E2' : '#E8F1FF',
+                    color: assignmentStatus === 'AWAITING_OWNER_ATTENTION' ? '#DC2626' : '#0B57D0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -782,7 +782,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
                           height: 46,
                           borderRadius: '50%',
                           objectFit: 'cover',
-                          border: '2px solid #6E42E5'
+                          border: '2px solid #0B57D0'
                         }}
                       />
                     ) : (
@@ -791,15 +791,15 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
                           width: 46,
                           height: 46,
                           borderRadius: '50%',
-                          background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                          background: 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)',
                           color: '#FFFFFF',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           fontSize: 16,
                           fontWeight: 800,
-                          border: '2px solid #6E42E5',
-                          boxShadow: '0 2px 8px rgba(110, 66, 229, 0.25)',
+                          border: '2px solid #0B57D0',
+                          boxShadow: '0 2px 8px rgba(11, 87, 208, 0.25)',
                           letterSpacing: 0.5
                         }}
                       >
@@ -924,10 +924,10 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
                   padding: '10px 0',
                   fontSize: 12.5,
                   fontWeight: activeTab === 'tracker' ? 800 : 600,
-                  color: activeTab === 'tracker' ? '#6E42E5' : '#64748B',
+                  color: activeTab === 'tracker' ? '#0B57D0' : '#64748B',
                   background: 'none',
                   border: 'none',
-                  borderBottom: activeTab === 'tracker' ? '2px solid #6E42E5' : '2px solid transparent',
+                  borderBottom: activeTab === 'tracker' ? '2px solid #0B57D0' : '2px solid transparent',
                   cursor: 'pointer'
                 }}
               >
@@ -941,10 +941,10 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
                   padding: '10px 0',
                   fontSize: 12.5,
                   fontWeight: activeTab === 'invoice' ? 800 : 600,
-                  color: activeTab === 'invoice' ? '#6E42E5' : '#64748B',
+                  color: activeTab === 'invoice' ? '#0B57D0' : '#64748B',
                   background: 'none',
                   border: 'none',
-                  borderBottom: activeTab === 'invoice' ? '2px solid #6E42E5' : '2px solid transparent',
+                  borderBottom: activeTab === 'invoice' ? '2px solid #0B57D0' : '2px solid transparent',
                   cursor: 'pointer'
                 }}
               >
@@ -966,22 +966,22 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
                   {/* --- REAL-TIME STATUS HERO CARD --- */}
                   {stage === 3 && (
                     <div style={{
-                      background: 'linear-gradient(135deg, #F5F3FF 0%, #EDE9FE 100%)',
+                      background: 'linear-gradient(135deg, #E8F1FF 0%, #E8F1FF 100%)',
                       borderRadius: 14,
                       padding: 16,
-                      border: '1px solid #DDD6FE'
+                      border: '1px solid #E4E7EC'
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span style={{ fontSize: 20 }}>🛵</span>
-                          <strong style={{ fontSize: 14, color: '#5B21B6' }}>
+                          <strong style={{ fontSize: 14, color: '#0849B1' }}>
                             Partner On The Way
                           </strong>
                         </div>
                         <div style={{
                           fontSize: 13,
                           fontWeight: 800,
-                          color: '#6D28D9',
+                          color: '#0849B1',
                           background: '#FFFFFF',
                           padding: '3px 10px',
                           borderRadius: 20,
@@ -991,32 +991,32 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
                         </div>
                       </div>
 
-                      <p style={{ fontSize: 12, color: '#6B21A8', margin: '0 0 10px 0' }}>
+                      <p style={{ fontSize: 12, color: '#0B57D0', margin: '0 0 10px 0' }}>
                         Estimated arrival at <strong>{booking.address ? booking.address.split(',')[1] || booking.address.split(',')[0] : 'your location'}</strong> ({distanceKm} km away)
                       </p>
 
                       {/* Animated Route Progress Bar */}
-                      <div style={{ position: 'relative', width: '100%', height: 8, background: '#DDD6FE', borderRadius: 4, overflow: 'hidden' }}>
+                      <div style={{ position: 'relative', width: '100%', height: 8, background: '#E4E7EC', borderRadius: 4, overflow: 'hidden' }}>
                         <div style={{
                           position: 'absolute',
                           left: 0,
                           top: 0,
                           bottom: 0,
                           width: `${routeProgressPercent}%`,
-                          background: 'linear-gradient(90deg, #7C3AED 0%, #A855F7 100%)',
+                          background: 'linear-gradient(90deg, #0B57D0 0%, #A855F7 100%)',
                           borderRadius: 4,
                           transition: 'width 0.5s ease'
                         }} />
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: '#7C3AED', marginTop: 4, fontWeight: 600 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: '#0B57D0', marginTop: 4, fontWeight: 600 }}>
                         <span>Dispatched</span>
                         <span>{routeProgressPercent}% completed</span>
                         <span>Doorstep</span>
                       </div>
 
                       {/* Live GPS stream status */}
-                      <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(124, 58, 237, 0.15)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#6D28D9', fontWeight: 600 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', marginTop: 12, paddingTop: 10, borderTop: '1px solid rgba(11, 87, 208, 0.15)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: '#0849B1', fontWeight: 600 }}>
                           <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
                           <span>Live GPS Stream Connected</span>
                         </div>
@@ -1403,22 +1403,22 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
                           width: 26,
                           height: 26,
                           borderRadius: '50%',
-                          background: stage >= 3 ? '#6E42E5' : '#E2E8F0',
+                          background: stage >= 3 ? '#0B57D0' : '#E2E8F0',
                           color: stage >= 3 ? '#FFFFFF' : '#94A3B8',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexShrink: 0,
-                          boxShadow: stage === 3 ? '0 0 0 4px rgba(110, 66, 229, 0.2)' : 'none'
+                          boxShadow: stage === 3 ? '0 0 0 4px rgba(11, 87, 208, 0.2)' : 'none'
                         }}>
                           <Clock size={15} />
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: stage >= 3 ? '#6E42E5' : '#0F172A' }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: stage >= 3 ? '#0B57D0' : '#0F172A' }}>
                               Partner On The Way 🛵
                             </span>
-                            <span style={{ fontSize: 11, color: stage === 3 ? '#6E42E5' : stage > 3 ? '#059669' : '#94A3B8', fontWeight: 700 }}>
+                            <span style={{ fontSize: 11, color: stage === 3 ? '#0B57D0' : stage > 3 ? '#059669' : '#94A3B8', fontWeight: 700 }}>
                               {stage === 3 ? `${formatTime(etaSeconds)}` : stage > 3 ? 'Arrived' : 'Upcoming'}
                             </span>
                           </div>
@@ -1500,12 +1500,12 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
                     color: '#475569'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <MapPin size={14} color="#6E42E5" />
+                      <MapPin size={14} color="#0B57D0" />
                       <strong style={{ color: '#0F172A' }}>Service Location:</strong>
                     </div>
                     <div style={{ paddingLeft: 20 }}>{booking.address}</div>
                     {booking.notes && (
-                      <div style={{ paddingLeft: 20, marginTop: 4, color: '#7C3AED', fontWeight: 600 }}>
+                      <div style={{ paddingLeft: 20, marginTop: 4, color: '#0B57D0', fontWeight: 600 }}>
                         Note: {booking.notes}
                       </div>
                     )}
@@ -1578,7 +1578,7 @@ export function OrderTrackingModal({ booking, onClose, onUpdateBookingStatus, on
                   padding: '11px',
                   fontSize: 13.5,
                   fontWeight: 800,
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 9,

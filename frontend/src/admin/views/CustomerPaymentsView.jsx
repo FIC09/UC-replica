@@ -261,12 +261,12 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
               padding: '8px 16px',
               borderRadius: 10,
               border: 'none',
-              backgroundColor: '#4F46E5',
+              backgroundColor: '#0B57D0',
               color: '#FFFFFF',
               fontSize: 13,
               fontWeight: 700,
               cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(79, 70, 229, 0.25)',
+              boxShadow: '0 2px 8px rgba(11, 87, 208, 0.25)',
               transition: 'background-color 0.15s ease'
             }}
           >
@@ -368,18 +368,18 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
           gap: 6
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#6366F1', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0', textTransform: 'uppercase', letterSpacing: 0.5 }}>
               Customer Promo Savings
             </span>
             <span style={{
               width: 28,
               height: 28,
               borderRadius: 8,
-              backgroundColor: '#EEF2FF',
+              backgroundColor: '#E8F1FF',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: '#6366F1'
+              color: '#0B57D0'
             }}>
               <Tag size={16} />
             </span>
@@ -498,9 +498,9 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
                   borderRadius: 8,
                   fontSize: 12,
                   fontWeight: statusFilter === st ? 700 : 500,
-                  border: statusFilter === st ? '1px solid #4F46E5' : '1px solid #E2E8F0',
-                  backgroundColor: statusFilter === st ? '#EEF2FF' : '#FFFFFF',
-                  color: statusFilter === st ? '#4F46E5' : '#475569',
+                  border: statusFilter === st ? '1px solid #0B57D0' : '1px solid #E2E8F0',
+                  backgroundColor: statusFilter === st ? '#E8F1FF' : '#FFFFFF',
+                  color: statusFilter === st ? '#0B57D0' : '#475569',
                   cursor: 'pointer'
                 }}
               >
@@ -563,9 +563,9 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
                   borderRadius: 6,
                   fontSize: 11.5,
                   fontWeight: dateFilter === d.id ? 700 : 500,
-                  border: dateFilter === d.id ? '1px solid #6366F1' : '1px solid #E2E8F0',
-                  backgroundColor: dateFilter === d.id ? '#EEF2FF' : '#FFFFFF',
-                  color: dateFilter === d.id ? '#4F46E5' : '#475569',
+                  border: dateFilter === d.id ? '1px solid #0B57D0' : '1px solid #E2E8F0',
+                  backgroundColor: dateFilter === d.id ? '#E8F1FF' : '#FFFFFF',
+                  color: dateFilter === d.id ? '#0B57D0' : '#475569',
                   cursor: 'pointer'
                 }}
               >
@@ -593,7 +593,7 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
           backgroundColor: '#F8FAFC'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Receipt size={16} color="#4F46E5" />
+            <Receipt size={16} color="#0B57D0" />
             <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>
               Customer Transactions Ledger
             </span>
@@ -619,7 +619,7 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
             <div style={{
               width: 24,
               height: 24,
-              border: '3px solid #4F46E5',
+              border: '3px solid #0B57D0',
               borderTopColor: 'transparent',
               borderRadius: '50%',
               margin: '0 auto 12px',
@@ -687,7 +687,7 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
                               <Copy size={12} />
                             </button>
                           </div>
-                          <div style={{ fontSize: 11, color: '#6366F1', fontWeight: 600, marginTop: 2 }}>
+                          <div style={{ fontSize: 11, color: '#0B57D0', fontWeight: 600, marginTop: 2 }}>
                             {p.bookingId}
                           </div>
                         </td>
@@ -765,11 +765,11 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
                             borderRadius: 12,
                             fontSize: 11,
                             fontWeight: 700,
-                            backgroundColor: isPaid ? '#ECFDF5' : (isPending ? '#FFFBEB' : (isRefunded ? '#F5F3FF' : '#FEF2F2')),
-                            color: isPaid ? '#065F46' : (isPending ? '#B45309' : (isRefunded ? '#6D28D9' : '#991B1B')),
-                            border: `1px solid ${isPaid ? '#A7F3D0' : (isPending ? '#FDE68A' : (isRefunded ? '#DDD6FE' : '#FECACA'))}`
+                            backgroundColor: isPaid ? '#ECFDF5' : (isPending ? '#FFFBEB' : (isRefunded ? '#E8F1FF' : '#FEF2F2')),
+                            color: isPaid ? '#065F46' : (isPending ? '#B45309' : (isRefunded ? '#0849B1' : '#991B1B')),
+                            border: `1px solid ${isPaid ? '#A7F3D0' : (isPending ? '#FDE68A' : (isRefunded ? '#E4E7EC' : '#FECACA'))}`
                           }}>
-                            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: isPaid ? '#10B981' : (isPending ? '#F59E0B' : (isRefunded ? '#8B5CF6' : '#EF4444')) }} />
+                            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: isPaid ? '#10B981' : (isPending ? '#F59E0B' : (isRefunded ? '#0B57D0' : '#EF4444')) }} />
                             {p.paymentStatus}
                           </span>
                         </td>
@@ -795,7 +795,7 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
                               borderRadius: 6,
                               border: '1px solid #CBD5E1',
                               backgroundColor: '#FFFFFF',
-                              color: '#4F46E5',
+                              color: '#0B57D0',
                               fontSize: 11.5,
                               fontWeight: 700,
                               cursor: 'pointer',
@@ -839,7 +839,7 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: '#6366F1' }}>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: '#0B57D0' }}>
                         {p.bookingId}
                       </span>
                       <span style={{
@@ -877,7 +877,7 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
                       color: '#64748B'
                     }}>
                       <span>{p.paymentMethod}</span>
-                      <span style={{ color: '#4F46E5', fontWeight: 700 }}>View Receipt & Breakdown →</span>
+                      <span style={{ color: '#0B57D0', fontWeight: 700 }}>View Receipt & Breakdown →</span>
                     </div>
                   </div>
                 );
@@ -926,7 +926,7 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
                   width: 32,
                   height: 32,
                   borderRadius: 8,
-                  backgroundColor: '#4F46E5',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   display: 'flex',
                   alignItems: 'center',
@@ -986,7 +986,7 @@ export function CustomerPaymentsView({ onShowToast, onNavigate }) {
                   <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>
                     ₹{selectedPayment.financials?.totalAmount?.toLocaleString('en-IN')}
                   </div>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: '#4F46E5' }}>{selectedPayment.paymentMethod}</span>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#0B57D0' }}>{selectedPayment.paymentMethod}</span>
                 </div>
               </div>
 

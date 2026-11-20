@@ -171,7 +171,7 @@ export function DocumentsView({ showToast, staff }) {
               alignItems: 'center',
               gap: 8,
               padding: '9px 18px',
-              background: '#7c3aed',
+              background: '#0B57D0',
               color: '#fff',
               border: 'none',
               borderRadius: 8,
@@ -212,7 +212,7 @@ export function DocumentsView({ showToast, staff }) {
               borderRadius: 6,
               fontSize: 13,
               fontWeight: selectedCategory === cat ? 700 : 500,
-              background: selectedCategory === cat ? '#7c3aed' : '#ffffff',
+              background: selectedCategory === cat ? '#0B57D0' : '#ffffff',
               color: selectedCategory === cat ? '#ffffff' : '#64748b',
               border: '1px solid #cbd5e1',
               cursor: 'pointer'
@@ -259,8 +259,8 @@ export function DocumentsView({ showToast, staff }) {
                     width: 44,
                     height: 44,
                     borderRadius: 10,
-                    background: '#ede9fe',
-                    color: '#7c3aed',
+                    background: '#E8F1FF',
+                    color: '#0B57D0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -434,7 +434,7 @@ export function DocumentsView({ showToast, staff }) {
                 <button
                   type="submit"
                   disabled={uploading}
-                  style={{ flex: 1, padding: '10px', background: '#7c3aed', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ flex: 1, padding: '10px', background: '#0B57D0', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
                 >
                   {uploading ? 'Uploading...' : 'Submit for Review'}
                 </button>

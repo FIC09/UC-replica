@@ -306,10 +306,10 @@ export async function getOverviewDashboardMetrics(req, res) {
     });
     const statusColors = {
       'Completed': '#16A34A',
-      'Confirmed': '#6E42E5',
+      'Confirmed': '#0B57D0',
       'In Progress': '#0284C7',
-      'En Route': '#3B82F6',
-      'Assigned': '#8B5CF6',
+      'En Route': '#0B57D0',
+      'Assigned': '#0849B1',
       'Pending': '#F59E0B',
       'Cancelled': '#DC2626'
     };
@@ -317,7 +317,7 @@ export async function getOverviewDashboardMetrics(req, res) {
       status,
       count: statusCounts[status],
       percentage: Number(((statusCounts[status] / (periodBookings.length || 1)) * 100).toFixed(1)),
-      color: statusColors[status] || '#64748B'
+      color: statusColors[status] || '#667085'
     })).sort((a, b) => b.count - a.count);
 
     // 7. Top Service Categories (Dynamically calculated)
@@ -329,7 +329,7 @@ export async function getOverviewDashboardMetrics(req, res) {
       catMap[cat].revenue += (Number(b.totalAmount) || 0);
     });
     const totalCatRevenue = Object.values(catMap).reduce((s, c) => s + c.revenue, 0) || 1;
-    const catColors = ['#6E42E5', '#0284C7', '#16A34A', '#F59E0B', '#EC4899', '#8B5CF6'];
+    const catColors = ['#0B57D0', '#0284C7', '#16A34A', '#F59E0B', '#EC4899', '#0849B1'];
     const topCategories = Object.keys(catMap).map((catName, idx) => {
       const niceName = {
         'salon-women': 'Salon for Women',

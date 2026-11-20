@@ -165,7 +165,7 @@ export function ContentView({ onShowToast }) {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            backgroundColor: '#6E42E5',
+            backgroundColor: '#0B57D0',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: 8,
@@ -173,7 +173,7 @@ export function ContentView({ onShowToast }) {
             fontSize: 13,
             fontWeight: 700,
             cursor: saving ? 'not-allowed' : 'pointer',
-            boxShadow: '0 2px 6px rgba(110, 66, 229, 0.25)'
+            boxShadow: '0 2px 6px rgba(11, 87, 208, 0.25)'
           }}
         >
           <Save size={16} />
@@ -210,8 +210,8 @@ export function ContentView({ onShowToast }) {
                 padding: '8px 16px',
                 borderRadius: 8,
                 border: 'none',
-                backgroundColor: isActive ? '#F5F3FF' : 'transparent',
-                color: isActive ? '#6E42E5' : '#64748B',
+                backgroundColor: isActive ? '#E8F1FF' : 'transparent',
+                color: isActive ? '#0B57D0' : '#64748B',
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: 'pointer'

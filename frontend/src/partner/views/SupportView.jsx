@@ -181,7 +181,7 @@ export function SupportView({ showToast, staff }) {
             alignItems: 'center',
             gap: 8,
             padding: '9px 18px',
-            background: '#7c3aed',
+            background: '#0B57D0',
             color: '#fff',
             border: 'none',
             borderRadius: 8,
@@ -196,10 +196,10 @@ export function SupportView({ showToast, staff }) {
 
       {/* Emergency Field Hotline Banner */}
       <div style={{
-        background: 'linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%)',
+        background: 'linear-gradient(135deg, #E8F1FF 0%, #E8F1FF 100%)',
         borderRadius: 12,
         padding: '16px 20px',
-        border: '1px solid #ddd6fe',
+        border: '1px solid #E4E7EC',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -207,7 +207,7 @@ export function SupportView({ showToast, staff }) {
         gap: 14
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 42, height: 42, borderRadius: 10, background: '#7c3aed', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 10, background: '#0B57D0', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <PhoneCall size={20} />
           </div>
           <div>
@@ -222,7 +222,7 @@ export function SupportView({ showToast, staff }) {
         <a
           href="tel:+9118002081122"
           style={{
-            background: '#7c3aed',
+            background: '#0B57D0',
             color: '#fff',
             textDecoration: 'none',
             padding: '9px 18px',
@@ -247,7 +247,7 @@ export function SupportView({ showToast, staff }) {
                 borderRadius: 6,
                 fontSize: 12.5,
                 fontWeight: statusFilter === st ? 700 : 500,
-                background: statusFilter === st ? '#7c3aed' : '#ffffff',
+                background: statusFilter === st ? '#0B57D0' : '#ffffff',
                 color: statusFilter === st ? '#ffffff' : '#64748b',
                 border: '1px solid #cbd5e1',
                 cursor: 'pointer'
@@ -311,7 +311,7 @@ export function SupportView({ showToast, staff }) {
                     {tck.linkedEntity && (
                       <>
                         <span>•</span>
-                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#7c3aed', fontWeight: 600 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#0B57D0', fontWeight: 600 }}>
                           <LinkIcon size={12} /> {tck.linkedEntity.type}: {tck.linkedEntity.id}
                         </span>
                       </>
@@ -421,7 +421,7 @@ export function SupportView({ showToast, staff }) {
                   Ticket #{selectedTicket.id} • Category: <strong>{selectedTicket.category}</strong> • Priority: <strong>{selectedTicket.priority}</strong>
                 </div>
                 {selectedTicket.linkedEntity && (
-                  <div style={{ fontSize: 12, color: '#7c3aed', marginTop: 3, fontWeight: 600 }}>
+                  <div style={{ fontSize: 12, color: '#0B57D0', marginTop: 3, fontWeight: 600 }}>
                     Linked Context: {selectedTicket.linkedEntity.type} #{selectedTicket.linkedEntity.id}
                   </div>
                 )}
@@ -434,7 +434,7 @@ export function SupportView({ showToast, staff }) {
 
             {/* Privacy Guarantee Banner */}
             <div style={{ background: '#f8fafc', padding: '10px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: '#475569' }}>
-              <Lock size={14} color="#7c3aed" />
+              <Lock size={14} color="#0B57D0" />
               <span>
                 <strong>Confidential Channel:</strong> All visible messages are business-facing. Platform internal desk notes are strictly partitioned and non-accessible to partner accounts.
               </span>
@@ -442,11 +442,11 @@ export function SupportView({ showToast, staff }) {
 
             {/* Evidence Attachments if any */}
             {selectedTicket.evidence && selectedTicket.evidence.length > 0 && (
-              <div style={{ padding: '12px 24px', background: '#faf5ff', borderBottom: '1px solid #f3e8ff', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Paperclip size={14} color="#7c3aed" />
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#6b21a8' }}>Attached Evidence:</span>
+              <div style={{ padding: '12px 24px', background: '#E8F1FF', borderBottom: '1px solid #E8F1FF', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Paperclip size={14} color="#0B57D0" />
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#0B57D0' }}>Attached Evidence:</span>
                 {selectedTicket.evidence.map((ev, idx) => (
-                  <span key={idx} style={{ fontSize: 12, color: '#581c87', background: '#ede9fe', padding: '2px 8px', borderRadius: 4 }}>
+                  <span key={idx} style={{ fontSize: 12, color: '#581c87', background: '#E8F1FF', padding: '2px 8px', borderRadius: 4 }}>
                     {typeof ev === 'string' ? ev : ev.name || 'File proof'}
                   </span>
                 ))}
@@ -468,13 +468,13 @@ export function SupportView({ showToast, staff }) {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: '#64748b' }}>
-                      <strong style={{ color: isPartner ? '#7c3aed' : '#0f172a' }}>{msg.sender === 'Super Admin' ? 'Admin' : msg.sender}</strong>
+                      <strong style={{ color: isPartner ? '#0B57D0' : '#0f172a' }}>{msg.sender === 'Super Admin' ? 'Admin' : msg.sender}</strong>
                       <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' })}</span>
                     </div>
 
                     <div style={{
-                      background: isPartner ? '#f5f3ff' : '#f8fafc',
-                      border: isPartner ? '1px solid #ddd6fe' : '1px solid #e2e8f0',
+                      background: isPartner ? '#E8F1FF' : '#f8fafc',
+                      border: isPartner ? '1px solid #E4E7EC' : '1px solid #e2e8f0',
                       borderRadius: 12,
                       padding: '12px 16px',
                       maxWidth: '85%',
@@ -506,7 +506,7 @@ export function SupportView({ showToast, staff }) {
                   alignItems: 'center',
                   gap: 6,
                   padding: '10px 18px',
-                  background: '#7c3aed',
+                  background: '#0B57D0',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 8,
@@ -663,7 +663,7 @@ export function SupportView({ showToast, staff }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ flex: 1, padding: '10px', background: '#7c3aed', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ flex: 1, padding: '10px', background: '#0B57D0', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
                 >
                   {submitting ? 'Submitting...' : 'Submit Ticket'}
                 </button>

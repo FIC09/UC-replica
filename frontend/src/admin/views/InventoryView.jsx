@@ -177,8 +177,8 @@ export function InventoryView({ onShowToast }) {
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              color: activeTab === 'inventory' ? '#6E42E5' : '#64748B',
-              borderBottom: activeTab === 'inventory' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+              color: activeTab === 'inventory' ? '#0B57D0' : '#64748B',
+              borderBottom: activeTab === 'inventory' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
               display: 'flex',
               alignItems: 'center',
               gap: 8
@@ -190,8 +190,8 @@ export function InventoryView({ onShowToast }) {
               fontSize: 11,
               padding: '1px 6px',
               borderRadius: 10,
-              backgroundColor: activeTab === 'inventory' ? '#F3E8FF' : '#F1F5F9',
-              color: activeTab === 'inventory' ? '#6E42E5' : '#64748B'
+              backgroundColor: activeTab === 'inventory' ? '#E8F1FF' : '#F1F5F9',
+              color: activeTab === 'inventory' ? '#0B57D0' : '#64748B'
             }}>
               {items.length}
             </span>
@@ -207,8 +207,8 @@ export function InventoryView({ onShowToast }) {
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              color: activeTab === 'supply-orders' ? '#6E42E5' : '#64748B',
-              borderBottom: activeTab === 'supply-orders' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+              color: activeTab === 'supply-orders' ? '#0B57D0' : '#64748B',
+              borderBottom: activeTab === 'supply-orders' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
               display: 'flex',
               alignItems: 'center',
               gap: 8
@@ -390,7 +390,7 @@ export function InventoryView({ onShowToast }) {
                             padding: '5px 10px',
                             borderRadius: 6,
                             border: 'none',
-                            backgroundColor: '#6E42E5',
+                            backgroundColor: '#0B57D0',
                             fontSize: 12,
                             fontWeight: 700,
                             color: '#FFFFFF',
@@ -436,13 +436,13 @@ export function InventoryView({ onShowToast }) {
                 {supplyOrders.map(o => (
                   <tr key={o.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                     <td style={{ padding: '14px 18px' }}>
-                      <div style={{ fontWeight: 800, color: '#6E42E5' }}>{o.orderNumber}</div>
+                      <div style={{ fontWeight: 800, color: '#0B57D0' }}>{o.orderNumber}</div>
                       <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 2 }}>{o.targetHub}</div>
                     </td>
 
                     <td style={{ padding: '14px 18px' }}>
                       <div style={{ fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
-                        {o.beneficiaryRole === 'Business Partner Agency' ? <Building2 size={14} color="#6E42E5" /> : <HardHat size={14} color="#059669" />}
+                        {o.beneficiaryRole === 'Business Partner Agency' ? <Building2 size={14} color="#0B57D0" /> : <HardHat size={14} color="#059669" />}
                         <span>{o.requestedBy}</span>
                       </div>
                       <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>{o.beneficiaryRole}</div>
@@ -538,7 +538,7 @@ export function InventoryView({ onShowToast }) {
               justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Package size={18} color="#6E42E5" />
+                <Package size={18} color="#0B57D0" />
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
                   Adjust Stock Level: {adjustModalItem.sku}
                 </h3>
@@ -628,7 +628,7 @@ export function InventoryView({ onShowToast }) {
                     padding: '8px 18px',
                     borderRadius: 8,
                     border: 'none',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     fontWeight: 700,
                     cursor: adjusting || adjustModalItem.currentStock + (parseInt(adjustDelta, 10) || 0) < 0 ? 'not-allowed' : 'pointer'

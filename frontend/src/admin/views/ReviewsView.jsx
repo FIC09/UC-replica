@@ -245,17 +245,22 @@ export function ReviewsView({ onShowToast }) {
           boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
         }}>
           {/* Status Navigation Tabs */}
-          <div style={{
+          <div className="admin-reviews-tabs-scroll" style={{
             display: 'flex',
             alignItems: 'center',
             gap: 8,
             borderBottom: '1px solid #E2E8F0',
             paddingBottom: 10,
-            flexWrap: 'wrap'
+            overflowX: 'auto',
+            flexWrap: 'nowrap',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
           }}>
           <button
             type="button"
             onClick={() => setStatusTab('ALL')}
+            className="admin-reviews-tab-btn"
             style={{
               padding: '6px 14px',
               borderRadius: 6,
@@ -264,7 +269,9 @@ export function ReviewsView({ onShowToast }) {
               color: statusTab === 'ALL' ? '#FFFFFF' : '#475569',
               fontSize: 12.5,
               fontWeight: 700,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
             All Reviews ({reviews.length})
@@ -273,6 +280,7 @@ export function ReviewsView({ onShowToast }) {
           <button
             type="button"
             onClick={() => setStatusTab('PENDING')}
+            className="admin-reviews-tab-btn"
             style={{
               padding: '6px 14px',
               borderRadius: 6,
@@ -284,7 +292,9 @@ export function ReviewsView({ onShowToast }) {
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              gap: 6
+              gap: 6,
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
             <span>⏳ Pending Approval</span>
@@ -303,6 +313,7 @@ export function ReviewsView({ onShowToast }) {
           <button
             type="button"
             onClick={() => setStatusTab('APPROVED')}
+            className="admin-reviews-tab-btn"
             style={{
               padding: '6px 14px',
               borderRadius: 6,
@@ -311,7 +322,9 @@ export function ReviewsView({ onShowToast }) {
               color: statusTab === 'APPROVED' ? '#FFFFFF' : '#475569',
               fontSize: 12.5,
               fontWeight: 700,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
             ✓ Published to Landing Page ({approvedCount})
@@ -320,6 +333,7 @@ export function ReviewsView({ onShowToast }) {
           <button
             type="button"
             onClick={() => setStatusTab('HIDDEN')}
+            className="admin-reviews-tab-btn"
             style={{
               padding: '6px 14px',
               borderRadius: 6,
@@ -328,7 +342,9 @@ export function ReviewsView({ onShowToast }) {
               color: statusTab === 'HIDDEN' ? '#FFFFFF' : '#475569',
               fontSize: 12.5,
               fontWeight: 700,
-              cursor: 'pointer'
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
             Hidden / Rejected ({hiddenCount})
@@ -336,23 +352,8 @@ export function ReviewsView({ onShowToast }) {
         </div>
 
         {/* Filter Controls */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          flexWrap: 'wrap'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-            backgroundColor: '#F8FAFC',
-            border: '1px solid #D1D5DB',
-            borderRadius: 8,
-            padding: '8px 12px',
-            flex: '1 1 240px',
-            maxWidth: '100%'
-          }}>
+        <div className="admin-reviews-filter-controls">
+          <div className="admin-reviews-search-box">
             <Search size={16} color="#64748B" />
             <input
               type="text"
@@ -363,48 +364,34 @@ export function ReviewsView({ onShowToast }) {
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>Rating:</span>
-            <select
-              value={ratingFilter}
-              onChange={e => setRatingFilter(e.target.value)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: '1px solid #D1D5DB',
-                fontSize: 12.5,
-                backgroundColor: '#FFFFFF',
-                color: '#0F172A',
-                fontWeight: 600
-              }}
-            >
-              <option value="ALL">All Stars</option>
-              <option value="5">5 Stars</option>
-              <option value="4">4 Stars</option>
-              <option value="3">3 Stars</option>
-              <option value="2">2 Stars</option>
-              <option value="1">1 Star</option>
-            </select>
-          </div>
+          <div className="admin-reviews-dropdowns-group">
+            <div className="admin-reviews-filter-item">
+              <span className="admin-reviews-filter-label">Rating:</span>
+              <select
+                value={ratingFilter}
+                onChange={e => setRatingFilter(e.target.value)}
+                className="admin-reviews-select"
+              >
+                <option value="ALL">All Stars</option>
+                <option value="5">5 Stars</option>
+                <option value="4">4 Stars</option>
+                <option value="3">3 Stars</option>
+                <option value="2">2 Stars</option>
+                <option value="1">1 Star</option>
+              </select>
+            </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>Flagged:</span>
-            <select
-              value={flagFilter}
-              onChange={e => setFlagFilter(e.target.value)}
-              style={{
-                padding: '8px 12px',
-                borderRadius: 8,
-                border: '1px solid #D1D5DB',
-                fontSize: 12.5,
-                backgroundColor: '#FFFFFF',
-                color: '#0F172A',
-                fontWeight: 600
-              }}
-            >
-              <option value="ALL">All</option>
-              <option value="FLAGGED">Flagged / Abuse Reported</option>
-            </select>
+            <div className="admin-reviews-filter-item">
+              <span className="admin-reviews-filter-label">Flagged:</span>
+              <select
+                value={flagFilter}
+                onChange={e => setFlagFilter(e.target.value)}
+                className="admin-reviews-select"
+              >
+                <option value="ALL">All</option>
+                <option value="FLAGGED">Flagged / Abuse Reported</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -647,7 +634,7 @@ export function ReviewsView({ onShowToast }) {
                   alignItems: 'center',
                   gap: 6
                 }}>
-                  <History size={12} color="#6E42E5" />
+                  <History size={12} color="#0B57D0" />
                   <span>
                     Last moderated by <strong>{r.moderationHistory[r.moderationHistory.length - 1].moderatedBy}</strong>: "{r.moderationHistory[r.moderationHistory.length - 1].reason}"
                   </span>
@@ -694,7 +681,7 @@ export function ReviewsView({ onShowToast }) {
               justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <ShieldCheck size={18} color="#6E42E5" />
+                <ShieldCheck size={18} color="#0B57D0" />
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
                   Moderate Review Visibility #{moderatingReview.id}
                 </h3>
@@ -806,7 +793,7 @@ export function ReviewsView({ onShowToast }) {
                   padding: '8px 18px',
                   borderRadius: 8,
                   border: 'none',
-                  backgroundColor: '#6E42E5',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   fontWeight: 700,
                   cursor: processing ? 'not-allowed' : 'pointer'

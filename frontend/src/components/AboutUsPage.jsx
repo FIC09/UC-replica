@@ -314,7 +314,7 @@ export function AboutUsPage({
               display: 'inline-flex',
               alignItems: 'center',
               gap: 6,
-              color: '#7C3AED',
+              color: '#0B57D0',
               fontSize: '16.5px',
               fontWeight: 700,
               cursor: 'pointer',

@@ -684,7 +684,7 @@ export function KitchenCleaningServicePage({
             <span>Cart</span>
             {cartItemsCount > 0 && (
               <span style={{
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF',
                 borderRadius: '50%',
                 width: 20,
@@ -1275,7 +1275,7 @@ export function KitchenCleaningServicePage({
                         padding: 0,
                         fontSize: 12.5,
                         fontWeight: 700,
-                        color: '#6E42E5',
+                        color: '#0B57D0',
                         cursor: 'pointer',
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -1317,10 +1317,10 @@ export function KitchenCleaningServicePage({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           backgroundColor: '#FFFFFF',
-                          border: '1.5px solid #6E42E5',
+                          border: '1.5px solid #0B57D0',
                           borderRadius: 8,
                           padding: '5px 10px',
-                          boxShadow: '0 2px 8px rgba(110, 66, 229, 0.15)'
+                          boxShadow: '0 2px 8px rgba(11, 87, 208, 0.15)'
                         }}>
                           <button
                             type="button"
@@ -1332,7 +1332,7 @@ export function KitchenCleaningServicePage({
                               background: 'none',
                               border: 'none',
                               cursor: 'pointer',
-                              color: '#6E42E5',
+                              color: '#0B57D0',
                               display: 'flex',
                               alignItems: 'center',
                               padding: 2
@@ -1340,7 +1340,7 @@ export function KitchenCleaningServicePage({
                           >
                             <Minus size={14} />
                           </button>
-                          <span style={{ fontSize: 13.5, fontWeight: 800, color: '#6E42E5' }}>
+                          <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0B57D0' }}>
                             {qty}
                           </span>
                           <button
@@ -1353,7 +1353,7 @@ export function KitchenCleaningServicePage({
                               background: 'none',
                               border: 'none',
                               cursor: 'pointer',
-                              color: '#6E42E5',
+                              color: '#0B57D0',
                               display: 'flex',
                               alignItems: 'center',
                               padding: 2
@@ -1373,8 +1373,8 @@ export function KitchenCleaningServicePage({
                             width: '100%',
                             padding: '8px 16px',
                             backgroundColor: '#FFFFFF',
-                            color: '#6E42E5',
-                            border: '1.5px solid #6E42E5',
+                            color: '#0B57D0',
+                            border: '1.5px solid #0B57D0',
                             borderRadius: 8,
                             fontSize: 13,
                             fontWeight: 800,
@@ -1382,12 +1382,12 @@ export function KitchenCleaningServicePage({
                             transition: 'all 0.15s ease'
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#6E42E5';
+                            e.currentTarget.style.backgroundColor = '#0B57D0';
                             e.currentTarget.style.color = '#FFFFFF';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.backgroundColor = '#FFFFFF';
-                            e.currentTarget.style.color = '#6E42E5';
+                            e.currentTarget.style.color = '#0B57D0';
                           }}
                         >
                           Add +
@@ -1599,7 +1599,7 @@ export function KitchenCleaningServicePage({
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              backgroundColor: '#6E42E5',
+              backgroundColor: '#0B57D0',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 10,

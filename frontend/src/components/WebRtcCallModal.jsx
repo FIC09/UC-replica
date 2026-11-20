@@ -88,7 +88,7 @@ export function WebRtcCallModal({
                 width: '100%',
                 height: '100%',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                background: 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
@@ -248,7 +248,7 @@ export function WebRtcCallModal({
                   height: '100%',
                   borderRadius: '50%',
                   objectFit: 'cover',
-                  border: isConnected ? '3px solid #10B981' : '3px solid #6366F1'
+                  border: isConnected ? '3px solid #10B981' : '3px solid #0B57D0'
                 }}
               />
             ) : (
@@ -256,15 +256,15 @@ export function WebRtcCallModal({
                 width: '100%',
                 height: '100%',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                background: 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 30,
                 fontWeight: 800,
-                border: isConnected ? '3px solid #10B981' : '3px solid #6366F1',
-                boxShadow: '0 0 20px rgba(99, 102, 241, 0.4)'
+                border: isConnected ? '3px solid #10B981' : '3px solid #0B57D0',
+                boxShadow: '0 0 20px rgba(11, 87, 208, 0.4)'
               }}>
                 {getInitials(peerName, 'CU')}
               </div>

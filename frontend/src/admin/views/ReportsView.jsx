@@ -144,8 +144,8 @@ export function ReportsView({ onShowToast }) {
               fontWeight: 700,
               padding: '3px 8px',
               borderRadius: 6,
-              backgroundColor: '#EEF2FF',
-              color: '#4F46E5',
+              backgroundColor: '#E8F1FF',
+              color: '#0B57D0',
               border: '1px solid #C7D2FE'
             }}>
               Formula-Injection Protected
@@ -176,7 +176,7 @@ export function ReportsView({ onShowToast }) {
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: 'pointer',
-                  backgroundColor: period === p.id ? '#6E42E5' : 'transparent',
+                  backgroundColor: period === p.id ? '#0B57D0' : 'transparent',
                   color: period === p.id ? '#FFFFFF' : '#64748B'
                 }}
               >
@@ -243,7 +243,7 @@ export function ReportsView({ onShowToast }) {
 
         <div style={{ backgroundColor: '#FFFFFF', padding: '16px 20px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Net Platform Take Revenue</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#6E42E5', marginTop: 4 }}>
+          <div style={{ fontSize: 22, fontWeight: 800, color: '#0B57D0', marginTop: 4 }}>
             ₹{fin.netPlatformRevenueRupees?.toLocaleString('en-IN') || '965,000'}
           </div>
           <div style={{ fontSize: 11.5, color: '#059669', marginTop: 4, fontWeight: 600 }}>
@@ -308,8 +308,8 @@ export function ReportsView({ onShowToast }) {
                 padding: '8px 16px',
                 borderRadius: 8,
                 border: 'none',
-                backgroundColor: isActive ? '#F5F3FF' : 'transparent',
-                color: isActive ? '#6E42E5' : '#64748B',
+                backgroundColor: isActive ? '#E8F1FF' : 'transparent',
+                color: isActive ? '#0B57D0' : '#64748B',
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: 'pointer'
@@ -348,8 +348,8 @@ export function ReportsView({ onShowToast }) {
                   <td style={{ padding: '14px 18px', color: '#64748B' }}>Total captured invoice gross value from customers via Razorpay UPI, Cards, NetBanking and COD.</td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
-                  <td style={{ padding: '14px 18px', fontWeight: 700, color: '#6E42E5' }}>Platform Net Commission Revenue</td>
-                  <td style={{ padding: '14px 18px', fontWeight: 800, color: '#6E42E5', fontSize: 15 }}>₹{fin.netPlatformRevenueRupees?.toLocaleString('en-IN')}</td>
+                  <td style={{ padding: '14px 18px', fontWeight: 700, color: '#0B57D0' }}>Platform Net Commission Revenue</td>
+                  <td style={{ padding: '14px 18px', fontWeight: 800, color: '#0B57D0', fontSize: 15 }}>₹{fin.netPlatformRevenueRupees?.toLocaleString('en-IN')}</td>
                   <td style={{ padding: '14px 18px', color: '#64748B' }}>Contractual 20% platform take rate locked at time of customer checkout.</td>
                 </tr>
                 <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
@@ -408,7 +408,7 @@ export function ReportsView({ onShowToast }) {
                   <td style={{ padding: '14px 18px', fontWeight: 700, color: '#0F172A' }}>{p.jobsCompleted}</td>
                   <td style={{ padding: '14px 18px', fontWeight: 800, color: '#059669' }}>{p.rating} ★</td>
                   <td style={{ padding: '14px 18px', color: '#059669', fontWeight: 600 }}>{p.slaCompliance}</td>
-                  <td style={{ padding: '14px 18px', color: '#6E42E5', fontWeight: 700 }}>{p.repeatCustomerRequests} clients</td>
+                  <td style={{ padding: '14px 18px', color: '#0B57D0', fontWeight: 700 }}>{p.repeatCustomerRequests} clients</td>
                   <td style={{ padding: '14px 18px', textAlign: 'right', color: '#64748B' }}>{p.avgDurationMins} mins</td>
                 </tr>
               ))}
@@ -446,7 +446,7 @@ export function ReportsView({ onShowToast }) {
                   <td style={{ padding: '14px 18px', color: '#475569' }}>{p.activeFleet} technicians</td>
                   <td style={{ padding: '14px 18px', fontWeight: 700, color: '#0F172A' }}>{p.completedJobs}</td>
                   <td style={{ padding: '14px 18px', fontWeight: 800, color: '#0F172A' }}>{p.gmvGenerated}</td>
-                  <td style={{ padding: '14px 18px', color: '#6E42E5', fontWeight: 700 }}>{p.commissionPaid}</td>
+                  <td style={{ padding: '14px 18px', color: '#0B57D0', fontWeight: 700 }}>{p.commissionPaid}</td>
                   <td style={{ padding: '14px 18px', color: '#059669', fontWeight: 700 }}>{p.slaFulfillment}</td>
                   <td style={{ padding: '14px 18px', textAlign: 'right', color: p.complaintsCount > 2 ? '#DC2626' : '#64748B' }}>
                     {p.complaintsCount} logged
@@ -587,7 +587,7 @@ export function ReportsView({ onShowToast }) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13 }}>
                 <span style={{ color: '#64748B' }}>CSAT Satisfaction Rating</span>
-                <span style={{ fontWeight: 800, color: '#6E42E5' }}>{supp.customerSatisfactionScore}</span>
+                <span style={{ fontWeight: 800, color: '#0B57D0' }}>{supp.customerSatisfactionScore}</span>
               </div>
             </div>
           </div>

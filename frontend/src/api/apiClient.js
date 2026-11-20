@@ -126,6 +126,13 @@ export const addressesApi = {
     if (typeof paramsOrPhone === 'string') {
       const clean = paramsOrPhone.trim();
       return request(`/addresses${clean && clean !== '[object Object]' ? `?phone=${encodeURIComponent(clean)}` : ''}`);
+    } else if (paramsOrPhone && typeof paramsOrPhone === 'object') {
+      const queryParams = new URLSearchParams();
+      if (paramsOrPhone.phone) queryParams.set('phone', paramsOrPhone.phone);
+      if (paramsOrPhone.userId) queryParams.set('userId', paramsOrPhone.userId);
+      if (paramsOrPhone.email) queryParams.set('email', paramsOrPhone.email);
+      const qs = queryParams.toString();
+      return request(`/addresses${qs ? `?${qs}` : ''}`);
     }
     return request('/addresses');
   },

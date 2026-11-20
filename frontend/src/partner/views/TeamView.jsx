@@ -231,8 +231,8 @@ export function TeamView({ showToast, staff }) {
                 gap: 6,
                 padding: '9px 15px',
                 background: '#ffffff',
-                border: '1px solid #7c3aed',
-                color: '#7c3aed',
+                border: '1px solid #0B57D0',
+                color: '#0B57D0',
                 borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,
@@ -248,7 +248,7 @@ export function TeamView({ showToast, staff }) {
                 alignItems: 'center',
                 gap: 6,
                 padding: '9px 16px',
-                background: '#7c3aed',
+                background: '#0B57D0',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 8,
@@ -275,7 +275,7 @@ export function TeamView({ showToast, staff }) {
         alignItems: 'center',
         gap: 10
       }}>
-        <Info size={18} color="#7c3aed" style={{ flexShrink: 0 }} />
+        <Info size={18} color="#0B57D0" style={{ flexShrink: 0 }} />
         <span>
           <strong>Platform Governance Rule:</strong> Partners cannot unilaterally verify identity, approve platform certification, or claim another professional simply by entering a phone number. All associations require explicit professional consent; skill upgrades require platform practical assessment.
         </span>
@@ -318,7 +318,7 @@ export function TeamView({ showToast, staff }) {
                       aspectRatio: '1 / 1',
                       borderRadius: '50%',
                       flexShrink: 0,
-                      background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                      background: 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)',
                       color: '#fff',
                       display: 'flex',
                       alignItems: 'center',
@@ -536,7 +536,7 @@ export function TeamView({ showToast, staff }) {
                 <button
                   type="submit"
                   disabled={saving}
-                  style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#7c3aed', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#0B57D0', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                 >
                   Submit Proposal
                 </button>
@@ -612,7 +612,7 @@ export function TeamView({ showToast, staff }) {
                   <button
                     type="submit"
                     disabled={saving}
-                    style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#7c3aed', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                    style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#0B57D0', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                   >
                     Send Consent Request
                   </button>
@@ -683,7 +683,7 @@ export function TeamView({ showToast, staff }) {
                 <button
                   type="submit"
                   disabled={saving}
-                  style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#7c3aed', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#0B57D0', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                 >
                   Save Availability
                 </button>
@@ -739,7 +739,7 @@ export function TeamView({ showToast, staff }) {
                 <button
                   type="submit"
                   disabled={saving}
-                  style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#7c3aed', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#0B57D0', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                 >
                   Submit Skill Request
                 </button>

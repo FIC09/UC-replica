@@ -64,8 +64,8 @@ export function ActivityView({ showToast }) {
 
   const actionConfig = {
     'LOGIN_SUCCESS': { label: 'Auth Success', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
-    'BOOKING_DISPATCH': { label: 'Booking Dispatch', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
-    'BOOKING_ASSIGNMENT': { label: 'Job Reassignment', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+    'BOOKING_DISPATCH': { label: 'Booking Dispatch', color: '#0B57D0', bg: '#E8F1FF', border: '#E4E7EC' },
+    'BOOKING_ASSIGNMENT': { label: 'Job Reassignment', color: '#0B57D0', bg: '#E8F1FF', border: '#E4E7EC' },
     'BOOKING_COMPLETION_OVERRIDE': { label: 'Completion Override', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
     'BANK_CHANGE_REQUEST': { label: 'Bank Change Request', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
     'STAFF_INVITED': { label: 'Staff Invited', color: '#059669', bg: '#ecfdf5', border: '#a7f3d0' },
@@ -74,10 +74,10 @@ export function ActivityView({ showToast }) {
     'INVENTORY_ORDER': { label: 'Inventory Order', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
     'SUPPLY_ORDER_PLACED': { label: 'Supply Order', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
     'GOODS_RECEIVED_CONFIRMED': { label: 'Goods Received', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
-    'INVENTORY_ALLOCATED': { label: 'Stock Allocated', color: '#7c3aed', bg: '#f5f3ff', border: '#ddd6fe' },
+    'INVENTORY_ALLOCATED': { label: 'Stock Allocated', color: '#0B57D0', bg: '#E8F1FF', border: '#E4E7EC' },
     'INVENTORY_ADJUSTED': { label: 'Stock Adjusted', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
     'INVENTORY_RETURNED': { label: 'Stock Returned', color: '#0284c7', bg: '#f0f9ff', border: '#bae6fd' },
-    'DOCUMENT_UPLOADED': { label: 'Doc Uploaded', color: '#4f46e5', bg: '#eef2ff', border: '#c7d2fe' },
+    'DOCUMENT_UPLOADED': { label: 'Doc Uploaded', color: '#0B57D0', bg: '#E8F1FF', border: '#c7d2fe' },
     'TRAINING_SESSION_REQUESTED': { label: 'Training Requested', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
     'SUPPORT_TICKET_CREATED': { label: 'Support Ticket', color: '#475569', bg: '#f8fafc', border: '#cbd5e1' },
     'SETTINGS_UPDATE': { label: 'Settings Modified', color: '#475569', bg: '#f8fafc', border: '#cbd5e1' }
@@ -161,7 +161,7 @@ export function ActivityView({ showToast }) {
           <div style={{ 
             fontSize: 11, 
             fontWeight: 800, 
-            color: '#7c3aed', 
+            color: '#0B57D0', 
             textTransform: 'uppercase', 
             letterSpacing: 0.8,
             marginBottom: 4 
@@ -191,7 +191,7 @@ export function ActivityView({ showToast }) {
             border: '1px solid #e2e8f0',
             whiteSpace: 'nowrap'
           }}>
-            <Clock size={15} color="#7c3aed" />
+            <Clock size={15} color="#0B57D0" />
             <span>Timezone: <strong>Asia/Kolkata (IST)</strong></span>
           </div>
 
@@ -243,7 +243,7 @@ export function ActivityView({ showToast }) {
         borderRadius: 12,
         padding: '16px 20px',
         border: '1px solid #e2e8f0',
-        borderLeft: '4px solid #7c3aed',
+        borderLeft: '4px solid #0B57D0',
         display: 'flex',
         alignItems: 'center',
         gap: 16,
@@ -253,13 +253,13 @@ export function ActivityView({ showToast }) {
           width: 40,
           height: 40,
           borderRadius: 10,
-          background: '#f5f3ff',
+          background: '#E8F1FF',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0
         }}>
-          <Lock size={20} color="#7c3aed" />
+          <Lock size={20} color="#0B57D0" />
         </div>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a', marginBottom: 2 }}>
@@ -305,11 +305,11 @@ export function ActivityView({ showToast }) {
                   borderRadius: 8,
                   fontSize: 12.5,
                   fontWeight: isActive ? 700 : 500,
-                  background: isActive ? '#7c3aed' : '#ffffff',
+                  background: isActive ? '#0B57D0' : '#ffffff',
                   color: isActive ? '#ffffff' : '#475569',
-                  border: isActive ? '1px solid #7c3aed' : '1px solid #e2e8f0',
+                  border: isActive ? '1px solid #0B57D0' : '1px solid #e2e8f0',
                   cursor: 'pointer',
-                  boxShadow: isActive ? '0 2px 4px rgba(124, 58, 237, 0.25)' : 'none',
+                  boxShadow: isActive ? '0 2px 4px rgba(11, 87, 208, 0.25)' : 'none',
                   transition: 'all 0.12s ease'
                 }}
               >
@@ -383,7 +383,7 @@ export function ActivityView({ showToast }) {
       }}>
         {loading ? (
           <div style={{ padding: '60px 20px', textAlign: 'center', color: '#64748b' }}>
-            <div style={{ width: 32, height: 32, border: '3px solid #f3e8ff', borderTopColor: '#7c3aed', borderRadius: '50%', margin: '0 auto 12px', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: 32, height: 32, border: '3px solid #E8F1FF', borderTopColor: '#0B57D0', borderRadius: '50%', margin: '0 auto 12px', animation: 'spin 0.8s linear infinite' }} />
             <div style={{ fontSize: 14, fontWeight: 600 }}>Loading cryptographic audit ledger...</div>
           </div>
         ) : filteredLogs.length === 0 ? (
@@ -490,8 +490,8 @@ export function ActivityView({ showToast }) {
                             width: 30,
                             height: 30,
                             borderRadius: '50%',
-                            background: '#f3e8ff',
-                            color: '#7c3aed',
+                            background: '#E8F1FF',
+                            color: '#0B57D0',
                             fontSize: 11,
                             fontWeight: 800,
                             display: 'flex',
@@ -507,7 +507,7 @@ export function ActivityView({ showToast }) {
                             </strong>
                             <span style={{ 
                               fontSize: 11, 
-                              color: '#7c3aed', 
+                              color: '#0B57D0', 
                               fontWeight: 600
                             }}>
                               {l.actorRole}

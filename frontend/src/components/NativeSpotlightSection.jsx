@@ -51,7 +51,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
               }}>
                 Meet Native by UC.{' '}
                 <span style={{
-                  background: 'linear-gradient(135deg, #A78BFA 0%, #C084FC 100%)',
+                  background: 'linear-gradient(135deg, #0B57D0 0%, #E8F1FF 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
                 }}>
@@ -82,7 +82,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                     width: 18,
                     height: 18,
                     borderRadius: 4,
-                    background: '#6E42E5',
+                    background: '#0B57D0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -100,7 +100,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                     width: 18,
                     height: 18,
                     borderRadius: 4,
-                    background: '#6E42E5',
+                    background: '#0B57D0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -118,7 +118,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                     width: 18,
                     height: 18,
                     borderRadius: 4,
-                    background: '#6E42E5',
+                    background: '#0B57D0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -136,7 +136,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                     width: 18,
                     height: 18,
                     borderRadius: 4,
-                    background: '#6E42E5',
+                    background: '#0B57D0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -156,7 +156,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                   type="button"
                   onClick={onExploreNative}
                   style={{
-                    background: 'linear-gradient(135deg, #6E42E5 0%, #8B5CF6 100%)',
+                    background: 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)',
                     color: '#fff',
                     padding: '8px 20px',
                     borderRadius: 8,
@@ -166,7 +166,7 @@ export function NativeSpotlightSection({ onExploreNative }) {
                     alignItems: 'center',
                     gap: 6,
                     border: 'none',
-                    boxShadow: '0 4px 14px rgba(110, 66, 229, 0.4)',
+                    boxShadow: '0 4px 14px rgba(11, 87, 208, 0.4)',
                     cursor: 'pointer',
                     transition: 'transform 0.15s ease'
                   }}

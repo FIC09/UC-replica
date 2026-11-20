@@ -234,12 +234,12 @@ export function AdminLayout({
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 10px rgba(110, 66, 229, 0.25)',
+                boxShadow: '0 4px 10px rgba(11, 87, 208, 0.25)',
                 flexShrink: 0
               }}>
                 <ShieldCheck size={18} />
@@ -249,7 +249,7 @@ export function AdminLayout({
                   <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
                     Forge India Connect
                   </div>
-                  <div style={{ fontSize: 9.5, fontWeight: 700, color: '#6E42E5', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  <div style={{ fontSize: 9.5, fontWeight: 700, color: '#0B57D0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                     Admin Operations
                   </div>
                 </div>
@@ -276,8 +276,8 @@ export function AdminLayout({
                 flexShrink: 0
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#EDE9FE';
-                e.currentTarget.style.color = '#6E42E5';
+                e.currentTarget.style.backgroundColor = '#E8F1FF';
+                e.currentTarget.style.color = '#0B57D0';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = '#F8FAFC';
@@ -339,8 +339,8 @@ export function AdminLayout({
                           justifyContent: sidebarCollapsed ? 'center' : 'flex-start',
                           borderRadius: 6,
                           border: 'none',
-                          backgroundColor: isActive ? '#F5F3FF' : 'transparent',
-                          color: isActive ? '#6E42E5' : '#475569',
+                          backgroundColor: isActive ? '#E8F1FF' : 'transparent',
+                          color: isActive ? '#0B57D0' : '#475569',
                           fontSize: 12.5,
                           fontWeight: isActive ? 700 : 500,
                           cursor: 'pointer',
@@ -360,7 +360,7 @@ export function AdminLayout({
                           }
                         }}
                       >
-                        <Icon size={18} color={isActive ? '#6E42E5' : '#64748B'} style={{ flexShrink: 0 }} />
+                        <Icon size={18} color={isActive ? '#0B57D0' : '#64748B'} style={{ flexShrink: 0 }} />
                         {!sidebarCollapsed && (
                           <>
                             <span style={{ flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -372,7 +372,7 @@ export function AdminLayout({
                                 fontWeight: 700,
                                 padding: '1px 7px',
                                 borderRadius: 9999,
-                                backgroundColor: isActive ? '#6E42E5' : '#F1F5F9',
+                                backgroundColor: isActive ? '#0B57D0' : '#F1F5F9',
                                 color: isActive ? '#FFFFFF' : '#64748B'
                               }}>
                                 {item.badge}
@@ -519,7 +519,7 @@ export function AdminLayout({
               <div style={{
                 width: 26,
                 height: 26,
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF',
                 borderRadius: 6,
                 display: 'flex',
@@ -597,7 +597,7 @@ export function AdminLayout({
               padding: '14px 18px',
               borderBottom: '1px solid #E2E8F0'
             }}>
-              <Search size={18} color="#6E42E5" />
+              <Search size={18} color="#0B57D0" />
               <input
                 type="text"
                 autoFocus
@@ -647,10 +647,10 @@ export function AdminLayout({
                       fontWeight: 600,
                       color: '#1E293B'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F5F3FF'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#E8F1FF'}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
-                    <Icon size={16} color="#6E42E5" />
+                    <Icon size={16} color="#0B57D0" />
                     <span>{item.label}</span>
                     <span style={{ marginLeft: 'auto', fontSize: 11, color: '#94A3B8' }}>{item.path}</span>
                   </div>

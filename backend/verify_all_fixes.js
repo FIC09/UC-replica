@@ -2,6 +2,7 @@ import { User } from './models/User.js';
 import { WorkerApplication } from './models/WorkerApplication.js';
 import { PartnerApplication } from './models/PartnerApplication.js';
 import { Booking } from './models/Booking.js';
+import { Address } from './models/Address.js';
 import { settleProfessionalPayout } from './controllers/adminProfessionalController.js';
 import { settlePartnerPayout } from './controllers/adminPartnerController.js';
 import { getCustomerPayments } from './controllers/adminPaymentController.js';
@@ -87,6 +88,15 @@ assert(mockResData !== null && mockResData.success === true, 'getCustomerPayment
 assert(typeof mockResData?.kpis?.totalCollectedRupees === 'number', 'getCustomerPayments calculates totalCollectedRupees');
 assert(Array.isArray(mockResData?.payments), 'getCustomerPayments returns array of customer payment records');
 assert(mockResData?.payments?.length > 0 && typeof mockResData.payments[0].financials?.totalAmount === 'number', 'Customer payment record includes complete financial calculation breakdown');
+
+// 7. Address Model & Privacy Isolation (Bug: Show only logged-in user addresses)
+console.log('\n[TEST 7] Address Model User Scoping & Privacy Isolation...');
+const addressPaths = Address.schema.paths;
+assert('userId' in addressPaths, 'Address schema has userId for strict user scoping');
+assert('userEmail' in addressPaths, 'Address schema has userEmail for email-based scoping');
+assert('userPhone' in addressPaths || 'phone' in addressPaths, 'Address schema has userPhone field');
+const phoneField = addressPaths.userPhone || addressPaths.phone;
+assert(!phoneField?.defaultValue || phoneField.defaultValue !== '+91 98201 44521', 'Address phone does not hardcode other customer phone');
 
 console.log(`\n===============================================================`);
 console.log(`>>> VERIFICATION RESULTS: ${passCount}/${totalTests} TESTS PASSED <<<`);

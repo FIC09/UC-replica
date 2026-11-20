@@ -41,7 +41,7 @@ export function SettingsView({ showToast, staff }) {
       whatsappUpdates: false
     },
     branding: {
-      brandColor: '#7c3aed',
+      brandColor: '#0B57D0',
       coBrandedBadge: ''
     }
   });
@@ -141,7 +141,7 @@ export function SettingsView({ showToast, staff }) {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f8fafc', padding: '6px 14px', borderRadius: 8, fontSize: 13, color: '#475569', border: '1px solid #e2e8f0' }}>
-          <Clock size={16} color="#7c3aed" /> Timezone: Asia/Kolkata
+          <Clock size={16} color="#0B57D0" /> Timezone: Asia/Kolkata
         </div>
       </div>
 
@@ -304,7 +304,7 @@ export function SettingsView({ showToast, staff }) {
                 alignItems: 'center',
                 gap: 8,
                 padding: '10px 20px',
-                background: '#7c3aed',
+                background: '#0B57D0',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 8,

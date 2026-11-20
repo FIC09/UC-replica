@@ -46,7 +46,7 @@ export function CalendarView({ onNavigate, showToast }) {
       title: '🥪 Scheduled Lunch & Battery Recharge Break',
       locality: 'Bandra Central Operational Hub',
       status: 'Duty Break',
-      color: '#7c3aed',
+      color: '#0B57D0',
       bufferMins: 0
     },
     {
@@ -238,8 +238,8 @@ export function CalendarView({ onNavigate, showToast }) {
                   gap: 16,
                   padding: '16px 20px',
                   borderRadius: 12,
-                  background: isBreak ? '#faf5ff' : '#f8fafc',
-                  border: `1px solid ${isBreak ? '#e9d5ff' : item.status === 'Assigned' ? '#bfdbfe' : '#e2e8f0'}`,
+                  background: isBreak ? '#E8F1FF' : '#f8fafc',
+                  border: `1px solid ${isBreak ? '#E8F1FF' : item.status === 'Assigned' ? '#bfdbfe' : '#e2e8f0'}`,
                   borderLeft: `5px solid ${item.color}`
                 }}
               >
@@ -248,7 +248,7 @@ export function CalendarView({ onNavigate, showToast }) {
                 </div>
 
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: isBreak ? '#6b21a8' : '#0f172a' }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: isBreak ? '#0B57D0' : '#0f172a' }}>
                     {item.title}
                   </div>
                   <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>
@@ -263,7 +263,7 @@ export function CalendarView({ onNavigate, showToast }) {
                 <div style={{ textAlign: 'right' }}>
                   <span style={{
                     background: item.status === 'Completed' ? '#ecfdf5' :
-                      item.status === 'Assigned' ? '#eff6ff' : isBreak ? '#ede9fe' : '#fef3c7',
+                      item.status === 'Assigned' ? '#eff6ff' : isBreak ? '#E8F1FF' : '#fef3c7',
                     color: item.color,
                     padding: '4px 10px',
                     borderRadius: 8,

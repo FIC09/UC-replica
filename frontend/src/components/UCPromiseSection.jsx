@@ -32,7 +32,7 @@ export function UCPromiseSection() {
           <span style={{
             fontSize: 12,
             fontWeight: 800,
-            color: '#6E42E5',
+            color: '#0B57D0',
             textTransform: 'uppercase',
             letterSpacing: 1
           }}>

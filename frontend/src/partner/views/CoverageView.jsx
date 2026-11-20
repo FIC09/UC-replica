@@ -185,12 +185,12 @@ export function CoverageView({ showToast }) {
             width: 44,
             height: 44,
             borderRadius: 12,
-            background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
-            border: '1px solid #e9d5ff',
+            background: 'linear-gradient(135deg, #E8F1FF 0%, #E8F1FF 100%)',
+            border: '1px solid #E8F1FF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#7c3aed',
+            color: '#0B57D0',
             flexShrink: 0
           }}>
             <ShieldCheck size={22} />
@@ -225,7 +225,7 @@ export function CoverageView({ showToast }) {
               transition: 'all 0.15s ease',
               boxShadow: '0 1px 2px rgba(0,0,0,0.03)'
             }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#7c3aed'; e.currentTarget.style.color = '#7c3aed'; }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#0B57D0'; e.currentTarget.style.color = '#0B57D0'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = '#cbd5e1'; e.currentTarget.style.color = '#334155'; }}
           >
             <Settings size={15} /> Configure Capacity
@@ -240,18 +240,18 @@ export function CoverageView({ showToast }) {
               alignItems: 'center',
               gap: 7,
               padding: '0 16px',
-              background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+              background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
               color: '#fff',
               border: 'none',
               borderRadius: 8,
               fontSize: 13,
               fontWeight: 600,
               cursor: 'pointer',
-              boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)',
+              boxShadow: '0 2px 6px rgba(11, 87, 208, 0.25)',
               transition: 'all 0.15s ease'
             }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(124, 58, 237, 0.35)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(124, 58, 237, 0.25)'; }}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(11, 87, 208, 0.35)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(11, 87, 208, 0.25)'; }}
           >
             <Plus size={15} /> Request Coverage Change
           </button>
@@ -278,8 +278,8 @@ export function CoverageView({ showToast }) {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                background: '#f5f3ff',
-                color: '#7c3aed',
+                background: '#E8F1FF',
+                color: '#0B57D0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -293,9 +293,9 @@ export function CoverageView({ showToast }) {
               fontWeight: 700,
               padding: '2px 8px',
               borderRadius: 6,
-              background: '#f5f3ff',
-              color: '#7c3aed',
-              border: '1px solid #ede9fe'
+              background: '#E8F1FF',
+              color: '#0B57D0',
+              border: '1px solid #E8F1FF'
             }}>
               Daily Shift
             </span>
@@ -455,7 +455,7 @@ export function CoverageView({ showToast }) {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Building size={18} color="#7c3aed" />
+                <Building size={18} color="#0B57D0" />
                 <h2 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', margin: 0 }}>
                   Authorized Operational Depots ({coverage?.city || 'Mumbai'})
                 </h2>
@@ -530,7 +530,7 @@ export function CoverageView({ showToast }) {
               <h3 style={{ fontSize: 13.5, fontWeight: 700, color: '#334155', margin: 0 }}>
                 Authorized Service Zones & Postal Pincodes
               </h3>
-              <span style={{ fontSize: 12, color: '#7c3aed', fontWeight: 600 }}>
+              <span style={{ fontSize: 12, color: '#0B57D0', fontWeight: 600 }}>
                 {zones.length} Active Territories
               </span>
             </div>
@@ -557,14 +557,14 @@ export function CoverageView({ showToast }) {
                       gap: 6
                     }}
                   >
-                    <MapPin size={12} color="#7c3aed" />
+                    <MapPin size={12} color="#0B57D0" />
                     <span>{z}</span>
                     {pincodes[i] && (
                       <span style={{
                         fontSize: 11,
                         fontWeight: 700,
-                        background: '#ede9fe',
-                        color: '#7c3aed',
+                        background: '#E8F1FF',
+                        color: '#0B57D0',
                         padding: '1px 6px',
                         borderRadius: 4
                       }}>
@@ -595,8 +595,8 @@ export function CoverageView({ showToast }) {
                 width: 32,
                 height: 32,
                 borderRadius: 8,
-                background: '#f5f3ff',
-                color: '#7c3aed',
+                background: '#E8F1FF',
+                color: '#0B57D0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -708,14 +708,14 @@ export function CoverageView({ showToast }) {
                 style={{
                   marginTop: 4,
                   height: 38,
-                  background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                  background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
                   color: '#fff',
                   border: 'none',
                   borderRadius: 8,
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: validating ? 'not-allowed' : 'pointer',
-                  boxShadow: '0 2px 6px rgba(124,58,237,0.25)',
+                  boxShadow: '0 2px 6px rgba(11, 87, 208,0.25)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -766,7 +766,7 @@ export function CoverageView({ showToast }) {
                 alignItems: 'center',
                 gap: 8
               }}>
-                <ShieldCheck size={16} color="#7c3aed" style={{ flexShrink: 0 }} />
+                <ShieldCheck size={16} color="#0B57D0" style={{ flexShrink: 0 }} />
                 <span>Validates dispatch eligibility against franchise polygon borders, active technician shifts, and buffer travel times.</span>
               </div>
             )}
@@ -813,8 +813,8 @@ export function CoverageView({ showToast }) {
                     <span style={{
                       fontSize: 11,
                       fontWeight: 700,
-                      background: '#ede9fe',
-                      color: '#7c3aed',
+                      background: '#E8F1FF',
+                      color: '#0B57D0',
                       padding: '2px 7px',
                       borderRadius: 4
                     }}>
@@ -958,7 +958,7 @@ export function CoverageView({ showToast }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ height: 38, padding: '0 18px', background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 6px rgba(124,58,237,0.25)' }}
+                  style={{ height: 38, padding: '0 18px', background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 6px rgba(11, 87, 208,0.25)' }}
                 >
                   {submitting ? 'Submitting...' : 'Submit Request'}
                 </button>
@@ -1069,7 +1069,7 @@ export function CoverageView({ showToast }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ height: 38, padding: '0 18px', background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 6px rgba(124,58,237,0.25)' }}
+                  style={{ height: 38, padding: '0 18px', background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 6px rgba(11, 87, 208,0.25)' }}
                 >
                   {submitting ? 'Saving...' : 'Save Settings'}
                 </button>

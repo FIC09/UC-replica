@@ -122,7 +122,7 @@ export function AddressManagerModal({
           alignItems: 'center'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <MapPin size={22} color="#6E42E5" />
+            <MapPin size={22} color="#0B57D0" />
             <div>
               <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
                 Manage Saved Addresses
@@ -190,9 +190,9 @@ export function AddressManagerModal({
                         borderRadius: 8,
                         fontSize: 13,
                         fontWeight: 700,
-                        border: `1.5px solid ${label === type ? '#6E42E5' : '#E2E8F0'}`,
-                        background: label === type ? '#F4F0FF' : '#fff',
-                        color: label === type ? '#6E42E5' : '#4B5563',
+                        border: `1.5px solid ${label === type ? '#0B57D0' : '#E2E8F0'}`,
+                        background: label === type ? '#E8F1FF' : '#fff',
+                        color: label === type ? '#0B57D0' : '#4B5563',
                         display: 'flex',
                         alignItems: 'center',
                         gap: 6
@@ -306,8 +306,8 @@ export function AddressManagerModal({
                   padding: '14px 18px',
                   borderRadius: 12,
                   border: '2px dashed #C7D2FE',
-                  background: '#EEF2FF',
-                  color: '#4F46E5',
+                  background: '#E8F1FF',
+                  color: '#0B57D0',
                   fontSize: 14,
                   fontWeight: 800,
                   display: 'flex',
@@ -338,7 +338,7 @@ export function AddressManagerModal({
                       style={{
                         padding: 16,
                         borderRadius: 12,
-                        border: `1.5px solid ${addr.isDefault ? '#6E42E5' : '#E2E8F0'}`,
+                        border: `1.5px solid ${addr.isDefault ? '#0B57D0' : '#E2E8F0'}`,
                         background: addr.isDefault ? '#FCFAFF' : '#fff',
                         display: 'flex',
                         flexDirection: 'column',
@@ -431,7 +431,7 @@ export function AddressManagerModal({
                             style={{
                               fontSize: 12,
                               fontWeight: 700,
-                              color: '#6E42E5'
+                              color: '#0B57D0'
                             }}
                           >
                             Set as Default Address

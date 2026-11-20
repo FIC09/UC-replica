@@ -9,7 +9,16 @@ const addressSchema = new mongoose.Schema({
   },
   userPhone: {
     type: String,
-    default: '+91 98201 44521',
+    default: '',
+  },
+  userId: {
+    type: String,
+    trim: true,
+  },
+  userEmail: {
+    type: String,
+    trim: true,
+    lowercase: true,
   },
   label: {
     type: String,

@@ -173,7 +173,7 @@ export function RefundsDisputesView({ showToast }) {
             alignItems: 'center',
             gap: 8,
             padding: '9px 18px',
-            background: '#7c3aed',
+            background: '#0B57D0',
             color: '#fff',
             border: 'none',
             borderRadius: 8,
@@ -462,7 +462,7 @@ export function RefundsDisputesView({ showToast }) {
                           border: '1px solid #cbd5e1'
                         }}
                       >
-                        <FileText size={14} color="#7c3aed" /> {ev}
+                        <FileText size={14} color="#0B57D0" /> {ev}
                       </span>
                     ))}
                   </div>
@@ -520,7 +520,7 @@ export function RefundsDisputesView({ showToast }) {
                           width: 8,
                           height: 8,
                           borderRadius: '50%',
-                          background: '#7c3aed'
+                          background: '#0B57D0'
                         }} />
                         <div style={{ fontSize: 12, color: '#94a3b8' }}>
                           {new Date(step.timestamp).toLocaleString('en-GB')} • <strong>{step.actor}</strong>
@@ -558,7 +558,7 @@ export function RefundsDisputesView({ showToast }) {
                         style={{
                           alignSelf: isPartner ? 'flex-end' : 'flex-start',
                           maxWidth: '80%',
-                          background: isPartner ? '#7c3aed' : '#ffffff',
+                          background: isPartner ? '#0B57D0' : '#ffffff',
                           color: isPartner ? '#ffffff' : '#0f172a',
                           padding: '10px 14px',
                           borderRadius: 10,
@@ -566,12 +566,12 @@ export function RefundsDisputesView({ showToast }) {
                           fontSize: 13
                         }}
                       >
-                        <div style={{ fontSize: 11, color: isPartner ? '#e9d5ff' : '#64748b', marginBottom: 4 }}>
+                        <div style={{ fontSize: 11, color: isPartner ? '#E8F1FF' : '#64748b', marginBottom: 4 }}>
                           {msg.sender} ({msg.senderRole}) • {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </div>
                         <div>{msg.message}</div>
                         {msg.evidence && (
-                          <div style={{ fontSize: 11.5, marginTop: 4, color: isPartner ? '#ddd6fe' : '#7c3aed' }}>
+                          <div style={{ fontSize: 11.5, marginTop: 4, color: isPartner ? '#E4E7EC' : '#0B57D0' }}>
                             Attachment: {msg.evidence}
                           </div>
                         )}
@@ -602,7 +602,7 @@ export function RefundsDisputesView({ showToast }) {
                         disabled={sendingMessage || !threadMessage.trim()}
                         style={{
                           padding: '9px 18px',
-                          background: '#7c3aed',
+                          background: '#0B57D0',
                           color: '#fff',
                           border: 'none',
                           borderRadius: 8,
@@ -799,7 +799,7 @@ export function RefundsDisputesView({ showToast }) {
                   style={{
                     flex: 2,
                     padding: '10px 16px',
-                    background: '#7c3aed',
+                    background: '#0B57D0',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 8,

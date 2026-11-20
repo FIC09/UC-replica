@@ -14,23 +14,6 @@ export function Footer({
 }) {
   const [activeModal, setActiveModal] = useState(null);
 
-  // Smooth scroll to categories section when "Categories near you" is clicked
-  function handleScrollToCategories(e) {
-    e.preventDefault();
-    const candidates = ['services-catalogue', 'categories', 'native-water-purifier', 'quick-service-cards'];
-    for (const id of candidates) {
-      const el = document.getElementById(id);
-      if (el) {
-        const offset = -76;
-        const topPos = el.getBoundingClientRect().top + window.pageYOffset + offset;
-        window.scrollTo({ top: topPos, behavior: 'smooth' });
-        return;
-      }
-    }
-    // Fallback scroll up smoothly
-    window.scrollTo({ top: 500, behavior: 'smooth' });
-  }
-
   return (
     <>
       <footer className="uc-footer official-uc" style={{ paddingBottom: 84 }}>
@@ -122,9 +105,9 @@ export function Footer({
                     href="#register-pro" 
                     onClick={(e) => { 
                       e.preventDefault(); 
-                      if (onOpenPartnerOnboarding) onOpenPartnerOnboarding(); 
+                      if (onOpenWorkerOnboarding) onOpenWorkerOnboarding(); 
                     }}
-                    style={{ fontWeight: 600, color: '#0F172A' }}
+                    style={{ fontWeight: 600, color: 'var(--dark-navy, #152238)' }}
                   >
                     Register as a professional
                   </a>

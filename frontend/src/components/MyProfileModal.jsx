@@ -216,7 +216,7 @@ export function MyProfileModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 1100,
+        zIndex: 99999,
         padding: 16
       }}
       onClick={onClose}
@@ -250,7 +250,7 @@ export function MyProfileModal({
               width: 44,
               height: 44,
               borderRadius: '50%',
-              backgroundColor: '#6E42E5',
+              backgroundColor: '#0B57D0',
               color: '#FFFFFF',
               display: 'flex',
               alignItems: 'center',
@@ -310,9 +310,9 @@ export function MyProfileModal({
               padding: '14px 4px',
               fontSize: 13.5,
               fontWeight: activeTab === 'profile' ? 800 : 600,
-              color: activeTab === 'profile' ? '#6E42E5' : '#64748B',
+              color: activeTab === 'profile' ? '#0B57D0' : '#64748B',
               border: 'none',
-              borderBottom: activeTab === 'profile' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+              borderBottom: activeTab === 'profile' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
               background: 'none',
               cursor: 'pointer',
               display: 'flex',
@@ -332,9 +332,9 @@ export function MyProfileModal({
               padding: '14px 4px',
               fontSize: 13.5,
               fontWeight: activeTab === 'bank' ? 800 : 600,
-              color: activeTab === 'bank' ? '#6E42E5' : '#64748B',
+              color: activeTab === 'bank' ? '#0B57D0' : '#64748B',
               border: 'none',
-              borderBottom: activeTab === 'bank' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+              borderBottom: activeTab === 'bank' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
               background: 'none',
               cursor: 'pointer',
               display: 'flex',
@@ -354,9 +354,9 @@ export function MyProfileModal({
               padding: '14px 4px',
               fontSize: 13.5,
               fontWeight: activeTab === 'security' ? 800 : 600,
-              color: activeTab === 'security' ? '#6E42E5' : '#64748B',
+              color: activeTab === 'security' ? '#0B57D0' : '#64748B',
               border: 'none',
-              borderBottom: activeTab === 'security' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+              borderBottom: activeTab === 'security' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
               background: 'none',
               cursor: 'pointer',
               display: 'flex',
@@ -525,7 +525,7 @@ export function MyProfileModal({
                   type="submit"
                   disabled={isSavingProfile}
                   style={{
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -533,7 +533,7 @@ export function MyProfileModal({
                     fontSize: 13.5,
                     fontWeight: 700,
                     cursor: 'pointer',
-                    boxShadow: '0 2px 8px rgba(110,66,229,0.25)'
+                    boxShadow: '0 2px 8px rgba(11, 87, 208,0.25)'
                   }}
                 >
                   {isSavingProfile ? 'Saving...' : 'Save Profile Changes'}
@@ -562,7 +562,7 @@ export function MyProfileModal({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <BookmarkCheck size={18} color="#6E42E5" />
+                      <BookmarkCheck size={18} color="#0B57D0" />
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>My Bookings</div>
                         <div style={{ fontSize: 11, color: '#64748B' }}>View active &amp; completed orders</div>

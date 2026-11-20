@@ -159,7 +159,7 @@ export function TeamView({ onShowToast }) {
               cursor: 'pointer'
             }}
           >
-            <Shield size={16} color="#6E42E5" /> Permissions Matrix
+            <Shield size={16} color="#0B57D0" /> Permissions Matrix
           </button>
 
           <button
@@ -171,7 +171,7 @@ export function TeamView({ onShowToast }) {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              backgroundColor: '#6E42E5',
+              backgroundColor: '#0B57D0',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,
@@ -226,9 +226,9 @@ export function TeamView({ onShowToast }) {
                 fontSize: 11.5,
                 fontWeight: 700,
                 cursor: 'pointer',
-                border: roleFilter === r ? '1px solid #6E42E5' : '1px solid #E2E8F0',
-                backgroundColor: roleFilter === r ? '#F5F3FF' : '#FFFFFF',
-                color: roleFilter === r ? '#6E42E5' : '#475569'
+                border: roleFilter === r ? '1px solid #0B57D0' : '1px solid #E2E8F0',
+                backgroundColor: roleFilter === r ? '#E8F1FF' : '#FFFFFF',
+                color: roleFilter === r ? '#0B57D0' : '#475569'
               }}
             >
               {r === 'ALL' ? 'All Roles' : r}
@@ -269,8 +269,8 @@ export function TeamView({ onShowToast }) {
                         width: 36,
                         height: 36,
                         borderRadius: 18,
-                        backgroundColor: isSuper ? '#EDE9FE' : '#F1F5F9',
-                        color: isSuper ? '#6E42E5' : '#475569',
+                        backgroundColor: isSuper ? '#E8F1FF' : '#F1F5F9',
+                        color: isSuper ? '#0B57D0' : '#475569',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -291,8 +291,8 @@ export function TeamView({ onShowToast }) {
                       borderRadius: 12,
                       fontSize: 11.5,
                       fontWeight: 700,
-                      backgroundColor: isSuper ? '#EDE9FE' : '#F1F5F9',
-                      color: isSuper ? '#6E42E5' : '#334155'
+                      backgroundColor: isSuper ? '#E8F1FF' : '#F1F5F9',
+                      color: isSuper ? '#0B57D0' : '#334155'
                     }}>
                       {m.role}
                     </span>
@@ -409,7 +409,7 @@ export function TeamView({ onShowToast }) {
             }}>
               <div>
                 <h4 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ShieldCheck size={20} color="#6E42E5" /> Roles & Permissions Access Matrix
+                  <ShieldCheck size={20} color="#0B57D0" /> Roles & Permissions Access Matrix
                 </h4>
                 <p style={{ fontSize: 12, color: '#64748B', margin: '3px 0 0 0' }}>Enforced on backend API middleware. Actions are strictly gated by authenticated JWT role.</p>
               </div>
@@ -454,7 +454,7 @@ export function TeamView({ onShowToast }) {
                   ].map((row, idx) => (
                     <tr key={idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '10px 14px', fontWeight: 700, color: '#0F172A' }}>{row.res}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'center', color: '#6E42E5', fontWeight: 700, backgroundColor: '#FBF9FE' }}>Full Admin</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'center', color: '#0B57D0', fontWeight: 700, backgroundColor: '#FBF9FE' }}>Full Admin</td>
                       <td style={{ padding: '10px 8px', textAlign: 'center', color: '#334155' }}>{row.ops}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'center', color: '#334155' }}>{row.fin}</td>
                       <td style={{ padding: '10px 8px', textAlign: 'center', color: '#334155' }}>{row.supp}</td>
@@ -469,7 +469,7 @@ export function TeamView({ onShowToast }) {
             <div style={{ padding: '14px 24px', borderTop: '1px solid #E2E8F0', backgroundColor: '#F8FAFC', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setShowMatrixModal(false)}
-                style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+                style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#0B57D0', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
               >
                 Close Matrix
               </button>
@@ -640,7 +640,7 @@ export function TeamView({ onShowToast }) {
                     </button>
                     <button
                       type="submit"
-                      style={{ padding: '8px 16px', borderRadius: 6, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', cursor: 'pointer', fontWeight: 700 }}
+                      style={{ padding: '8px 16px', borderRadius: 6, border: 'none', backgroundColor: '#0B57D0', color: '#FFFFFF', cursor: 'pointer', fontWeight: 700 }}
                     >
                       Create Account
                     </button>
@@ -659,7 +659,7 @@ export function TeamView({ onShowToast }) {
 
                 <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: 8, padding: 14, margin: '14px 0', fontFamily: 'monospace', fontSize: 13 }}>
                   <div><strong>Email:</strong> {createdCredentials.email}</div>
-                  <div style={{ marginTop: 6 }}><strong>Temporary Password:</strong> <span style={{ color: '#6E42E5', fontWeight: 800 }}>{createdCredentials.temporaryPassword}</span></div>
+                  <div style={{ marginTop: 6 }}><strong>Temporary Password:</strong> <span style={{ color: '#0B57D0', fontWeight: 800 }}>{createdCredentials.temporaryPassword}</span></div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
@@ -669,7 +669,7 @@ export function TeamView({ onShowToast }) {
                       setCreatedCredentials(null);
                       setFormData({ name: '', email: '', role: 'Operations Manager', assignedZone: 'All India', department: 'Operations' });
                     }}
-                    style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', cursor: 'pointer', fontWeight: 700 }}
+                    style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#0B57D0', color: '#FFFFFF', cursor: 'pointer', fontWeight: 700 }}
                   >
                     Done
                   </button>

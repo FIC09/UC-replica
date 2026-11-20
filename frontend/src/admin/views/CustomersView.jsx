@@ -404,7 +404,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
               display: 'flex',
               alignItems: 'center',
               gap: 6,
-              backgroundColor: '#6E42E5',
+              backgroundColor: '#0B57D0',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,
@@ -412,7 +412,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
               fontSize: 13,
               fontWeight: 700,
               cursor: 'pointer',
-              boxShadow: '0 2px 8px rgba(110, 66, 229, 0.25)'
+              boxShadow: '0 2px 8px rgba(11, 87, 208, 0.25)'
             }}
           >
             <Plus size={16} /> Add Customer
@@ -439,28 +439,8 @@ export function CustomersView({ onShowToast, onNavigate }) {
 
       <div className="admin-page-body">
         {/* Filter and Search Bar */}
-      <div style={{
-        backgroundColor: '#FFFFFF',
-        borderRadius: 12,
-        padding: '16px 20px',
-        border: '1px solid #E2E8F0',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: 12
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          backgroundColor: '#F8FAFC',
-          border: '1px solid #CBD5E1',
-          borderRadius: 8,
-          padding: '8px 14px',
-          flex: '1 1 220px',
-          minWidth: 180
-        }}>
+      <div className="admin-customers-filter-bar">
+        <div className="admin-customers-search-box">
           <Search size={16} color="#64748B" />
           <input
             type="text"
@@ -481,20 +461,12 @@ export function CustomersView({ onShowToast, onNavigate }) {
           )}
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="admin-customers-dropdowns-group">
           {/* Status Filter */}
           <select
             value={statusFilter}
             onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              fontSize: 13,
-              backgroundColor: '#FFFFFF',
-              color: '#334155',
-              cursor: 'pointer'
-            }}
+            className="admin-customers-select"
           >
             <option value="ALL">All Account Statuses</option>
             <option value="Active">Active Customers</option>
@@ -506,15 +478,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
           <select
             value={cityFilter}
             onChange={e => { setCityFilter(e.target.value); setPage(1); }}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: '1px solid #CBD5E1',
-              fontSize: 13,
-              backgroundColor: '#FFFFFF',
-              color: '#334155',
-              cursor: 'pointer'
-            }}
+            className="admin-customers-select"
           >
             <option value="ALL">All Cities</option>
             <option value="Mumbai">Mumbai</option>
@@ -531,10 +495,11 @@ export function CustomersView({ onShowToast, onNavigate }) {
                 setSearch('');
                 setPage(1);
               }}
+              className="admin-customers-reset-btn"
               style={{
                 backgroundColor: 'transparent',
                 border: 'none',
-                color: '#6E42E5',
+                color: '#0B57D0',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer'
@@ -555,7 +520,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
       }}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+          <table style={{ width: '100%', minWidth: 680, borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
             <thead>
               <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                 <th style={{ padding: '14px 16px', fontWeight: 600, color: '#475569' }}>Customer Profile</th>
@@ -607,8 +572,8 @@ export function CustomersView({ onShowToast, onNavigate }) {
                             width: 36,
                             height: 36,
                             borderRadius: '50%',
-                            backgroundColor: isAnonymised ? '#E2E8F0' : '#EDE9FE',
-                            color: isAnonymised ? '#64748B' : '#6E42E5',
+                            backgroundColor: isAnonymised ? '#E2E8F0' : '#E8F1FF',
+                            color: isAnonymised ? '#64748B' : '#0B57D0',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -626,9 +591,9 @@ export function CustomersView({ onShowToast, onNavigate }) {
                                   fontWeight: 700,
                                   padding: '1px 6px',
                                   borderRadius: 4,
-                                  backgroundColor: '#EDE9FE',
-                                  color: '#6E42E5',
-                                  border: '1px solid #DDD6FE'
+                                  backgroundColor: '#E8F1FF',
+                                  color: '#0B57D0',
+                                  border: '1px solid #E4E7EC'
                                 }}>
                                   Admin
                                 </span>
@@ -830,9 +795,9 @@ export function CustomersView({ onShowToast, onNavigate }) {
                       fontWeight: 700,
                       padding: '2px 8px',
                       borderRadius: 6,
-                      backgroundColor: '#EDE9FE',
-                      color: '#6E42E5',
-                      border: '1px solid #DDD6FE'
+                      backgroundColor: '#E8F1FF',
+                      color: '#0B57D0',
+                      border: '1px solid #E4E7EC'
                     }}>
                       Admin
                     </span>
@@ -882,8 +847,8 @@ export function CustomersView({ onShowToast, onNavigate }) {
                     padding: '12px 14px',
                     border: 'none',
                     backgroundColor: 'transparent',
-                    borderBottom: activeTab === tab.id ? '2px solid #6E42E5' : '2px solid transparent',
-                    color: activeTab === tab.id ? '#6E42E5' : '#64748B',
+                    borderBottom: activeTab === tab.id ? '2px solid #0B57D0' : '2px solid transparent',
+                    color: activeTab === tab.id ? '#0B57D0' : '#64748B',
                     fontSize: 12,
                     fontWeight: activeTab === tab.id ? 700 : 500,
                     cursor: 'pointer'
@@ -997,7 +962,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
                       border: '1px solid #E2E8F0'
                     }}>
                       <div style={{ fontSize: 11, color: '#64748B', textTransform: 'uppercase', fontWeight: 600 }}>Total Bookings Placed</div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: '#6E42E5', marginTop: 4 }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: '#0B57D0', marginTop: 4 }}>
                         {customerDetail?.spendingSummary?.totalBookings ?? customerDetail?.totalBookings ?? 0} Orders
                       </div>
                       <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>
@@ -1086,7 +1051,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
                       >
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ fontWeight: 700, color: '#6E42E5', fontSize: 12 }}>{bk.id}</span>
+                            <span style={{ fontWeight: 700, color: '#0B57D0', fontSize: 12 }}>{bk.id}</span>
                             <span style={{
                               padding: '2px 6px',
                               borderRadius: 4,
@@ -1139,7 +1104,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                         <span style={{ fontWeight: 700, fontSize: 12, color: '#0F172A' }}>{addr.type}</span>
                         {addr.isDefault && (
-                          <span style={{ backgroundColor: '#EDE9FE', color: '#6E42E5', padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>
+                          <span style={{ backgroundColor: '#E8F1FF', color: '#0B57D0', padding: '1px 6px', borderRadius: 4, fontSize: 10, fontWeight: 600 }}>
                             Default Address
                           </span>
                         )}
@@ -1204,7 +1169,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
                     <button
                       type="submit"
                       style={{
-                        backgroundColor: '#6E42E5',
+                        backgroundColor: '#0B57D0',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: 6,
@@ -1578,7 +1543,7 @@ export function CustomersView({ onShowToast, onNavigate }) {
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '9px 20px', borderRadius: 8, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  style={{ padding: '9px 20px', borderRadius: 8, border: 'none', backgroundColor: '#0B57D0', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                 >
                   Save Customer
                 </button>

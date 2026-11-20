@@ -328,7 +328,7 @@ export function ElectricianServicePage({
                 cursor: 'pointer'
               }}
             >
-              <MapPin size={14} color="#6E42E5" />
+              <MapPin size={14} color="#0B57D0" />
               <span>{selectedLocality}, {selectedCity}</span>
             </button>
 
@@ -373,7 +373,7 @@ export function ElectricianServicePage({
                   position: 'absolute',
                   top: -4,
                   right: -4,
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   color: '#FFFFFF',
                   borderRadius: 999,
                   fontSize: 10,
@@ -436,7 +436,7 @@ export function ElectricianServicePage({
                     padding: '10px 12px',
                     borderRadius: 10,
                     border: 'none',
-                    background: isActive ? '#6E42E5' : 'transparent',
+                    background: isActive ? '#0B57D0' : 'transparent',
                     color: isActive ? '#FFFFFF' : '#334155',
                     fontSize: 13,
                     fontWeight: isActive ? 700 : 500,
@@ -506,8 +506,8 @@ export function ElectricianServicePage({
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                       {product.badge && (
                         <span style={{
-                          background: '#F5F3FF',
-                          color: '#6E42E5',
+                          background: '#E8F1FF',
+                          color: '#0B57D0',
                           fontSize: 10.5,
                           fontWeight: 800,
                           padding: '2px 6px',
@@ -574,7 +574,7 @@ export function ElectricianServicePage({
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: '#6E42E5',
+                        color: '#0B57D0',
                         fontSize: 12,
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -613,7 +613,7 @@ export function ElectricianServicePage({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        background: '#6E42E5',
+                        background: '#0B57D0',
                         color: '#FFFFFF',
                         borderRadius: 10,
                         padding: '6px 14px',
@@ -647,15 +647,15 @@ export function ElectricianServicePage({
                         type="button"
                         onClick={() => {
                           onAddToCart(product);
-                          showToast(`🛒 Added "${product.title}" to cart`);
+                          showToast(`Added "${product.title}" to cart`);
                         }}
                         style={{
                           width: '100%',
                           padding: '8px 0',
                           borderRadius: 10,
                           background: '#FFFFFF',
-                          color: '#6E42E5',
-                          border: '1.5px solid #6E42E5',
+                          color: '#0B57D0',
+                          border: '1.5px solid #0B57D0',
                           fontSize: 13,
                           fontWeight: 800,
                           cursor: 'pointer'
@@ -756,13 +756,13 @@ export function ElectricianServicePage({
               onClick={() => {
                 onAddToCart(selectedDetailProduct);
                 setSelectedDetailProduct(null);
-                showToast(`🛒 Added "${selectedDetailProduct.title}" to cart`);
+                showToast(`Added "${selectedDetailProduct.title}" to cart`);
               }}
               style={{
                 width: '100%',
                 padding: '12px 0',
                 borderRadius: 12,
-                background: '#6E42E5',
+                background: '#0B57D0',
                 color: '#FFFFFF',
                 border: 'none',
                 fontSize: 14,
@@ -809,7 +809,7 @@ export function ElectricianServicePage({
             type="button"
             onClick={onOpenCart}
             style={{
-              background: '#5E3BEE',
+              background: '#0B57D0',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 10,

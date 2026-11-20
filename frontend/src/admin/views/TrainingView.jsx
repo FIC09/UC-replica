@@ -95,8 +95,8 @@ export function TrainingView({ onShowToast }) {
               fontWeight: 700,
               padding: '3px 8px',
               borderRadius: 6,
-              backgroundColor: '#EEF2FF',
-              color: '#4F46E5',
+              backgroundColor: '#E8F1FF',
+              color: '#0B57D0',
               border: '1px solid #C7D2FE'
             }}>
               12-Month Certification Renewal Cycle
@@ -147,7 +147,7 @@ export function TrainingView({ onShowToast }) {
           >
             <div>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, backgroundColor: '#F5F3FF', color: '#6E42E5' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, backgroundColor: '#E8F1FF', color: '#0B57D0' }}>
                   {m.category}
                 </span>
                 {m.mandatory && (
@@ -175,7 +175,7 @@ export function TrainingView({ onShowToast }) {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: 12.5 }}>
                 <span style={{ color: '#64748B' }}>Assigned Professionals</span>
-                <span style={{ fontWeight: 700, color: '#6E42E5' }}>{m.assignedProfessionals?.length || 0} technicians</span>
+                <span style={{ fontWeight: 700, color: '#0B57D0' }}>{m.assignedProfessionals?.length || 0} technicians</span>
               </div>
 
               {/* Training Materials */}
@@ -187,7 +187,7 @@ export function TrainingView({ onShowToast }) {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {m.materials.map((mat, i) => (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#334155' }}>
-                        {mat.type === 'Video' ? <Video size={13} color="#6E42E5" /> : <FileText size={13} color="#0284C7" />}
+                        {mat.type === 'Video' ? <Video size={13} color="#0B57D0" /> : <FileText size={13} color="#0284C7" />}
                         <span>{mat.title}</span>
                       </div>
                     ))}
@@ -204,7 +204,7 @@ export function TrainingView({ onShowToast }) {
               alignItems: 'center',
               justifyContent: 'space-between'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6E42E5', fontWeight: 700 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#0B57D0', fontWeight: 700 }}>
                 <Award size={15} />
                 <span>{m.badgeAwarded}</span>
               </div>
@@ -233,7 +233,7 @@ export function TrainingView({ onShowToast }) {
                     padding: '5px 10px',
                     borderRadius: 6,
                     border: 'none',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     fontSize: 12,
                     fontWeight: 700,
                     color: '#FFFFFF',
@@ -282,7 +282,7 @@ export function TrainingView({ onShowToast }) {
               justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <GraduationCap size={20} color="#6E42E5" />
+                <GraduationCap size={20} color="#0B57D0" />
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
                   Assigned Fleet Roster: {selectedModule.title}
                 </h3>
@@ -383,7 +383,7 @@ export function TrainingView({ onShowToast }) {
               justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <UserCheck size={18} color="#6E42E5" />
+                <UserCheck size={18} color="#0B57D0" />
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
                   Assign Worker to Course
                 </h3>
@@ -448,7 +448,7 @@ export function TrainingView({ onShowToast }) {
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0B57D0', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
                 >
                   Enroll Pro
                 </button>

@@ -140,8 +140,8 @@ export function PromotionsView({ onShowToast }) {
               fontWeight: 700,
               padding: '3px 8px',
               borderRadius: 6,
-              backgroundColor: '#EEF2FF',
-              color: '#4F46E5',
+              backgroundColor: '#E8F1FF',
+              color: '#0B57D0',
               border: '1px solid #C7D2FE'
             }}>
               Server-Enforced Redemption Guard
@@ -159,7 +159,7 @@ export function PromotionsView({ onShowToast }) {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            backgroundColor: '#6E42E5',
+            backgroundColor: '#0B57D0',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: 8,
@@ -198,7 +198,7 @@ export function PromotionsView({ onShowToast }) {
               <tr key={p.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                 <td style={{ padding: '14px 18px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span style={{ fontWeight: 800, color: '#6E42E5', fontSize: 14 }}>{p.code}</span>
+                    <span style={{ fontWeight: 800, color: '#0B57D0', fontSize: 14 }}>{p.code}</span>
                     <button
                       type="button"
                       onClick={() => handleCopy(p.code)}
@@ -297,7 +297,7 @@ export function PromotionsView({ onShowToast }) {
               justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <Tag size={18} color="#6E42E5" />
+                <Tag size={18} color="#0B57D0" />
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
                   Create Promotional Voucher Code
                 </h3>
@@ -458,7 +458,7 @@ export function PromotionsView({ onShowToast }) {
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0B57D0', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
                 >
                   Create Coupon
                 </button>

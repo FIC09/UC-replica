@@ -286,12 +286,12 @@ export default function CustomerPaymentsAdminModal({ visible, onRequestClose }) 
             </View>
 
             <View style={styles.kpiRow}>
-              <View style={[styles.kpiCard, { backgroundColor: '#EEF2FF', borderColor: '#C7D2FE' }]}>
-                <Text style={[styles.kpiLabel, { color: '#3730A3' }]}>PROMO SAVINGS</Text>
-                <Text style={[styles.kpiValue, { color: '#4338CA' }]}>
+              <View style={[styles.kpiCard, { backgroundColor: '#E8F1FF', borderColor: '#C7D2FE' }]}>
+                <Text style={[styles.kpiLabel, { color: '#0849B1' }]}>PROMO SAVINGS</Text>
+                <Text style={[styles.kpiValue, { color: '#0849B1' }]}>
                   ₹{kpis.totalDiscountRupees.toLocaleString('en-IN')}
                 </Text>
-                <Text style={[styles.kpiSub, { color: '#6366F1' }]}>DIL DIWALI 250 & coupons</Text>
+                <Text style={[styles.kpiSub, { color: '#0B57D0' }]}>DIL DIWALI 250 & coupons</Text>
               </View>
 
               <View style={[styles.kpiCard, { backgroundColor: '#F1F5F9', borderColor: '#CBD5E1' }]}>
@@ -346,7 +346,7 @@ export default function CustomerPaymentsAdminModal({ visible, onRequestClose }) 
 
           {loading ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="small" color="#4F46E5" />
+              <ActivityIndicator size="small" color="#0B57D0" />
               <Text style={styles.loadingText}>Loading customer payment records...</Text>
             </View>
           ) : filteredList.length === 0 ? (
@@ -573,14 +573,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#E8F1FF',
     borderWidth: 1,
     borderColor: '#C7D2FE'
   },
   refreshBtnText: {
     fontSize: 11.5,
     fontWeight: '700',
-    color: '#4F46E5'
+    color: '#0B57D0'
   },
   closeBtn: {
     padding: 6,
@@ -660,8 +660,8 @@ const styles = StyleSheet.create({
     borderColor: '#E2E8F0'
   },
   filterPillActive: {
-    backgroundColor: '#4F46E5',
-    borderColor: '#4F46E5'
+    backgroundColor: '#0B57D0',
+    borderColor: '#0B57D0'
   },
   filterPillText: {
     fontSize: 11,
@@ -739,7 +739,7 @@ const styles = StyleSheet.create({
   bookingRefText: {
     fontSize: 12,
     fontWeight: '800',
-    color: '#4F46E5'
+    color: '#0B57D0'
   },
   txnIdBadge: {
     backgroundColor: '#F1F5F9',
@@ -807,7 +807,7 @@ const styles = StyleSheet.create({
   viewInvoiceHint: {
     fontSize: 10,
     fontWeight: '700',
-    color: '#4F46E5',
+    color: '#0B57D0',
     marginTop: 1
   },
   modalOverlay: {

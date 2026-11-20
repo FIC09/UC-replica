@@ -144,7 +144,7 @@ export function PendingApprovalState({ partner, onNavigate, onRefresh, onLogout 
               justifyContent: 'center',
               gap: 8,
               padding: '12px 20px',
-              background: '#6E42E5',
+              background: '#0B57D0',
               color: '#fff',
               border: 'none',
               borderRadius: 8,
@@ -152,7 +152,7 @@ export function PendingApprovalState({ partner, onNavigate, onRefresh, onLogout 
               fontWeight: 800,
               cursor: isRefreshing ? 'wait' : 'pointer',
               minHeight: 46,
-              boxShadow: '0 4px 12px rgba(110, 66, 229, 0.25)'
+              boxShadow: '0 4px 12px rgba(11, 87, 208, 0.25)'
             }}
           >
             <RefreshCw size={16} style={{ animation: isRefreshing ? 'spin 1s linear infinite' : 'none' }} />
@@ -307,7 +307,7 @@ export function PermissionDeniedState({ requiredPermission, userRole, onBack }) 
       </h2>
       <p style={{ fontSize: 14, color: '#64748b', lineHeight: 1.6, marginBottom: 20 }}>
         Your assigned role as <strong>{userRole || 'Staff Member'}</strong> does not possess the
-        <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, margin: '0 4px', color: '#7c3aed' }}>
+        <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: 4, margin: '0 4px', color: '#0B57D0' }}>
           {requiredPermission}
         </code>
         privilege required to view or modify this business module.

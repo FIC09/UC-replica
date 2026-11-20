@@ -115,8 +115,8 @@ export function SelectMenSalonPreferenceModal({
               transition: 'all 0.18s ease-in-out'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#7C3AED';
-              e.currentTarget.style.boxShadow = '0 6px 18px rgba(124, 58, 237, 0.08)';
+              e.currentTarget.style.borderColor = '#0B57D0';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(11, 87, 208, 0.08)';
               e.currentTarget.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={(e) => {
@@ -228,8 +228,8 @@ export function SelectMenSalonPreferenceModal({
               transition: 'all 0.18s ease-in-out'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.borderColor = '#7C3AED';
-              e.currentTarget.style.boxShadow = '0 6px 18px rgba(124, 58, 237, 0.08)';
+              e.currentTarget.style.borderColor = '#0B57D0';
+              e.currentTarget.style.boxShadow = '0 6px 18px rgba(11, 87, 208, 0.08)';
               e.currentTarget.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={(e) => {

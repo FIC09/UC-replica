@@ -623,7 +623,7 @@ export function PlumberServicePage({
                         type="button"
                         onClick={() => {
                           onAddToCart(product);
-                          showToast(`🛒 Added "${product.title}" to cart`);
+                          showToast(`Added "${product.title}" to cart`);
                         }}
                         style={{
                           width: '100%',
@@ -732,7 +732,7 @@ export function PlumberServicePage({
               onClick={() => {
                 onAddToCart(selectedDetailProduct);
                 setSelectedDetailProduct(null);
-                showToast(`🛒 Added "${selectedDetailProduct.title}" to cart`);
+                showToast(`Added "${selectedDetailProduct.title}" to cart`);
               }}
               style={{
                 width: '100%',

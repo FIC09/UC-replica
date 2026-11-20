@@ -152,12 +152,12 @@ export function OperationsView({ onNavigate, onShowToast }) {
             width: 34,
             height: 34,
             borderRadius: 8,
-            background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+            background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
             color: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(124, 58, 237, 0.25)',
+            boxShadow: '0 2px 8px rgba(11, 87, 208, 0.25)',
             flexShrink: 0
           }}>
             <Navigation size={18} />
@@ -221,83 +221,83 @@ export function OperationsView({ onNavigate, onShowToast }) {
       {/* Main Body Content */}
       <div style={{ padding: '24px 32px' }} className="admin-page-body">
         {/* Metric Cards Banner */}
-      <div className="admin-kpi-grid" style={{ marginBottom: 24 }}>
-        <div style={{
+      <div className="admin-kpi-grid ops-kpi-grid" style={{ marginBottom: 24 }}>
+        <div className="admin-kpi-card ops-kpi-card-featured" style={{
           background: '#FFFFFF',
           borderRadius: 12,
           padding: 16,
           border: '1px solid #E2E8F0',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
         }}>
-          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Active Tracking Sessions</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
+          <div className="admin-kpi-label" style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Active Tracking Sessions</div>
+          <div className="admin-kpi-value" style={{ fontSize: 26, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
             {sessions.length}
           </div>
-          <div style={{ fontSize: 11.5, color: '#10B981', fontWeight: 600, marginTop: 4 }}>
+          <div className="admin-kpi-subtext" style={{ fontSize: 11.5, color: '#10B981', fontWeight: 600, marginTop: 4 }}>
             Live authoritative feed
           </div>
         </div>
 
-        <div style={{
+        <div className="admin-kpi-card" style={{
           background: '#FFFFFF',
           borderRadius: 12,
           padding: 16,
           border: '1px solid #E2E8F0',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
         }}>
-          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Assigned Technicians</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#2563EB', marginTop: 4 }}>
+          <div className="admin-kpi-label" style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Assigned Technicians</div>
+          <div className="admin-kpi-value" style={{ fontSize: 26, fontWeight: 800, color: '#2563EB', marginTop: 4 }}>
             {assignedCount}
           </div>
-          <div style={{ fontSize: 11.5, color: '#1D4ED8', fontWeight: 600, marginTop: 4 }}>
+          <div className="admin-kpi-subtext" style={{ fontSize: 11.5, color: '#1D4ED8', fontWeight: 600, marginTop: 4 }}>
             ⚡ Ready for transit
           </div>
         </div>
 
-        <div style={{
+        <div className="admin-kpi-card" style={{
           background: '#FFFFFF',
           borderRadius: 12,
           padding: 16,
           border: '1px solid #E2E8F0',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
         }}>
-          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Travelling to Customer</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#7C3AED', marginTop: 4 }}>
+          <div className="admin-kpi-label" style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Travelling to Customer</div>
+          <div className="admin-kpi-value" style={{ fontSize: 26, fontWeight: 800, color: '#0B57D0', marginTop: 4 }}>
             {enRouteCount}
           </div>
-          <div style={{ fontSize: 11.5, color: '#6D28D9', fontWeight: 600, marginTop: 4 }}>
+          <div className="admin-kpi-subtext" style={{ fontSize: 11.5, color: '#0849B1', fontWeight: 600, marginTop: 4 }}>
             🛵 In Transit
           </div>
         </div>
 
-        <div style={{
+        <div className="admin-kpi-card" style={{
           background: '#FFFFFF',
           borderRadius: 12,
           padding: 16,
           border: '1px solid #E2E8F0',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
         }}>
-          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Arrived On-Site</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#D97706', marginTop: 4 }}>
+          <div className="admin-kpi-label" style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>Arrived On-Site</div>
+          <div className="admin-kpi-value" style={{ fontSize: 26, fontWeight: 800, color: '#D97706', marginTop: 4 }}>
             {arrivedCount}
           </div>
-          <div style={{ fontSize: 11.5, color: '#B45309', fontWeight: 600, marginTop: 4 }}>
+          <div className="admin-kpi-subtext" style={{ fontSize: 11.5, color: '#B45309', fontWeight: 600, marginTop: 4 }}>
             📍 Awaiting PIN verify
           </div>
         </div>
 
-        <div style={{
+        <div className="admin-kpi-card" style={{
           background: '#FFFFFF',
           borderRadius: 12,
           padding: 16,
           border: '1px solid #E2E8F0',
           boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
         }}>
-          <div style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>In Progress</div>
-          <div style={{ fontSize: 26, fontWeight: 800, color: '#059669', marginTop: 4 }}>
+          <div className="admin-kpi-label" style={{ fontSize: 12, color: '#64748B', fontWeight: 600 }}>In Progress</div>
+          <div className="admin-kpi-value" style={{ fontSize: 26, fontWeight: 800, color: '#059669', marginTop: 4 }}>
             {inProgressCount}
           </div>
-          <div style={{ fontSize: 11.5, color: '#047857', fontWeight: 600, marginTop: 4 }}>
+          <div className="admin-kpi-subtext" style={{ fontSize: 11.5, color: '#047857', fontWeight: 600, marginTop: 4 }}>
             ⚡ Active service
           </div>
         </div>
@@ -319,7 +319,7 @@ export function OperationsView({ onNavigate, onShowToast }) {
           flexDirection: 'column',
           overflow: 'hidden'
         }}>
-          <div style={{
+          <div className="ops-pro-list-header" style={{
             padding: '14px 18px',
             borderBottom: '1px solid #E2E8F0',
             display: 'flex',
@@ -328,25 +328,27 @@ export function OperationsView({ onNavigate, onShowToast }) {
             flexWrap: 'wrap',
             gap: 10
           }}>
-            <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>
+            <span className="ops-pro-list-title" style={{ fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>
               Active Professionals ({filteredSessions.length})
             </span>
 
             {/* Filter buttons */}
-            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <div className="ops-pro-tabs-scroll" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {['all', 'assigned', 'en_route', 'arrived', 'in_progress'].map(f => (
                 <button
                   key={f}
                   type="button"
+                  className={`ops-pro-tab-btn ${statusFilter === f ? 'active' : ''}`}
                   onClick={() => setStatusFilter(f)}
                   style={{
                     border: 'none',
-                    padding: '3px 8px',
+                    padding: '4px 10px',
                     borderRadius: 6,
-                    fontSize: 11,
+                    fontSize: 11.5,
                     fontWeight: 700,
                     cursor: 'pointer',
-                    background: statusFilter === f ? '#7C3AED' : '#F1F5F9',
+                    whiteSpace: 'nowrap',
+                    background: statusFilter === f ? '#0B57D0' : '#F1F5F9',
                     color: statusFilter === f ? '#FFFFFF' : '#64748B'
                   }}
                 >
@@ -373,8 +375,8 @@ export function OperationsView({ onNavigate, onShowToast }) {
                     style={{
                       padding: 14,
                       borderRadius: 10,
-                      border: isSelected ? '2px solid #7C3AED' : '1px solid #E2E8F0',
-                      background: isSelected ? '#FAF5FF' : '#FFFFFF',
+                      border: isSelected ? '2px solid #0B57D0' : '1px solid #E2E8F0',
+                      background: isSelected ? '#E8F1FF' : '#FFFFFF',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease'
                     }}
@@ -386,7 +388,7 @@ export function OperationsView({ onNavigate, onShowToast }) {
                           height: 32,
                           borderRadius: '50%',
                           background: '#E0E7FF',
-                          color: '#4338CA',
+                          color: '#0849B1',
                           fontSize: 12,
                           fontWeight: 800,
                           display: 'flex',
@@ -411,10 +413,10 @@ export function OperationsView({ onNavigate, onShowToast }) {
                         padding: '3px 8px',
                         borderRadius: 12,
                         textTransform: 'uppercase',
-                        background: session.status === 'en_route' ? '#EDE9FE' :
+                        background: session.status === 'en_route' ? '#E8F1FF' :
                                     session.status === 'arrived' ? '#FEF3C7' :
                                     session.status === 'in_progress' ? '#DCFCE7' : '#F1F5F9',
-                        color: session.status === 'en_route' ? '#6D28D9' :
+                        color: session.status === 'en_route' ? '#0849B1' :
                                session.status === 'arrived' ? '#92400E' :
                                session.status === 'in_progress' ? '#166534' : '#475569'
                       }}>
@@ -487,7 +489,7 @@ export function OperationsView({ onNavigate, onShowToast }) {
             background: '#F8FAFC'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Navigation size={16} color="#7C3AED" />
+              <Navigation size={16} color="#0B57D0" />
               <strong style={{ fontSize: 13.5, color: '#0F172A' }}>
                 {selectedSession ? `Tracking: ${selectedSession.workerName} (${selectedSession.bookingId})` : 'Live Operations Map'}
               </strong>

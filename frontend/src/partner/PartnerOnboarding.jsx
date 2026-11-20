@@ -270,7 +270,7 @@ export function PartnerOnboarding({ partner, onNavigate, showToast }) {
             <div style={{
               width: `${onboarding.progress}%`,
               height: '100%',
-              background: currentState === 'Approved' ? '#16a34a' : currentState === 'Changes Requested' ? '#ea580c' : '#7c3aed',
+              background: currentState === 'Approved' ? '#16a34a' : currentState === 'Changes Requested' ? '#ea580c' : '#0B57D0',
               transition: 'width 0.4s ease'
             }} />
           </div>
@@ -369,8 +369,8 @@ export function PartnerOnboarding({ partner, onNavigate, showToast }) {
                 padding: '14px 16px',
                 border: 'none',
                 background: activeStep === s.num ? '#ffffff' : 'transparent',
-                borderBottom: activeStep === s.num ? '2px solid #7c3aed' : '2px solid transparent',
-                color: activeStep === s.num ? '#7c3aed' : '#64748b',
+                borderBottom: activeStep === s.num ? '2px solid #0B57D0' : '2px solid transparent',
+                color: activeStep === s.num ? '#0B57D0' : '#64748b',
                 fontWeight: activeStep === s.num ? 700 : 500,
                 fontSize: 13,
                 cursor: 'pointer',
@@ -509,8 +509,8 @@ export function PartnerOnboarding({ partner, onNavigate, showToast }) {
                         style={{
                           padding: '10px 14px',
                           borderRadius: 8,
-                          border: isSelected ? '1px solid #7c3aed' : '1px solid #cbd5e1',
-                          background: isSelected ? '#f5f3ff' : '#ffffff',
+                          border: isSelected ? '1px solid #0B57D0' : '1px solid #cbd5e1',
+                          background: isSelected ? '#E8F1FF' : '#ffffff',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
@@ -662,7 +662,7 @@ export function PartnerOnboarding({ partner, onNavigate, showToast }) {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <FileText size={20} color={doc.status === 'Correction Required' ? '#c2410c' : '#7c3aed'} />
+                      <FileText size={20} color={doc.status === 'Correction Required' ? '#c2410c' : '#0B57D0'} />
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <strong style={{ fontSize: 13.5, color: '#0f172a' }}>{doc.name}</strong>
@@ -859,8 +859,8 @@ export function PartnerOnboarding({ partner, onNavigate, showToast }) {
                 gap: 6,
                 padding: '9px 16px',
                 background: '#ffffff',
-                border: '1px solid #7c3aed',
-                color: '#7c3aed',
+                border: '1px solid #0B57D0',
+                color: '#0B57D0',
                 borderRadius: 8,
                 fontSize: 13,
                 fontWeight: 600,

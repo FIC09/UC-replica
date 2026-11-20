@@ -81,8 +81,8 @@ export function EarningsView({ showToast }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
-            background: isModeB ? '#ecfdf5' : '#ede9fe',
-            color: isModeB ? '#059669' : '#6d28d9',
+            background: isModeB ? '#ecfdf5' : '#E8F1FF',
+            color: isModeB ? '#059669' : '#0849B1',
             padding: '6px 14px',
             borderRadius: 8,
             fontSize: 13,
@@ -163,7 +163,7 @@ export function EarningsView({ showToast }) {
             border: 'none',
             fontSize: 13.5,
             fontWeight: 700,
-            background: activeTab === 'summary' ? '#7c3aed' : 'transparent',
+            background: activeTab === 'summary' ? '#0B57D0' : 'transparent',
             color: activeTab === 'summary' ? '#ffffff' : '#64748b',
             cursor: 'pointer'
           }}
@@ -179,7 +179,7 @@ export function EarningsView({ showToast }) {
             border: 'none',
             fontSize: 13.5,
             fontWeight: 700,
-            background: activeTab === 'ledger' ? '#7c3aed' : 'transparent',
+            background: activeTab === 'ledger' ? '#0B57D0' : 'transparent',
             color: activeTab === 'ledger' ? '#ffffff' : '#64748b',
             cursor: 'pointer'
           }}
@@ -305,7 +305,7 @@ export function EarningsView({ showToast }) {
                       ₹{tx.bookingValue}
                       <div style={{ fontSize: 11, color: '#94a3b8' }}>{tx.bookingValuePaise} p</div>
                     </td>
-                    <td style={{ padding: '12px', color: '#7c3aed', fontSize: 12 }}>
+                    <td style={{ padding: '12px', color: '#0B57D0', fontSize: 12 }}>
                       {tx.discounts?.length > 0 ? tx.discounts[0].fundingSource : 'Standard Booking'}
                     </td>
                     <td style={{ padding: '12px', color: '#475569' }}>

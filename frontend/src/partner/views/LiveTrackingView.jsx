@@ -80,12 +80,12 @@ export function LiveTrackingView({ showToast }) {
             width: 38,
             height: 38,
             borderRadius: 10,
-            background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+            background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
             color: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)'
+            boxShadow: '0 4px 12px rgba(11, 87, 208, 0.25)'
           }}>
             <Navigation size={20} />
           </div>
@@ -191,8 +191,8 @@ export function LiveTrackingView({ showToast }) {
                     style={{
                       padding: 12,
                       borderRadius: 10,
-                      border: isSelected ? '2px solid #7C3AED' : '1px solid #E2E8F0',
-                      background: isSelected ? '#FAF5FF' : '#FFFFFF',
+                      border: isSelected ? '2px solid #0B57D0' : '1px solid #E2E8F0',
+                      background: isSelected ? '#E8F1FF' : '#FFFFFF',
                       cursor: 'pointer'
                     }}
                   >
@@ -203,8 +203,8 @@ export function LiveTrackingView({ showToast }) {
                           height: 30,
                           borderRadius: '50%',
                           flexShrink: 0,
-                          background: '#EDE9FE',
-                          color: '#6D28D9',
+                          background: '#E8F1FF',
+                          color: '#0849B1',
                           fontSize: 12,
                           fontWeight: 800,
                           display: 'flex',
@@ -229,10 +229,10 @@ export function LiveTrackingView({ showToast }) {
                         padding: '2px 8px',
                         borderRadius: 10,
                         textTransform: 'uppercase',
-                        background: s.status === 'en_route' ? '#EDE9FE' :
+                        background: s.status === 'en_route' ? '#E8F1FF' :
                                     s.status === 'arrived' ? '#FEF3C7' :
                                     s.status === 'in_progress' ? '#DCFCE7' : '#F1F5F9',
-                        color: s.status === 'en_route' ? '#6D28D9' :
+                        color: s.status === 'en_route' ? '#0849B1' :
                                s.status === 'arrived' ? '#92400E' :
                                s.status === 'in_progress' ? '#166534' : '#475569'
                       }}>
@@ -271,7 +271,7 @@ export function LiveTrackingView({ showToast }) {
             background: '#F8FAFC'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Navigation size={16} color="#7C3AED" />
+              <Navigation size={16} color="#0B57D0" />
               <strong style={{ fontSize: 13.5, color: '#0F172A' }}>
                 {selectedSession ? `Live Route: ${selectedSession.workerName}` : 'Select a technician to view live route'}
               </strong>
@@ -283,7 +283,7 @@ export function LiveTrackingView({ showToast }) {
                 onClick={() => handleSimulateStep(selectedSession.bookingId)}
                 disabled={simulatingStep}
                 style={{
-                  background: '#7C3AED',
+                  background: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 6,

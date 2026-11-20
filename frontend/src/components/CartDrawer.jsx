@@ -242,7 +242,7 @@ export function CartDrawer({
         {/* Header */}
         <div className="cart-drawer-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ShoppingBag size={20} color="#6E42E5" />
+            <ShoppingBag size={20} color="#0B57D0" />
             <h3 className="cart-header-title">
               My Cart ({cartItems.reduce((acc, i) => acc + i.qty, 0)} items)
             </h3>
@@ -289,8 +289,8 @@ export function CartDrawer({
                 width: 70,
                 height: 70,
                 borderRadius: '50%',
-                background: '#F4F0FF',
-                color: '#6E42E5',
+                background: '#E8F1FF',
+                color: '#0B57D0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -332,7 +332,7 @@ export function CartDrawer({
                     type="checkbox"
                     checked={cartItems.length > 0 && selectedIds.length === cartItems.length}
                     onChange={toggleSelectAll}
-                    style={{ width: 16, height: 16, accentColor: '#6E42E5', cursor: 'pointer' }}
+                    style={{ width: 16, height: 16, accentColor: '#0B57D0', cursor: 'pointer' }}
                   />
                   <span>Select All ({selectedCount}/{cartItems.length})</span>
                 </label>
@@ -351,7 +351,7 @@ export function CartDrawer({
                       className="cart-item-row"
                       style={{
                         opacity: isSelected ? 1 : 0.6,
-                        border: isSelected ? '1.5px solid #DDD6FE' : '1px solid #E2E8F0',
+                        border: isSelected ? '1.5px solid #E4E7EC' : '1px solid #E2E8F0',
                         background: isSelected ? '#FFFFFF' : '#F8FAFC',
                         transition: 'all 0.15s ease'
                       }}
@@ -363,7 +363,7 @@ export function CartDrawer({
                         style={{
                           width: 17,
                           height: 17,
-                          accentColor: '#6E42E5',
+                          accentColor: '#0B57D0',
                           cursor: 'pointer',
                           marginRight: 6
                         }}
@@ -471,7 +471,7 @@ export function CartDrawer({
               {/* Coupons Section */}
               <div style={{ background: '#F8FAFC', padding: 14, borderRadius: 12, border: '1px solid #E2E8F0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                  <Tag size={15} color="#6E42E5" />
+                  <Tag size={15} color="#0B57D0" />
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>Coupons & Offers</span>
                 </div>
 

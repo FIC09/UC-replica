@@ -184,12 +184,12 @@ export function ReviewsView({ showToast, staff }) {
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
-                    background: '#ede9fe',
+                    background: '#E8F1FF',
                     padding: '4px 10px',
                     borderRadius: 6,
                     fontSize: 12,
                     fontWeight: 600,
-                    color: '#6d28d9'
+                    color: '#0849B1'
                   }}>
                     <HardHat size={14} /> Tech: {rev.technicianName}
                   </div>
@@ -254,14 +254,14 @@ export function ReviewsView({ showToast, staff }) {
               {rev.partnerReply ? (
                 <div style={{
                   background: '#f8fafc',
-                  borderLeft: '3px solid #7c3aed',
+                  borderLeft: '3px solid #0B57D0',
                   padding: '12px 16px',
                   borderRadius: 6,
                   fontSize: 13,
                   color: '#475569',
                   marginTop: 8
                 }}>
-                  <strong style={{ color: '#7c3aed', display: 'block', marginBottom: 2 }}>
+                  <strong style={{ color: '#0B57D0', display: 'block', marginBottom: 2 }}>
                     Official Response ({rev.repliedBy || 'Business Partner'}):
                   </strong>
                   {rev.partnerReply}
@@ -373,7 +373,7 @@ export function ReviewsView({ showToast, staff }) {
                   style={{
                     flex: 2,
                     padding: '10px 16px',
-                    background: '#7c3aed',
+                    background: '#0B57D0',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 8,

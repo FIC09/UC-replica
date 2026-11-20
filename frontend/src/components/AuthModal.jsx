@@ -76,7 +76,7 @@ export function AuthModal({
       role: 'customer',
       label: 'Customer',
       icon: User,
-      color: '#6E42E5',
+      color: '#0B57D0',
       email: 'customer@urbancompany.com',
       password: 'customer123',
       name: 'Rahul Sharma',
@@ -88,7 +88,7 @@ export function AuthModal({
       role: 'admin',
       label: 'Admin',
       icon: ShieldCheck,
-      color: '#7C3AED',
+      color: '#0B57D0',
       email: 'admin@urbancompany.com',
       password: 'admin123',
       name: 'Admin',
@@ -681,12 +681,12 @@ export function AuthModal({
                 height: 68,
                 borderRadius: '50%',
                 background: user.role === 'admin' 
-                  ? 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)'
+                  ? 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)'
                   : user.role === 'professional'
                   ? 'linear-gradient(135deg, #059669 0%, #10B981 100%)'
                   : user.role === 'partner'
                   ? 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)'
-                  : 'linear-gradient(135deg, #6E42E5 0%, #4F2CE0 100%)',
+                  : 'linear-gradient(135deg, #0B57D0 0%, #4F2CE0 100%)',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
@@ -694,7 +694,7 @@ export function AuthModal({
                 fontWeight: 900,
                 fontSize: 26,
                 margin: '0 auto 12px',
-                boxShadow: '0 8px 20px rgba(110, 66, 229, 0.3)'
+                boxShadow: '0 8px 20px rgba(11, 87, 208, 0.3)'
               }}>
                 {(user.name || 'U')[0].toUpperCase()}
               </div>
@@ -710,9 +710,9 @@ export function AuthModal({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 5,
-                background: user.role === 'admin' ? '#F5F3FF' : user.role === 'professional' ? '#ECFDF5' : user.role === 'partner' ? '#EFF6FF' : '#F1F5F9',
-                color: user.role === 'admin' ? '#7C3AED' : user.role === 'professional' ? '#047857' : user.role === 'partner' ? '#1D4ED8' : '#334155',
-                border: `1px solid ${user.role === 'admin' ? '#DDD6FE' : user.role === 'professional' ? '#A7F3D0' : user.role === 'partner' ? '#BFDBFE' : '#E2E8F0'}`,
+                background: user.role === 'admin' ? '#E8F1FF' : user.role === 'professional' ? '#ECFDF5' : user.role === 'partner' ? '#EFF6FF' : '#F1F5F9',
+                color: user.role === 'admin' ? '#0B57D0' : user.role === 'professional' ? '#047857' : user.role === 'partner' ? '#1D4ED8' : '#334155',
+                border: `1px solid ${user.role === 'admin' ? '#E4E7EC' : user.role === 'professional' ? '#A7F3D0' : user.role === 'partner' ? '#BFDBFE' : '#E2E8F0'}`,
                 padding: '4px 12px',
                 borderRadius: 999,
                 fontSize: 12,
@@ -738,7 +738,7 @@ export function AuthModal({
                   }}
                   style={{
                     width: '100%',
-                    background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                    background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 12,
@@ -750,7 +750,7 @@ export function AuthModal({
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 8,
-                    boxShadow: '0 6px 20px rgba(124, 58, 237, 0.35)'
+                    boxShadow: '0 6px 20px rgba(11, 87, 208, 0.35)'
                   }}
                 >
                   <ShieldCheck size={18} />
@@ -931,7 +931,7 @@ export function AuthModal({
                 <button 
                   type="button" 
                   onClick={() => setIsSwitchingAccount(false)}
-                  style={{ background: 'none', border: 'none', color: '#6E42E5', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}
+                  style={{ background: 'none', border: 'none', color: '#0B57D0', fontWeight: 700, cursor: 'pointer', fontSize: 12 }}
                 >
                   View Profile →
                 </button>
@@ -1164,7 +1164,7 @@ export function AuthModal({
                         type="checkbox" 
                         checked={rememberMe} 
                         onChange={(e) => setRememberMe(e.target.checked)} 
-                        style={{ accentColor: '#7C3AED' }}
+                        style={{ accentColor: '#0B57D0' }}
                       />
                       <span>Remember me</span>
                     </label>
@@ -1275,7 +1275,7 @@ export function AuthModal({
                   fontWeight: 700,
                   color: '#475569'
                 }}>
-                  <div className="animate-spin" style={{ width: 14, height: 14, border: '2px solid #6E42E5', borderTopColor: 'transparent', borderRadius: '50%' }} />
+                  <div className="animate-spin" style={{ width: 14, height: 14, border: '2px solid #0B57D0', borderTopColor: 'transparent', borderRadius: '50%' }} />
                   <span>Signing you in &amp; opening your dashboard...</span>
                 </div>
               </div>
@@ -1465,7 +1465,7 @@ export function AuthModal({
                         disabled={isSendingOtp || !signupEmail.trim() || !signupEmail.includes('@')}
                         onClick={handleSendEmailOtp}
                         style={{
-                          background: (isSendingOtp || !signupEmail.trim() || !signupEmail.includes('@')) ? '#E2E8F0' : '#6E42E5',
+                          background: (isSendingOtp || !signupEmail.trim() || !signupEmail.includes('@')) ? '#E2E8F0' : '#0B57D0',
                           color: (isSendingOtp || !signupEmail.trim() || !signupEmail.includes('@')) ? '#94A3B8' : '#FFFFFF',
                           border: 'none',
                           padding: '7px 14px',
@@ -1510,18 +1510,18 @@ export function AuthModal({
                 {/* Inline OTP Input Box when OTP is sent */}
                 {isOtpSent && !isEmailVerified && (
                   <div style={{
-                    background: '#FAF5FF',
-                    border: '1.5px solid #DDD6FE',
+                    background: '#E8F1FF',
+                    border: '1.5px solid #E4E7EC',
                     borderRadius: 10,
                     padding: '12px 14px',
                     marginBottom: 12,
                     animation: 'fadeIn 0.2s ease'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                      <label style={{ fontSize: 12, fontWeight: 800, color: '#5B21B6' }}>
+                      <label style={{ fontSize: 12, fontWeight: 800, color: '#0849B1' }}>
                         Enter 6-Digit Email Code
                       </label>
-                      <span style={{ fontSize: 11, color: '#7C3AED', fontWeight: 600 }}>
+                      <span style={{ fontSize: 11, color: '#0B57D0', fontWeight: 600 }}>
                         Sent to {otpSentEmail}
                       </span>
                     </div>
@@ -1542,7 +1542,7 @@ export function AuthModal({
                           flex: 1,
                           padding: '8px 12px',
                           borderRadius: 8,
-                          border: '1.5px solid #7C3AED',
+                          border: '1.5px solid #0B57D0',
                           fontSize: 18,
                           fontWeight: 900,
                           letterSpacing: 6,
@@ -1557,7 +1557,7 @@ export function AuthModal({
                         disabled={isVerifyingOtp || signupOtp.trim().length !== 6}
                         onClick={handleVerifyEmailOtp}
                         style={{
-                          background: (isVerifyingOtp || signupOtp.trim().length !== 6) ? '#CBD5E1' : '#7C3AED',
+                          background: (isVerifyingOtp || signupOtp.trim().length !== 6) ? '#CBD5E1' : '#0B57D0',
                           color: '#FFFFFF',
                           border: 'none',
                           borderRadius: 8,
@@ -1594,7 +1594,7 @@ export function AuthModal({
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: resendCooldown > 0 ? '#9CA3AF' : '#6E42E5',
+                          color: resendCooldown > 0 ? '#9CA3AF' : '#0B57D0',
                           fontWeight: 700,
                           cursor: (resendCooldown > 0 || isSendingOtp) ? 'not-allowed' : 'pointer',
                           padding: 0
@@ -1647,7 +1647,7 @@ export function AuthModal({
                           width: '100%',
                           padding: '9px 36px 9px 12px',
                           borderRadius: 9,
-                          border: isEmailVerified ? '1.5px solid #7C3AED' : '1.5px solid #CBD5E1',
+                          border: isEmailVerified ? '1.5px solid #0B57D0' : '1.5px solid #CBD5E1',
                           fontSize: 13,
                           boxSizing: 'border-box',
                           backgroundColor: isEmailVerified ? '#FFFFFF' : '#F1F5F9',
@@ -1692,7 +1692,7 @@ export function AuthModal({
                           width: '100%',
                           padding: '9px 36px 9px 12px',
                           borderRadius: 9,
-                          border: isEmailVerified ? '1.5px solid #7C3AED' : '1.5px solid #CBD5E1',
+                          border: isEmailVerified ? '1.5px solid #0B57D0' : '1.5px solid #CBD5E1',
                           fontSize: 13,
                           boxSizing: 'border-box',
                           backgroundColor: isEmailVerified ? '#FFFFFF' : '#F1F5F9',

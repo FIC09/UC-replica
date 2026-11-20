@@ -727,7 +727,7 @@ export function HairStudioWomenServicePage({
       originalPrice: finalOriginal,
       serviceCategory: 'women-hair-services'
     });
-    showToast(`✨ Added "${svc.title}" to cart`);
+    showToast(`Added "${svc.title}" to cart`);
   }
 
   function handleOpenCustomize(pkg) {
@@ -852,7 +852,7 @@ export function HairStudioWomenServicePage({
                   outline: 'none',
                   transition: 'border-color 0.15s, box-shadow 0.15s'
                 }}
-                onFocus={(e) => { e.target.style.borderColor = '#6E42E5'; e.target.style.boxShadow = '0 0 0 3px rgba(110,66,229,0.1)'; }}
+                onFocus={(e) => { e.target.style.borderColor = '#0B57D0'; e.target.style.boxShadow = '0 0 0 3px rgba(11, 87, 208,0.1)'; }}
                 onBlur={(e) => { e.target.style.borderColor = '#CBD5E1'; e.target.style.boxShadow = 'none'; }}
               />
               {searchQuery && (
@@ -896,11 +896,11 @@ export function HairStudioWomenServicePage({
                 color: '#0F172A'
               }}
             >
-              <ShoppingBag size={18} color="#6E42E5" />
+              <ShoppingBag size={18} color="#0B57D0" />
               <span>Cart</span>
               {cartCount > 0 && (
                 <span style={{
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   color: '#FFFFFF',
                   borderRadius: '50%',
                   width: 20,
@@ -964,7 +964,7 @@ export function HairStudioWomenServicePage({
                       onClick={() => handleCategoryTileClick(cat.id)}
                       style={{
                         gridColumn: '1 / -1',
-                        background: isActive ? '#6E42E5' : '#F8FAFC',
+                        background: isActive ? '#0B57D0' : '#F8FAFC',
                         color: isActive ? '#FFFFFF' : '#475569',
                         border: '1px solid #E2E8F0',
                         borderRadius: 10,
@@ -987,8 +987,8 @@ export function HairStudioWomenServicePage({
                     type="button"
                     onClick={() => handleCategoryTileClick(cat.id)}
                     style={{
-                      background: isActive ? '#F5F3FF' : '#FFFFFF',
-                      border: isActive ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
+                      background: isActive ? '#E8F1FF' : '#FFFFFF',
+                      border: isActive ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
                       borderRadius: 12,
                       padding: '8px 4px',
                       display: 'flex',
@@ -1025,7 +1025,7 @@ export function HairStudioWomenServicePage({
                     <span style={{
                       fontSize: 11,
                       fontWeight: isActive ? 800 : 600,
-                      color: isActive ? '#6E42E5' : '#1E293B',
+                      color: isActive ? '#0B57D0' : '#1E293B',
                       lineHeight: 1.25
                     }}>
                       {cat.label}
@@ -1247,8 +1247,8 @@ export function HairStudioWomenServicePage({
                                       onClick={() => handleAddService(service)}
                                       style={{
                                         background: '#FFFFFF',
-                                        border: '1.5px solid #6E42E5',
-                                        color: '#6E42E5',
+                                        border: '1.5px solid #0B57D0',
+                                        color: '#0B57D0',
                                         borderRadius: 8,
                                         padding: '7px 24px',
                                         fontSize: 13.5,
@@ -1264,25 +1264,25 @@ export function HairStudioWomenServicePage({
                                     <div style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      background: '#F5F3FF',
-                                      border: '1.5px solid #6E42E5',
+                                      background: '#E8F1FF',
+                                      border: '1.5px solid #0B57D0',
                                       borderRadius: 8,
                                       overflow: 'hidden'
                                     }}>
                                       <button
                                         type="button"
                                         onClick={() => onUpdateQty(service.id, qty - 1)}
-                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#6E42E5', cursor: 'pointer' }}
+                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#0B57D0', cursor: 'pointer' }}
                                       >
                                         <Minus size={12} strokeWidth={3} />
                                       </button>
-                                      <span style={{ fontWeight: 800, color: '#6E42E5', fontSize: 12, padding: '0 6px' }}>
+                                      <span style={{ fontWeight: 800, color: '#0B57D0', fontSize: 12, padding: '0 6px' }}>
                                         {qty}
                                       </span>
                                       <button
                                         type="button"
                                         onClick={() => onUpdateQty(service.id, qty + 1)}
-                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#6E42E5', cursor: 'pointer' }}
+                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#0B57D0', cursor: 'pointer' }}
                                       >
                                         <Plus size={12} strokeWidth={3} />
                                       </button>
@@ -1321,19 +1321,19 @@ export function HairStudioWomenServicePage({
                                       onClick={() => handleAddService(service)}
                                       style={{
                                         background: '#FFFFFF',
-                                        border: '1.5px solid #6E42E5',
-                                        color: '#6E42E5',
+                                        border: '1.5px solid #0B57D0',
+                                        color: '#0B57D0',
                                         borderRadius: 8,
                                         padding: '7px 24px',
                                         fontSize: 13.5,
                                         fontWeight: 800,
                                         cursor: 'pointer',
                                         transition: 'all 0.15s',
-                                        boxShadow: '0 2px 6px rgba(110, 66, 229, 0.08)',
+                                        boxShadow: '0 2px 6px rgba(11, 87, 208, 0.08)',
                                         minWidth: 86
                                       }}
-                                      onMouseEnter={e => { e.currentTarget.style.background = '#6E42E5'; e.currentTarget.style.color = '#fff'; }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6E42E5'; }}
+                                      onMouseEnter={e => { e.currentTarget.style.background = '#0B57D0'; e.currentTarget.style.color = '#fff'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#0B57D0'; }}
                                     >
                                       Add
                                     </button>
@@ -1341,35 +1341,29 @@ export function HairStudioWomenServicePage({
                                     <div style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      background: '#F5F3FF',
-                                      border: '1.5px solid #6E42E5',
+                                      background: '#E8F1FF',
+                                      border: '1.5px solid #0B57D0',
                                       borderRadius: 8,
                                       overflow: 'hidden'
                                     }}>
                                       <button
                                         type="button"
                                         onClick={() => onUpdateQty(service.id, qty - 1)}
-                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#6E42E5', cursor: 'pointer' }}
+                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#0B57D0', cursor: 'pointer' }}
                                       >
                                         <Minus size={12} strokeWidth={3} />
                                       </button>
-                                      <span style={{ fontWeight: 800, color: '#6E42E5', fontSize: 12, padding: '0 6px' }}>
+                                      <span style={{ fontWeight: 800, color: '#0B57D0', fontSize: 12, padding: '0 6px' }}>
                                         {qty}
                                       </span>
                                       <button
                                         type="button"
                                         onClick={() => onUpdateQty(service.id, qty + 1)}
-                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#6E42E5', cursor: 'pointer' }}
+                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#0B57D0', cursor: 'pointer' }}
                                       >
                                         <Plus size={12} strokeWidth={3} />
                                       </button>
                                     </div>
-                                  )}
-
-                                  {service.optionsCount && (
-                                    <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>
-                                      {service.optionsCount} {service.optionsCount === 1 ? 'option' : 'options'}
-                                    </span>
                                   )}
                                 </div>
                               )}
@@ -1431,7 +1425,7 @@ export function HairStudioWomenServicePage({
                                     cursor: 'pointer',
                                     transition: 'all 0.15s'
                                   }}
-                                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#6E42E5'; e.currentTarget.style.color = '#6E42E5'; }}
+                                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#0B57D0'; e.currentTarget.style.color = '#0B57D0'; }}
                                   onMouseLeave={e => { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.color = '#0F172A'; }}
                                 >
                                   Edit your package
@@ -1443,7 +1437,7 @@ export function HairStudioWomenServicePage({
                                   style={{
                                     background: 'none',
                                     border: 'none',
-                                    color: '#6E42E5',
+                                    color: '#0B57D0',
                                     fontSize: 13,
                                     fontWeight: 700,
                                     cursor: 'pointer',
@@ -1475,44 +1469,6 @@ export function HairStudioWomenServicePage({
             flexDirection: 'column',
             gap: 16
           }}>
-            
-            {/* Promo Coupon Card (HAIRSTUDIO25 from Screenshot 1 & 2) */}
-            <div style={{
-              background: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: 16,
-              padding: '16px 18px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              boxShadow: '0 2px 10px rgba(0,0,0,0.02)'
-            }}>
-              <div style={{
-                width: 38,
-                height: 38,
-                borderRadius: 8,
-                background: '#ECFDF5',
-                border: '1px solid #A7F3D0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#059669',
-                fontWeight: 900,
-                fontSize: 16,
-                flexShrink: 0
-              }}>
-                %
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 900, color: '#0F172A', letterSpacing: 0.2 }}>
-                  HAIRSTUDIO25
-                </div>
-                <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
-                  25% off on hair services
-                </div>
-              </div>
-            </div>
-
             {/* UC Promise Card (Matching all 5 Screenshots) */}
             <div style={{
               background: '#FFFFFF',
@@ -1529,7 +1485,7 @@ export function HairStudioWomenServicePage({
                   width: 44,
                   height: 44,
                   borderRadius: '50%',
-                  background: 'radial-gradient(circle, #E0F2FE 0%, #F5F3FF 100%)',
+                  background: 'radial-gradient(circle, #E0F2FE 0%, #E8F1FF 100%)',
                   border: '1px solid #CBD5E1',
                   display: 'flex',
                   alignItems: 'center',
@@ -1563,14 +1519,14 @@ export function HairStudioWomenServicePage({
             {/* Floating Purple Cart Button */}
             {cartCount > 0 && (
               <div style={{
-                background: '#6E42E5',
+                background: '#0B57D0',
                 borderRadius: 12,
                 padding: '12px 16px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 color: '#FFFFFF',
-                boxShadow: '0 4px 16px rgba(110,66,229,0.35)',
+                boxShadow: '0 4px 16px rgba(11, 87, 208,0.35)',
                 cursor: 'pointer'
               }}
               onClick={onOpenCart}
@@ -1669,9 +1625,9 @@ export function HairStudioWomenServicePage({
                       style={{
                         padding: '10px 14px',
                         borderRadius: 10,
-                        border: selectedHaircutOption === opt ? '1.5px solid #6E42E5' : '1px solid #CBD5E1',
-                        background: selectedHaircutOption === opt ? '#F5F3FF' : '#FFFFFF',
-                        color: selectedHaircutOption === opt ? '#6E42E5' : '#1E293B',
+                        border: selectedHaircutOption === opt ? '1.5px solid #0B57D0' : '1px solid #CBD5E1',
+                        background: selectedHaircutOption === opt ? '#E8F1FF' : '#FFFFFF',
+                        color: selectedHaircutOption === opt ? '#0B57D0' : '#1E293B',
                         fontWeight: 700,
                         fontSize: 13,
                         cursor: 'pointer'
@@ -1699,8 +1655,8 @@ export function HairStudioWomenServicePage({
                       gap: 10,
                       padding: '10px 14px',
                       borderRadius: 10,
-                      border: selectedStylingOption === s.name ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
-                      background: selectedStylingOption === s.name ? '#F5F3FF' : '#FFFFFF',
+                      border: selectedStylingOption === s.name ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
+                      background: selectedStylingOption === s.name ? '#E8F1FF' : '#FFFFFF',
                       cursor: 'pointer'
                     }}>
                       <input
@@ -1708,7 +1664,7 @@ export function HairStudioWomenServicePage({
                         name="hair-styling-option"
                         checked={selectedStylingOption === s.name}
                         onChange={() => setSelectedStylingOption(s.name)}
-                        style={{ accentColor: '#6E42E5' }}
+                        style={{ accentColor: '#0B57D0' }}
                       />
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{s.name}</div>
@@ -1735,8 +1691,8 @@ export function HairStudioWomenServicePage({
                       gap: 10,
                       padding: '10px 14px',
                       borderRadius: 10,
-                      border: selectedHaircareOption === c.name ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
-                      background: selectedHaircareOption === c.name ? '#F5F3FF' : '#FFFFFF',
+                      border: selectedHaircareOption === c.name ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
+                      background: selectedHaircareOption === c.name ? '#E8F1FF' : '#FFFFFF',
                       cursor: 'pointer'
                     }}>
                       <input
@@ -1744,7 +1700,7 @@ export function HairStudioWomenServicePage({
                         name="hair-care-option"
                         checked={selectedHaircareOption === c.name}
                         onChange={() => setSelectedHaircareOption(c.name)}
-                        style={{ accentColor: '#6E42E5' }}
+                        style={{ accentColor: '#0B57D0' }}
                       />
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{c.name}</div>
@@ -1779,7 +1735,7 @@ export function HairStudioWomenServicePage({
                 type="button"
                 onClick={handleSaveCustomization}
                 style={{
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   border: 'none',
                   borderRadius: 10,
                   padding: '9px 24px',
@@ -1787,7 +1743,7 @@ export function HairStudioWomenServicePage({
                   fontSize: 13.5,
                   cursor: 'pointer',
                   color: '#FFFFFF',
-                  boxShadow: '0 4px 12px rgba(110,66,229,0.25)'
+                  boxShadow: '0 4px 12px rgba(11, 87, 208,0.25)'
                 }}
               >
                 Save & Update
@@ -1854,7 +1810,7 @@ export function HairStudioWomenServicePage({
                   setSelectedDetailService(null);
                 }}
                 style={{
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   border: 'none',
                   borderRadius: 10,
                   padding: '9px 24px',

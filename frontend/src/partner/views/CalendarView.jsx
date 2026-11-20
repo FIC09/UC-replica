@@ -63,7 +63,7 @@ export function CalendarView({ showToast, onNavigate }) {
             fontWeight: 600,
             color: '#0f172a'
           }}>
-            <CalendarIcon size={16} color="#7c3aed" />
+            <CalendarIcon size={16} color="#0B57D0" />
             <span>Today, {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
           </div>
         </div>
@@ -114,8 +114,8 @@ export function CalendarView({ showToast, onNavigate }) {
                           width: 32,
                           height: 32,
                           borderRadius: '50%',
-                          background: '#ede9fe',
-                          color: '#7c3aed',
+                          background: '#E8F1FF',
+                          color: '#0B57D0',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -152,21 +152,21 @@ export function CalendarView({ showToast, onNavigate }) {
                             <div
                               onClick={() => onNavigate(`/partner/bookings?id=${s.booking.id}`)}
                               style={{
-                                background: '#f3e8ff',
-                                border: '1px solid #d8b4fe',
+                                background: '#E8F1FF',
+                                border: '1px solid #E8F1FF',
                                 borderRadius: 8,
                                 padding: '8px 10px',
                                 textAlign: 'left',
                                 cursor: 'pointer',
                                 transition: 'transform 0.15s ease',
-                                boxShadow: '0 2px 4px rgba(124, 58, 237, 0.08)'
+                                boxShadow: '0 2px 4px rgba(11, 87, 208, 0.08)'
                               }}
                             >
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7c3aed', whiteSpace: 'nowrap' }}>
+                                <span style={{ fontSize: 11.5, fontWeight: 700, color: '#0B57D0', whiteSpace: 'nowrap' }}>
                                   #{s.booking.id}
                                 </span>
-                                <span style={{ fontSize: 10, fontWeight: 600, color: '#6b21a8', background: '#e9d5ff', padding: '1px 5px', borderRadius: 4 }}>
+                                <span style={{ fontSize: 10, fontWeight: 600, color: '#0B57D0', background: '#E8F1FF', padding: '1px 5px', borderRadius: 4 }}>
                                   {s.booking.status}
                                 </span>
                               </div>
@@ -216,7 +216,7 @@ export function CalendarView({ showToast, onNavigate }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#0f172a', fontWeight: 600 }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, background: '#f3e8ff', border: '1px solid #d8b4fe' }}></span>
+            <span style={{ width: 12, height: 12, borderRadius: 3, background: '#E8F1FF', border: '1px solid #E8F1FF' }}></span>
             Booked &amp; Dispatched
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#475569', fontWeight: 500 }}>

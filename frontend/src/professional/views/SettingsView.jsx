@@ -38,7 +38,7 @@ function ToggleSwitch({ checked, onChange, disabled, id }) {
         width: 44,
         height: 24,
         borderRadius: 9999,
-        backgroundColor: checked ? '#7C3AED' : '#CBD5E1',
+        backgroundColor: checked ? '#0B57D0' : '#CBD5E1',
         border: 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
         position: 'relative',
@@ -287,9 +287,9 @@ export function SettingsView({ onLogout, showToast }) {
               fontWeight: 700,
               padding: '2px 8px',
               borderRadius: 6,
-              backgroundColor: '#EDE9FE',
-              color: '#7C3AED',
-              border: '1px solid #DDD6FE'
+              backgroundColor: '#E8F1FF',
+              color: '#0B57D0',
+              border: '1px solid #E4E7EC'
             }}>
               Krishnagiri Hub
             </span>
@@ -339,9 +339,9 @@ export function SettingsView({ onLogout, showToast }) {
                 padding: '9px 16px',
                 borderRadius: '8px 8px 0 0',
                 border: 'none',
-                borderBottom: isActive ? '2.5px solid #7C3AED' : '2.5px solid transparent',
+                borderBottom: isActive ? '2.5px solid #0B57D0' : '2.5px solid transparent',
                 backgroundColor: isActive ? '#FFFFFF' : 'transparent',
-                color: isActive ? '#7C3AED' : '#64748B',
+                color: isActive ? '#0B57D0' : '#64748B',
                 fontSize: 13,
                 fontWeight: isActive ? 800 : 500,
                 cursor: 'pointer',
@@ -349,7 +349,7 @@ export function SettingsView({ onLogout, showToast }) {
                 transition: 'all 0.15s ease'
               }}
             >
-              <Icon size={16} color={isActive ? '#7C3AED' : '#64748B'} />
+              <Icon size={16} color={isActive ? '#0B57D0' : '#64748B'} />
               <span>{tab.label}</span>
             </button>
           );
@@ -368,7 +368,7 @@ export function SettingsView({ onLogout, showToast }) {
           }}>
             <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 14, marginBottom: 20 }}>
               <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Compass size={18} color="#7C3AED" /> Dispatch Radar &amp; Transit Configuration
+                <Compass size={18} color="#0B57D0" /> Dispatch Radar &amp; Transit Configuration
               </h3>
               <p style={{ fontSize: 12.5, color: '#64748B', margin: '4px 0 0 0' }}>
                 Control how far from Krishnagiri Town you are willing to receive customer bookings and your daily workload limits.
@@ -407,8 +407,8 @@ export function SettingsView({ onLogout, showToast }) {
                     <span style={{
                       fontSize: 11.5,
                       fontWeight: 800,
-                      color: '#7C3AED',
-                      backgroundColor: '#EDE9FE',
+                      color: '#0B57D0',
+                      backgroundColor: '#E8F1FF',
                       padding: '3px 9px',
                       borderRadius: 6,
                       whiteSpace: 'nowrap',
@@ -542,8 +542,8 @@ export function SettingsView({ onLogout, showToast }) {
                     <span style={{
                       fontSize: 11,
                       fontWeight: 700,
-                      color: '#4F46E5',
-                      backgroundColor: '#EEF2FF',
+                      color: '#0B57D0',
+                      backgroundColor: '#E8F1FF',
                       padding: '3px 9px',
                       borderRadius: 6,
                       whiteSpace: 'nowrap',
@@ -587,16 +587,16 @@ export function SettingsView({ onLogout, showToast }) {
 
           {/* Radar Info Callout */}
           <div style={{
-            background: '#FAF5FF',
+            background: '#E8F1FF',
             borderRadius: 12,
             padding: '16px 20px',
-            border: '1px solid #E9D5FF',
+            border: '1px solid #E8F1FF',
             display: 'flex',
             alignItems: 'center',
             gap: 12
           }}>
-            <Navigation size={20} color="#7C3AED" style={{ flexShrink: 0 }} />
-            <div style={{ fontSize: 12.5, color: '#4C1D95', lineHeight: 1.5 }}>
+            <Navigation size={20} color="#0B57D0" style={{ flexShrink: 0 }} />
+            <div style={{ fontSize: 12.5, color: '#0B57D0', lineHeight: 1.5 }}>
               <strong>Krishnagiri Doorstep Navigation:</strong> Customer addresses are mapped with reverse geocoding to Rayakottai Road, Gandhi Nagar, Old Bus Stand, and nearby residential streets. A minimum 30-minute travel buffer is preserved between consecutive jobs.
             </div>
           </div>
@@ -625,7 +625,7 @@ export function SettingsView({ onLogout, showToast }) {
             }}>
               <div>
                 <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Bell size={18} color="#7C3AED" /> Dispatch Alerts &amp; Sound Configuration
+                  <Bell size={18} color="#0B57D0" /> Dispatch Alerts &amp; Sound Configuration
                 </h3>
                 <p style={{ fontSize: 12.5, color: '#64748B', margin: '4px 0 0 0' }}>
                   Customize notification channels so you never miss an incoming booking offer or payout release.
@@ -641,9 +641,9 @@ export function SettingsView({ onLogout, showToast }) {
                   gap: 6,
                   padding: '7px 14px',
                   borderRadius: 8,
-                  border: '1px solid #DDD6FE',
-                  backgroundColor: '#FAF5FF',
-                  color: '#7C3AED',
+                  border: '1px solid #E4E7EC',
+                  backgroundColor: '#E8F1FF',
+                  color: '#0B57D0',
                   fontSize: 12,
                   fontWeight: 700,
                   cursor: 'pointer'
@@ -782,7 +782,7 @@ export function SettingsView({ onLogout, showToast }) {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, borderBottom: '1px solid #F1F5F9', paddingBottom: 14, marginBottom: 18 }}>
               <div>
                 <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Key size={18} color="#7C3AED" /> 4-Digit Security Authentication PIN
+                  <Key size={18} color="#0B57D0" /> 4-Digit Security Authentication PIN
                 </h3>
                 <p style={{ fontSize: 12.5, color: '#64748B', margin: '4px 0 0 0' }}>
                   Required to authenticate bank account modifications, instant wallet withdrawals, and sensitive profile changes.
@@ -804,8 +804,8 @@ export function SettingsView({ onLogout, showToast }) {
                   gap: 6,
                   padding: '8px 16px',
                   borderRadius: 8,
-                  border: '1px solid #DDD6FE',
-                  backgroundColor: '#7C3AED',
+                  border: '1px solid #E4E7EC',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   fontSize: 12.5,
                   fontWeight: 700,
@@ -857,7 +857,7 @@ export function SettingsView({ onLogout, showToast }) {
             }}>
               <div>
                 <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Smartphone size={18} color="#7C3AED" /> Active Sessions &amp; Authorized Devices
+                  <Smartphone size={18} color="#0B57D0" /> Active Sessions &amp; Authorized Devices
                 </h3>
                 <p style={{ fontSize: 12.5, color: '#64748B', margin: '4px 0 0 0' }}>
                   Manage authorized hardware devices currently authenticated to your Urban Pro technician account.
@@ -964,7 +964,7 @@ export function SettingsView({ onLogout, showToast }) {
           }}>
             <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 14, marginBottom: 18 }}>
               <h3 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Shield size={18} color="#7C3AED" /> Statutory DPDP Act 2023 Compliance &amp; Telephony Masking
+                <Shield size={18} color="#0B57D0" /> Statutory DPDP Act 2023 Compliance &amp; Telephony Masking
               </h3>
               <p style={{ fontSize: 12.5, color: '#64748B', margin: '4px 0 0 0' }}>
                 How your professional data, customer reviews, KYC identity, and telephony calls are safeguarded under Indian law.
@@ -1064,7 +1064,7 @@ export function SettingsView({ onLogout, showToast }) {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Key size={18} color="#7C3AED" />
+                <Key size={18} color="#0B57D0" />
                 <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: 0 }}>
                   Update Security PIN
                 </h3>
@@ -1214,7 +1214,7 @@ export function SettingsView({ onLogout, showToast }) {
                   disabled={savingPin || !currentPin || !newPin || !confirmPin}
                   style={{
                     flex: 1.5,
-                    background: '#7C3AED',
+                    background: '#0B57D0',
                     color: '#FFFFFF',
                     border: 'none',
                     padding: '10px 0',

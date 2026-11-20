@@ -1,6 +1,6 @@
 import React from 'react';
 import { PaymentsView } from './PaymentsView';
 
-export function RefundsView({ onShowToast }) {
-  return <PaymentsView defaultTab="refunds" onShowToast={onShowToast} />;
+export function RefundsView({ onShowToast, onNavigate }) {
+  return <PaymentsView defaultTab="refunds" onShowToast={onShowToast} onNavigate={onNavigate} />;
 }

@@ -45,16 +45,16 @@ function HairDryerIcon() {
   return (
     <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
       {/* Barrel / Body of purple hair dryer */}
-      <rect x="15" y="12" width="20" height="12" rx="6" fill="#9333EA" />
+      <rect x="15" y="12" width="20" height="12" rx="6" fill="#0B57D0" />
       {/* Nozzle attachment */}
-      <path d="M15 14L8 16V20L15 22V14Z" fill="#7E22CE" />
+      <path d="M15 14L8 16V20L15 22V14Z" fill="#0849B1" />
       {/* Back vent */}
-      <circle cx="33.5" cy="18" r="4.5" fill="#6B21A8" />
+      <circle cx="33.5" cy="18" r="4.5" fill="#0B57D0" />
       <circle cx="33.5" cy="18" r="2.2" fill="#A855F7" />
       {/* Handle */}
-      <path d="M25 24L22.5 35.5C22 37 23 38.5 24.5 38.5H27C28.5 38.5 29.5 37 29 35.5L28 24H25Z" fill="#9333EA" />
+      <path d="M25 24L22.5 35.5C22 37 23 38.5 24.5 38.5H27C28.5 38.5 29.5 37 29 35.5L28 24H25Z" fill="#0B57D0" />
       {/* Accent on handle */}
-      <rect x="25.5" y="27" width="2" height="4" rx="1" fill="#C084FC" />
+      <rect x="25.5" y="27" width="2" height="4" rx="1" fill="#E8F1FF" />
     </svg>
   );
 }

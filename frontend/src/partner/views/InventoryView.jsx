@@ -302,7 +302,7 @@ export function InventoryView({ showToast, staff }) {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#f8fafc', padding: '6px 14px', borderRadius: 8, fontSize: 13, color: '#475569', border: '1px solid #e2e8f0' }}>
-            <Package size={16} color="#7c3aed" /> Depot: Bandra West Central
+            <Package size={16} color="#0B57D0" /> Depot: Bandra West Central
           </div>
           {canEdit && (
             <button
@@ -318,7 +318,7 @@ export function InventoryView({ showToast, staff }) {
                 alignItems: 'center',
                 gap: 6,
                 padding: '8px 16px',
-                background: '#7c3aed',
+                background: '#0B57D0',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 8,
@@ -357,9 +357,9 @@ export function InventoryView({ showToast, staff }) {
             padding: '10px 18px',
             fontSize: 13.5,
             fontWeight: 600,
-            color: activeTab === 'catalog' ? '#7c3aed' : '#64748b',
+            color: activeTab === 'catalog' ? '#0B57D0' : '#64748b',
             border: 'none',
-            borderBottom: activeTab === 'catalog' ? '2px solid #7c3aed' : '2px solid transparent',
+            borderBottom: activeTab === 'catalog' ? '2px solid #0B57D0' : '2px solid transparent',
             background: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -376,9 +376,9 @@ export function InventoryView({ showToast, staff }) {
             padding: '10px 18px',
             fontSize: 13.5,
             fontWeight: 600,
-            color: activeTab === 'orders' ? '#7c3aed' : '#64748b',
+            color: activeTab === 'orders' ? '#0B57D0' : '#64748b',
             border: 'none',
-            borderBottom: activeTab === 'orders' ? '2px solid #7c3aed' : '2px solid transparent',
+            borderBottom: activeTab === 'orders' ? '2px solid #0B57D0' : '2px solid transparent',
             background: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -395,9 +395,9 @@ export function InventoryView({ showToast, staff }) {
             padding: '10px 18px',
             fontSize: 13.5,
             fontWeight: 600,
-            color: activeTab === 'allocations' ? '#7c3aed' : '#64748b',
+            color: activeTab === 'allocations' ? '#0B57D0' : '#64748b',
             border: 'none',
-            borderBottom: activeTab === 'allocations' ? '2px solid #7c3aed' : '2px solid transparent',
+            borderBottom: activeTab === 'allocations' ? '2px solid #0B57D0' : '2px solid transparent',
             background: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -414,9 +414,9 @@ export function InventoryView({ showToast, staff }) {
             padding: '10px 18px',
             fontSize: 13.5,
             fontWeight: 600,
-            color: activeTab === 'movements' ? '#7c3aed' : '#64748b',
+            color: activeTab === 'movements' ? '#0B57D0' : '#64748b',
             border: 'none',
-            borderBottom: activeTab === 'movements' ? '2px solid #7c3aed' : '2px solid transparent',
+            borderBottom: activeTab === 'movements' ? '2px solid #0B57D0' : '2px solid transparent',
             background: 'none',
             cursor: 'pointer',
             display: 'flex',
@@ -509,7 +509,7 @@ export function InventoryView({ showToast, staff }) {
                     borderRadius: 6,
                     fontSize: 12.5,
                     fontWeight: selectedCategory === cat ? 700 : 500,
-                    background: selectedCategory === cat ? '#7c3aed' : '#f1f5f9',
+                    background: selectedCategory === cat ? '#0B57D0' : '#f1f5f9',
                     color: selectedCategory === cat ? '#ffffff' : '#475569',
                     border: 'none',
                     cursor: 'pointer'
@@ -552,7 +552,7 @@ export function InventoryView({ showToast, staff }) {
                   >
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#7c3aed', background: '#f3e8ff', padding: '3px 8px', borderRadius: 4 }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, color: '#0B57D0', background: '#E8F1FF', padding: '3px 8px', borderRadius: 4 }}>
                           {item.category}
                         </span>
                         <span style={{
@@ -640,7 +640,7 @@ export function InventoryView({ showToast, staff }) {
                           disabled={available <= 0}
                           style={{
                             padding: '8px 10px',
-                            background: available > 0 ? '#7c3aed' : '#cbd5e1',
+                            background: available > 0 ? '#0B57D0' : '#cbd5e1',
                             color: '#fff',
                             border: 'none',
                             borderRadius: 6,
@@ -706,7 +706,7 @@ export function InventoryView({ showToast, staff }) {
                     setOrderModalOpen(true);
                   }
                 }}
-                style={{ padding: '7px 14px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '7px 14px', background: '#0B57D0', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
               >
                 + Place Order
               </button>
@@ -811,7 +811,7 @@ export function InventoryView({ showToast, staff }) {
               {inventory.filter(i => (i.allocatedQuantity || 0) > 0).map(item => (
                 <div key={item.id} style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 16, background: '#f8fafc' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed' }}>{item.category}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0' }}>{item.category}</span>
                     <strong style={{ fontSize: 14, color: '#2563eb' }}>{item.allocatedQuantity} in custody</strong>
                   </div>
                   <h3 style={{ fontSize: 14.5, fontWeight: 700, color: '#0f172a', margin: '0 0 4px 0' }}>{item.itemName}</h3>
@@ -889,8 +889,8 @@ export function InventoryView({ showToast, staff }) {
                         borderRadius: 4,
                         fontSize: 11.5,
                         fontWeight: 700,
-                        background: m.type === 'PURCHASE' ? '#dcfce7' : m.type === 'ALLOCATION' ? '#e0f2fe' : m.type === 'RETURN' ? '#f3e8ff' : '#fef3c7',
-                        color: m.type === 'PURCHASE' ? '#16a34a' : m.type === 'ALLOCATION' ? '#0284c7' : m.type === 'RETURN' ? '#7c3aed' : '#b45309'
+                        background: m.type === 'PURCHASE' ? '#dcfce7' : m.type === 'ALLOCATION' ? '#e0f2fe' : m.type === 'RETURN' ? '#E8F1FF' : '#fef3c7',
+                        color: m.type === 'PURCHASE' ? '#16a34a' : m.type === 'ALLOCATION' ? '#0284c7' : m.type === 'RETURN' ? '#0B57D0' : '#b45309'
                       }}>
                         {m.type}
                       </span>
@@ -1007,7 +1007,7 @@ export function InventoryView({ showToast, staff }) {
                 <button
                   type="submit"
                   disabled={submittingOrder}
-                  style={{ flex: 1, padding: '10px', background: '#7c3aed', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ flex: 1, padding: '10px', background: '#0B57D0', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
                 >
                   {submittingOrder ? 'Submitting...' : 'Confirm Order'}
                 </button>
@@ -1104,7 +1104,7 @@ export function InventoryView({ showToast, staff }) {
                 <button
                   type="submit"
                   disabled={allocating}
-                  style={{ flex: 1, padding: '10px', background: '#7c3aed', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ flex: 1, padding: '10px', background: '#0B57D0', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
                 >
                   {allocating ? 'Allocating...' : 'Confirm Allocation'}
                 </button>
@@ -1295,7 +1295,7 @@ export function InventoryView({ showToast, staff }) {
                 <button
                   type="submit"
                   disabled={returning}
-                  style={{ flex: 1, padding: '10px', background: '#7c3aed', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
+                  style={{ flex: 1, padding: '10px', background: '#0B57D0', border: 'none', borderRadius: 8, color: '#fff', fontWeight: 600, cursor: 'pointer' }}
                 >
                   {returning ? 'Processing...' : 'Confirm Return'}
                 </button>

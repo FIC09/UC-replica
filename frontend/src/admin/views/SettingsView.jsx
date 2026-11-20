@@ -37,7 +37,7 @@ function ToggleSwitch({ checked, onChange, disabled, id }) {
         width: 44,
         height: 24,
         borderRadius: 9999,
-        backgroundColor: checked ? '#6E42E5' : '#CBD5E1',
+        backgroundColor: checked ? '#0B57D0' : '#CBD5E1',
         border: 'none',
         cursor: disabled ? 'not-allowed' : 'pointer',
         position: 'relative',
@@ -77,8 +77,8 @@ function FormField({ label, helper, badge, required, children }) {
           <span style={{
             fontSize: 11,
             fontWeight: 700,
-            color: '#6366F1',
-            backgroundColor: '#EEF2FF',
+            color: '#0B57D0',
+            backgroundColor: '#E8F1FF',
             padding: '2px 8px',
             borderRadius: 6,
             border: '1px solid #E0E7FF'
@@ -409,7 +409,7 @@ export function SettingsView({ onShowToast }) {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              backgroundColor: hasUnsavedChanges ? '#6E42E5' : '#94A3B8',
+              backgroundColor: hasUnsavedChanges ? '#0B57D0' : '#94A3B8',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,
@@ -417,7 +417,7 @@ export function SettingsView({ onShowToast }) {
               fontSize: 13,
               fontWeight: 700,
               cursor: hasUnsavedChanges && !saving ? 'pointer' : 'not-allowed',
-              boxShadow: hasUnsavedChanges ? '0 2px 6px rgba(110, 66, 229, 0.3)' : 'none',
+              boxShadow: hasUnsavedChanges ? '0 2px 6px rgba(11, 87, 208, 0.3)' : 'none',
               transition: 'all 0.2s ease'
             }}
           >
@@ -490,9 +490,9 @@ export function SettingsView({ onShowToast }) {
                   padding: '9px 15px',
                   borderRadius: '8px 8px 0 0',
                   border: 'none',
-                  borderBottom: isActive ? '2px solid #6E42E5' : '2px solid transparent',
+                  borderBottom: isActive ? '2px solid #0B57D0' : '2px solid transparent',
                   backgroundColor: isActive ? '#FFFFFF' : 'transparent',
-                  color: isActive ? '#6E42E5' : '#64748B',
+                  color: isActive ? '#0B57D0' : '#64748B',
                   fontSize: 13,
                   fontWeight: isActive ? 700 : 500,
                   cursor: 'pointer',
@@ -500,7 +500,7 @@ export function SettingsView({ onShowToast }) {
                   transition: 'all 0.15s ease'
                 }}
               >
-                <Icon size={15} color={isActive ? '#6E42E5' : '#64748B'} />
+                <Icon size={15} color={isActive ? '#0B57D0' : '#64748B'} />
                 <span>{tab.label}</span>
               </button>
             );
@@ -521,7 +521,7 @@ export function SettingsView({ onShowToast }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 14 }}>
                 <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Building2 size={18} color="#6E42E5" /> Marketplace Identity &amp; Corporate Legal Entity
+                  <Building2 size={18} color="#0B57D0" /> Marketplace Identity &amp; Corporate Legal Entity
                 </h4>
                 <p style={{ fontSize: 12, color: '#64748B', margin: '4px 0 0 0' }}>
                   Statutory brand information printed on customer tax invoices, pro commission receipts, and SMS/WhatsApp header sender IDs.
@@ -631,7 +631,7 @@ export function SettingsView({ onShowToast }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 14 }}>
                 <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Clock size={18} color="#6E42E5" /> Service Operating Windows &amp; Dispatch Radar
+                  <Clock size={18} color="#0B57D0" /> Service Operating Windows &amp; Dispatch Radar
                 </h4>
                 <p style={{ fontSize: 12, color: '#64748B', margin: '4px 0 0 0' }}>
                   Control available customer booking slot times, technician travel buffers, and geo-fence broadcast scan radius.
@@ -707,7 +707,7 @@ export function SettingsView({ onShowToast }) {
 
               {/* Operating Radius Visualizer */}
               <div style={{
-                backgroundColor: '#EEF2FF',
+                backgroundColor: '#E8F1FF',
                 border: '1px solid #C7D2FE',
                 borderRadius: 10,
                 padding: '16px 20px',
@@ -715,10 +715,10 @@ export function SettingsView({ onShowToast }) {
                 alignItems: 'flex-start',
                 gap: 14
               }}>
-                <MapPin size={22} color="#4F46E5" style={{ flexShrink: 0, marginTop: 2 }} />
+                <MapPin size={22} color="#0B57D0" style={{ flexShrink: 0, marginTop: 2 }} />
                 <div style={{ fontSize: 13, color: '#312E81', lineHeight: 1.45 }}>
                   <strong>Operating Radar in Krishnagiri &amp; Tier-2 Zones:</strong>
-                  <div style={{ marginTop: 4, color: '#4338CA' }}>
+                  <div style={{ marginTop: 4, color: '#0849B1' }}>
                     With a <strong>{settings.dispatchRadiusKm} km radius</strong>, customer requests will broadcast to verified technicians within Rayakottai Road, Gandhi Nagar, Old Bus Stand, and nearby residential clusters. Consecutive jobs enforce a mandatory <strong>{settings.bookingBufferMinutes} min buffer</strong> to prevent transit delays.
                   </div>
                 </div>
@@ -731,7 +731,7 @@ export function SettingsView({ onShowToast }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 14 }}>
                 <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Percent size={18} color="#6E42E5" /> Commission Take Rates &amp; Convenience Fees
+                  <Percent size={18} color="#0B57D0" /> Commission Take Rates &amp; Convenience Fees
                 </h4>
                 <p style={{ fontSize: 12, color: '#64748B', margin: '4px 0 0 0' }}>
                   Govern platform take percentages, agency partner overrides, GST rates, and customer convenience fees.
@@ -801,8 +801,8 @@ export function SettingsView({ onShowToast }) {
 
               {/* Interactive Revenue Simulation Calculator */}
               <div style={{
-                backgroundColor: '#FAF5FF',
-                border: '1px solid #E9D5FF',
+                backgroundColor: '#E8F1FF',
+                border: '1px solid #E8F1FF',
                 borderRadius: 12,
                 padding: '20px',
                 display: 'flex',
@@ -811,11 +811,11 @@ export function SettingsView({ onShowToast }) {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Calculator size={18} color="#7C3AED" />
-                    <span style={{ fontSize: 14, fontWeight: 800, color: '#4C1D95' }}>Live Settlement Simulator</span>
+                    <Calculator size={18} color="#0B57D0" />
+                    <span style={{ fontSize: 14, fontWeight: 800, color: '#0B57D0' }}>Live Settlement Simulator</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 12, color: '#6B21A8', fontWeight: 600 }}>Simulate Order Amount:</span>
+                    <span style={{ fontSize: 12, color: '#0B57D0', fontWeight: 600 }}>Simulate Order Amount:</span>
                     <input
                       type="number"
                       min={100}
@@ -823,29 +823,29 @@ export function SettingsView({ onShowToast }) {
                       step={100}
                       value={simCalcAmount}
                       onChange={e => setSimCalcAmount(Number(e.target.value) || 0)}
-                      style={{ width: 110, padding: '4px 8px', borderRadius: 6, border: '1px solid #C084FC', fontWeight: 700, fontSize: 13 }}
+                      style={{ width: 110, padding: '4px 8px', borderRadius: 6, border: '1px solid #E8F1FF', fontWeight: 700, fontSize: 13 }}
                     />
                   </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
-                  <div style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 8, border: '1px solid #F3E8FF' }}>
-                    <div style={{ fontSize: 11, color: '#6B21A8', fontWeight: 700, textTransform: 'uppercase' }}>Customer Total Paid</div>
+                  <div style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 8, border: '1px solid #E8F1FF' }}>
+                    <div style={{ fontSize: 11, color: '#0B57D0', fontWeight: 700, textTransform: 'uppercase' }}>Customer Total Paid</div>
                     <div style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
                       ₹{(simCalcAmount + settings.bookingFee).toLocaleString('en-IN')}
                     </div>
-                    <div style={{ fontSize: 11, color: '#7C3AED', marginTop: 2 }}>Base: ₹{simCalcAmount} + Fee: ₹{settings.bookingFee}</div>
+                    <div style={{ fontSize: 11, color: '#0B57D0', marginTop: 2 }}>Base: ₹{simCalcAmount} + Fee: ₹{settings.bookingFee}</div>
                   </div>
 
-                  <div style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 8, border: '1px solid #F3E8FF' }}>
-                    <div style={{ fontSize: 11, color: '#6E42E5', fontWeight: 700, textTransform: 'uppercase' }}>FIC Platform Take ({settings.platformTakeRate}%)</div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#6E42E5', marginTop: 4 }}>
+                  <div style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 8, border: '1px solid #E8F1FF' }}>
+                    <div style={{ fontSize: 11, color: '#0B57D0', fontWeight: 700, textTransform: 'uppercase' }}>FIC Platform Take ({settings.platformTakeRate}%)</div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#0B57D0', marginTop: 4 }}>
                       ₹{((simCalcAmount * settings.platformTakeRate) / 100).toFixed(2)}
                     </div>
-                    <div style={{ fontSize: 11, color: '#6E42E5', marginTop: 2 }}>+ Convenience Fee: ₹{settings.bookingFee}</div>
+                    <div style={{ fontSize: 11, color: '#0B57D0', marginTop: 2 }}>+ Convenience Fee: ₹{settings.bookingFee}</div>
                   </div>
 
-                  <div style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 8, border: '1px solid #F3E8FF' }}>
+                  <div style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 8, border: '1px solid #E8F1FF' }}>
                     <div style={{ fontSize: 11, color: '#059669', fontWeight: 700, textTransform: 'uppercase' }}>Solo Pro Net Payout</div>
                     <div style={{ fontSize: 18, fontWeight: 800, color: '#059669', marginTop: 4 }}>
                       ₹{(simCalcAmount - (simCalcAmount * settings.platformTakeRate) / 100).toFixed(2)}
@@ -853,7 +853,7 @@ export function SettingsView({ onShowToast }) {
                     <div style={{ fontSize: 11, color: '#059669', marginTop: 2 }}>{100 - settings.platformTakeRate}% direct worker share</div>
                   </div>
 
-                  <div style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 8, border: '1px solid #F3E8FF' }}>
+                  <div style={{ backgroundColor: '#FFFFFF', padding: '12px 16px', borderRadius: 8, border: '1px solid #E8F1FF' }}>
                     <div style={{ fontSize: 11, color: '#475569', fontWeight: 700, textTransform: 'uppercase' }}>Agency Fleet Payout</div>
                     <div style={{ fontSize: 18, fontWeight: 800, color: '#1E293B', marginTop: 4 }}>
                       ₹{(simCalcAmount - (simCalcAmount * settings.agencyTakeRate) / 100).toFixed(2)}
@@ -870,7 +870,7 @@ export function SettingsView({ onShowToast }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 14 }}>
                 <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <RotateCcw size={18} color="#6E42E5" /> Cancellation Rules &amp; Instant Auto-Refund Thresholds
+                  <RotateCcw size={18} color="#0B57D0" /> Cancellation Rules &amp; Instant Auto-Refund Thresholds
                 </h4>
                 <p style={{ fontSize: 12, color: '#64748B', margin: '4px 0 0 0' }}>
                   Protect technician scheduling while guaranteeing fair customer dispute policies and automatic settlement thresholds.
@@ -955,7 +955,7 @@ export function SettingsView({ onShowToast }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 14 }}>
                 <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ShieldCheck size={18} color="#6E42E5" /> Safety Checkpoints, Doorstep Verification &amp; Surge
+                  <ShieldCheck size={18} color="#0B57D0" /> Safety Checkpoints, Doorstep Verification &amp; Surge
                 </h4>
                 <p style={{ fontSize: 12, color: '#64748B', margin: '4px 0 0 0' }}>
                   Manage mandatory job start/completion verification gates and emergency weather surge surcharges.
@@ -1099,7 +1099,7 @@ export function SettingsView({ onShowToast }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 14 }}>
                 <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Bell size={18} color="#6E42E5" /> Automated Notification Channels &amp; Dispatches
+                  <Bell size={18} color="#0B57D0" /> Automated Notification Channels &amp; Dispatches
                 </h4>
                 <p style={{ fontSize: 12, color: '#64748B', margin: '4px 0 0 0' }}>
                   Enable or silence automated dispatch alerts, OTP SMS dispatches, WhatsApp live tracking links, and staff SLA warnings.
@@ -1215,7 +1215,7 @@ export function SettingsView({ onShowToast }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
               <div style={{ borderBottom: '1px solid #F1F5F9', paddingBottom: 14 }}>
                 <h4 style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Cpu size={18} color="#6E42E5" /> Third-Party Integrations &amp; Gateway Status Dashboard
+                  <Cpu size={18} color="#0B57D0" /> Third-Party Integrations &amp; Gateway Status Dashboard
                 </h4>
                 <p style={{ fontSize: 12, color: '#64748B', margin: '4px 0 0 0' }}>
                   Live operational health of external APIs. All simulated test gateways, local queues, and public OSM tile providers are transparently audited.
@@ -1240,8 +1240,8 @@ export function SettingsView({ onShowToast }) {
                         width: 42,
                         height: 42,
                         borderRadius: 10,
-                        backgroundColor: intg.isAvailable ? '#F5F3FF' : '#F1F5F9',
-                        color: intg.isAvailable ? '#6E42E5' : '#64748B',
+                        backgroundColor: intg.isAvailable ? '#E8F1FF' : '#F1F5F9',
+                        color: intg.isAvailable ? '#0B57D0' : '#64748B',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',

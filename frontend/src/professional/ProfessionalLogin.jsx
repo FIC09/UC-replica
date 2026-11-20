@@ -106,7 +106,7 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
+      background: '#F4F7FC',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -119,7 +119,8 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
         width: '100%',
         maxWidth: 540,
         padding: '36px 28px',
-        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.08)',
+        border: '1px solid #E4E7EC',
         boxSizing: 'border-box'
       }}>
         {/* Portal Header */}
@@ -131,12 +132,12 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
             width: 56,
             height: 56,
             borderRadius: 16,
-            background: '#7c3aed',
+            background: '#0B57D0',
             color: '#ffffff',
             fontSize: 28,
             fontWeight: 800,
             marginBottom: 12,
-            boxShadow: '0 8px 16px -4px rgba(124, 58, 237, 0.4)'
+            boxShadow: '0 8px 16px -4px rgba(11, 87, 208, 0.4)'
           }}>
             ⚡
           </div>
@@ -171,7 +172,7 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
               fontWeight: 700,
               cursor: 'pointer',
               background: authMode === 'otp' ? '#ffffff' : 'transparent',
-              color: authMode === 'otp' ? '#7c3aed' : '#64748b',
+              color: authMode === 'otp' ? '#0B57D0' : '#64748b',
               boxShadow: authMode === 'otp' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
               transition: 'all 0.15s ease'
             }}
@@ -193,7 +194,7 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
               fontWeight: 700,
               cursor: 'pointer',
               background: authMode === 'password' ? '#ffffff' : 'transparent',
-              color: authMode === 'password' ? '#7c3aed' : '#64748b',
+              color: authMode === 'password' ? '#0B57D0' : '#64748b',
               boxShadow: authMode === 'password' ? '0 2px 6px rgba(0,0,0,0.06)' : 'none',
               transition: 'all 0.15s ease'
             }}
@@ -252,7 +253,7 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
                   disabled={loading || cooldown > 0}
                   style={{
                     width: '100%',
-                    background: cooldown > 0 ? '#94a3b8' : '#7c3aed',
+                    background: cooldown > 0 ? '#94a3b8' : '#0B57D0',
                     color: '#ffffff',
                     border: 'none',
                     padding: '14px 0',
@@ -261,7 +262,7 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
                     fontWeight: 700,
                     cursor: cooldown > 0 ? 'not-allowed' : 'pointer',
                     minHeight: 48,
-                    boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+                    boxShadow: '0 4px 12px rgba(11, 87, 208, 0.3)'
                   }}
                 >
                   {loading ? 'Requesting OTP...' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Send Verification OTP →'}
@@ -306,7 +307,7 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
                       width: '100%',
                       padding: '12px 14px',
                       borderRadius: 10,
-                      border: '2px solid #7c3aed',
+                      border: '2px solid #0B57D0',
                       fontSize: 22,
                       letterSpacing: 8,
                       textAlign: 'center',
@@ -323,7 +324,7 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: cooldown > 0 ? '#94a3b8' : '#7c3aed',
+                        color: cooldown > 0 ? '#94a3b8' : '#0B57D0',
                         fontSize: 11,
                         fontWeight: 700,
                         cursor: cooldown > 0 ? 'not-allowed' : 'pointer'
@@ -339,7 +340,7 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
                   disabled={loading || attemptsRemaining <= 0}
                   style={{
                     width: '100%',
-                    background: '#7c3aed',
+                    background: '#0B57D0',
                     color: '#ffffff',
                     border: 'none',
                     padding: '14px 0',
@@ -348,7 +349,7 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
                     fontWeight: 700,
                     cursor: 'pointer',
                     minHeight: 48,
-                    boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+                    boxShadow: '0 4px 12px rgba(11, 87, 208, 0.3)'
                   }}
                 >
                   {loading ? 'Verifying OTP...' : 'Verify OTP & Enter Portal ✓'}
@@ -426,7 +427,7 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
               disabled={loading}
               style={{
                 width: '100%',
-                background: '#7c3aed',
+                background: '#0B57D0',
                 color: '#ffffff',
                 border: 'none',
                 padding: '14px 0',
@@ -435,7 +436,7 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
                 fontWeight: 700,
                 cursor: 'pointer',
                 minHeight: 48,
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)'
+                boxShadow: '0 4px 12px rgba(11, 87, 208, 0.3)'
               }}
             >
               {loading ? 'Authenticating...' : 'Sign In to Portal →'}
@@ -452,9 +453,9 @@ export function ProfessionalLogin({ onLoginSuccess, onNavigateToRegister, onExit
           <button
             onClick={onNavigateToRegister}
             style={{
-              background: '#f5f3ff',
-              border: '1px solid #ddd6fe',
-              color: '#7c3aed',
+              background: '#E8F1FF',
+              border: '1px solid #E4E7EC',
+              color: '#0B57D0',
               padding: '10px 20px',
               borderRadius: 8,
               fontSize: 13,

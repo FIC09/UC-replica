@@ -196,7 +196,7 @@ export function CheckoutModal({
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <MapPin size={20} color="#6E42E5" />
+                  <MapPin size={20} color="#0B57D0" />
                   <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>
                     Select Service Address
                   </h3>
@@ -205,7 +205,7 @@ export function CheckoutModal({
                 <button
                   type="button"
                   onClick={onOpenManageAddresses}
-                  style={{ fontSize: 12, fontWeight: 700, color: '#6E42E5', display: 'flex', alignItems: 'center', gap: 4 }}
+                  style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0', display: 'flex', alignItems: 'center', gap: 4 }}
                 >
                   <Plus size={14} />
                   <span>Manage / Add Address</span>
@@ -224,7 +224,7 @@ export function CheckoutModal({
                         style={{
                           padding: 12,
                           borderRadius: 10,
-                          border: `1.5px solid ${isSelected ? '#6E42E5' : '#E2E8F0'}`,
+                          border: `1.5px solid ${isSelected ? '#0B57D0' : '#E2E8F0'}`,
                           background: isSelected ? '#FCFAFF' : '#fff',
                           display: 'flex',
                           alignItems: 'center',
@@ -251,8 +251,8 @@ export function CheckoutModal({
                           width: 16,
                           height: 16,
                           borderRadius: '50%',
-                          border: `2px solid ${isSelected ? '#6E42E5' : '#D1D5DB'}`,
-                          background: isSelected ? '#6E42E5' : 'transparent'
+                          border: `2px solid ${isSelected ? '#0B57D0' : '#D1D5DB'}`,
+                          background: isSelected ? '#0B57D0' : 'transparent'
                         }} />
                       </div>
                     );
@@ -264,7 +264,7 @@ export function CheckoutModal({
                     style={{
                       padding: 12,
                       borderRadius: 10,
-                      border: `1.5px solid ${selectedAddressId === 'custom' ? '#6E42E5' : '#E2E8F0'}`,
+                      border: `1.5px solid ${selectedAddressId === 'custom' ? '#0B57D0' : '#E2E8F0'}`,
                       background: selectedAddressId === 'custom' ? '#FCFAFF' : '#fff',
                       display: 'flex',
                       alignItems: 'center',
@@ -279,8 +279,8 @@ export function CheckoutModal({
                       width: 16,
                       height: 16,
                       borderRadius: '50%',
-                      border: `2px solid ${selectedAddressId === 'custom' ? '#6E42E5' : '#D1D5DB'}`,
-                      background: selectedAddressId === 'custom' ? '#6E42E5' : 'transparent'
+                      border: `2px solid ${selectedAddressId === 'custom' ? '#0B57D0' : '#D1D5DB'}`,
+                      background: selectedAddressId === 'custom' ? '#0B57D0' : 'transparent'
                     }} />
                   </div>
                 </div>
@@ -435,7 +435,7 @@ export function CheckoutModal({
           {step === 2 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <Calendar size={20} color="#6E42E5" />
+                <Calendar size={20} color="#0B57D0" />
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>
                   Select Service Date & Time
                 </h3>
@@ -452,7 +452,7 @@ export function CheckoutModal({
                       className={`slot-date-btn ${isSel ? 'active' : ''}`}
                       onClick={() => setSelectedDate(val)}
                     >
-                      <div style={{ fontSize: 14, fontWeight: 800, color: isSel ? '#6E42E5' : '#0F172A' }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: isSel ? '#0B57D0' : '#0F172A' }}>
                         {d.label}
                       </div>
                       <div style={{ fontSize: 12, color: '#6B7280' }}>{d.sub}</div>
@@ -513,7 +513,7 @@ export function CheckoutModal({
           {step === 3 && (
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                <CreditCard size={20} color="#6E42E5" />
+                <CreditCard size={20} color="#0B57D0" />
                 <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A' }}>
                   Choose Payment Method
                 </h3>
@@ -543,8 +543,8 @@ export function CheckoutModal({
                   style={{
                     padding: 14,
                     borderRadius: 12,
-                    border: `1.5px solid ${paymentMethod === 'upi' ? '#6E42E5' : '#E5E7EB'}`,
-                    background: paymentMethod === 'upi' ? '#F4F0FF' : '#fff',
+                    border: `1.5px solid ${paymentMethod === 'upi' ? '#0B57D0' : '#E5E7EB'}`,
+                    background: paymentMethod === 'upi' ? '#E8F1FF' : '#fff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -552,7 +552,7 @@ export function CheckoutModal({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <Smartphone size={22} color="#6E42E5" />
+                    <Smartphone size={22} color="#0B57D0" />
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>
                         UPI (Google Pay, PhonePe, Paytm)
@@ -564,8 +564,8 @@ export function CheckoutModal({
                     width: 18,
                     height: 18,
                     borderRadius: '50%',
-                    border: `2px solid ${paymentMethod === 'upi' ? '#6E42E5' : '#D1D5DB'}`,
-                    background: paymentMethod === 'upi' ? '#6E42E5' : 'transparent'
+                    border: `2px solid ${paymentMethod === 'upi' ? '#0B57D0' : '#D1D5DB'}`,
+                    background: paymentMethod === 'upi' ? '#0B57D0' : 'transparent'
                   }} />
                 </div>
 
@@ -575,8 +575,8 @@ export function CheckoutModal({
                   style={{
                     padding: 14,
                     borderRadius: 12,
-                    border: `1.5px solid ${paymentMethod === 'card' ? '#6E42E5' : '#E5E7EB'}`,
-                    background: paymentMethod === 'card' ? '#F4F0FF' : '#fff',
+                    border: `1.5px solid ${paymentMethod === 'card' ? '#0B57D0' : '#E5E7EB'}`,
+                    background: paymentMethod === 'card' ? '#E8F1FF' : '#fff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -596,8 +596,8 @@ export function CheckoutModal({
                     width: 18,
                     height: 18,
                     borderRadius: '50%',
-                    border: `2px solid ${paymentMethod === 'card' ? '#6E42E5' : '#D1D5DB'}`,
-                    background: paymentMethod === 'card' ? '#6E42E5' : 'transparent'
+                    border: `2px solid ${paymentMethod === 'card' ? '#0B57D0' : '#D1D5DB'}`,
+                    background: paymentMethod === 'card' ? '#0B57D0' : 'transparent'
                   }} />
                 </div>
 
@@ -607,8 +607,8 @@ export function CheckoutModal({
                   style={{
                     padding: 14,
                     borderRadius: 12,
-                    border: `1.5px solid ${paymentMethod === 'cash' ? '#6E42E5' : '#E5E7EB'}`,
-                    background: paymentMethod === 'cash' ? '#F4F0FF' : '#fff',
+                    border: `1.5px solid ${paymentMethod === 'cash' ? '#0B57D0' : '#E5E7EB'}`,
+                    background: paymentMethod === 'cash' ? '#E8F1FF' : '#fff',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -628,8 +628,8 @@ export function CheckoutModal({
                     width: 18,
                     height: 18,
                     borderRadius: '50%',
-                    border: `2px solid ${paymentMethod === 'cash' ? '#6E42E5' : '#D1D5DB'}`,
-                    background: paymentMethod === 'cash' ? '#6E42E5' : 'transparent'
+                    border: `2px solid ${paymentMethod === 'cash' ? '#0B57D0' : '#D1D5DB'}`,
+                    background: paymentMethod === 'cash' ? '#0B57D0' : 'transparent'
                   }} />
                 </div>
               </div>

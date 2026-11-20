@@ -142,7 +142,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
             borderRadius: 8,
             padding: '4px 10px'
           }}>
-            <Clock size={13} color="#6E42E5" />
+            <Clock size={13} color="#0B57D0" />
             <span>Synced: <strong style={{ color: '#0F172A' }}>{lastSyncTime || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</strong></span>
             <button
               type="button"
@@ -152,7 +152,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                 background: 'none',
                 border: 'none',
                 cursor: isRefreshing ? 'wait' : 'pointer',
-                color: '#6E42E5',
+                color: '#0B57D0',
                 padding: 0,
                 display: 'flex',
                 alignItems: 'center',
@@ -186,9 +186,9 @@ export function OverviewView({ onNavigate, onShowToast }) {
       {/* Calculation Guide Banner (Explaining GBV vs Collected vs Revenue vs Pro Earnings) */}
       {showCalculationGuide && (
         <div style={{
-          backgroundColor: '#EDE9FE',
+          backgroundColor: '#E8F1FF',
           borderRadius: 12,
-          border: '1px solid #DDD6FE',
+          border: '1px solid #E4E7EC',
           padding: '16px 20px',
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
@@ -196,20 +196,20 @@ export function OverviewView({ onNavigate, onShowToast }) {
           fontSize: 12
         }}>
           <div>
-            <div style={{ fontWeight: 800, color: '#5B21B6', marginBottom: 2 }}>Gross Booking Value (GBV)</div>
-            <div style={{ color: '#4C1D95' }}>Sum of total order values for all scheduled & completed bookings (excludes cancellations).</div>
+            <div style={{ fontWeight: 800, color: '#0849B1', marginBottom: 2 }}>Gross Booking Value (GBV)</div>
+            <div style={{ color: '#0B57D0' }}>Sum of total order values for all scheduled & completed bookings (excludes cancellations).</div>
           </div>
           <div>
-            <div style={{ fontWeight: 800, color: '#5B21B6', marginBottom: 2 }}>Collected Payments</div>
-            <div style={{ color: '#4C1D95' }}>Settled funds received through UPI, Cards, NetBanking, or collected cash from customers.</div>
+            <div style={{ fontWeight: 800, color: '#0849B1', marginBottom: 2 }}>Collected Payments</div>
+            <div style={{ color: '#0B57D0' }}>Settled funds received through UPI, Cards, NetBanking, or collected cash from customers.</div>
           </div>
           <div>
-            <div style={{ fontWeight: 800, color: '#5B21B6', marginBottom: 2 }}>Platform Net Revenue</div>
-            <div style={{ color: '#4C1D95' }}>Marketplace take-rate (20% solo / 14-18% partner) + convenience booking fees.</div>
+            <div style={{ fontWeight: 800, color: '#0849B1', marginBottom: 2 }}>Platform Net Revenue</div>
+            <div style={{ color: '#0B57D0' }}>Marketplace take-rate (20% solo / 14-18% partner) + convenience booking fees.</div>
           </div>
           <div>
-            <div style={{ fontWeight: 800, color: '#5B21B6', marginBottom: 2 }}>Professional & Partner Earnings</div>
-            <div style={{ color: '#4C1D95' }}>GBV minus platform commission, credited to technician & agency fleet wallets.</div>
+            <div style={{ fontWeight: 800, color: '#0849B1', marginBottom: 2 }}>Professional & Partner Earnings</div>
+            <div style={{ color: '#0B57D0' }}>GBV minus platform commission, credited to technician & agency fleet wallets.</div>
           </div>
         </div>
       )}
@@ -233,8 +233,8 @@ export function OverviewView({ onNavigate, onShowToast }) {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', whiteSpace: 'nowrap' }}>Gross Booking Value (GBV)</span>
-            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <IndianRupee size={16} color="#6E42E5" />
+            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#E8F1FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <IndianRupee size={16} color="#0B57D0" />
             </div>
           </div>
           <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
@@ -291,11 +291,11 @@ export function OverviewView({ onNavigate, onShowToast }) {
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B', whiteSpace: 'nowrap' }}>Platform Net Revenue</span>
-            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#EDE9FE', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <TrendingUp size={16} color="#6E42E5" />
+            <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#E8F1FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <TrendingUp size={16} color="#0B57D0" />
             </div>
           </div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#6E42E5', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 24, fontWeight: 800, color: '#0B57D0', letterSpacing: -0.5, whiteSpace: 'nowrap' }}>
             {metrics.platformRevenue?.formatted || '₹0'}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 11.5, fontWeight: 600, color: '#64748B', whiteSpace: 'nowrap' }}>
@@ -470,7 +470,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <h4 style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', margin: 0 }}>Daily Booking Volume Trend</h4>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#6E42E5', backgroundColor: '#F5F3FF', border: '1px solid #DDD6FE', padding: '2px 8px', borderRadius: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#0B57D0', backgroundColor: '#E8F1FF', border: '1px solid #E4E7EC', padding: '2px 8px', borderRadius: 12 }}>
                   {((trends.bookingTrends || []).reduce((acc, t) => acc + (t.orders || 0), 0))} Orders This Week
                 </span>
               </div>
@@ -492,7 +492,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                   fontWeight: 700,
                   cursor: 'pointer',
                   backgroundColor: trendViewMode === 'graph' ? '#FFFFFF' : 'transparent',
-                  color: trendViewMode === 'graph' ? '#6E42E5' : '#64748B',
+                  color: trendViewMode === 'graph' ? '#0B57D0' : '#64748B',
                   boxShadow: trendViewMode === 'graph' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -512,7 +512,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                   fontWeight: 700,
                   cursor: 'pointer',
                   backgroundColor: trendViewMode === 'bars' ? '#FFFFFF' : 'transparent',
-                  color: trendViewMode === 'bars' ? '#6E42E5' : '#64748B',
+                  color: trendViewMode === 'bars' ? '#0B57D0' : '#64748B',
                   boxShadow: trendViewMode === 'bars' ? '0 1px 2px rgba(0,0,0,0.08)' : 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -585,12 +585,12 @@ export function OverviewView({ onNavigate, onShowToast }) {
                   <svg viewBox={`0 0 ${svgW} ${svgH}`} style={{ width: '100%', height: '100%', overflow: 'visible' }}>
                     <defs>
                       <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#7C3AED" stopOpacity="0.35" />
-                        <stop offset="65%" stopColor="#8B5CF6" stopOpacity="0.12" />
-                        <stop offset="100%" stopColor="#8B5CF6" stopOpacity="0.0" />
+                        <stop offset="0%" stopColor="#0B57D0" stopOpacity="0.35" />
+                        <stop offset="65%" stopColor="#0B57D0" stopOpacity="0.12" />
+                        <stop offset="100%" stopColor="#0B57D0" stopOpacity="0.0" />
                       </linearGradient>
                       <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#7C3AED" floodOpacity="0.35" />
+                        <feDropShadow dx="0" dy="2" stdDeviation="3" floodColor="#0B57D0" floodOpacity="0.35" />
                       </filter>
                     </defs>
 
@@ -627,7 +627,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                       <path
                         d={pathD}
                         fill="none"
-                        stroke="#6E42E5"
+                        stroke="#0B57D0"
                         strokeWidth="3.2"
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -653,7 +653,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                               y1={padT}
                               x2={p.x}
                               y2={padT + plotH}
-                              stroke="#C4B5FD"
+                              stroke="#E8F1FF"
                               strokeWidth="1.5"
                               strokeDasharray="2 2"
                             />
@@ -668,7 +668,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                                 width="26"
                                 height="15"
                                 rx="4"
-                                fill="#6E42E5"
+                                fill="#0B57D0"
                                 style={{ transition: 'all 0.2s' }}
                               />
                               <text
@@ -701,7 +701,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                             cy={p.y}
                             r={isHovered ? 8 : (hasOrders ? 6 : 4.5)}
                             fill="#FFFFFF"
-                            stroke={hasOrders ? '#6E42E5' : '#94A3B8'}
+                            stroke={hasOrders ? '#0B57D0' : '#94A3B8'}
                             strokeWidth={hasOrders ? 2.5 : 2}
                             style={{ transition: 'all 0.15s ease-out' }}
                           />
@@ -709,7 +709,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                             cx={p.x}
                             cy={p.y}
                             r={isHovered ? 4.5 : (hasOrders ? 3 : 2)}
-                            fill={hasOrders ? '#6E42E5' : '#94A3B8'}
+                            fill={hasOrders ? '#0B57D0' : '#94A3B8'}
                           />
 
                           {/* X-axis Day Label */}
@@ -717,7 +717,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                             x={p.x}
                             y={svgH - 14}
                             textAnchor="middle"
-                            fill={isHovered ? '#6E42E5' : (hasOrders ? '#0F172A' : '#64748B')}
+                            fill={isHovered ? '#0B57D0' : (hasOrders ? '#0F172A' : '#64748B')}
                             fontSize="11"
                             fontWeight={hasOrders || isHovered ? '800' : '600'}
                           >
@@ -762,7 +762,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                   flexDirection: 'column',
                   gap: 2
                 }}>
-                  <div style={{ fontWeight: 800, color: '#C4B5FD' }}>
+                  <div style={{ fontWeight: 800, color: '#E8F1FF' }}>
                     {(trends.bookingTrends || [])[hoveredTrendPoint].label} ({(trends.bookingTrends || [])[hoveredTrendPoint].dateStr || 'Day'})
                   </div>
                   <div>Bookings: <strong>{(trends.bookingTrends || [])[hoveredTrendPoint].orders} orders</strong></div>
@@ -783,14 +783,14 @@ export function OverviewView({ onNavigate, onShowToast }) {
                     : 6;
                   return (
                     <div key={b.label} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end', gap: 6 }}>
-                      <span style={{ fontSize: 11, fontWeight: 800, color: hasOrders ? '#6E42E5' : '#94A3B8' }}>{b.orders}</span>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: hasOrders ? '#0B57D0' : '#94A3B8' }}>{b.orders}</span>
                       <div style={{
                         width: '100%',
                         maxWidth: 34,
                         height: barHeightPx,
-                        background: hasOrders ? 'linear-gradient(180deg, #6E42E5 0%, #A78BFA 100%)' : '#E2E8F0',
+                        background: hasOrders ? 'linear-gradient(180deg, #0B57D0 0%, #0B57D0 100%)' : '#E2E8F0',
                         borderRadius: '6px 6px 0 0',
-                        boxShadow: hasOrders ? '0 2px 4px rgba(110, 66, 229, 0.25)' : 'none',
+                        boxShadow: hasOrders ? '0 2px 4px rgba(11, 87, 208, 0.25)' : 'none',
                         transition: 'height 0.3s ease'
                       }} />
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -857,7 +857,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
                 <tr key={cat.name} style={{ borderBottom: '1px solid #F1F5F9' }}>
                   <td style={{ padding: '10px 16px', fontWeight: 700, color: '#0F172A' }}>{cat.name}</td>
                   <td style={{ padding: '10px 16px', color: '#475569' }}>{cat.orders}</td>
-                  <td style={{ padding: '10px 16px', fontWeight: 800, color: '#6E42E5' }}>{cat.revenue}</td>
+                  <td style={{ padding: '10px 16px', fontWeight: 800, color: '#0B57D0' }}>{cat.revenue}</td>
                   <td style={{ padding: '10px 16px', color: '#16A34A', fontWeight: 700, textAlign: 'right' }}>{cat.growth}</td>
                 </tr>
               ))}
@@ -924,7 +924,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
             style={{
               background: 'none',
               border: 'none',
-              color: '#6E42E5',
+              color: '#0B57D0',
               fontSize: 12.5,
               fontWeight: 700,
               cursor: 'pointer'
@@ -977,8 +977,8 @@ export function OverviewView({ onNavigate, onShowToast }) {
                       borderRadius: 6,
                       fontSize: 11,
                       fontWeight: 700,
-                      backgroundColor: b.status === 'Completed' ? '#DCFCE7' : b.status === 'In Progress' ? '#E0F2FE' : b.status === 'Cancelled' ? '#FEE2E2' : '#EDE9FE',
-                      color: b.status === 'Completed' ? '#15803D' : b.status === 'In Progress' ? '#0369A1' : b.status === 'Cancelled' ? '#DC2626' : '#6E42E5'
+                      backgroundColor: b.status === 'Completed' ? '#DCFCE7' : b.status === 'In Progress' ? '#E0F2FE' : b.status === 'Cancelled' ? '#FEE2E2' : '#E8F1FF',
+                      color: b.status === 'Completed' ? '#15803D' : b.status === 'In Progress' ? '#0369A1' : b.status === 'Cancelled' ? '#DC2626' : '#0B57D0'
                     }}>
                       {b.status}
                     </span>
@@ -1035,7 +1035,7 @@ export function OverviewView({ onNavigate, onShowToast }) {
             style={{
               background: 'none',
               border: 'none',
-              color: '#6E42E5',
+              color: '#0B57D0',
               fontSize: 12.5,
               fontWeight: 700,
               cursor: 'pointer',

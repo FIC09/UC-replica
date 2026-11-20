@@ -288,9 +288,9 @@ export function EarningsView({ onNavigate, showToast }) {
           </div>
 
           {/* 4. Processing */}
-          <div style={{ background: '#ffffff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e2e8f0', borderTop: '4px solid #7c3aed' }}>
+          <div style={{ background: '#ffffff', borderRadius: 14, padding: '16px 18px', border: '1px solid #e2e8f0', borderTop: '4px solid #0B57D0' }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b' }}>4. PROCESSING</div>
-            <div style={{ fontSize: 20, fontWeight: 800, color: '#7c3aed', marginTop: 4 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, color: '#0B57D0', marginTop: 4 }}>
               {formatAmount(stages.processing, stages.processingPaisa)}
             </div>
             <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>In NEFT / IMPS batch queue</div>

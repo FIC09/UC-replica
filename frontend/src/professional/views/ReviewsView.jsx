@@ -207,7 +207,7 @@ export function ReviewsView({ showToast }) {
                     height: 38,
                     borderRadius: '50%',
                     background: '#e0e7ff',
-                    color: '#3730a3',
+                    color: '#0849B1',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',

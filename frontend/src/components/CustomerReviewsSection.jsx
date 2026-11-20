@@ -3,8 +3,8 @@ import { Star, ShieldCheck, Sparkles } from 'lucide-react';
 import { REVIEWS } from '../data/servicesData';
 
 const AVATAR_PALETTES = [
-  { bg: '#EEF2FF', text: '#4338CA', border: '#C7D2FE' }, // Indigo
-  { bg: '#F5F3FF', text: '#6D28D9', border: '#DDD6FE' }, // Purple
+  { bg: '#E8F1FF', text: '#0849B1', border: '#C7D2FE' }, // Indigo
+  { bg: '#E8F1FF', text: '#0849B1', border: '#E4E7EC' }, // Purple
   { bg: '#ECFDF5', text: '#047857', border: '#A7F3D0' }, // Emerald
   { bg: '#FFFBEB', text: '#B45309', border: '#FDE68A' }, // Amber
   { bg: '#FDF2F8', text: '#BE185D', border: '#FBCFE8' }, // Pink

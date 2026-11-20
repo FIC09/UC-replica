@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { adminClient } from '../adminClient';
 import { usePlatformSettings } from '../../utils/usePlatformSettings';
+import { PromotionsView } from './PromotionsView';
 
 export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavigate }) {
   const { platformTakeRate } = usePlatformSettings();
@@ -370,11 +371,13 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              color: activeTab === 'transactions' ? '#6E42E5' : '#64748B',
-              borderBottom: activeTab === 'transactions' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+              color: activeTab === 'transactions' ? '#0B57D0' : '#64748B',
+              borderBottom: activeTab === 'transactions' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 8,
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
             <CreditCard size={16} />
@@ -383,8 +386,8 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               fontSize: 11,
               padding: '1px 6px',
               borderRadius: 10,
-              backgroundColor: activeTab === 'transactions' ? '#F3E8FF' : '#F1F5F9',
-              color: activeTab === 'transactions' ? '#6E42E5' : '#64748B'
+              backgroundColor: activeTab === 'transactions' ? '#E8F1FF' : '#F1F5F9',
+              color: activeTab === 'transactions' ? '#0B57D0' : '#64748B'
             }}>
               {transactions.length}
             </span>
@@ -400,11 +403,13 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              color: activeTab === 'payouts' ? '#6E42E5' : '#64748B',
-              borderBottom: activeTab === 'payouts' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+              color: activeTab === 'payouts' ? '#0B57D0' : '#64748B',
+              borderBottom: activeTab === 'payouts' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 8,
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
             <Wallet size={16} />
@@ -433,11 +438,13 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              color: activeTab === 'refunds' ? '#6E42E5' : '#64748B',
-              borderBottom: activeTab === 'refunds' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+              color: activeTab === 'refunds' ? '#0B57D0' : '#64748B',
+              borderBottom: activeTab === 'refunds' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 8,
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
             <RotateCcw size={16} />
@@ -457,10 +464,12 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
           <button
             type="button"
             onClick={() => {
+              setActiveTab('promotions');
               if (onNavigate) {
                 onNavigate('/admin/promotions');
               } else {
-                window.location.pathname = '/admin/promotions';
+                window.history.pushState({}, '', '/admin/promotions');
+                window.dispatchEvent(new PopStateEvent('popstate'));
               }
             }}
             style={{
@@ -470,11 +479,13 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              color: '#64748B',
-              borderBottom: '2.5px solid transparent',
+              color: activeTab === 'promotions' ? '#0B57D0' : '#64748B',
+              borderBottom: activeTab === 'promotions' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 8,
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
             <Tag size={16} />
@@ -491,11 +502,13 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               border: 'none',
               background: 'none',
               cursor: 'pointer',
-              color: activeTab === 'reconciliation' ? '#6E42E5' : '#64748B',
-              borderBottom: activeTab === 'reconciliation' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+              color: activeTab === 'reconciliation' ? '#0B57D0' : '#64748B',
+              borderBottom: activeTab === 'reconciliation' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
               display: 'flex',
               alignItems: 'center',
-              gap: 8
+              gap: 8,
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
             <ShieldCheck size={16} />
@@ -521,42 +534,42 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* KPI Summary Cards */}
           <div className="admin-kpi-grid" style={{ marginBottom: 4 }}>
-            <div style={{ backgroundColor: '#FFFFFF', padding: '16px 20px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Gross Captured Volume</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
+            <div className="admin-kpi-card" style={{ backgroundColor: '#FFFFFF', padding: '16px 20px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+              <div className="admin-kpi-label" style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Gross Captured Volume</div>
+              <div className="admin-kpi-value" style={{ fontSize: 22, fontWeight: 800, color: '#0F172A', marginTop: 4 }}>
                 ₹{totalSettledINR.toLocaleString('en-IN')}
               </div>
-              <div style={{ fontSize: 11.5, color: '#10B981', marginTop: 4, fontWeight: 600 }}>
+              <div className="admin-kpi-subtext" style={{ fontSize: 11.5, color: '#10B981', marginTop: 4, fontWeight: 600 }}>
                 {prodTxns.length} Settled Transactions
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#FFFFFF', padding: '16px 20px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Platform Commission Take</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#6E42E5', marginTop: 4 }}>
+            <div className="admin-kpi-card" style={{ backgroundColor: '#FFFFFF', padding: '16px 20px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+              <div className="admin-kpi-label" style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Platform Commission Take</div>
+              <div className="admin-kpi-value" style={{ fontSize: 22, fontWeight: 800, color: '#0B57D0', marginTop: 4 }}>
                 ₹{(totalCommissionPaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </div>
-              <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
+              <div className="admin-kpi-subtext" style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
                 Active Governance Take Rate: {platformTakeRate || 20}%
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#FFFFFF', padding: '16px 20px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Pro & Partner Net Share</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#059669', marginTop: 4 }}>
+            <div className="admin-kpi-card" style={{ backgroundColor: '#FFFFFF', padding: '16px 20px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+              <div className="admin-kpi-label" style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Pro & Partner Net Share</div>
+              <div className="admin-kpi-value" style={{ fontSize: 22, fontWeight: 800, color: '#059669', marginTop: 4 }}>
                 ₹{(totalProSharePaise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
               </div>
-              <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
+              <div className="admin-kpi-subtext" style={{ fontSize: 11.5, color: '#64748B', marginTop: 4 }}>
                 Allocated to freelance pros & partner agencies
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#FFFFFF', padding: '16px 20px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Sandbox / Test Volume</div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#7C3AED', marginTop: 4 }}>
+            <div className="admin-kpi-card" style={{ backgroundColor: '#FFFFFF', padding: '16px 20px', borderRadius: 12, border: '1px solid #E2E8F0' }}>
+              <div className="admin-kpi-label" style={{ fontSize: 12, fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>Sandbox / Test Volume</div>
+              <div className="admin-kpi-value" style={{ fontSize: 22, fontWeight: 800, color: '#0B57D0', marginTop: 4 }}>
                 ₹{(simTxns.reduce((s, t) => s + t.amountRupees, 0)).toLocaleString('en-IN')}
               </div>
-              <div style={{ fontSize: 11.5, color: '#7C3AED', marginTop: 4, fontWeight: 600 }}>
+              <div className="admin-kpi-subtext" style={{ fontSize: 11.5, color: '#0B57D0', marginTop: 4, fontWeight: 600 }}>
                 Strictly non-real, segregated ledger
               </div>
             </div>
@@ -667,12 +680,13 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
             </button>
           </div>
 
-          {/* Transactions Table */}
-          <div style={{
+          {/* Transactions Table (Desktop Table View) */}
+          <div className="admin-desktop-table-wrap" style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             border: '1px solid #E2E8F0',
             overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
           }}>
             <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
@@ -698,7 +712,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
                   filteredTxns.map(t => (
                     <tr key={t.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '14px 18px' }}>
-                        <div style={{ fontWeight: 800, color: '#6E42E5', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ fontWeight: 800, color: '#0B57D0', display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span>{t.id}</span>
                           <button
                             type="button"
@@ -727,7 +741,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
                       </td>
 
                       <td style={{ padding: '14px 18px' }}>
-                        <div style={{ fontSize: 12, color: '#6E42E5', fontWeight: 700 }}>
+                        <div style={{ fontSize: 12, color: '#0B57D0', fontWeight: 700 }}>
                           FIC Take: ₹{(t.commissionPaise / 100).toFixed(2)}
                         </div>
                         <div style={{ fontSize: 11.5, color: '#059669', fontWeight: 600 }}>
@@ -783,9 +797,9 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
                               fontWeight: 700,
                               padding: '2px 6px',
                               borderRadius: 4,
-                              backgroundColor: '#F3E8FF',
-                              color: '#7C3AED',
-                              border: '1px solid #DDD6FE',
+                              backgroundColor: '#E8F1FF',
+                              color: '#0B57D0',
+                              border: '1px solid #E4E7EC',
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 3,
@@ -838,6 +852,205 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards View (Optimized for Small Screens / Mobile View of Web App) */}
+          <div className="admin-mobile-cards-list" style={{ display: 'none', flexDirection: 'column', gap: 12 }}>
+            {filteredTxns.length === 0 ? (
+              <div style={{
+                padding: '36px',
+                textAlign: 'center',
+                color: '#64748B',
+                backgroundColor: '#FFFFFF',
+                borderRadius: 12,
+                border: '1px solid #E2E8F0'
+              }}>
+                No transactions match the selected filters.
+              </div>
+            ) : (
+              filteredTxns.map(t => (
+                <div
+                  key={t.id}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 12,
+                    border: '1px solid #E2E8F0',
+                    padding: 14,
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10
+                  }}
+                >
+                  {/* Top Bar: Txn ID, Copy, Status Badge & Environment */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#0B57D0', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
+                        <span>{t.id}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(t.id, t.id)}
+                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+                          title="Copy Transaction ID"
+                        >
+                          <Copy size={13} color={copiedKey === t.id ? '#10B981' : '#94A3B8'} />
+                        </button>
+                      </div>
+                      <div style={{ fontSize: 12, color: '#64748B', marginTop: 2 }}>
+                        Order: <strong style={{ color: '#0F172A' }}>{t.bookingId}</strong>
+                        {t.invoiceNumber && (
+                          <span style={{ marginLeft: 6, color: '#94A3B8', fontSize: 11 }}>• {t.invoiceNumber}</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        padding: '2px 8px',
+                        borderRadius: 9999,
+                        backgroundColor: t.status === 'Settled' ? '#ECFDF5' : '#FFFBEB',
+                        color: t.status === 'Settled' ? '#059669' : '#D97706'
+                      }}>
+                        {t.status}
+                      </span>
+                      {t.environment === 'Sandbox Simulation' ? (
+                        <span style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: '2px 6px',
+                          borderRadius: 4,
+                          backgroundColor: '#E8F1FF',
+                          color: '#0B57D0',
+                          border: '1px solid #E4E7EC',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3
+                        }}>
+                          <FlaskConical size={10} />
+                          Sandbox
+                        </span>
+                      ) : (
+                        <span style={{
+                          fontSize: 10,
+                          fontWeight: 600,
+                          color: '#64748B',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3
+                        }}>
+                          <CheckCircle2 size={10} color="#10B981" />
+                          Live
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Customer & Gross Amount Row */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '10px 12px',
+                    backgroundColor: '#F8FAFC',
+                    borderRadius: 8
+                  }}>
+                    <div>
+                      <div style={{ fontSize: 10.5, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.3 }}>Customer</div>
+                      <div style={{ fontWeight: 700, color: '#0F172A', fontSize: 14 }}>{t.customerName}</div>
+                      <div style={{ fontSize: 11, color: '#94A3B8' }}>{t.currency} Direct Checkout</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 10.5, color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: 0.3 }}>Gross Captured</div>
+                      <div style={{ fontWeight: 900, color: '#0F172A', fontSize: 17 }}>
+                        ₹{t.amountRupees?.toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Financial Breakdown Grid: Commission Take, Pro Share, GST */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: t.taxPaise > 0 ? '1fr 1fr 1fr' : '1fr 1fr',
+                    gap: 8,
+                    padding: '8px 12px',
+                    backgroundColor: '#F1F5F9',
+                    borderRadius: 8
+                  }}>
+                    <div>
+                      <div style={{ color: '#64748B', fontSize: 10.5, fontWeight: 600 }}>FIC Take (20%)</div>
+                      <div style={{ color: '#0B57D0', fontWeight: 700, fontSize: 12.5 }}>₹{(t.commissionPaise / 100).toFixed(2)}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: '#64748B', fontSize: 10.5, fontWeight: 600 }}>Pro Net (80%)</div>
+                      <div style={{ color: '#059669', fontWeight: 700, fontSize: 12.5 }}>₹{(t.proSharePaise / 100).toFixed(2)}</div>
+                    </div>
+                    {t.taxPaise > 0 && (
+                      <div>
+                        <div style={{ color: '#64748B', fontSize: 10.5, fontWeight: 600 }}>GST (18%)</div>
+                        <div style={{ color: '#475569', fontWeight: 600, fontSize: 12.5 }}>₹{(t.taxPaise / 100).toFixed(2)}</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Payment Method & Gateway Reference + Ledger Button */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingTop: 4,
+                    borderTop: '1px solid #F1F5F9',
+                    gap: 8,
+                    flexWrap: 'wrap'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 600, color: '#334155', fontSize: 12 }}>{t.paymentMethod}</div>
+                      <div style={{
+                        fontSize: 11,
+                        color: '#64748B',
+                        fontFamily: 'monospace',
+                        marginTop: 2,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4
+                      }}>
+                        <span>{t.gatewayRef}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(t.gatewayRef, t.gatewayRef)}
+                          style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 0 }}
+                          title="Copy Gateway Reference"
+                        >
+                          <Copy size={11} color={copiedKey === t.gatewayRef ? '#10B981' : '#94A3B8'} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTxn(t)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: 8,
+                        border: '1.5px solid #0B57D0',
+                        backgroundColor: '#E8F1FF',
+                        color: '#0B57D0',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5
+                      }}
+                    >
+                      <Eye size={13} />
+                      <span>Ledger Audit</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
@@ -860,7 +1073,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
           }}>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#6E42E5', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#0B57D0', textTransform: 'uppercase' }}>
                   Weekly Partner & Fleet Settlement (Batch W42)
                 </div>
                 <span style={{
@@ -1013,11 +1226,12 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
           </div>
 
           {/* Payouts Table */}
-          <div style={{
+          <div className="admin-desktop-table-wrap" style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             border: '1px solid #E2E8F0',
             overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
           }}>
             <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
@@ -1044,7 +1258,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
                   filteredPayouts.map(p => (
                     <tr key={p.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '14px 18px' }}>
-                        <div style={{ fontWeight: 800, color: '#6E42E5' }}>{p.id}</div>
+                        <div style={{ fontWeight: 800, color: '#0B57D0' }}>{p.id}</div>
                         <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>{p.batchId}</div>
                         <div style={{ fontSize: 11, color: '#94A3B8' }}>{p.period}</div>
                       </td>
@@ -1052,7 +1266,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
                       <td style={{ padding: '14px 18px' }}>
                         <div style={{ fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 6 }}>
                           {p.beneficiaryType === 'Business Partner Agency' ? (
-                            <Building2 size={14} color="#6E42E5" />
+                            <Building2 size={14} color="#0B57D0" />
                           ) : (
                             <HardHat size={14} color="#059669" />
                           )}
@@ -1065,8 +1279,8 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
                               fontWeight: 700,
                               padding: '2px 6px',
                               borderRadius: 4,
-                              backgroundColor: '#EEF2FF',
-                              color: '#4F46E5',
+                              backgroundColor: '#E8F1FF',
+                              color: '#0B57D0',
                               border: '1px solid #C7D2FE'
                             }}>
                               Through Agency Payroll (Double-Count Guard)
@@ -1150,6 +1364,108 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Cards View for Payouts */}
+          <div className="admin-mobile-cards-list" style={{ display: 'none', flexDirection: 'column', gap: 12 }}>
+            {filteredPayouts.length === 0 ? (
+              <div style={{
+                padding: '36px',
+                textAlign: 'center',
+                color: '#64748B',
+                backgroundColor: '#FFFFFF',
+                borderRadius: 12,
+                border: '1px solid #E2E8F0'
+              }}>
+                No payout statements match the selected criteria.
+              </div>
+            ) : (
+              filteredPayouts.map(p => (
+                <div
+                  key={p.id}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 12,
+                    border: '1px solid #E2E8F0',
+                    padding: 14,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 6 }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#0B57D0', fontSize: 13 }}>{p.id}</div>
+                      <div style={{ fontSize: 11, color: '#64748B' }}>{p.batchId} • {p.period}</div>
+                    </div>
+                    {p.status === 'Ready for Release' ? (
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 9999, backgroundColor: '#FFFBEB', color: '#D97706' }}>
+                        Ready for Release
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 9999, backgroundColor: '#ECFDF5', color: '#059669' }}>
+                        ✓ Disbursed
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    {p.beneficiaryType === 'Business Partner Agency' ? <Building2 size={14} color="#0B57D0" /> : <HardHat size={14} color="#059669" />}
+                    <span style={{ fontWeight: 700, color: '#0F172A', fontSize: 13.5 }}>{p.beneficiaryName}</span>
+                  </div>
+
+                  <div style={{ fontSize: 11.5, color: '#64748B', fontFamily: 'monospace' }}>
+                    {p.payoutMethod} • {p.accountInfo}
+                  </div>
+
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr 1fr',
+                    gap: 8,
+                    padding: '8px 10px',
+                    backgroundColor: '#F8FAFC',
+                    borderRadius: 8,
+                    fontSize: 11
+                  }}>
+                    <div>
+                      <div style={{ color: '#64748B' }}>Gross Work</div>
+                      <div style={{ fontWeight: 700, color: '#0F172A' }}>₹{p.grossEarningsRupees?.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: '#DC2626' }}>Take / TDS</div>
+                      <div style={{ fontWeight: 600, color: '#DC2626' }}>-₹{((p.platformTakeRupees || 0) + (p.tdsDeductionRupees || 0))?.toLocaleString('en-IN')}</div>
+                    </div>
+                    <div>
+                      <div style={{ color: '#059669' }}>Net Disbursed</div>
+                      <div style={{ fontWeight: 800, color: '#059669', fontSize: 13 }}>₹{p.netPayoutRupees?.toLocaleString('en-IN')}</div>
+                    </div>
+                  </div>
+
+                  {p.status === 'Ready for Release' && (
+                    <button
+                      type="button"
+                      disabled={releasingId === p.id}
+                      onClick={() => handleReleasePayout(p)}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: 'none',
+                        backgroundColor: '#059669',
+                        color: '#FFFFFF',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: releasingId === p.id ? 'not-allowed' : 'pointer',
+                        width: '100%',
+                        marginTop: 2
+                      }}
+                    >
+                      {releasingId === p.id ? 'Transferring...' : 'Release Payout'}
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
@@ -1257,11 +1573,12 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
           </div>
 
           {/* Refunds Table */}
-          <div style={{
+          <div className="admin-desktop-table-wrap" style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             border: '1px solid #E2E8F0',
             overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
           }}>
             <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
@@ -1287,7 +1604,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
                   filteredRefunds.map(r => (
                     <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '14px 18px' }}>
-                        <div style={{ fontWeight: 800, color: '#6E42E5' }}>{r.id}</div>
+                        <div style={{ fontWeight: 800, color: '#0B57D0' }}>{r.id}</div>
                         <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 2 }}>
                           Order: <strong style={{ color: '#0F172A' }}>{r.bookingId}</strong>
                         </div>
@@ -1362,7 +1679,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
                               padding: '6px 12px',
                               borderRadius: 6,
                               border: 'none',
-                              backgroundColor: '#6E42E5',
+                              backgroundColor: '#0B57D0',
                               color: '#FFFFFF',
                               fontSize: 12,
                               fontWeight: 700,
@@ -1381,6 +1698,91 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards View for Refunds */}
+          <div className="admin-mobile-cards-list" style={{ display: 'none', flexDirection: 'column', gap: 12 }}>
+            {filteredRefunds.length === 0 ? (
+              <div style={{
+                padding: '36px',
+                textAlign: 'center',
+                color: '#64748B',
+                backgroundColor: '#FFFFFF',
+                borderRadius: 12,
+                border: '1px solid #E2E8F0'
+              }}>
+                No refund requests match this filter.
+              </div>
+            ) : (
+              filteredRefunds.map(r => (
+                <div
+                  key={r.id}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 12,
+                    border: '1px solid #E2E8F0',
+                    padding: 14,
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 6 }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#0B57D0', fontSize: 13 }}>{r.id}</div>
+                      <div style={{ fontSize: 11, color: '#64748B' }}>Order: <strong style={{ color: '#0F172A' }}>{r.bookingId}</strong></div>
+                    </div>
+                    <span style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 9999,
+                      backgroundColor: r.status === 'Approved & Processed' ? '#ECFDF5' : r.status === 'Rejected' ? '#FEF2F2' : '#FFFBEB',
+                      color: r.status === 'Approved & Processed' ? '#059669' : r.status === 'Rejected' ? '#DC2626' : '#D97706'
+                    }}>
+                      {r.status}
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 700, color: '#0F172A', fontSize: 13.5 }}>{r.customerName}</div>
+                      <div style={{ fontSize: 11, color: '#64748B' }}>{r.reasonCategory}</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 10.5, color: '#64748B' }}>Claimed Refund</div>
+                      <div style={{ fontWeight: 800, color: '#DC2626', fontSize: 16 }}>₹{r.requestedAmount}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 11, color: '#64748B', backgroundColor: '#F8FAFC', padding: '6px 10px', borderRadius: 6 }}>
+                    Captured: ₹{r.totalOrderAmount} • Max Refundable: ₹{r.maxRefundableBalance}
+                  </div>
+
+                  {r.status === 'Pending Review' && (
+                    <button
+                      type="button"
+                      onClick={() => openRefundReviewModal(r)}
+                      style={{
+                        padding: '8px 14px',
+                        borderRadius: 8,
+                        border: 'none',
+                        backgroundColor: '#0B57D0',
+                        color: '#FFFFFF',
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        width: '100%',
+                        marginTop: 2
+                      }}
+                    >
+                      Review & Process
+                    </button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
@@ -1396,7 +1798,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
             border: '1px solid #E2E8F0'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <ShieldCheck size={20} color="#6E42E5" />
+              <ShieldCheck size={20} color="#0B57D0" />
               <h3 style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', margin: 0 }}>
                 Automated Gateway Webhook Reconciliation & Safety Guards
               </h3>
@@ -1406,11 +1808,12 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
             </p>
           </div>
 
-          <div style={{
+          <div className="admin-desktop-table-wrap" style={{
             backgroundColor: '#FFFFFF',
             borderRadius: 12,
             border: '1px solid #E2E8F0',
             overflowX: 'auto',
+            WebkitOverflowScrolling: 'touch',
             boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
           }}>
             <table style={{ width: '100%', minWidth: 780, borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
@@ -1428,7 +1831,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               <tbody>
                 {exceptions.map(ex => (
                   <tr key={ex.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                    <td style={{ padding: '14px 18px', fontWeight: 800, color: '#6E42E5' }}>{ex.id}</td>
+                    <td style={{ padding: '14px 18px', fontWeight: 800, color: '#0B57D0' }}>{ex.id}</td>
 
                     <td style={{ padding: '14px 18px', fontWeight: 700, color: '#0F172A' }}>{ex.type}</td>
 
@@ -1476,6 +1879,78 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Cards View for Exceptions */}
+          <div className="admin-mobile-cards-list" style={{ display: 'none', flexDirection: 'column', gap: 12 }}>
+            {exceptions.length === 0 ? (
+              <div style={{
+                padding: '36px',
+                textAlign: 'center',
+                color: '#64748B',
+                backgroundColor: '#FFFFFF',
+                borderRadius: 12,
+                border: '1px solid #E2E8F0'
+              }}>
+                Zero reconciliation mismatches detected across gateway webhooks.
+              </div>
+            ) : (
+              exceptions.map(ex => (
+                <div
+                  key={ex.id}
+                  style={{
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 12,
+                    border: '1px solid #E2E8F0',
+                    padding: 14,
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.03)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 6 }}>
+                    <div>
+                      <div style={{ fontWeight: 800, color: '#0B57D0', fontSize: 13 }}>{ex.id}</div>
+                      <div style={{ fontSize: 11, color: '#64748B' }}>Order: <strong style={{ color: '#0F172A' }}>{ex.bookingRef}</strong></div>
+                    </div>
+                    <span style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 9999,
+                      backgroundColor: ex.severity === 'High' ? '#FEE2E2' : ex.severity === 'Medium' ? '#FEF3C7' : '#EFF6FF',
+                      color: ex.severity === 'High' ? '#DC2626' : ex.severity === 'Medium' ? '#B45309' : '#1D4ED8'
+                    }}>
+                      {ex.severity}
+                    </span>
+                  </div>
+
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#0F172A', fontSize: 13.5 }}>{ex.type}</div>
+                    <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 2 }}>{ex.issueDescription}</div>
+                  </div>
+
+                  <div style={{ fontSize: 11.5, color: '#64748B', fontFamily: 'monospace', backgroundColor: '#F8FAFC', padding: '6px 10px', borderRadius: 6 }}>
+                    {ex.gateway} • {ex.transactionRef}
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 2 }}>
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      backgroundColor: '#ECFDF5',
+                      color: '#059669',
+                      border: '1px solid #A7F3D0'
+                    }}>
+                      {ex.reconciliationStatus}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
@@ -1502,6 +1977,9 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
             maxWidth: 580,
             width: '100%',
             overflow: 'hidden',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
             border: '1px solid #E2E8F0'
           }}>
@@ -1510,10 +1988,11 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               borderBottom: '1px solid #E2E8F0',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
+              flexShrink: 0
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <CreditCard size={20} color="#6E42E5" />
+                <CreditCard size={20} color="#0B57D0" />
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
                   Transaction Accounting Ledger #{selectedTxn.id}
                 </h3>
@@ -1527,7 +2006,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               </button>
             </div>
 
-            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto' }}>
               {/* Order & Customer Summary */}
               <div style={{
                 backgroundColor: '#F8FAFC',
@@ -1569,7 +2048,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
                     </tr>
                     <tr style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '10px 16px', color: '#64748B' }}>Platform Commission Snapshot (Locked at booking)</td>
-                      <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: '#6E42E5' }}>
+                      <td style={{ padding: '10px 16px', textAlign: 'right', fontWeight: 700, color: '#0B57D0' }}>
                         ₹{(selectedTxn.commissionPaise / 100).toFixed(2)}
                       </td>
                     </tr>
@@ -1597,12 +2076,12 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
 
               {/* Status Note */}
               <div style={{
-                backgroundColor: selectedTxn.environment === 'Sandbox Simulation' ? '#FAF5FF' : '#F0FDF4',
+                backgroundColor: selectedTxn.environment === 'Sandbox Simulation' ? '#E8F1FF' : '#F0FDF4',
                 padding: '12px 16px',
                 borderRadius: 8,
-                border: selectedTxn.environment === 'Sandbox Simulation' ? '1px solid #E9D5FF' : '1px solid #BBF7D0',
+                border: selectedTxn.environment === 'Sandbox Simulation' ? '1px solid #E8F1FF' : '1px solid #BBF7D0',
                 fontSize: 12.5,
-                color: selectedTxn.environment === 'Sandbox Simulation' ? '#6B21A8' : '#166534',
+                color: selectedTxn.environment === 'Sandbox Simulation' ? '#0B57D0' : '#166534',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8
@@ -1639,6 +2118,13 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
       )}
 
       {/* ========================================================================= */}
+      {/* SCREEN 5: PROMOTIONS & COUPONS                                            */}
+      {/* ========================================================================= */}
+      {activeTab === 'promotions' && (
+        <PromotionsView onShowToast={onShowToast} />
+      )}
+
+      {/* ========================================================================= */}
       {/* MODAL: REFUND APPROVAL / REJECTION WITH BALANCE VALIDATION                 */}
       {/* ========================================================================= */}
       {reviewModalRefund && (
@@ -1672,7 +2158,7 @@ export function PaymentsView({ defaultTab = 'transactions', onShowToast, onNavig
               justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <RotateCcw size={18} color="#6E42E5" />
+                <RotateCcw size={18} color="#0B57D0" />
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
                   Review Refund Claim #{reviewModalRefund.id}
                 </h3>

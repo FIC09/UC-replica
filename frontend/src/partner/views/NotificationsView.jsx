@@ -111,14 +111,14 @@ export function NotificationsView({ showToast, onNavigate }) {
   };
 
   const categoryColors = {
-    'New Booking': { bg: '#ede9fe', text: '#6d28d9' },
+    'New Booking': { bg: '#E8F1FF', text: '#0849B1' },
     'Reassignment': { bg: '#e0f2fe', text: '#0284c7' },
     'Cancellation': { bg: '#fee2e2', text: '#dc2626' },
     'Training Requirement': { bg: '#fef3c7', text: '#b45309' },
-    'Document Review': { bg: '#f3e8ff', text: '#7c3aed' },
+    'Document Review': { bg: '#E8F1FF', text: '#0B57D0' },
     'Expiry Reminders': { bg: '#ffedd5', text: '#c2410c' },
     'Settlement Updates': { bg: '#dcfce7', text: '#16a34a' },
-    'Support Replies': { bg: '#e0e7ff', text: '#4338ca' }
+    'Support Replies': { bg: '#e0e7ff', text: '#0849B1' }
   };
 
   return (
@@ -176,7 +176,7 @@ export function NotificationsView({ showToast, onNavigate }) {
                 fontSize: 12.5,
                 fontWeight: readFilter === 'ALL' ? 700 : 500,
                 background: readFilter === 'ALL' ? '#ffffff' : 'transparent',
-                color: readFilter === 'ALL' ? '#7c3aed' : '#64748b',
+                color: readFilter === 'ALL' ? '#0B57D0' : '#64748b',
                 boxShadow: readFilter === 'ALL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                 cursor: 'pointer'
               }}
@@ -192,7 +192,7 @@ export function NotificationsView({ showToast, onNavigate }) {
                 fontSize: 12.5,
                 fontWeight: readFilter === 'UNREAD' ? 700 : 500,
                 background: readFilter === 'UNREAD' ? '#ffffff' : 'transparent',
-                color: readFilter === 'UNREAD' ? '#7c3aed' : '#64748b',
+                color: readFilter === 'UNREAD' ? '#0B57D0' : '#64748b',
                 boxShadow: readFilter === 'UNREAD' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                 cursor: 'pointer'
               }}
@@ -214,7 +214,7 @@ export function NotificationsView({ showToast, onNavigate }) {
               borderRadius: 6,
               fontSize: 12,
               fontWeight: selectedCategory === cat ? 700 : 500,
-              background: selectedCategory === cat ? '#7c3aed' : '#ffffff',
+              background: selectedCategory === cat ? '#0B57D0' : '#ffffff',
               color: selectedCategory === cat ? '#ffffff' : '#64748b',
               border: '1px solid #cbd5e1',
               cursor: 'pointer'
@@ -237,16 +237,16 @@ export function NotificationsView({ showToast, onNavigate }) {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map(n => {
-            const catColor = categoryColors[n.category] || { bg: '#ede9fe', text: '#7c3aed' };
+            const catColor = categoryColors[n.category] || { bg: '#E8F1FF', text: '#0B57D0' };
             const icon = categoryIcons[n.category] || <Bell size={18} />;
 
             return (
               <div
                 key={n.id}
                 style={{
-                  background: n.read ? '#ffffff' : '#f5f3ff',
+                  background: n.read ? '#ffffff' : '#E8F1FF',
                   borderRadius: 14,
-                  border: n.read ? '1px solid #e2e8f0' : '1px solid #ddd6fe',
+                  border: n.read ? '1px solid #e2e8f0' : '1px solid #E4E7EC',
                   padding: '18px 22px',
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -278,7 +278,7 @@ export function NotificationsView({ showToast, onNavigate }) {
                       </span>
                       <strong style={{ fontSize: 15, color: '#0f172a' }}>{n.title}</strong>
                       {!n.read && (
-                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#7c3aed' }}></span>
+                        <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#0B57D0' }}></span>
                       )}
                     </div>
 
@@ -306,7 +306,7 @@ export function NotificationsView({ showToast, onNavigate }) {
                         borderRadius: 6,
                         fontSize: 12,
                         fontWeight: 600,
-                        color: '#7c3aed',
+                        color: '#0B57D0',
                         cursor: 'pointer'
                       }}
                     >

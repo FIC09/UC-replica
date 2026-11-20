@@ -311,7 +311,7 @@ export function ServicesView({ onShowToast, onNavigate }) {
               display: 'flex',
               alignItems: 'center',
               gap: 8,
-              backgroundColor: '#6E42E5',
+              backgroundColor: '#0B57D0',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,
@@ -462,7 +462,7 @@ export function ServicesView({ onShowToast, onNavigate }) {
               style={{
                 backgroundColor: 'transparent',
                 border: 'none',
-                color: '#6E42E5',
+                color: '#0B57D0',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer'
@@ -497,12 +497,12 @@ export function ServicesView({ onShowToast, onNavigate }) {
                 padding: '7px 16px',
                 borderRadius: 8,
                 border: 'none',
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF',
                 fontSize: 12.5,
                 fontWeight: 600,
                 cursor: 'pointer',
-                boxShadow: '0 2px 6px rgba(110,66,229,0.25)'
+                boxShadow: '0 2px 6px rgba(11, 87, 208,0.25)'
               }}
             >
               Reset All Filters & Show All Services
@@ -611,7 +611,7 @@ export function ServicesView({ onShowToast, onNavigate }) {
                     marginBottom: 14
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={13} color="#6E42E5" />
+                      <Clock size={13} color="#0B57D0" />
                       <span>{srv.durationMins || 60} mins</span>
                     </div>
 
@@ -646,7 +646,7 @@ export function ServicesView({ onShowToast, onNavigate }) {
 
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: 11, color: '#64748B' }}>Platform Take Rate:</span>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#6E42E5' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#0B57D0' }}>
                         {srv.commissionRate || 20}% + 18% GST
                       </div>
                     </div>
@@ -793,7 +793,7 @@ export function ServicesView({ onShowToast, onNavigate }) {
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                   <label style={{ fontSize: 12, fontWeight: 600, color: '#334155', display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
-                    <Image size={14} color="#6E42E5" />
+                    <Image size={14} color="#0B57D0" />
                     Service Photo / Thumbnail Image
                   </label>
                   {formData.image && (
@@ -870,7 +870,7 @@ export function ServicesView({ onShowToast, onNavigate }) {
                         cursor: 'pointer',
                         whiteSpace: 'nowrap'
                       }}>
-                        <Upload size={13} color="#6E42E5" />
+                        <Upload size={13} color="#0B57D0" />
                         <span>Upload Photo</span>
                         <input
                           type="file"
@@ -893,9 +893,9 @@ export function ServicesView({ onShowToast, onNavigate }) {
                             fontSize: 10.5,
                             padding: '2px 7px',
                             borderRadius: 4,
-                            border: formData.image === p.url ? '1px solid #6E42E5' : '1px solid #E2E8F0',
-                            backgroundColor: formData.image === p.url ? '#EDE9FE' : '#FFFFFF',
-                            color: formData.image === p.url ? '#6E42E5' : '#475569',
+                            border: formData.image === p.url ? '1px solid #0B57D0' : '1px solid #E2E8F0',
+                            backgroundColor: formData.image === p.url ? '#E8F1FF' : '#FFFFFF',
+                            color: formData.image === p.url ? '#0B57D0' : '#475569',
                             cursor: 'pointer'
                           }}
                         >
@@ -1065,7 +1065,7 @@ export function ServicesView({ onShowToast, onNavigate }) {
                     padding: '8px 20px',
                     borderRadius: 6,
                     border: 'none',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     fontSize: 13,
                     fontWeight: 600,

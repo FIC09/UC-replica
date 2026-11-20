@@ -137,7 +137,7 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
       case 'Submitted':
       case 'Under Review':
       default:
-        return { bg: '#faf5ff', text: '#7c3aed', border: '#ddd6fe', label: 'Under Compliance Review' };
+        return { bg: '#E8F1FF', text: '#0B57D0', border: '#E4E7EC', label: 'Under Compliance Review' };
     }
   };
 
@@ -156,12 +156,12 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
         <div style={{
           width: 44,
           height: 44,
-          border: '4px solid #f3e8ff',
-          borderTopColor: '#7c3aed',
+          border: '4px solid #E8F1FF',
+          borderTopColor: '#0B57D0',
           borderRadius: '50%',
           animation: 'spin 0.8s linear infinite'
         }} />
-        <div style={{ marginTop: 16, fontSize: 14, fontWeight: 600, color: '#6b21a8' }}>
+        <div style={{ marginTop: 16, fontSize: 14, fontWeight: 600, color: '#0B57D0' }}>
           Loading Onboarding Verification Record...
         </div>
       </div>
@@ -181,7 +181,7 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
         borderRadius: 20,
         padding: '24px 20px',
         border: `1.5px solid ${badge.border}`,
-        boxShadow: '0 4px 20px -2px rgba(124, 58, 237, 0.08)',
+        boxShadow: '0 4px 20px -2px rgba(11, 87, 208, 0.08)',
         marginBottom: 20
       }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
@@ -190,14 +190,14 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
               width: 52,
               height: 52,
               borderRadius: 16,
-              background: '#f5f3ff',
-              color: '#7c3aed',
+              background: '#E8F1FF',
+              color: '#0B57D0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 22,
               fontWeight: 800,
-              border: '1px solid #ddd6fe'
+              border: '1px solid #E4E7EC'
             }}>
               {profile?.avatar || 'PRO'}
             </div>
@@ -232,13 +232,13 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
         <div style={{ marginTop: 22 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>
             <span>Verification Checklist Progress</span>
-            <span style={{ color: '#7c3aed' }}>{onboardingData?.progressPercentage || 60}% Completed</span>
+            <span style={{ color: '#0B57D0' }}>{onboardingData?.progressPercentage || 60}% Completed</span>
           </div>
           <div style={{ height: 8, background: '#f1f5f9', borderRadius: 10, overflow: 'hidden' }}>
             <div style={{
               height: '100%',
               width: `${onboardingData?.progressPercentage || 60}%`,
-              background: 'linear-gradient(90deg, #7c3aed 0%, #6366f1 100%)',
+              background: 'linear-gradient(90deg, #0B57D0 0%, #0B57D0 100%)',
               borderRadius: 10,
               transition: 'width 0.4s ease'
             }} />
@@ -266,8 +266,8 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
       {/* Review Comments or Attention Card */}
       {onboardingData?.reviewComments && onboardingData.reviewComments.length > 0 && (
         <div style={{
-          background: currentStatus === 'Changes Requested' ? '#fffbeb' : '#faf5ff',
-          border: `1.5px solid ${currentStatus === 'Changes Requested' ? '#fde68a' : '#e9d5ff'}`,
+          background: currentStatus === 'Changes Requested' ? '#fffbeb' : '#E8F1FF',
+          border: `1.5px solid ${currentStatus === 'Changes Requested' ? '#fde68a' : '#E8F1FF'}`,
           borderRadius: 18,
           padding: '18px 20px',
           marginBottom: 20
@@ -277,7 +277,7 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
             <div style={{
               fontSize: 14,
               fontWeight: 800,
-              color: currentStatus === 'Changes Requested' ? '#92400e' : '#6b21a8'
+              color: currentStatus === 'Changes Requested' ? '#92400e' : '#0B57D0'
             }}>
               Compliance Reviewer Notes
             </div>
@@ -304,7 +304,7 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
               onClick={() => setShowCorrectionModal(true)}
               style={{
                 marginTop: 14,
-                background: '#7c3aed',
+                background: '#0B57D0',
                 color: '#ffffff',
                 border: 'none',
                 padding: '12px 20px',
@@ -315,7 +315,7 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)',
+                boxShadow: '0 4px 12px rgba(11, 87, 208, 0.25)',
                 minHeight: 48
               }}
             >
@@ -366,8 +366,8 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
                   onClick={() => setShowCorrectionModal(true)}
                   style={{
                     background: '#ffffff',
-                    border: '1px solid #7c3aed',
-                    color: '#7c3aed',
+                    border: '1px solid #0B57D0',
+                    color: '#0B57D0',
                     padding: '8px 14px',
                     borderRadius: 8,
                     fontSize: 12,
@@ -401,7 +401,7 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
                 Required Training Modules
               </div>
             </div>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0' }}>
               Mandatory before first dispatch
             </span>
           </div>
@@ -413,8 +413,8 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
                 <div
                   key={train.id}
                   style={{
-                    background: isCompleted ? '#f0fdf4' : '#faf5ff',
-                    border: `1px solid ${isCompleted ? '#bbf7d0' : '#e9d5ff'}`,
+                    background: isCompleted ? '#f0fdf4' : '#E8F1FF',
+                    border: `1px solid ${isCompleted ? '#bbf7d0' : '#E8F1FF'}`,
                     borderRadius: 12,
                     padding: '14px 16px',
                     display: 'flex',
@@ -427,7 +427,7 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
                     <div style={{ fontSize: 13, fontWeight: 700, color: isCompleted ? '#166534' : '#581c87' }}>
                       {train.title}
                     </div>
-                    <div style={{ fontSize: 11, color: isCompleted ? '#15803d' : '#7e22ce', marginTop: 3 }}>
+                    <div style={{ fontSize: 11, color: isCompleted ? '#15803d' : '#0849B1', marginTop: 3 }}>
                       {isCompleted ? `Verified Passed • Score: ${train.score || '100%'}` : 'Pending Completion • 10 min SOP Video + Quiz'}
                     </div>
                   </div>
@@ -448,7 +448,7 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
                       onClick={() => handleCompleteTraining(train.id)}
                       disabled={completingTrainingId === train.id}
                       style={{
-                        background: '#7c3aed',
+                        background: '#0B57D0',
                         color: '#ffffff',
                         border: 'none',
                         padding: '8px 16px',
@@ -540,7 +540,7 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: '#7c3aed',
+                        color: '#0B57D0',
                         fontSize: 12,
                         fontWeight: 700,
                         cursor: 'pointer'
@@ -587,10 +587,10 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
                 width: 12,
                 height: 12,
                 borderRadius: '50%',
-                background: '#7c3aed',
+                background: '#0B57D0',
                 marginTop: 4,
                 zIndex: 2,
-                boxShadow: '0 0 0 3px #f3e8ff'
+                boxShadow: '0 0 0 3px #E8F1FF'
               }} />
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
@@ -621,9 +621,9 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
           <button
             onClick={() => onNavigate('/professional/support')}
             style={{
-              background: '#f5f3ff',
-              color: '#7c3aed',
-              border: '1px solid #ddd6fe',
+              background: '#E8F1FF',
+              color: '#0B57D0',
+              border: '1px solid #E4E7EC',
               padding: '10px 18px',
               borderRadius: 10,
               fontSize: 13,
@@ -733,15 +733,15 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
                   Select File / Take Photo
                 </label>
                 <div style={{
-                  border: '2px dashed #ddd6fe',
+                  border: '2px dashed #E4E7EC',
                   borderRadius: 12,
                   padding: '20px 14px',
                   textAlign: 'center',
-                  background: '#faf5ff',
+                  background: '#E8F1FF',
                   cursor: 'pointer'
                 }}>
                   <div style={{ fontSize: 28, marginBottom: 4 }}>📷</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0B57D0' }}>
                     Tap to upload photo or document
                   </div>
                   <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
@@ -795,7 +795,7 @@ export function OnboardingStatusView({ profile, onNavigate, onUpdateProfile, sho
                     padding: '10px 20px',
                     borderRadius: 10,
                     border: 'none',
-                    background: '#7c3aed',
+                    background: '#0B57D0',
                     color: '#ffffff',
                     fontSize: 13,
                     fontWeight: 700,

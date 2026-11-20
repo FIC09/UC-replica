@@ -440,7 +440,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
           style={{
             background: '#F8FAFC',
             border: '1px solid #E2E8F0',
-            color: '#7C3AED',
+            color: '#0B57D0',
             fontWeight: 700,
             cursor: refreshing ? 'not-allowed' : 'pointer',
             fontSize: 12.5,
@@ -453,7 +453,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
             whiteSpace: 'nowrap',
             transition: 'all 0.15s ease'
           }}
-          onMouseEnter={(e) => { if (!refreshing) e.currentTarget.style.background = '#FAF5FF'; }}
+          onMouseEnter={(e) => { if (!refreshing) e.currentTarget.style.background = '#E8F1FF'; }}
           onMouseLeave={(e) => { if (!refreshing) e.currentTarget.style.background = '#F8FAFC'; }}
         >
           <span style={{ display: 'inline-block', transform: refreshing ? 'rotate(180deg)' : 'none', transition: 'transform 0.5s ease' }}>
@@ -470,7 +470,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
         className="pro-hero-duty-card"
         style={{
         background: isOnline
-          ? 'linear-gradient(135deg, #3B0764 0%, #6B21A8 50%, #7C3AED 100%)'
+          ? 'linear-gradient(135deg, #3B0764 0%, #0B57D0 50%, #0B57D0 100%)'
           : 'linear-gradient(135deg, #1E293B 0%, #334155 100%)',
         borderRadius: 20,
         padding: '24px 30px',
@@ -635,7 +635,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               onClick={onToggleOnline}
               style={{
                 background: isOnline ? '#FFFFFF' : '#10B981',
-                color: isOnline ? '#6B21A8' : '#FFFFFF',
+                color: isOnline ? '#0B57D0' : '#FFFFFF',
                 border: 'none',
                 padding: '12px 22px',
                 borderRadius: 12,
@@ -771,7 +771,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               <span style={{ fontSize: 12, color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 NEXT SETTLEMENT
               </span>
-              <span style={{ fontSize: 18, background: '#FAF5FF', color: '#7C3AED', padding: '5px 8px', borderRadius: 8 }}>
+              <span style={{ fontSize: 18, background: '#E8F1FF', color: '#0B57D0', padding: '5px 8px', borderRadius: 8 }}>
                 📅
               </span>
             </div>
@@ -944,7 +944,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               background: '#FFFFFF',
               borderRadius: 16,
               border: nextJob.status === 'In Progress' ? '2px solid #059669' :
-                nextJob.status === 'Arrived' ? '2px solid #7C3AED' :
+                nextJob.status === 'Arrived' ? '2px solid #0B57D0' :
                 nextJob.status === 'En Route' ? '2px solid #D97706' : '2px solid #3B82F6',
               boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
               overflow: 'hidden',
@@ -953,7 +953,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               {/* Card Banner Header */}
               <div style={{
                 background: nextJob.status === 'In Progress' ? '#ECFDF5' :
-                  nextJob.status === 'Arrived' ? '#FAF5FF' :
+                  nextJob.status === 'Arrived' ? '#E8F1FF' :
                   nextJob.status === 'En Route' ? '#FEF3C7' : '#EFF6FF',
                 padding: '14px 22px',
                 display: 'flex',
@@ -967,7 +967,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                     height: 10,
                     borderRadius: '50%',
                     background: nextJob.status === 'In Progress' ? '#059669' :
-                      nextJob.status === 'Arrived' ? '#7C3AED' :
+                      nextJob.status === 'Arrived' ? '#0B57D0' :
                       nextJob.status === 'En Route' ? '#D97706' : '#2563EB',
                     boxShadow: nextJob.status === 'In Progress' ? '0 0 0 3px rgba(5, 150, 105, 0.25)' : 'none'
                   }} />
@@ -977,7 +977,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                     textTransform: 'uppercase',
                     letterSpacing: 0.6,
                     color: nextJob.status === 'In Progress' ? '#065F46' :
-                      nextJob.status === 'Arrived' ? '#5B21B6' :
+                      nextJob.status === 'Arrived' ? '#0849B1' :
                       nextJob.status === 'En Route' ? '#92400E' : '#1E40AF'
                   }}>
                     {nextJob.status === 'In Progress' ? '🟢 ONGOING SERVICE IN PROGRESS' :
@@ -1092,7 +1092,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                       onClick={() => handleLifecycleTransition(nextJob, 'Arrived')}
                       style={{
                         flex: 1.5,
-                        background: '#7C3AED',
+                        background: '#0B57D0',
                         color: '#FFFFFF',
                         border: 'none',
                         padding: '12px 20px',
@@ -1104,7 +1104,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                         alignItems: 'center',
                         justifyContent: 'center',
                         gap: 8,
-                        boxShadow: '0 4px 10px rgba(124, 58, 237, 0.25)'
+                        boxShadow: '0 4px 10px rgba(11, 87, 208, 0.25)'
                       }}
                     >
                       <span>📍</span>
@@ -1258,9 +1258,9 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     style={{
-                      background: activeTab === tab.id ? '#7C3AED' : '#F8FAFC',
+                      background: activeTab === tab.id ? '#0B57D0' : '#F8FAFC',
                       color: activeTab === tab.id ? '#FFFFFF' : '#475569',
-                      border: `1px solid ${activeTab === tab.id ? '#7C3AED' : '#E2E8F0'}`,
+                      border: `1px solid ${activeTab === tab.id ? '#0B57D0' : '#E2E8F0'}`,
                       padding: '6px 14px',
                       borderRadius: 20,
                       fontSize: 12,
@@ -1324,11 +1324,11 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                           <span style={{
                             background: job.status === 'Completed' ? '#DCFCE7' :
                               job.status === 'In Progress' ? '#DBEAFE' :
-                              job.status === 'Arrived' ? '#EDE9FE' :
+                              job.status === 'Arrived' ? '#E8F1FF' :
                               job.status === 'En Route' ? '#FEF3C7' : '#F1F5F9',
                             color: job.status === 'Completed' ? '#166534' :
                               job.status === 'In Progress' ? '#1E40AF' :
-                              job.status === 'Arrived' ? '#6B21A8' :
+                              job.status === 'Arrived' ? '#0B57D0' :
                               job.status === 'En Route' ? '#92400E' : '#475569',
                             padding: '2px 8px',
                             borderRadius: 10,
@@ -1475,7 +1475,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#E8F1FF'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
               >
                 <div style={{ fontSize: 20 }}>💳</div>
@@ -1494,7 +1494,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#E8F1FF'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
               >
                 <div style={{ fontSize: 20 }}>👕</div>
@@ -1513,7 +1513,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#E8F1FF'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
               >
                 <div style={{ fontSize: 20 }}>⏰</div>
@@ -1532,7 +1532,7 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
                   cursor: 'pointer',
                   transition: 'all 0.15s ease'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#E8F1FF'}
                 onMouseLeave={(e) => e.currentTarget.style.background = '#F8FAFC'}
               >
                 <div style={{ fontSize: 20 }}>📄</div>
@@ -1899,9 +1899,9 @@ export function OverviewView({ professional, profile, onNavigate, onToggleOnline
               <a
                 href="tel:18001028726"
                 style={{
-                  background: '#FAF5FF',
-                  border: '1px solid #DDD6FE',
-                  color: '#6B21A8',
+                  background: '#E8F1FF',
+                  border: '1px solid #E4E7EC',
+                  color: '#0B57D0',
                   padding: '12px',
                   borderRadius: 10,
                   fontSize: 13,

@@ -40,7 +40,7 @@ export function PartnerLogin({ onLoginSuccess, onNavigate, onExitToMarketplace }
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(135deg, #090d16 0%, #1e1b4b 100%)',
+      background: '#F4F7FC',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -52,12 +52,13 @@ export function PartnerLogin({ onLoginSuccess, onNavigate, onExitToMarketplace }
         borderRadius: 18,
         width: '100%',
         maxWidth: 480,
-        boxShadow: '0 25px 60px rgba(0, 0, 0, 0.4)',
+        boxShadow: '0 12px 36px rgba(0, 0, 0, 0.08)',
+        border: '1px solid #E4E7EC',
         overflow: 'hidden'
       }}>
         {/* Header Banner */}
         <div style={{
-          background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+          background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
           color: '#fff',
           padding: '28px 28px 24px',
           textAlign: 'center'
@@ -77,7 +78,7 @@ export function PartnerLogin({ onLoginSuccess, onNavigate, onExitToMarketplace }
           <h1 style={{ fontSize: 22, fontWeight: 800, margin: '0 0 4px 0', letterSpacing: 0.5 }}>
             Business Partner Portal
           </h1>
-          <p style={{ fontSize: 13.5, color: '#e9d5ff', margin: 0 }}>
+          <p style={{ fontSize: 13.5, color: '#E8F1FF', margin: 0 }}>
             Enterprise Management for Agencies & Fleet Partners
           </p>
         </div>
@@ -121,8 +122,8 @@ export function PartnerLogin({ onLoginSuccess, onNavigate, onExitToMarketplace }
                     padding: '5px 10px',
                     borderRadius: 6,
                     border: '1px solid #cbd5e1',
-                    background: emailOrPhone === preset.email ? '#ede9fe' : '#f8fafc',
-                    color: emailOrPhone === preset.email ? '#6d28d9' : '#334155',
+                    background: emailOrPhone === preset.email ? '#E8F1FF' : '#f8fafc',
+                    color: emailOrPhone === preset.email ? '#0849B1' : '#334155',
                     fontSize: 11.5,
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -171,7 +172,7 @@ export function PartnerLogin({ onLoginSuccess, onNavigate, onExitToMarketplace }
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: '#7c3aed',
+                    color: '#0B57D0',
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -210,7 +211,7 @@ export function PartnerLogin({ onLoginSuccess, onNavigate, onExitToMarketplace }
                 justifyContent: 'center',
                 gap: 8,
                 padding: '12px',
-                background: '#7c3aed',
+                background: '#0B57D0',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 8,
@@ -232,7 +233,7 @@ export function PartnerLogin({ onLoginSuccess, onNavigate, onExitToMarketplace }
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#7c3aed',
+                color: '#0B57D0',
                 fontWeight: 700,
                 cursor: 'pointer'
               }}

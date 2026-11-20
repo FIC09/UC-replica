@@ -130,7 +130,7 @@ export function ServicesView({ showToast }) {
               alignItems: 'center',
               gap: 6,
               padding: '8px 14px',
-              background: '#7c3aed',
+              background: '#0B57D0',
               color: '#fff',
               border: 'none',
               borderRadius: 8,
@@ -170,7 +170,7 @@ export function ServicesView({ showToast }) {
               : 'Dispatch is currently paused. New incoming customer orders will not be routed to your agency.'}
           </span>
         </div>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#7c3aed' }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: '#0B57D0' }}>
           Contract Terms: {effectiveAgencyTake}% Platform Fee | Direct Bank Settlements
         </span>
       </div>
@@ -203,7 +203,7 @@ export function ServicesView({ showToast }) {
             border: 'none',
             fontSize: 13,
             fontWeight: activeCategory === 'ALL' ? 700 : 500,
-            background: activeCategory === 'ALL' ? '#7c3aed' : '#ffffff',
+            background: activeCategory === 'ALL' ? '#0B57D0' : '#ffffff',
             color: activeCategory === 'ALL' ? '#ffffff' : '#64748b',
             boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
             cursor: 'pointer'
@@ -221,7 +221,7 @@ export function ServicesView({ showToast }) {
               border: 'none',
               fontSize: 13,
               fontWeight: activeCategory === cat.id ? 700 : 500,
-              background: activeCategory === cat.id ? '#7c3aed' : '#ffffff',
+              background: activeCategory === cat.id ? '#0B57D0' : '#ffffff',
               color: activeCategory === cat.id ? '#ffffff' : '#64748b',
               boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
               cursor: 'pointer'
@@ -473,7 +473,7 @@ export function ServicesView({ showToast }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ padding: '9px 18px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '9px 18px', background: '#0B57D0', color: '#fff', border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}
                 >
                   {submitting ? 'Submitting...' : 'Submit Request'}
                 </button>

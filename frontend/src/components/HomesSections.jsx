@@ -422,7 +422,7 @@ export function HomesSections({
                 >
                   <div className="homes-svc-img-wrap" style={{ position: 'relative' }}>
                     <img src={svc.image || '/images/hero_ac.jpg'} alt={svc.title} className="homes-svc-img" />
-                    <span style={{ position: 'absolute', top: 8, left: 8, background: '#7C3AED', color: '#FFF', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>
+                    <span style={{ position: 'absolute', top: 8, left: 8, background: '#0B57D0', color: '#FFF', fontSize: 10, fontWeight: 800, padding: '2px 6px', borderRadius: 4 }}>
                       {svc.badge || 'New in Catalogue'}
                     </span>
                   </div>

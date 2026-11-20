@@ -163,7 +163,7 @@ export function SettlementsView({ showToast, staff }) {
               alignItems: 'center',
               gap: 8,
               padding: '9px 16px',
-              background: '#7c3aed',
+              background: '#0B57D0',
               color: '#fff',
               border: 'none',
               borderRadius: 8,
@@ -477,7 +477,7 @@ export function SettlementsView({ showToast, staff }) {
             <div style={{ padding: '12px 20px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', textAlign: 'right' }}>
               <button
                 onClick={() => setStatementPreview(null)}
-                style={{ padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', background: '#0B57D0', color: '#fff', border: 'none', borderRadius: 6, fontWeight: 600, cursor: 'pointer' }}
               >
                 Close Preview
               </button>
@@ -569,7 +569,7 @@ export function SettlementsView({ showToast, staff }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  style={{ flex: 2, padding: '10px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}
+                  style={{ flex: 2, padding: '10px 16px', background: '#0B57D0', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}
                 >
                   {submitting ? 'Submitting...' : 'Submit to Treasury'}
                 </button>
@@ -694,7 +694,7 @@ export function SettlementsView({ showToast, staff }) {
                 />
               </div>
 
-              <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', color: '#6d28d9', padding: 12, borderRadius: 8, fontSize: 12.5, lineHeight: 1.4 }}>
+              <div style={{ background: '#E8F1FF', border: '1px solid #E4E7EC', color: '#0849B1', padding: 12, borderRadius: 8, fontSize: 12.5, lineHeight: 1.4 }}>
                 <strong>Note:</strong> Submissions trigger an automated penny-drop verification and cancelled cheque audit. The existing account remains active until new credentials pass compliance review.
               </div>
 
@@ -721,7 +721,7 @@ export function SettlementsView({ showToast, staff }) {
                   style={{
                     flex: 2,
                     padding: '10px 16px',
-                    background: '#7c3aed',
+                    background: '#0B57D0',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 8,

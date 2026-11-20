@@ -111,7 +111,7 @@ export function StaffView({ showToast, staff: currentUserStaff }) {
   const canManageStaff = currentUserStaff?.permissions?.managing_staff === true;
 
   const roleColors = {
-    'Business Owner': { bg: '#ede9fe', text: '#6d28d9' },
+    'Business Owner': { bg: '#E8F1FF', text: '#0849B1' },
     'Business Manager': { bg: '#e0f2fe', text: '#0284c7' },
     'Dispatcher': { bg: '#fef3c7', text: '#b45309' },
     'Finance Staff': { bg: '#dcfce7', text: '#16a34a' },
@@ -169,7 +169,7 @@ export function StaffView({ showToast, staff: currentUserStaff }) {
                 alignItems: 'center',
                 gap: 8,
                 padding: '9px 16px',
-                background: '#7c3aed',
+                background: '#0B57D0',
                 color: '#fff',
                 border: 'none',
                 borderRadius: 8,
@@ -501,7 +501,7 @@ export function StaffView({ showToast, staff: currentUserStaff }) {
                   style={{
                     flex: 2,
                     padding: '10px 16px',
-                    background: '#7c3aed',
+                    background: '#0B57D0',
                     color: '#fff',
                     border: 'none',
                     borderRadius: 8,

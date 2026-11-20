@@ -423,7 +423,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
                     </td>
                     <td style={{ padding: '14px 16px', color: '#64748b', verticalAlign: 'middle' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <Clock size={13} color="#7c3aed" />
+                        <Clock size={13} color="#0B57D0" />
                         <span>{formatSlotDisplay(b.slot, b.scheduledDate, b.createdAt) || '11:00 AM - 01:00 PM'}</span>
                       </div>
                     </td>
@@ -436,7 +436,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
                     <td style={{ padding: '14px 16px', verticalAlign: 'middle' }}>
                       {b.assignedProfessional ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <HardHat size={14} color="#7c3aed" />
+                          <HardHat size={14} color="#0B57D0" />
                           <span style={{ fontWeight: 600, color: '#0f172a' }}>{b.assignedProfessional.name}</span>
                         </div>
                       ) : (
@@ -460,11 +460,11 @@ export function BookingsView({ showToast, staff, onNavigate }) {
                         fontWeight: 600,
                         background: b.status === 'Completed' ? '#ecfdf5' :
                                     b.status === 'In Progress' ? '#dbeafe' :
-                                    b.status === 'Assigned' ? '#ede9fe' :
+                                    b.status === 'Assigned' ? '#E8F1FF' :
                                     b.status === 'Cancelled' ? '#fee2e2' : '#fef3c7',
                         color: b.status === 'Completed' ? '#16a34a' :
                                b.status === 'In Progress' ? '#1d4ed8' :
-                               b.status === 'Assigned' ? '#7c3aed' :
+                               b.status === 'Assigned' ? '#0B57D0' :
                                b.status === 'Cancelled' ? '#dc2626' : '#b45309'
                       }}>
                         {b.status}
@@ -480,7 +480,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
                         onClick={() => handleOpenDetail(b)}
                         style={{
                           padding: '6px 12px',
-                          background: '#7c3aed',
+                          background: '#0B57D0',
                           color: '#fff',
                           border: 'none',
                           borderRadius: 6,
@@ -648,7 +648,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
 
               {/* Service Address (Restricted to Authorized Operational Staff) */}
               <div style={{ background: '#f8fafc', padding: 16, borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#0B57D0', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   Doorstep Customer Details & Address
                 </span>
                 <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 15, marginTop: 4 }}>
@@ -658,7 +658,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
                   Phone: <strong>{isReadOnlyStaff ? '••••••••' + (selectedBooking.userPhone ? selectedBooking.userPhone.slice(-4) : '0000') : selectedBooking.userPhone}</strong>
                 </div>
                 <div style={{ fontSize: 13, color: '#475569', marginTop: 6, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-                  <MapPin size={16} color="#7c3aed" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <MapPin size={16} color="#0B57D0" style={{ flexShrink: 0, marginTop: 2 }} />
                   <span>
                     {isReadOnlyStaff 
                       ? `${selectedBooking.serviceZone || selectedBooking.city} (Exact doorstep address masked for read-only staff)` 
@@ -676,7 +676,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
               <div style={{ background: '#ffffff', padding: 16, borderRadius: 10, border: '1px solid #cbd5e1' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <span style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <HardHat size={16} color="#7c3aed" /> Dispatch & Technician Assignment
+                    <HardHat size={16} color="#0B57D0" /> Dispatch & Technician Assignment
                   </span>
                   {!canAssign && (
                     <span style={{ fontSize: 11, color: '#dc2626', background: '#fee2e2', padding: '2px 6px', borderRadius: 4 }}>
@@ -731,7 +731,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
                       disabled={actionLoading || !selectedProId}
                       style={{
                         padding: '10px 16px',
-                        background: '#7c3aed',
+                        background: '#0B57D0',
                         color: '#fff',
                         border: 'none',
                         borderRadius: 8,
@@ -755,7 +755,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
                   </span>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {selectedBooking.reassignmentHistory.map((rh, idx) => (
-                      <div key={idx} style={{ fontSize: 12, color: '#475569', borderLeft: '2px solid #7c3aed', paddingLeft: 8 }}>
+                      <div key={idx} style={{ fontSize: 12, color: '#475569', borderLeft: '2px solid #0B57D0', paddingLeft: 8 }}>
                         Reassigned from <strong>{rh.fromProName}</strong> to <strong>{rh.toProName}</strong> by {rh.reassignedBy}
                         <div style={{ fontSize: 11, color: '#64748b' }}>Reason: "{rh.reason}" • {new Date(rh.timestamp).toLocaleTimeString()}</div>
                       </div>
@@ -880,7 +880,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
               {/* Internal Business Notes */}
               <div style={{ background: '#f8fafc', padding: 16, borderRadius: 10, border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                  <MessageSquare size={15} color="#7c3aed" /> Internal Business Notes (Staff Only)
+                  <MessageSquare size={15} color="#0B57D0" /> Internal Business Notes (Staff Only)
                 </span>
 
                 <form onSubmit={handleAddNote} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
@@ -961,7 +961,7 @@ export function BookingsView({ showToast, staff, onNavigate }) {
                 <button
                   type="submit"
                   disabled={actionLoading}
-                  style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#7c3aed', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#0B57D0', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
                 >
                   Submit Request
                 </button>

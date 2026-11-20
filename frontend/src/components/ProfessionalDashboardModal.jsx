@@ -241,16 +241,16 @@ export function ProfessionalDashboardModal({
               width: 44,
               height: 44,
               borderRadius: 12,
-              background: '#EDE9FE',
-              color: '#6E42E5',
+              background: '#E8F1FF',
+              color: '#0B57D0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontWeight: 800,
               fontSize: 18,
-              border: '1px solid #DDD6FE'
+              border: '1px solid #E4E7EC'
             }}>
-              <HardHat size={22} color="#6E42E5" />
+              <HardHat size={22} color="#0B57D0" />
             </div>
 
             <div>
@@ -274,13 +274,13 @@ export function ProfessionalDashboardModal({
                   {proProfile.rating} ★
                 </span>
                 <span style={{
-                  background: '#EDE9FE',
-                  color: '#6E42E5',
+                  background: '#E8F1FF',
+                  color: '#0B57D0',
                   fontSize: 11,
                   fontWeight: 700,
                   padding: '2px 8px',
                   borderRadius: 999,
-                  border: '1px solid #DDD6FE'
+                  border: '1px solid #E4E7EC'
                 }}>
                   {proProfile.level}
                 </span>
@@ -326,7 +326,7 @@ export function ProfessionalDashboardModal({
                   onOpenFullPortal();
                 }}
                 style={{
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   padding: '7px 14px',
@@ -337,7 +337,7 @@ export function ProfessionalDashboardModal({
                   alignItems: 'center',
                   gap: 6,
                   cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(110,66,229,0.3)'
+                  boxShadow: '0 1px 3px rgba(11, 87, 208,0.3)'
                 }}
                 title="Open as full dedicated page"
               >
@@ -389,7 +389,7 @@ export function ProfessionalDashboardModal({
                 onClick={() => setActiveTab(t.id)}
                 style={{
                   background: active ? '#FFFFFF' : 'transparent',
-                  color: active ? '#6E42E5' : '#64748B',
+                  color: active ? '#0B57D0' : '#64748B',
                   border: active ? '1px solid #E2E8F0' : '1px solid transparent',
                   padding: '8px 16px',
                   borderRadius: 8,
@@ -403,13 +403,13 @@ export function ProfessionalDashboardModal({
                   transition: 'all 0.15s ease'
                 }}
               >
-                <Icon size={14} color={active ? '#6E42E5' : '#94A3B8'} />
+                <Icon size={14} color={active ? '#0B57D0' : '#94A3B8'} />
                 <span>{t.label}</span>
                 {t.count !== undefined && (
                   <span style={{
                     fontSize: 11,
-                    background: active ? '#EDE9FE' : '#E2E8F0',
-                    color: active ? '#6E42E5' : '#475569',
+                    background: active ? '#E8F1FF' : '#E2E8F0',
+                    color: active ? '#0B57D0' : '#475569',
                     padding: '2px 7px',
                     borderRadius: 999,
                     fontWeight: 800
@@ -461,7 +461,7 @@ export function ProfessionalDashboardModal({
                         <div style={{ fontSize: 13, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6 }}>
                           <span>Customer: <strong style={{ color: '#0F172A' }}>{activeJob.customer}</strong></span>
                           <span>•</span>
-                          <span style={{ color: '#6E42E5', fontWeight: 600 }}>{activeJob.distance}</span>
+                          <span style={{ color: '#0B57D0', fontWeight: 600 }}>{activeJob.distance}</span>
                         </div>
                       </div>
 
@@ -486,13 +486,13 @@ export function ProfessionalDashboardModal({
                       gap: 10
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <MapPin size={17} color="#6E42E5" style={{ flexShrink: 0 }} />
+                        <MapPin size={17} color="#0B57D0" style={{ flexShrink: 0 }} />
                         <span style={{ fontSize: 12.5, color: '#334155', fontWeight: 500 }}>{activeJob.address}</span>
                       </div>
                       <a
                         href={`tel:${activeJob.phone}`}
                         style={{
-                          background: '#6E42E5',
+                          background: '#0B57D0',
                           color: '#fff',
                           textDecoration: 'none',
                           padding: '6px 12px',
@@ -568,13 +568,13 @@ export function ProfessionalDashboardModal({
                     {/* Customer Start OTP verification */}
                     {!isOtpVerified && (
                       <div style={{
-                        background: '#EDE9FE',
-                        border: '1px solid #DDD6FE',
+                        background: '#E8F1FF',
+                        border: '1px solid #E4E7EC',
                         borderRadius: 12,
                         padding: 16,
                         marginBottom: 16
                       }}>
-                        <div style={{ fontSize: 13, fontWeight: 800, color: '#6E42E5', marginBottom: 6 }}>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: '#0B57D0', marginBottom: 6 }}>
                           🔐 Enter Customer 4-Digit Start OTP:
                         </div>
                         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -602,7 +602,7 @@ export function ProfessionalDashboardModal({
                             type="button"
                             onClick={handleVerifyOtp}
                             style={{
-                              background: '#6E42E5',
+                              background: '#0B57D0',
                               color: '#FFFFFF',
                               border: 'none',
                               borderRadius: 8,
@@ -714,7 +714,7 @@ export function ProfessionalDashboardModal({
                         ]
                       })}
                       style={{
-                        background: '#6E42E5',
+                        background: '#0B57D0',
                         color: '#fff',
                         border: 'none',
                         borderRadius: 8,
@@ -739,24 +739,24 @@ export function ProfessionalDashboardModal({
                 {hasNewLead ? (
                   <div style={{
                     background: '#FFFFFF',
-                    border: '1.5px solid #DDD6FE',
+                    border: '1.5px solid #E4E7EC',
                     borderRadius: 14,
                     padding: 18,
                     position: 'relative',
-                    boxShadow: '0 4px 12px rgba(110, 66, 229, 0.08)'
+                    boxShadow: '0 4px 12px rgba(11, 87, 208, 0.08)'
                   }}>
                     <span style={{
                       position: 'absolute',
                       top: 14,
                       right: 14,
-                      background: '#EDE9FE',
-                      color: '#6E42E5',
+                      background: '#E8F1FF',
+                      color: '#0B57D0',
                       fontSize: 10,
                       fontWeight: 800,
                       padding: '3px 8px',
                       borderRadius: 999,
                       textTransform: 'uppercase',
-                      border: '1px solid #DDD6FE'
+                      border: '1px solid #E4E7EC'
                     }}>
                       ⚡ Hot Lead (15 Mins)
                     </span>
@@ -785,7 +785,7 @@ export function ProfessionalDashboardModal({
                         onClick={handleAcceptNewLead}
                         style={{
                           flex: 1,
-                          background: '#6E42E5',
+                          background: '#0B57D0',
                           border: 'none',
                           color: '#fff',
                           borderRadius: 8,
@@ -854,11 +854,11 @@ export function ProfessionalDashboardModal({
           {activeTab === 'wallet' && (
             <div style={{ maxWidth: 680, margin: '0 auto' }}>
               <div style={{
-                background: 'linear-gradient(135deg, #6E42E5 0%, #4F46E5 100%)',
+                background: 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)',
                 borderRadius: 16,
                 padding: 28,
                 marginBottom: 24,
-                boxShadow: '0 10px 25px -5px rgba(110, 66, 229, 0.3)',
+                boxShadow: '0 10px 25px -5px rgba(11, 87, 208, 0.3)',
                 color: '#FFFFFF'
               }}>
                 <div style={{ fontSize: 13, color: '#E0E7FF', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>

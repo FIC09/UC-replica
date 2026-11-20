@@ -116,7 +116,7 @@ export function PartnerLayout({
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
@@ -124,7 +124,7 @@ export function PartnerLayout({
                 fontWeight: 800,
                 fontSize: 13,
                 letterSpacing: 0.5,
-                boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)',
+                boxShadow: '0 2px 6px rgba(11, 87, 208, 0.25)',
                 flexShrink: 0
               }}>
                 FIC
@@ -133,7 +133,7 @@ export function PartnerLayout({
                 <span style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', letterSpacing: 0.5, textTransform: 'uppercase', display: 'block', lineHeight: 1.2 }}>
                   Forge Partner
                 </span>
-                <span style={{ fontSize: 11, color: '#7c3aed', fontWeight: 600, letterSpacing: 0.2 }}>
+                <span style={{ fontSize: 11, color: '#0B57D0', fontWeight: 600, letterSpacing: 0.2 }}>
                   Enterprise Portal
                 </span>
               </div>
@@ -143,7 +143,7 @@ export function PartnerLayout({
               width: 36,
               height: 36,
               borderRadius: 10,
-              background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+              background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
               color: '#fff',
               display: 'flex',
               alignItems: 'center',
@@ -151,7 +151,7 @@ export function PartnerLayout({
               fontWeight: 800,
               fontSize: 13,
               margin: '0 auto',
-              boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)'
+              boxShadow: '0 2px 6px rgba(11, 87, 208, 0.25)'
             }}>
               FIC
             </div>
@@ -176,7 +176,7 @@ export function PartnerLayout({
               transition: 'all 0.15s ease',
               flexShrink: 0
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = '#ede9fe'; e.currentTarget.style.color = '#7c3aed'; }}
+            onMouseEnter={e => { e.currentTarget.style.background = '#E8F1FF'; e.currentTarget.style.color = '#0B57D0'; }}
             onMouseLeave={e => { e.currentTarget.style.background = '#f8fafc'; e.currentTarget.style.color = '#64748b'; }}
           >
             {sidebarCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
@@ -214,8 +214,8 @@ export function PartnerLayout({
                         padding: sidebarCollapsed ? '10px' : '9px 12px',
                         borderRadius: 8,
                         border: 'none',
-                        background: isActive ? '#f5f3ff' : 'transparent',
-                        color: isActive ? '#7c3aed' : '#475569',
+                        background: isActive ? '#E8F1FF' : 'transparent',
+                        color: isActive ? '#0B57D0' : '#475569',
                         fontWeight: isActive ? 700 : 500,
                         fontSize: 13,
                         cursor: 'pointer',
@@ -244,11 +244,11 @@ export function PartnerLayout({
                           bottom: 6,
                           width: 3.5,
                           borderRadius: '0 4px 4px 0',
-                          background: '#7c3aed'
+                          background: '#0B57D0'
                         }} />
                       )}
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <Icon size={18} color={isActive ? '#7c3aed' : '#64748b'} />
+                        <Icon size={18} color={isActive ? '#0B57D0' : '#64748b'} />
                         {!sidebarCollapsed && <span>{item.label}</span>}
                       </div>
 
@@ -256,7 +256,7 @@ export function PartnerLayout({
                         <span style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          background: '#7c3aed',
+                          background: '#0B57D0',
                           color: '#fff',
                           padding: '2px 7px',
                           borderRadius: 10
@@ -397,7 +397,7 @@ export function PartnerLayout({
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 13, color: '#64748b', fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Building2 size={15} color="#7c3aed" /> Partner Portal
+                  <Building2 size={15} color="#0B57D0" /> Partner Portal
                 </span>
                 <span style={{ fontSize: 13, color: '#cbd5e1' }}>/</span>
                 <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>

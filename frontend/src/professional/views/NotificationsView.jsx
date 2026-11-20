@@ -136,7 +136,7 @@ function ToggleSwitch({ checked, onChange, id }) {
         width: 44,
         height: 24,
         borderRadius: 9999,
-        backgroundColor: checked ? '#7C3AED' : '#CBD5E1',
+        backgroundColor: checked ? '#0B57D0' : '#CBD5E1',
         border: 'none',
         cursor: 'pointer',
         position: 'relative',
@@ -401,10 +401,10 @@ export function NotificationsView({ onNavigate, showToast }) {
       case 'earnings_updates':
       case 'payout_status':
         return {
-          accent: '#8B5CF6',
-          bg: '#F5F3FF',
-          border: '#DDD6FE',
-          badgeText: '#5B21B6',
+          accent: '#0B57D0',
+          bg: '#E8F1FF',
+          border: '#E4E7EC',
+          badgeText: '#0849B1',
           icon: Wallet,
           label: category === 'payout_status' ? 'BANK PAYOUT' : 'EARNINGS CREDIT'
         };
@@ -420,10 +420,10 @@ export function NotificationsView({ onNavigate, showToast }) {
       case 'document_review':
       case 'expiry_reminders':
         return {
-          accent: '#6366F1',
-          bg: '#EEF2FF',
+          accent: '#0B57D0',
+          bg: '#E8F1FF',
           border: '#C7D2FE',
-          badgeText: '#3730A3',
+          badgeText: '#0849B1',
           icon: FileCheck,
           label: 'COMPLIANCE'
         };
@@ -525,9 +525,9 @@ export function NotificationsView({ onNavigate, showToast }) {
               display: 'inline-flex',
               alignItems: 'center',
               gap: 7,
-              backgroundColor: chimePlaying ? '#EDE9FE' : '#FFFFFF',
-              color: '#7C3AED',
-              border: '1px solid #DDD6FE',
+              backgroundColor: chimePlaying ? '#E8F1FF' : '#FFFFFF',
+              color: '#0B57D0',
+              border: '1px solid #E4E7EC',
               padding: '8px 14px',
               borderRadius: 8,
               fontSize: 12.5,
@@ -623,8 +623,8 @@ export function NotificationsView({ onNavigate, showToast }) {
         <div
           onClick={() => setUnreadOnly(!unreadOnly)}
           style={{
-            background: unreadOnly ? '#FAF5FF' : '#FFFFFF',
-            border: unreadOnly ? '1.5px solid #7C3AED' : '1px solid #E2E8F0',
+            background: unreadOnly ? '#E8F1FF' : '#FFFFFF',
+            border: unreadOnly ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
             borderRadius: 12,
             padding: '14px 16px',
             display: 'flex',
@@ -699,8 +699,8 @@ export function NotificationsView({ onNavigate, showToast }) {
         <div
           onClick={() => setActiveCategory(activeCategory === 'payouts_group' || activeCategory === 'earnings_updates' ? 'all' : 'payouts_group')}
           style={{
-            background: (activeCategory === 'payouts_group' || activeCategory === 'earnings_updates') ? '#F5F3FF' : '#FFFFFF',
-            border: (activeCategory === 'payouts_group' || activeCategory === 'earnings_updates') ? '1.5px solid #8B5CF6' : '1px solid #E2E8F0',
+            background: (activeCategory === 'payouts_group' || activeCategory === 'earnings_updates') ? '#E8F1FF' : '#FFFFFF',
+            border: (activeCategory === 'payouts_group' || activeCategory === 'earnings_updates') ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
             borderRadius: 12,
             padding: '14px 16px',
             display: 'flex',
@@ -723,8 +723,8 @@ export function NotificationsView({ onNavigate, showToast }) {
             width: 38,
             height: 38,
             borderRadius: 10,
-            backgroundColor: '#F5F3FF',
-            color: '#7C3AED',
+            backgroundColor: '#E8F1FF',
+            color: '#0B57D0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -790,8 +790,8 @@ export function NotificationsView({ onNavigate, showToast }) {
             width: 34,
             height: 34,
             borderRadius: 8,
-            backgroundColor: '#EDE9FE',
-            color: '#7C3AED',
+            backgroundColor: '#E8F1FF',
+            color: '#0B57D0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -894,9 +894,9 @@ export function NotificationsView({ onNavigate, showToast }) {
               gap: 6,
               padding: '8px 14px',
               borderRadius: 8,
-              backgroundColor: '#FAF5FF',
-              color: '#7C3AED',
-              border: '1px solid #DDD6FE',
+              backgroundColor: '#E8F1FF',
+              color: '#0B57D0',
+              border: '1px solid #E4E7EC',
               fontSize: 12.5,
               fontWeight: 700,
               cursor: 'pointer'
@@ -963,7 +963,7 @@ export function NotificationsView({ onNavigate, showToast }) {
           borderRadius: 16,
           border: '1px solid #E2E8F0'
         }}>
-          <RefreshCw size={26} color="#7C3AED" style={{ animation: 'spin 1s linear infinite', marginBottom: 12 }} />
+          <RefreshCw size={26} color="#0B57D0" style={{ animation: 'spin 1s linear infinite', marginBottom: 12 }} />
           <div style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>Synchronizing dispatch notifications...</div>
           <div style={{ fontSize: 12.5, color: '#64748B', marginTop: 4 }}>Checking live broadcast queue</div>
         </div>
@@ -1009,7 +1009,7 @@ export function NotificationsView({ onNavigate, showToast }) {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
-                backgroundColor: '#7C3AED',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF',
                 border: 'none',
                 padding: '9px 18px',
@@ -1255,8 +1255,8 @@ export function NotificationsView({ onNavigate, showToast }) {
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  backgroundColor: '#EDE9FE',
-                  color: '#7C3AED',
+                  backgroundColor: '#E8F1FF',
+                  color: '#0B57D0',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
@@ -1417,8 +1417,8 @@ export function NotificationsView({ onNavigate, showToast }) {
 
               {/* Chime preview in modal */}
               <div style={{
-                backgroundColor: '#FAF5FF',
-                border: '1px solid #DDD6FE',
+                backgroundColor: '#E8F1FF',
+                border: '1px solid #E4E7EC',
                 borderRadius: 10,
                 padding: '10px 14px',
                 display: 'flex',
@@ -1426,14 +1426,14 @@ export function NotificationsView({ onNavigate, showToast }) {
                 justifyContent: 'space-between',
                 marginBottom: 20
               }}>
-                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#6B21A8' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#0B57D0' }}>
                   Audible Speaker Chime Verification
                 </div>
                 <button
                   type="button"
                   onClick={handleTestChime}
                   style={{
-                    backgroundColor: '#7C3AED',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     border: 'none',
                     padding: '5px 12px',

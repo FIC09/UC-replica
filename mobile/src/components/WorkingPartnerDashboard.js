@@ -1490,7 +1490,7 @@ export default function WorkingPartnerDashboard({
                     switch (currentStage) {
                       case 6: return { bg: '#DCFCE7', text: '#15803D', label: '✓ COMPLETED' };
                       case 5: return { bg: '#E0F2FE', text: '#0369A1', label: '⚡ IN PROGRESS' };
-                      case 4: return { bg: '#F3E8FF', text: '#7E22CE', label: '📍 AT DOORSTEP' };
+                      case 4: return { bg: '#E8F1FF', text: '#0849B1', label: '📍 AT DOORSTEP' };
                       case 3: return { bg: '#FEF3C7', text: '#B45309', label: '🛵 EN ROUTE' };
                       default: return { bg: '#F1F5F9', text: '#334155', label: '● ASSIGNED' };
                     }
@@ -1618,10 +1618,10 @@ export default function WorkingPartnerDashboard({
                         {currentStage === 3 && (
                           <View>
                             <View style={styles.trackerMilestoneHeader}>
-                              <View style={[styles.milestoneBadge, { backgroundColor: '#EDE9FE' }]}>
-                                <Text style={[styles.milestoneBadgeText, { color: '#6D28D9' }]}>STAGE 2 OF 4</Text>
+                              <View style={[styles.milestoneBadge, { backgroundColor: '#E8F1FF' }]}>
+                                <Text style={[styles.milestoneBadgeText, { color: '#0849B1' }]}>STAGE 2 OF 4</Text>
                               </View>
-                              <Text style={[styles.trackerMilestoneEta, { color: '#7C3AED' }]}>🛵 En Route (~8 mins away)</Text>
+                              <Text style={[styles.trackerMilestoneEta, { color: '#0B57D0' }]}>🛵 En Route (~8 mins away)</Text>
                             </View>
                             <Text style={styles.trackerMilestoneTitle}>Traveling to Customer Doorstep</Text>
                             <Text style={styles.trackerMilestoneSub} numberOfLines={2}>
@@ -1629,7 +1629,7 @@ export default function WorkingPartnerDashboard({
                             </Text>
 
                             <TouchableOpacity
-                              style={[styles.trackerPrimaryActionBtn, { backgroundColor: '#7C3AED' }]}
+                              style={[styles.trackerPrimaryActionBtn, { backgroundColor: '#0B57D0' }]}
                               onPress={handleMarkArrived}
                               activeOpacity={0.85}
                             >
@@ -2204,7 +2204,7 @@ export default function WorkingPartnerDashboard({
                 onPress={() => setShowLocationModal(true)}
                 activeOpacity={0.7}
               >
-                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#EDE9FE' }]}>
+                <View style={[styles.partnerMenuIconBox, { backgroundColor: '#E8F1FF' }]}>
                   <Text style={{ fontSize: 18 }}>📍</Text>
                 </View>
                 <View style={{ flex: 1 }}>
@@ -3680,7 +3680,7 @@ export default function WorkingPartnerDashboard({
                           {/* Row 3: Last reply snippet */}
                           {lastMessage && (
                             <View style={{
-                              backgroundColor: isAdminLast ? '#EEF2FF' : '#F8FAFC',
+                              backgroundColor: isAdminLast ? '#E8F1FF' : '#F8FAFC',
                               padding: 8,
                               borderRadius: 8,
                               borderWidth: 1,
@@ -3690,7 +3690,7 @@ export default function WorkingPartnerDashboard({
                               <Text style={{
                                 fontSize: 11,
                                 fontWeight: '800',
-                                color: isAdminLast ? '#4338CA' : '#475569',
+                                color: isAdminLast ? '#0849B1' : '#475569',
                                 marginBottom: 2
                               }}>
                                 {isAdminLast ? '🛡️ Admin Operations Reply:' : 'You:'}
@@ -3953,7 +3953,7 @@ export default function WorkingPartnerDashboard({
                           <Text style={{
                             fontSize: 11,
                             fontWeight: '800',
-                            color: isFromWorker ? '#93C5FD' : '#4338CA'
+                            color: isFromWorker ? '#93C5FD' : '#0849B1'
                           }}>
                             {isFromWorker ? 'You (Partner)' : `🛡️ ${msg.sender || 'Admin Helpdesk'}`}
                           </Text>
@@ -6878,7 +6878,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: '#EDE9FE',
+    backgroundColor: '#E8F1FF',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,

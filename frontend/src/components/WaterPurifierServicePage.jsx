@@ -466,7 +466,7 @@ export function WaterPurifierServicePage({
               <span className="cart-btn-text">Cart</span>
               {totalCartCount > 0 && (
                 <span style={{
-                  backgroundColor: '#7C3AED',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   borderRadius: 10,
                   padding: '2px 7px',
@@ -556,7 +556,7 @@ export function WaterPurifierServicePage({
                     width: 18,
                     height: 18,
                     borderRadius: '50%',
-                    backgroundColor: '#7C3AED',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
@@ -942,7 +942,7 @@ export function WaterPurifierServicePage({
                               background: 'none',
                               fontSize: 12,
                               fontWeight: 600,
-                              color: '#7C3AED',
+                              color: '#0B57D0',
                               cursor: 'pointer',
                               padding: '4px 0',
                               marginBottom: 10,
@@ -957,8 +957,8 @@ export function WaterPurifierServicePage({
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              backgroundColor: '#F3E8FF',
-                              border: '1px solid #7C3AED',
+                              backgroundColor: '#E8F1FF',
+                              border: '1px solid #0B57D0',
                               borderRadius: 8,
                               height: 36,
                               padding: '0 8px'
@@ -969,7 +969,7 @@ export function WaterPurifierServicePage({
                                 style={{
                                   border: 'none',
                                   background: 'none',
-                                  color: '#7C3AED',
+                                  color: '#0B57D0',
                                   display: 'flex',
                                   alignItems: 'center',
                                   cursor: 'pointer',
@@ -978,7 +978,7 @@ export function WaterPurifierServicePage({
                               >
                                 <Minus size={15} strokeWidth={2.5} />
                               </button>
-                              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#7C3AED' }}>
+                              <span style={{ fontSize: 13.5, fontWeight: 700, color: '#0B57D0' }}>
                                 {qty}
                               </span>
                               <button
@@ -987,7 +987,7 @@ export function WaterPurifierServicePage({
                                 style={{
                                   border: 'none',
                                   background: 'none',
-                                  color: '#7C3AED',
+                                  color: '#0B57D0',
                                   display: 'flex',
                                   alignItems: 'center',
                                   cursor: 'pointer',
@@ -1007,7 +1007,7 @@ export function WaterPurifierServicePage({
                                 borderRadius: 8,
                                 border: '1px solid #E5E7EB',
                                 backgroundColor: '#FFFFFF',
-                                color: '#7C3AED',
+                                color: '#0B57D0',
                                 fontSize: 13.5,
                                 fontWeight: 700,
                                 cursor: 'pointer',
@@ -1015,8 +1015,8 @@ export function WaterPurifierServicePage({
                                 boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
                               }}
                               onMouseEnter={e => {
-                                e.currentTarget.style.borderColor = '#7C3AED';
-                                e.currentTarget.style.backgroundColor = '#FAF5FF';
+                                e.currentTarget.style.borderColor = '#0B57D0';
+                                e.currentTarget.style.backgroundColor = '#E8F1FF';
                               }}
                               onMouseLeave={e => {
                                 e.currentTarget.style.borderColor = '#E5E7EB';
@@ -2457,7 +2457,7 @@ export function WaterPurifierServicePage({
                       style={{
                         border: 'none',
                         background: 'none',
-                        color: '#7C3AED',
+                        color: '#0B57D0',
                         fontSize: 12,
                         fontWeight: 600,
                         cursor: 'pointer'
@@ -2538,7 +2538,7 @@ export function WaterPurifierServicePage({
                       width: '100%',
                       padding: '12px',
                       borderRadius: 10,
-                      backgroundColor: '#7C3AED',
+                      backgroundColor: '#0B57D0',
                       color: '#FFFFFF',
                       fontSize: 14,
                       fontWeight: 700,
@@ -2546,8 +2546,8 @@ export function WaterPurifierServicePage({
                       cursor: 'pointer',
                       transition: 'background-color 0.15s'
                     }}
-                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#6D28D9'}
-                    onMouseLeave={e => e.currentTarget.style.backgroundColor = '#7C3AED'}
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = '#0849B1'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0B57D0'}
                   >
                     Proceed to Pay • ₹{cartSubtotal.toLocaleString()}
                   </button>
@@ -2929,7 +2929,7 @@ export function WaterPurifierServicePage({
                 style={{
                   padding: '10px 24px',
                   borderRadius: 10,
-                  backgroundColor: '#7C3AED',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   fontSize: 14,
                   fontWeight: 700,

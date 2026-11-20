@@ -3,6 +3,9 @@ import {
   Navbar
 } from './components/Navbar';
 import {
+  LandingSearchBar
+} from './components/LandingSearchBar';
+import {
   HeroSection
 } from './components/HeroSection';
 import {
@@ -415,6 +418,102 @@ function App() {
   }, [user]);
 
   const [quickRepairsTrade, setQuickRepairsTrade] = useState('electrician');
+  const [isLandingSearchOpen, setIsLandingSearchOpen] = useState(false);
+
+  const handleToggleLandingSearch = () => {
+    if (currentView !== 'home') {
+      navigateToView('home');
+    }
+    setIsLandingSearchOpen(prev => !prev);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleSelectSearchedService = (s) => {
+    if (s?.title?.toLowerCase().includes('lock') || s?.subcategory?.toLowerCase().includes('lock') || s?.id?.includes('lock')) {
+      navigateToView('native-smart-locks-page');
+    } else if (s?.title?.toLowerCase().includes('purifier') || s?.subcategory?.toLowerCase().includes('purifier') || s?.id?.includes('purifier')) {
+      if (s?.title?.toLowerCase().includes('repair') || s?.title?.toLowerCase().includes('service') || s?.id?.includes('repair') || s?.id?.includes('service')) {
+        navigateToView('water-purifier-service-page');
+      } else {
+        navigateToView('native-purifier-page');
+      }
+    } else if (s?.title?.toLowerCase().includes('refrigerator') || s?.subcategory?.toLowerCase().includes('refrigerator') || s?.id?.includes('refrigerator') || s?.title?.toLowerCase().includes('fridge')) {
+      navigateToView('refrigerator-service-page');
+    } else if (s?.title?.toLowerCase().includes('washing') || s?.subcategory?.toLowerCase().includes('washing') || s?.id?.includes('washing') || s?.title?.toLowerCase().includes('washer')) {
+      navigateToView('washing-machine-service-page');
+    } else if (s?.title?.toLowerCase().includes('microwave') || s?.subcategory?.toLowerCase().includes('microwave') || s?.id?.includes('microwave')) {
+      navigateToView('microwave-service-page');
+    } else if (s?.title?.toLowerCase().includes('television') || s?.subcategory?.toLowerCase().includes('television') || s?.id?.includes('television') || s?.title?.toLowerCase().includes('tv') || s?.id?.includes('tv')) {
+      navigateToView('television-service-page');
+    } else if (
+      s?.category === 'quick-repairs' ||
+      s?.subcategory === 'Electrician' ||
+      s?.subcategory === 'Plumber' ||
+      s?.subcategory === 'Carpenter' ||
+      s?.title?.toLowerCase().includes('electrician') ||
+      s?.title?.toLowerCase().includes('plumber') ||
+      s?.title?.toLowerCase().includes('carpenter') ||
+      s?.title?.toLowerCase().includes('fan') ||
+      s?.title?.toLowerCase().includes('switch') ||
+      s?.title?.toLowerCase().includes('tap') ||
+      s?.title?.toLowerCase().includes('drain')
+    ) {
+      let trade = 'electrician';
+      const cat = (s?.subcategory || s?.title || '').toLowerCase();
+      if (cat.includes('plumb') || cat.includes('tap') || cat.includes('drain') || cat.includes('leak') || cat.includes('flush')) {
+        trade = 'plumber';
+      } else if (cat.includes('carpent') || cat.includes('drill') || cat.includes('door') || cat.includes('cupboard') || cat.includes('furniture')) {
+        trade = 'carpenter';
+      }
+      if (trade === 'plumber') {
+        navigateToView('plumber-service-page');
+      } else if (trade === 'carpenter') {
+        navigateToView('carpenter-service-page');
+      } else {
+        navigateToView('electrician-service-page');
+      }
+    } else if (
+      s?.title?.toLowerCase().includes('cockroach') ||
+      s?.subcategory?.toLowerCase().includes('pest') ||
+      s?.title?.toLowerCase().includes('pest') ||
+      s?.id?.includes('cockroach') ||
+      s?.id?.includes('pest')
+    ) {
+      navigateToView('cockroach-control-page');
+    } else if (
+      s?.title?.toLowerCase().includes('full home') ||
+      s?.title?.toLowerCase().includes('furnished') ||
+      s?.title?.toLowerCase().includes('unfurnished') ||
+      s?.title?.toLowerCase().includes('sofa') ||
+      s?.title?.toLowerCase().includes('carpet') ||
+      s?.subcategory?.toLowerCase().includes('full home') ||
+      s?.id?.includes('full-home')
+    ) {
+      navigateToView('full-home-cleaning-page');
+    } else if (
+      s?.title?.toLowerCase().includes('kitchen') ||
+      s?.subcategory?.toLowerCase().includes('kitchen') ||
+      s?.id?.includes('kitchen')
+    ) {
+      navigateToView('kitchen-cleaning-page');
+    } else if (
+      s?.title?.toLowerCase().includes('bathroom') ||
+      s?.subcategory?.toLowerCase().includes('bathroom') ||
+      s?.id?.includes('bathroom')
+    ) {
+      navigateToView('bathroom-cleaning-page');
+    } else if (
+      s?.title?.toLowerCase().includes('ac') ||
+      s?.subcategory?.toLowerCase().includes('ac') ||
+      s?.category === 'ac-appliances' ||
+      s?.id?.includes('ac') ||
+      s?.id?.includes('srv-')
+    ) {
+      navigateToView('ac-service-page');
+    } else {
+      setSelectedDetailService(s);
+    }
+  };
 
   // Top Header Navigation Tabs: 'homes' | 'native' | 'beauty'
   const [activeNavTab, setActiveNavTab] = useState('homes');
@@ -588,10 +687,17 @@ function App() {
 
         try {
           if (user) {
-            const aRes = await addressesApi.getAll();
-            if (isMounted && aRes?.addresses?.length > 0) {
-              setSavedAddresses(aRes.addresses);
+            const aRes = await addressesApi.getAll({
+              phone: user.phone || '',
+              userId: user._id || user.id || '',
+              email: user.email || ''
+            });
+            if (isMounted && aRes?.addresses) {
+              const userAddresses = aRes.addresses.filter(addr => isAddressOwnedByUser(addr, user));
+              setSavedAddresses(userAddresses);
             }
+          } else {
+            if (isMounted) setSavedAddresses([]);
           }
         } catch {}
 
@@ -768,6 +874,30 @@ function App() {
   // ==========================================
   // 2. SAVED ADDRESSES CRUD STATE (User-Scoped)
   // ==========================================
+  const isAddressOwnedByUser = (addr, currentUser) => {
+    if (!addr || !currentUser) return false;
+    // Disallow mock seed IDs and addresses
+    if (addr.id === 'ADDR-KG-1' || addr.id === 'ADDR-1' || addr.id === '1' || addr.id === '2' || addr.id === '3') return false;
+    if (addr.flat && (addr.flat.includes('Door 14/2') || addr.flat.includes('Flat 402'))) return false;
+
+    const currentId = (currentUser._id || currentUser.id || '').toString().trim();
+    const addrId = (addr.userId || '').toString().trim();
+
+    const currentPhone = (currentUser.phone || '').toString().replace(/\D/g, '').slice(-10);
+    const addrPhone = (addr.userPhone || addr.phone || '').toString().replace(/\D/g, '').slice(-10);
+
+    const currentEmail = (currentUser.email || '').toString().trim().toLowerCase();
+    const addrEmail = (addr.userEmail || addr.email || '').toString().trim().toLowerCase();
+
+    // Must match user ID, phone, or email
+    if (addrId && currentId && addrId === currentId) return true;
+    if (addrPhone && currentPhone && addrPhone === currentPhone) return true;
+    if (addrEmail && currentEmail && addrEmail === currentEmail) return true;
+
+    // Disallow unassociated or shared addresses
+    return false;
+  };
+
   const getUserAddressKey = (currentUser) => {
     if (!currentUser) return null;
     return `uc_addresses_${currentUser._id || currentUser.id || currentUser.phone || currentUser.email}`;
@@ -780,17 +910,11 @@ function App() {
       if (!currentUser) return [];
 
       const key = `uc_addresses_${currentUser._id || currentUser.id || currentUser.phone || currentUser.email}`;
-      const saved = localStorage.getItem(key) || localStorage.getItem('uc_addresses');
+      const saved = localStorage.getItem(key);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.filter(addr => 
-            addr && 
-            addr.id !== 'ADDR-KG-1' && 
-            addr.id !== 'ADDR-1' && 
-            !addr.flat?.includes('Door 14/2') && 
-            !addr.flat?.includes('Flat 402')
-          );
+          return parsed.filter(addr => isAddressOwnedByUser(addr, currentUser));
         }
       }
     } catch {}
@@ -813,13 +937,7 @@ function App() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
-          setSavedAddresses(parsed.filter(addr => 
-            addr && 
-            addr.id !== 'ADDR-KG-1' && 
-            addr.id !== 'ADDR-1' && 
-            !addr.flat?.includes('Door 14/2') && 
-            !addr.flat?.includes('Flat 402')
-          ));
+          setSavedAddresses(parsed.filter(addr => isAddressOwnedByUser(addr, user)));
         }
       }
     } catch {}
@@ -864,9 +982,20 @@ function App() {
   }, [savedAddresses]);
 
   function handleAddAddress(newAddr) {
-    setSavedAddresses(prev => [newAddr, ...prev]);
-    addressesApi.create(newAddr).catch(err => console.warn('Backend address sync failed:', err));
-    showToast(`✅ Added new saved address: ${newAddr.label}`);
+    if (!user) {
+      showToast('⚠️ Please login to save an address');
+      return;
+    }
+    const enriched = {
+      ...newAddr,
+      userId: user._id || user.id || '',
+      userPhone: user.phone || '',
+      userEmail: user.email || '',
+      userName: user.name || 'Customer'
+    };
+    setSavedAddresses(prev => [enriched, ...prev]);
+    addressesApi.create(enriched).catch(err => console.warn('Backend address sync failed:', err));
+    showToast(`✅ Added new saved address: ${enriched.label}`);
   }
 
   function handleUpdateAddress(id, updatedFields) {
@@ -959,8 +1088,10 @@ function App() {
     }
     setSelectedCartItemIds(null);
     setIsCheckoutModalOpen(false);
-    navigateToView('home');
-    setActiveTrackingBooking(enriched);
+    if (currentView !== 'checkout') {
+      navigateToView('home');
+      setActiveTrackingBooking(enriched);
+    }
     setLatestLiveBooking(enriched);
     setActiveBookedOrderId(enriched.id);
     setIsTrackingPillDismissed(false);
@@ -1215,7 +1346,7 @@ function App() {
         qty: (prev[service.id]?.qty || 0) + 1,
       },
     }));
-    showToast(`🛒 Added "${service.title}" to cart`);
+    showToast(`Added "${service.title}" to cart`);
   }
 
   function handleUpdateQty(serviceId, newQty) {
@@ -2044,28 +2175,40 @@ function App() {
   return (
     <div className="app-container">
       {/* Toast Notification Banner */}
-      {toastMessage && (
-        <div style={{
-          position: 'fixed',
-          top: 24,
-          right: 24,
-          zIndex: 9999,
-          background: '#0F172A',
-          color: '#fff',
-          padding: '12px 20px',
-          borderRadius: 0,
-          boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          fontSize: 13.5,
-          fontWeight: 700,
-          animation: 'slideDownFade 0.25s ease'
-        }}>
-          <Sparkles size={16} color="#A78BFA" />
-          <span>{toastMessage}</span>
-        </div>
-      )}
+      {toastMessage && (() => {
+        const isCart = /to cart/i.test(toastMessage);
+        const displayMessage = isCart
+          ? toastMessage.replace(/^[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}\s]+/u, '').trim()
+          : toastMessage;
+        const hasLeadingEmoji = /^[\u{1F300}-\u{1F9FF}\u{2600}-\u{27BF}\u{2300}-\u{23FF}]/u.test(displayMessage);
+
+        return (
+          <div style={{
+            position: 'fixed',
+            top: 24,
+            right: 24,
+            zIndex: 9999,
+            background: '#0F172A',
+            color: '#fff',
+            padding: '12px 20px',
+            borderRadius: 8,
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            fontSize: 13.5,
+            fontWeight: 600,
+            animation: 'slideDownFade 0.25s ease'
+          }}>
+            {isCart ? (
+              <CheckCircle2 size={16} color="#10B981" />
+            ) : !hasLeadingEmoji ? (
+              <CheckCircle2 size={16} color="#0B57D0" />
+            ) : null}
+            <span>{displayMessage}</span>
+          </div>
+        );
+      })()}
 
       {currentView === 'ac-service-page' ? (
         <ACServicePage
@@ -2336,6 +2479,10 @@ function App() {
           user={user}
           onOpenAuth={() => handleOpenAuth('login')}
           onOpenProfile={() => setIsProfileModalOpen(true)}
+          onOpenBookings={() => setIsBookingsModalOpen(true)}
+          onOpenAddresses={() => setIsAddressModalOpen(true)}
+          onLogout={handleLogout}
+          bookingsCount={(user ? customerBookings : bookings).filter(b => b.status !== 'Cancelled').length}
         />
       ) : currentView === 'hair-studio-page' ? (
         <HairStudioWomenServicePage
@@ -2465,92 +2612,9 @@ function App() {
         onOpenPartnerOnboarding={() => setIsPartnerOnboardingOpen(true)}
         onLogout={handleLogout}
         services={services}
-        onSelectService={(s) => {
-          if (s?.title?.toLowerCase().includes('lock') || s?.subcategory?.toLowerCase().includes('lock') || s?.id?.includes('lock')) {
-            navigateToView('native-smart-locks-page');
-          } else if (s?.title?.toLowerCase().includes('purifier') || s?.subcategory?.toLowerCase().includes('purifier') || s?.id?.includes('purifier')) {
-            if (s?.title?.toLowerCase().includes('repair') || s?.title?.toLowerCase().includes('service') || s?.id?.includes('repair') || s?.id?.includes('service')) {
-              navigateToView('water-purifier-service-page');
-            } else {
-              navigateToView('native-purifier-page');
-            }
-          } else if (s?.title?.toLowerCase().includes('refrigerator') || s?.subcategory?.toLowerCase().includes('refrigerator') || s?.id?.includes('refrigerator') || s?.title?.toLowerCase().includes('fridge')) {
-            navigateToView('refrigerator-service-page');
-          } else if (s?.title?.toLowerCase().includes('washing') || s?.subcategory?.toLowerCase().includes('washing') || s?.id?.includes('washing') || s?.title?.toLowerCase().includes('washer')) {
-            navigateToView('washing-machine-service-page');
-          } else if (s?.title?.toLowerCase().includes('microwave') || s?.subcategory?.toLowerCase().includes('microwave') || s?.id?.includes('microwave')) {
-            navigateToView('microwave-service-page');
-          } else if (s?.title?.toLowerCase().includes('television') || s?.subcategory?.toLowerCase().includes('television') || s?.id?.includes('television') || s?.title?.toLowerCase().includes('tv') || s?.id?.includes('tv')) {
-            navigateToView('television-service-page');
-          } else if (
-            s?.category === 'quick-repairs' ||
-            s?.subcategory === 'Electrician' ||
-            s?.subcategory === 'Plumber' ||
-            s?.subcategory === 'Carpenter' ||
-            s?.title?.toLowerCase().includes('electrician') ||
-            s?.title?.toLowerCase().includes('plumber') ||
-            s?.title?.toLowerCase().includes('carpenter') ||
-            s?.title?.toLowerCase().includes('fan') ||
-            s?.title?.toLowerCase().includes('switch') ||
-            s?.title?.toLowerCase().includes('tap') ||
-            s?.title?.toLowerCase().includes('drain')
-          ) {
-            let trade = 'electrician';
-            const cat = (s?.subcategory || s?.title || '').toLowerCase();
-            if (cat.includes('plumb') || cat.includes('tap') || cat.includes('drain') || cat.includes('leak') || cat.includes('flush')) {
-              trade = 'plumber';
-            } else if (cat.includes('carpent') || cat.includes('drill') || cat.includes('door') || cat.includes('cupboard') || cat.includes('furniture')) {
-              trade = 'carpenter';
-            }
-            if (trade === 'plumber') {
-              navigateToView('plumber-service-page');
-            } else if (trade === 'carpenter') {
-              navigateToView('carpenter-service-page');
-            } else {
-              navigateToView('electrician-service-page');
-            }
-          } else if (
-            s?.title?.toLowerCase().includes('cockroach') ||
-            s?.subcategory?.toLowerCase().includes('pest') ||
-            s?.title?.toLowerCase().includes('pest') ||
-            s?.id?.includes('cockroach') ||
-            s?.id?.includes('pest')
-          ) {
-            navigateToView('cockroach-control-page');
-          } else if (
-            s?.title?.toLowerCase().includes('full home') ||
-            s?.title?.toLowerCase().includes('furnished') ||
-            s?.title?.toLowerCase().includes('unfurnished') ||
-            s?.title?.toLowerCase().includes('sofa') ||
-            s?.title?.toLowerCase().includes('carpet') ||
-            s?.subcategory?.toLowerCase().includes('full home') ||
-            s?.id?.includes('full-home')
-          ) {
-            navigateToView('full-home-cleaning-page');
-          } else if (
-            s?.title?.toLowerCase().includes('kitchen') ||
-            s?.subcategory?.toLowerCase().includes('kitchen') ||
-            s?.id?.includes('kitchen')
-          ) {
-            navigateToView('kitchen-cleaning-page');
-          } else if (
-            s?.title?.toLowerCase().includes('bathroom') ||
-            s?.subcategory?.toLowerCase().includes('bathroom') ||
-            s?.id?.includes('bathroom')
-          ) {
-            navigateToView('bathroom-cleaning-page');
-          } else if (
-            s?.title?.toLowerCase().includes('ac') ||
-            s?.subcategory?.toLowerCase().includes('ac') ||
-            s?.category === 'ac-appliances' ||
-            s?.id?.includes('ac') ||
-            s?.id?.includes('srv-')
-          ) {
-            navigateToView('ac-service-page');
-          } else {
-            setSelectedDetailService(s);
-          }
-        }}
+        isLandingSearchOpen={isLandingSearchOpen}
+        onToggleLandingSearch={handleToggleLandingSearch}
+        onSelectService={handleSelectSearchedService}
         onSelectCategory={handleCategorySelection}
         activeNavTab={activeNavTab}
         onSelectNavTab={handleSelectNavTab}
@@ -2565,12 +2629,12 @@ function App() {
             padding: '0 24px'
           }}>
             <div style={{
-              background: 'linear-gradient(135deg, #1E1B4B 0%, #311042 50%, #4C1D95 100%)',
+              background: 'linear-gradient(135deg, #1E1B4B 0%, #311042 50%, #0B57D0 100%)',
               borderRadius: 16,
               padding: '18px 24px',
               color: '#FFFFFF',
               boxShadow: '0 10px 25px -5px rgba(76, 29, 149, 0.3)',
-              border: '1.5px solid #8B5CF6',
+              border: '1.5px solid #0B57D0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
@@ -2605,14 +2669,14 @@ function App() {
                     }}>
                       ● {latestLiveBooking.status || 'Active Service'}
                     </span>
-                    <span style={{ fontSize: 12, color: '#C4B5FD', fontWeight: 600 }}>
+                    <span style={{ fontSize: 12, color: '#E8F1FF', fontWeight: 600 }}>
                       Booking #{latestLiveBooking.id || latestLiveBooking.bookingId || latestLiveBooking._id}
                     </span>
                   </div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: '#FFFFFF', marginBottom: 2 }}>
                     {latestLiveBooking.items?.[0]?.name || latestLiveBooking.serviceTitle || latestLiveBooking.category || 'Home Service'}
                   </div>
-                  <div style={{ fontSize: 12, color: '#E9D5FF' }}>
+                  <div style={{ fontSize: 12, color: '#E8F1FF' }}>
                     Technician: <strong>{latestLiveBooking.assignedProfessional?.name || latestLiveBooking.assignedPartner || 'Technician Allocated'}</strong> • Scheduled Slot: <strong>{latestLiveBooking.slot || 'Today'}</strong>
                   </div>
                 </div>
@@ -2625,7 +2689,7 @@ function App() {
                   style={{
                     padding: '9px 18px',
                     backgroundColor: '#FFFFFF',
-                    color: '#4C1D95',
+                    color: '#0B57D0',
                     fontWeight: 700,
                     fontSize: 13,
                     borderRadius: 10,
@@ -2665,6 +2729,21 @@ function App() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Landing Page Search Bar (Toggled by Navbar Search Icon) */}
+        {isLandingSearchOpen && currentView === 'home' && (
+          <LandingSearchBar
+            isOpen={isLandingSearchOpen}
+            onClose={() => setIsLandingSearchOpen(false)}
+            services={services}
+            selectedCity={selectedCity}
+            activeNavTab={activeNavTab}
+            onSelectService={(s) => {
+              setIsLandingSearchOpen(false);
+              handleSelectSearchedService(s);
+            }}
+          />
         )}
 
         {/* 2. Exact Hero Section from Screenshot */}
@@ -2788,6 +2867,16 @@ function App() {
             {/* The Urban Company Promise */}
             <UCPromiseSection />
 
+            {/* Dual Onboarding Opportunities: Worker & Partner (Hidden after customer login) */}
+            {!user && (
+              <OnboardingShowcaseSection
+                user={user}
+                selectedCity={selectedCity}
+                onOpenWorkerOnboarding={() => setIsWorkerOnboardingOpen(true)}
+                onOpenPartnerOnboarding={() => setIsPartnerOnboardingOpen(true)}
+              />
+            )}
+
             {/* Verified Customer Reviews */}
             <CustomerReviewsSection />
 
@@ -2813,10 +2902,7 @@ function App() {
           window.history.pushState({}, '', '/partner');
           setIsPartnerRoute(true);
         }}
-        onOpenPartnerOnboarding={() => {
-          window.history.pushState({}, '', '/partner/onboarding');
-          setIsPartnerRoute(true);
-        }}
+        onOpenPartnerOnboarding={() => setIsPartnerOnboardingOpen(true)}
         onOpenWorkerOnboarding={() => setIsWorkerOnboardingOpen(true)}
         onOpenProfessionalPortal={handleOpenProfessionalPortal}
         onOpenAdminPortal={handleOpenAdminPortal}
@@ -2913,7 +2999,7 @@ function App() {
             bottom: Object.keys(cart || {}).length > 0 ? 84 : 24,
             right: 24,
             zIndex: 9990,
-            background: 'linear-gradient(135deg, #1E1B4B 0%, #4C1D95 100%)',
+            background: 'linear-gradient(135deg, #1E1B4B 0%, #0B57D0 100%)',
             color: '#FFFFFF',
             borderRadius: 50,
             padding: '8px 14px 8px 14px',
@@ -2921,7 +3007,7 @@ function App() {
             alignItems: 'center',
             gap: 12,
             boxShadow: '0 12px 28px rgba(76, 29, 149, 0.45), 0 0 0 1px rgba(255,255,255,0.15)',
-            border: '1.5px solid #8B5CF6'
+            border: '1.5px solid #0B57D0'
           }}
         >
           <div
@@ -2943,10 +3029,10 @@ function App() {
             </div>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: '#F3E8FF' }}>Live Service Active</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#E8F1FF' }}>Live Service Active</span>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10B981', display: 'inline-block' }} />
               </div>
-              <div style={{ fontSize: 11, color: '#DDD6FE' }}>
+              <div style={{ fontSize: 11, color: '#E4E7EC' }}>
                 {latestLiveBooking.assignedProfessional?.name || latestLiveBooking.assignedPartner || 'Technician'} • Track ➔
               </div>
             </div>
@@ -2991,7 +3077,7 @@ function App() {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#DDD6FE',
+              color: '#E4E7EC',
               fontSize: 14,
               cursor: 'pointer',
               padding: '2px 4px',
@@ -3125,8 +3211,7 @@ function App() {
             handleOpenPartnerPortal();
             showToast(`🏢 Business Partner Dashboard opened for ${loggedInUser.agencyName || loggedInUser.name}!`);
           } else {
-            setIsBookingsModalOpen(true);
-            showToast(`✨ Welcome, ${loggedInUser.name || 'User'}! Customer Profile & Bookings opened.`);
+            showToast(`✨ Welcome, ${loggedInUser.name || 'User'}!`);
           }
         }}
         onLogout={handleLogout}

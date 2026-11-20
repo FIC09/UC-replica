@@ -399,7 +399,7 @@ export function PaintingServicePage({
                   onClick={() => {
                     const consultProd = PRODUCTS.find(p => p.id === 'express-home-painting-consult');
                     onAddToCart(consultProd);
-                    showToast('🎨 Added Laser Painting Consultation to cart!');
+                    showToast('Added Laser Painting Consultation to cart!');
                   }}
                   style={{
                     width: '100%',
@@ -648,7 +648,7 @@ export function PaintingServicePage({
                         type="button"
                         onClick={() => {
                           onAddToCart(product);
-                          showToast(`🎨 Added "${product.title}" to cart!`);
+                          showToast(`Added "${product.title}" to cart!`);
                         }}
                         style={{
                           background: '#0F172A',
@@ -839,8 +839,8 @@ export function PaintingServicePage({
                         width: 20,
                         height: 20,
                         borderRadius: '50%',
-                        background: '#EEF2FF',
-                        color: '#4F46E5',
+                        background: '#E8F1FF',
+                        color: '#0B57D0',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -876,7 +876,7 @@ export function PaintingServicePage({
                 type="button"
                 onClick={() => {
                   onAddToCart(selectedDetailProduct);
-                  showToast(`🎨 Added "${selectedDetailProduct.title}" to cart!`);
+                  showToast(`Added "${selectedDetailProduct.title}" to cart!`);
                   setSelectedDetailProduct(null);
                 }}
                 style={{

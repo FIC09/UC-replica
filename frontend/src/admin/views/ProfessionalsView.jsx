@@ -531,8 +531,8 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
               padding: '14px 18px',
               border: 'none',
               backgroundColor: 'transparent',
-              borderBottom: activeTab === tab.id ? '2px solid #6E42E5' : '2px solid transparent',
-              color: activeTab === tab.id ? '#6E42E5' : '#64748B',
+              borderBottom: activeTab === tab.id ? '2px solid #0B57D0' : '2px solid transparent',
+              color: activeTab === tab.id ? '#0B57D0' : '#64748B',
               fontSize: 13,
               fontWeight: activeTab === tab.id ? 700 : 500,
               cursor: 'pointer',
@@ -642,7 +642,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
               style={{
                 backgroundColor: 'transparent',
                 border: 'none',
-                color: '#6E42E5',
+                color: '#0B57D0',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer'
@@ -717,8 +717,8 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                             width: 38,
                             height: 38,
                             borderRadius: '50%',
-                            backgroundColor: '#EDE9FE',
-                            color: '#6E42E5',
+                            backgroundColor: '#E8F1FF',
+                            color: '#0B57D0',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1014,8 +1014,8 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                     padding: '12px 14px',
                     border: 'none',
                     backgroundColor: 'transparent',
-                    borderBottom: drawerTab === tab.id ? '2px solid #6E42E5' : '2px solid transparent',
-                    color: drawerTab === tab.id ? '#6E42E5' : '#64748B',
+                    borderBottom: drawerTab === tab.id ? '2px solid #0B57D0' : '2px solid transparent',
+                    color: drawerTab === tab.id ? '#0B57D0' : '#64748B',
                     fontSize: 12.5,
                     fontWeight: drawerTab === tab.id ? 700 : 600,
                     cursor: 'pointer',
@@ -1206,11 +1206,11 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                           setShowSkillsCoverageModal(true);
                         }}
                         style={{
-                          backgroundColor: '#F5F3FF',
-                          border: '1px solid #DDD6FE',
+                          backgroundColor: '#E8F1FF',
+                          border: '1px solid #E4E7EC',
                           borderRadius: 6,
                           padding: '4px 10px',
-                          color: '#6E42E5',
+                          color: '#0B57D0',
                           fontSize: 11,
                           fontWeight: 600,
                           cursor: 'pointer'
@@ -1224,7 +1224,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                       <span style={{ fontSize: 11, color: '#64748B', display: 'block', marginBottom: 6 }}>Assigned Categories:</span>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {(proDetail?.categories || ['AC Repair', 'Electrical', 'Appliances']).map((cat, i) => (
-                          <span key={i} style={{ backgroundColor: '#EDE9FE', color: '#6E42E5', padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
+                          <span key={i} style={{ backgroundColor: '#E8F1FF', color: '#0B57D0', padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
                             {cat}
                           </span>
                         ))}
@@ -1556,7 +1556,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                     <button
                       onClick={() => setShowTrainingModal(true)}
                       style={{
-                        backgroundColor: '#6E42E5',
+                        backgroundColor: '#0B57D0',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: 6,
@@ -1596,7 +1596,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                         </div>
                       </div>
                       {trn.badgeAwarded && (
-                        <span style={{ backgroundColor: '#EDE9FE', color: '#6E42E5', padding: '3px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>
+                        <span style={{ backgroundColor: '#E8F1FF', color: '#0B57D0', padding: '3px 8px', borderRadius: 12, fontSize: 10, fontWeight: 700 }}>
                           🏆 {trn.badgeAwarded}
                         </span>
                       )}
@@ -1633,7 +1633,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
 
                     <div style={{ backgroundColor: '#F8FAFC', padding: '14px', borderRadius: 8, border: '1px solid #E2E8F0' }}>
                       <div style={{ fontSize: 11, color: '#64748B' }}>Lifetime Orders Completed</div>
-                      <div style={{ fontSize: 22, fontWeight: 800, color: '#6E42E5', marginTop: 4 }}>
+                      <div style={{ fontSize: 22, fontWeight: 800, color: '#0B57D0', marginTop: 4 }}>
                         {selectedPro.jobsCompleted || 0}
                       </div>
                       <div style={{ fontSize: 11, color: '#64748B' }}>
@@ -1735,7 +1735,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                     <button
                       type="submit"
                       style={{
-                        backgroundColor: '#6E42E5',
+                        backgroundColor: '#0B57D0',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: 6,
@@ -1994,7 +1994,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                   padding: '8px 18px',
                   borderRadius: 6,
                   border: 'none',
-                  backgroundColor: '#6E42E5',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   fontSize: 13,
                   fontWeight: 600,
@@ -2109,7 +2109,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                     padding: '8px 18px',
                     borderRadius: 6,
                     border: 'none',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     fontSize: 13,
                     fontWeight: 600,
@@ -2217,7 +2217,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                     padding: '8px 18px',
                     borderRadius: 6,
                     border: 'none',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     fontSize: 13,
                     fontWeight: 600,
@@ -2414,7 +2414,7 @@ export function ProfessionalsView({ onShowToast, onNavigate }) {
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '9px 20px', borderRadius: 8, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  style={{ padding: '9px 20px', borderRadius: 8, border: 'none', backgroundColor: '#0B57D0', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                 >
                   Register Professional
                 </button>

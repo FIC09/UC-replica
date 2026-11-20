@@ -281,12 +281,12 @@ export function ProfessionalLayout({
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                backgroundColor: '#7C3AED',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
+                boxShadow: '0 4px 12px rgba(11, 87, 208, 0.3)',
                 flexShrink: 0
               }}>
                 <Zap size={20} fill="#ffffff" color="#ffffff" />
@@ -309,7 +309,7 @@ export function ProfessionalLayout({
                     DEMO
                   </span>
                 </div>
-                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#7C3AED', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: '#0B57D0', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Worker Portal
                 </div>
               </div>
@@ -332,7 +332,7 @@ export function ProfessionalLayout({
             <div style={{
               fontSize: 10.5,
               fontWeight: 800,
-              color: '#7C3AED',
+              color: '#0B57D0',
               textTransform: 'uppercase',
               letterSpacing: 0.8,
               padding: '0 10px',
@@ -350,8 +350,8 @@ export function ProfessionalLayout({
                     onClick={() => handleNav(item.path)}
                     style={{
                       width: '100%',
-                      background: active ? '#FAF5FF' : 'transparent',
-                      color: active ? '#7C3AED' : '#334155',
+                      background: active ? '#E8F1FF' : 'transparent',
+                      color: active ? '#0B57D0' : '#334155',
                       border: 'none',
                       borderRadius: 10,
                       padding: '9px 12px',
@@ -362,7 +362,7 @@ export function ProfessionalLayout({
                       gap: 12,
                       cursor: 'pointer',
                       textAlign: 'left',
-                      borderLeft: active ? '3px solid #7C3AED' : '3px solid transparent',
+                      borderLeft: active ? '3px solid #0B57D0' : '3px solid transparent',
                       transition: 'all 0.15s ease'
                     }}
                     onMouseEnter={(e) => {
@@ -372,12 +372,12 @@ export function ProfessionalLayout({
                       if (!active) e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <IconComponent size={18} color={active ? '#7C3AED' : '#64748B'} />
+                    <IconComponent size={18} color={active ? '#0B57D0' : '#64748B'} />
                     <span>{item.label}</span>
                     {item.path === '/professional/jobs' && activeJobsCount > 0 && (
                       <span style={{
                         marginLeft: 'auto',
-                        backgroundColor: '#7C3AED',
+                        backgroundColor: '#0B57D0',
                         color: '#FFFFFF',
                         fontSize: 10.5,
                         fontWeight: 800,
@@ -388,7 +388,7 @@ export function ProfessionalLayout({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: '0 1px 3px rgba(124, 58, 237, 0.35)'
+                        boxShadow: '0 1px 3px rgba(11, 87, 208, 0.35)'
                       }}>
                         {activeJobsCount}
                       </span>
@@ -420,8 +420,8 @@ export function ProfessionalLayout({
                     onClick={() => handleNav(item.path)}
                     style={{
                       width: '100%',
-                      background: active ? '#FAF5FF' : 'transparent',
-                      color: active ? '#7C3AED' : '#475569',
+                      background: active ? '#E8F1FF' : 'transparent',
+                      color: active ? '#0B57D0' : '#475569',
                       border: 'none',
                       borderRadius: 8,
                       padding: '8px 12px',
@@ -441,7 +441,7 @@ export function ProfessionalLayout({
                       if (!active) e.currentTarget.style.background = 'transparent';
                     }}
                   >
-                    <IconComponent size={16} color={active ? '#7C3AED' : '#94A3B8'} />
+                    <IconComponent size={16} color={active ? '#0B57D0' : '#94A3B8'} />
                     <span>{item.label}</span>
                     {item.path === '/professional/notifications' && unreadAlertsCount > 0 && (
                       <span style={{
@@ -649,13 +649,13 @@ export function ProfessionalLayout({
             <div
               onClick={() => handleNav('/professional/payouts')}
               style={{
-                background: '#FAF5FF',
-                border: '1px solid #EDE9FE',
+                background: '#E8F1FF',
+                border: '1px solid #E8F1FF',
                 padding: '6px 14px',
                 borderRadius: 20,
                 fontSize: 13,
                 fontWeight: 700,
-                color: '#6B21A8',
+                color: '#0B57D0',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
@@ -664,10 +664,10 @@ export function ProfessionalLayout({
                 transition: 'all 0.15s ease'
               }}
               title="Wallet Balance • Click to manage payouts"
-              onMouseEnter={(e) => e.currentTarget.style.background = '#F3E8FF'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#FAF5FF'}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#E8F1FF'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#E8F1FF'}
             >
-              <Wallet size={15} color="#7C3AED" />
+              <Wallet size={15} color="#0B57D0" />
               <span>₹{(profile?.walletBalance != null ? profile.walletBalance : 0).toLocaleString('en-IN')}</span>
             </div>
 
@@ -680,7 +680,7 @@ export function ProfessionalLayout({
                   width: 36,
                   height: 36,
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                  background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
                   color: '#FFFFFF',
                   border: '2px solid #FFFFFF',
                   display: 'flex',
@@ -689,7 +689,7 @@ export function ProfessionalLayout({
                   fontSize: 13,
                   fontWeight: 800,
                   cursor: 'pointer',
-                  boxShadow: '0 2px 8px rgba(124, 58, 237, 0.25)'
+                  boxShadow: '0 2px 8px rgba(11, 87, 208, 0.25)'
                 }}
               >
                 {getInitials(profile?.applicantName || profile?.name, profile?.avatar)}
@@ -732,37 +732,37 @@ export function ProfessionalLayout({
                   <div
                     onClick={() => handleNav('/professional/account')}
                     style={{ padding: '9px 16px', fontSize: 12.5, color: '#334155', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#E8F1FF'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    <UserCheck size={15} color="#7C3AED" />
+                    <UserCheck size={15} color="#0B57D0" />
                     <span>My Profile & Account</span>
                   </div>
                   <div
                     onClick={() => handleNav('/professional/onboarding')}
                     style={{ padding: '9px 16px', fontSize: 12.5, color: '#334155', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#E8F1FF'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    <FileCheck size={15} color="#7C3AED" />
+                    <FileCheck size={15} color="#0B57D0" />
                     <span>Onboarding Checklist</span>
                   </div>
                   <div
                     onClick={() => handleNav('/professional/documents')}
                     style={{ padding: '9px 16px', fontSize: 12.5, color: '#334155', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#E8F1FF'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    <ShieldCheck size={15} color="#7C3AED" />
+                    <ShieldCheck size={15} color="#0B57D0" />
                     <span>KYC Documents</span>
                   </div>
                   <div
                     onClick={() => handleNav('/professional/settings')}
                     style={{ padding: '9px 16px', fontSize: 12.5, color: '#334155', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10 }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#FAF5FF'}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#E8F1FF'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                   >
-                    <Settings size={15} color="#7C3AED" />
+                    <Settings size={15} color="#0B57D0" />
                     <span>App Settings</span>
                   </div>
 
@@ -832,7 +832,7 @@ export function ProfessionalLayout({
                 flex: 1,
                 background: 'none',
                 border: 'none',
-                color: active ? '#7c3aed' : '#64748b',
+                color: active ? '#0B57D0' : '#64748b',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -853,17 +853,17 @@ export function ProfessionalLayout({
                   width: 24,
                   height: 3,
                   borderRadius: 3,
-                  background: '#7c3aed'
+                  background: '#0B57D0'
                 }} />
               )}
-              <IconComponent size={20} color={active ? '#7c3aed' : '#64748b'} />
+              <IconComponent size={20} color={active ? '#0B57D0' : '#64748b'} />
               <span>{tab.label}</span>
               {tab.path === '/professional/jobs' && activeJobsCount > 0 && (
                 <span style={{
                   position: 'absolute',
                   top: 4,
                   right: 'calc(50% - 18px)',
-                  backgroundColor: '#7C3AED',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   fontSize: 9.5,
                   fontWeight: 800,
@@ -927,7 +927,7 @@ export function ProfessionalLayout({
           }
         }
         button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-          outline: 2px solid #7c3aed;
+          outline: 2px solid #0B57D0;
           outline-offset: 2px;
         }
       `}</style>

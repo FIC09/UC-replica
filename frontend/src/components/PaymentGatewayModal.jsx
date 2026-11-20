@@ -155,7 +155,7 @@ export function InstantQRIcon({ size = 36 }) {
       flexShrink: 0,
       boxShadow: '0 2px 5px rgba(30,27,75,0.25)'
     }}>
-      <QrCode size={size * 0.58} color="#A78BFA" />
+      <QrCode size={size * 0.58} color="#0B57D0" />
     </div>
   );
 }
@@ -1020,7 +1020,7 @@ export function PaymentGatewayModal({
             gap: 4px !important;
             background: none !important;
             border: none !important;
-            color: #6E42E5 !important;
+            color: #0B57D0 !important;
             font-size: 12.5px !important;
             font-weight: 800 !important;
             cursor: pointer !important;
@@ -1054,9 +1054,9 @@ export function PaymentGatewayModal({
             transition: all 0.15s ease !important;
           }
           .mobile-method-chip.active {
-            border-color: #6E42E5 !important;
-            background-color: #F5F3FF !important;
-            color: #6E42E5 !important;
+            border-color: #0B57D0 !important;
+            background-color: #E8F1FF !important;
+            color: #0B57D0 !important;
           }
         }
       `}</style>
@@ -1100,11 +1100,11 @@ export function PaymentGatewayModal({
               height: 36,
               minWidth: 36,
               borderRadius: 10,
-              background: 'linear-gradient(135deg, #6E42E5 0%, #4338CA 100%)',
+              background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 2px 8px rgba(110, 66, 229, 0.45)',
+              boxShadow: '0 2px 8px rgba(11, 87, 208, 0.45)',
               fontWeight: 900,
               fontSize: 13,
               color: '#FFFFFF',
@@ -1201,13 +1201,16 @@ export function PaymentGatewayModal({
         {/* ========================================================= */}
         {paymentStage === 'upi_collect' && (
           <div style={{
-            padding: '28px 32px',
+            padding: '20px 24px',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            minHeight: 460,
-            justifyContent: 'space-between',
-            backgroundColor: '#F8FAFC'
+            justifyContent: 'flex-start',
+            backgroundColor: '#F8FAFC',
+            flex: 1,
+            overflowY: 'auto',
+            maxHeight: 'calc(94vh - 70px)',
+            boxSizing: 'border-box'
           }}>
             {/* Central Status Card */}
             <div style={{
@@ -1216,12 +1219,12 @@ export function PaymentGatewayModal({
               backgroundColor: '#FFFFFF',
               borderRadius: 16,
               border: '1.5px solid #E2E8F0',
-              padding: '28px 24px',
+              padding: '20px 22px',
               textAlign: 'center',
               boxShadow: '0 4px 15px rgba(0,0,0,0.04)'
             }}>
               {/* Animated Radar Pulse Icon */}
-              <div style={{ position: 'relative', width: 72, height: 72, margin: '0 auto 16px' }}>
+              <div style={{ position: 'relative', width: 60, height: 60, margin: '0 auto 12px' }}>
                 <div style={{
                   position: 'absolute',
                   inset: 0,
@@ -1230,8 +1233,8 @@ export function PaymentGatewayModal({
                   animation: 'rippleRing 1.8s cubic-bezier(0, 0.2, 0.8, 1) infinite'
                 }} />
                 <div style={{
-                  width: 72,
-                  height: 72,
+                  width: 60,
+                  height: 60,
                   borderRadius: '50%',
                   backgroundColor: '#EFF6FF',
                   display: 'flex',
@@ -1239,17 +1242,17 @@ export function PaymentGatewayModal({
                   justifyContent: 'center',
                   border: '2px solid #BFDBFE'
                 }}>
-                  {activeTab === 'gpay' && <GPayIcon size={42} />}
-                  {activeTab === 'phonepe' && <PhonePeIcon size={42} />}
-                  {activeTab === 'paytm' && <PaytmIcon size={42} />}
-                  {activeTab === 'qr' && <QrCode size={40} color="#2563EB" />}
+                  {activeTab === 'gpay' && <GPayIcon size={34} />}
+                  {activeTab === 'phonepe' && <PhonePeIcon size={34} />}
+                  {activeTab === 'paytm' && <PaytmIcon size={34} />}
+                  {activeTab === 'qr' && <QrCode size={34} color="#2563EB" />}
                 </div>
               </div>
 
-              <h3 style={{ fontSize: 20, fontWeight: 800, color: '#0F172A', margin: '0 0 6px 0' }}>
+              <h3 style={{ fontSize: 18, fontWeight: 800, color: '#0F172A', margin: '0 0 4px 0' }}>
                 Collect Request Dispatched!
               </h3>
-              <p style={{ fontSize: 13.5, color: '#64748B', margin: '0 0 16px 0' }}>
+              <p style={{ fontSize: 13, color: '#64748B', margin: '0 0 12px 0' }}>
                 Open your <strong>{currentMethodName}</strong> app on your mobile phone to approve the payment.
               </p>
 
@@ -1257,11 +1260,11 @@ export function PaymentGatewayModal({
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
-                gap: 14,
+                gap: 12,
                 backgroundColor: '#F1F5F9',
                 borderRadius: 999,
                 padding: '8px 18px',
-                marginBottom: 20
+                marginBottom: 4
               }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: '#1E293B' }}>
                   Target: <strong>{targetUPIIdentifier}</strong>
@@ -1278,58 +1281,21 @@ export function PaymentGatewayModal({
                   <span>{formatTimer(upiTimer)}</span>
                 </span>
               </div>
-
-              {/* Real 3-Step NPCI Switch Stepper */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
-                textAlign: 'left',
-                backgroundColor: '#F8FAFC',
-                borderRadius: 12,
-                padding: '16px 18px',
-                border: '1px solid #E2E8F0',
-                marginBottom: 10
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <span style={{ color: '#0F172A', fontWeight: 600 }}>1. Request initiated on NPCI UPI Switch</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <span style={{ color: '#0F172A', fontWeight: 600 }}>
-                    2. Notification dispatched to your mobile app
-                  </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13 }}>
-                  <div style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: '50%',
-                    border: '2px solid #2563EB',
-                    borderTopColor: 'transparent',
-                    animation: 'rotateSpinner 0.8s linear infinite'
-                  }} />
-                  <span style={{ color: '#2563EB', fontWeight: 700 }}>
-                    3. Awaiting UPI MPIN entry on your mobile device...
-                  </span>
-                </div>
-              </div>
             </div>
 
             {/* Bottom Actions */}
-            <div style={{ width: '100%', maxWidth: 540, display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+            <div style={{ width: '100%', maxWidth: 540, display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12, paddingBottom: 10 }}>
               <button
                 type="button"
                 onClick={() => executeBackendPaymentVerification({ paymentMethodName: currentMethodName })}
                 style={{
                   width: '100%',
-                  padding: '14px 20px',
+                  padding: '12px 18px',
                   backgroundColor: '#10B981',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 12,
-                  fontSize: 15,
+                  fontSize: 14.5,
                   fontWeight: 800,
                   cursor: 'pointer',
                   display: 'flex',
@@ -1348,11 +1314,11 @@ export function PaymentGatewayModal({
                 onClick={() => setPaymentStage('gateway')}
                 style={{
                   width: '100%',
-                  padding: '10px 16px',
+                  padding: '8px 14px',
                   backgroundColor: 'transparent',
                   color: '#64748B',
                   border: 'none',
-                  fontSize: 13,
+                  fontSize: 12.5,
                   fontWeight: 700,
                   cursor: 'pointer'
                 }}
@@ -1370,7 +1336,10 @@ export function PaymentGatewayModal({
           <div style={{
             padding: '24px 30px',
             backgroundColor: '#F8FAFC',
-            minHeight: 460,
+            flex: 1,
+            overflowY: 'auto',
+            maxHeight: 'calc(94vh - 70px)',
+            boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between'
@@ -1762,7 +1731,7 @@ export function PaymentGatewayModal({
               height: 64,
               borderRadius: '50%',
               border: '4px solid #F1F5F9',
-              borderTopColor: '#6E42E5',
+              borderTopColor: '#0B57D0',
               animation: 'rotateSpinner 0.8s linear infinite',
               marginBottom: 20
             }} />
@@ -1867,14 +1836,14 @@ export function PaymentGatewayModal({
               gap: 12
             }}>
               <div style={{ fontSize: 12.5, color: '#64748B', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <Sparkles size={16} color="#6E42E5" />
+                <Sparkles size={16} color="#0B57D0" />
                 <span>Redirecting to your booking tracking in <strong>{redirectCount}s</strong>...</span>
               </div>
               <button
                 type="button"
                 onClick={triggerFinalSuccessCallback}
                 style={{
-                  backgroundColor: '#6E42E5',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
@@ -1924,9 +1893,9 @@ export function PaymentGatewayModal({
                       justifyContent: 'space-between',
                       padding: '11px 12px',
                       borderRadius: 12,
-                      border: isSelected ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
+                      border: isSelected ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
                       backgroundColor: isSelected ? '#FFFFFF' : '#FFFFFF',
-                      boxShadow: isSelected ? '0 3px 10px rgba(110, 66, 229, 0.12)' : 'none',
+                      boxShadow: isSelected ? '0 3px 10px rgba(11, 87, 208, 0.12)' : 'none',
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.15s ease',
@@ -1944,7 +1913,7 @@ export function PaymentGatewayModal({
                         </div>
                       </div>
                     </div>
-                    <ChevronRight size={16} color={isSelected ? '#6E42E5' : '#94A3B8'} style={{ flexShrink: 0, marginLeft: 6 }} />
+                    <ChevronRight size={16} color={isSelected ? '#0B57D0' : '#94A3B8'} style={{ flexShrink: 0, marginLeft: 6 }} />
                   </button>
                 );
               })}
@@ -2034,17 +2003,6 @@ export function PaymentGatewayModal({
                       boxShadow: '0 4px 15px rgba(0,0,0,0.06)',
                       overflow: 'hidden'
                     }}>
-                      <div style={{
-                        position: 'absolute',
-                        left: 0,
-                        right: 0,
-                        height: 3,
-                        backgroundColor: '#10B981',
-                        boxShadow: '0 0 8px #10B981',
-                        animation: 'scanLaser 2.4s ease-in-out infinite',
-                        zIndex: 2
-                      }} />
-
                       {qrCodeDataUrl ? (
                         <img
                           src={qrCodeDataUrl}
@@ -2143,9 +2101,9 @@ export function PaymentGatewayModal({
                       type="button"
                       onClick={() => setShowQrCode(!showQrCode)}
                       style={{
-                        backgroundColor: showQrCode ? '#6E42E5' : '#F1F5F9',
+                        backgroundColor: showQrCode ? '#0B57D0' : '#F1F5F9',
                         border: '1px solid #CBD5E1',
-                        color: showQrCode ? '#FFFFFF' : '#6E42E5',
+                        color: showQrCode ? '#FFFFFF' : '#0B57D0',
                         fontSize: 12,
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -2186,17 +2144,6 @@ export function PaymentGatewayModal({
                         boxShadow: '0 4px 15px rgba(0,0,0,0.06)',
                         overflow: 'hidden'
                       }}>
-                        <div style={{
-                          position: 'absolute',
-                          left: 0,
-                          right: 0,
-                          height: 3,
-                          backgroundColor: '#10B981',
-                          boxShadow: '0 0 8px #10B981',
-                          animation: 'scanLaser 2.4s ease-in-out infinite',
-                          zIndex: 2
-                        }} />
-
                         {qrCodeDataUrl ? (
                           <img
                             src={qrCodeDataUrl}
@@ -2477,8 +2424,8 @@ export function PaymentGatewayModal({
 
                   {showQrCode ? (
                     <div style={{
-                      backgroundColor: '#FAF5FF',
-                      border: '1.5px solid #E9D5FF',
+                      backgroundColor: '#E8F1FF',
+                      border: '1.5px solid #E8F1FF',
                       borderRadius: 16,
                       padding: '18px 20px',
                       textAlign: 'center',
@@ -2492,24 +2439,13 @@ export function PaymentGatewayModal({
                         borderRadius: 14,
                         margin: '0 auto 12px',
                         padding: 10,
-                        border: '1.5px solid #D8B4FE',
+                        border: '1.5px solid #E8F1FF',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         boxShadow: '0 4px 15px rgba(95, 37, 159, 0.08)',
                         overflow: 'hidden'
                       }}>
-                        <div style={{
-                          position: 'absolute',
-                          left: 0,
-                          right: 0,
-                          height: 3,
-                          backgroundColor: '#9333EA',
-                          boxShadow: '0 0 8px #9333EA',
-                          animation: 'scanLaser 2.4s ease-in-out infinite',
-                          zIndex: 2
-                        }} />
-
                         {qrCodeDataUrl ? (
                           <img
                             src={qrCodeDataUrl}
@@ -2529,8 +2465,8 @@ export function PaymentGatewayModal({
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 6,
-                        backgroundColor: '#F3E8FF',
-                        color: '#6B21A8',
+                        backgroundColor: '#E8F1FF',
+                        color: '#0B57D0',
                         padding: '4px 10px',
                         borderRadius: 999,
                         fontSize: 11.5,
@@ -2689,13 +2625,13 @@ export function PaymentGatewayModal({
                                   setPhonePeUpi(`${base}${suffix}`);
                                 }}
                                 style={{
-                                  backgroundColor: '#FAF5FF',
-                                  border: '1px solid #E9D5FF',
+                                  backgroundColor: '#E8F1FF',
+                                  border: '1px solid #E8F1FF',
                                   borderRadius: 6,
                                   padding: '5px 10px',
                                   fontSize: 11.5,
                                   fontWeight: 600,
-                                  color: '#6B21A8',
+                                  color: '#0B57D0',
                                   cursor: 'pointer'
                                 }}
                               >
@@ -2707,12 +2643,12 @@ export function PaymentGatewayModal({
                       )}
 
                       <div style={{
-                        backgroundColor: '#FAF5FF',
-                        border: '1px solid #E9D5FF',
+                        backgroundColor: '#E8F1FF',
+                        border: '1px solid #E8F1FF',
                         borderRadius: 12,
                         padding: '12px 14px',
                         fontSize: 12.5,
-                        color: '#6B21A8',
+                        color: '#0B57D0',
                         display: 'flex',
                         alignItems: 'flex-start',
                         gap: 10,
@@ -2814,17 +2750,6 @@ export function PaymentGatewayModal({
                         boxShadow: '0 4px 15px rgba(0, 186, 242, 0.08)',
                         overflow: 'hidden'
                       }}>
-                        <div style={{
-                          position: 'absolute',
-                          left: 0,
-                          right: 0,
-                          height: 3,
-                          backgroundColor: '#0284C7',
-                          boxShadow: '0 0 8px #0284C7',
-                          animation: 'scanLaser 2.4s ease-in-out infinite',
-                          zIndex: 2
-                        }} />
-
                         {qrCodeDataUrl ? (
                           <img
                             src={qrCodeDataUrl}
@@ -3215,7 +3140,7 @@ export function PaymentGatewayModal({
                         type="checkbox"
                         checked={saveCard}
                         onChange={(e) => setSaveCard(e.target.checked)}
-                        style={{ accentColor: '#6E42E5' }}
+                        style={{ accentColor: '#0B57D0' }}
                       />
                       <span>Save card securely via tokenization as per RBI guidelines</span>
                     </label>
@@ -3227,7 +3152,7 @@ export function PaymentGatewayModal({
                     style={{
                       width: '100%',
                       padding: '14px 20px',
-                      backgroundColor: '#6E42E5',
+                      backgroundColor: '#0B57D0',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: 12,
@@ -3238,7 +3163,7 @@ export function PaymentGatewayModal({
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 8,
-                      boxShadow: '0 4px 14px rgba(110, 66, 229, 0.35)',
+                      boxShadow: '0 4px 14px rgba(11, 87, 208, 0.35)',
                       transition: 'all 0.15s'
                     }}
                   >

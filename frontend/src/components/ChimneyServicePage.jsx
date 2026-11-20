@@ -447,7 +447,7 @@ export function ChimneyServicePage({
                 gap: 8,
                 padding: '7px 14px',
                 borderRadius: 8,
-                backgroundColor: totalCartCount > 0 ? '#6E42E5' : '#F3F4F6',
+                backgroundColor: totalCartCount > 0 ? '#0B57D0' : '#F3F4F6',
                 color: totalCartCount > 0 ? '#FFFFFF' : '#374151',
                 border: 'none',
                 fontWeight: 700,
@@ -461,7 +461,7 @@ export function ChimneyServicePage({
               {totalCartCount > 0 && (
                 <span style={{
                   backgroundColor: '#FFFFFF',
-                  color: '#6E42E5',
+                  color: '#0B57D0',
                   borderRadius: '50%',
                   width: 20,
                   height: 20,
@@ -554,7 +554,7 @@ export function ChimneyServicePage({
             cursor: 'pointer'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <ShieldCheck size={16} color="#6E42E5" />
+              <ShieldCheck size={16} color="#0B57D0" />
               <span>Up to 180 days warranty</span>
             </div>
             <ChevronRight size={15} color="#64748B" />
@@ -782,7 +782,7 @@ export function ChimneyServicePage({
                               </h4>
 
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#64748B', marginBottom: 6 }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: '#6E42E5' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: '#0B57D0' }}>
                                   <Star size={13} fill="#F59E0B" color="#F59E0B" /> {service.rating}
                                 </span>
                                 <span style={{ borderBottom: '1px dotted #94A3B8', cursor: 'pointer' }}>
@@ -820,7 +820,7 @@ export function ChimneyServicePage({
                                   background: 'none',
                                   border: 'none',
                                   padding: 0,
-                                  color: '#6E42E5',
+                                  color: '#0B57D0',
                                   fontSize: 13,
                                   fontWeight: 700,
                                   cursor: 'pointer'
@@ -840,9 +840,9 @@ export function ChimneyServicePage({
                                     width: '100%',
                                     padding: '7px 0',
                                     borderRadius: 8,
-                                    border: '1.5px solid #6E42E5',
+                                    border: '1.5px solid #0B57D0',
                                     backgroundColor: '#FFFFFF',
-                                    color: '#6E42E5',
+                                    color: '#0B57D0',
                                     fontSize: 13.5,
                                     fontWeight: 800,
                                     cursor: 'pointer',
@@ -850,12 +850,12 @@ export function ChimneyServicePage({
                                     transition: 'all 0.15s ease'
                                   }}
                                   onMouseEnter={e => {
-                                    e.currentTarget.style.backgroundColor = '#6E42E5';
+                                    e.currentTarget.style.backgroundColor = '#0B57D0';
                                     e.currentTarget.style.color = '#FFFFFF';
                                   }}
                                   onMouseLeave={e => {
                                     e.currentTarget.style.backgroundColor = '#FFFFFF';
-                                    e.currentTarget.style.color = '#6E42E5';
+                                    e.currentTarget.style.color = '#0B57D0';
                                   }}
                                 >
                                   Add
@@ -868,7 +868,7 @@ export function ChimneyServicePage({
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     width: '100%',
-                                    backgroundColor: '#6E42E5',
+                                    backgroundColor: '#0B57D0',
                                     color: '#FFFFFF',
                                     borderRadius: 8,
                                     padding: '6px 8px',
@@ -884,7 +884,7 @@ export function ChimneyServicePage({
                                 onClick={() => setOptionsModalService(service)}
                                 style={{
                                   fontSize: 11,
-                                  color: optionsCountInCart > 0 ? '#6E42E5' : '#64748B',
+                                  color: optionsCountInCart > 0 ? '#0B57D0' : '#64748B',
                                   fontWeight: optionsCountInCart > 0 ? 700 : 500,
                                   cursor: 'pointer'
                                 }}
@@ -1008,7 +1008,7 @@ export function ChimneyServicePage({
                               background: 'none',
                               border: 'none',
                               padding: 0,
-                              color: '#6E42E5',
+                              color: '#0B57D0',
                               fontSize: 13,
                               fontWeight: 700,
                               cursor: 'pointer',
@@ -1060,9 +1060,9 @@ export function ChimneyServicePage({
                                   onClick={() => setOptionsModalService(service)}
                                   style={{
                                     width: '100%',
-                                    border: '1.5px solid #6E42E5',
+                                    border: '1.5px solid #0B57D0',
                                     backgroundColor: '#FFFFFF',
-                                    color: '#6E42E5',
+                                    color: '#0B57D0',
                                     fontSize: 13.5,
                                     fontWeight: 800,
                                     padding: '6px 0',
@@ -1072,12 +1072,12 @@ export function ChimneyServicePage({
                                     transition: 'all 0.15s ease'
                                   }}
                                   onMouseEnter={e => {
-                                    e.currentTarget.style.backgroundColor = '#6E42E5';
+                                    e.currentTarget.style.backgroundColor = '#0B57D0';
                                     e.currentTarget.style.color = '#FFFFFF';
                                   }}
                                   onMouseLeave={e => {
                                     e.currentTarget.style.backgroundColor = '#FFFFFF';
-                                    e.currentTarget.style.color = '#6E42E5';
+                                    e.currentTarget.style.color = '#0B57D0';
                                   }}
                                 >
                                   Add
@@ -1090,7 +1090,7 @@ export function ChimneyServicePage({
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    backgroundColor: '#6E42E5',
+                                    backgroundColor: '#0B57D0',
                                     color: '#FFFFFF',
                                     borderRadius: 8,
                                     padding: '5px 6px',
@@ -1106,7 +1106,7 @@ export function ChimneyServicePage({
                                 onClick={() => setOptionsModalService(service)}
                                 style={{
                                   fontSize: 11,
-                                  color: optionsCountInCart > 0 ? '#6E42E5' : '#64748B',
+                                  color: optionsCountInCart > 0 ? '#0B57D0' : '#64748B',
                                   fontWeight: optionsCountInCart > 0 ? 700 : 500,
                                   cursor: 'pointer'
                                 }}
@@ -1125,9 +1125,9 @@ export function ChimneyServicePage({
                                   }}
                                   style={{
                                     width: '100%',
-                                    border: '1.5px solid #6E42E5',
+                                    border: '1.5px solid #0B57D0',
                                     backgroundColor: '#FFFFFF',
-                                    color: '#6E42E5',
+                                    color: '#0B57D0',
                                     fontSize: 13.5,
                                     fontWeight: 800,
                                     padding: '6px 0',
@@ -1137,12 +1137,12 @@ export function ChimneyServicePage({
                                     transition: 'all 0.15s ease'
                                   }}
                                   onMouseEnter={e => {
-                                    e.currentTarget.style.backgroundColor = '#6E42E5';
+                                    e.currentTarget.style.backgroundColor = '#0B57D0';
                                     e.currentTarget.style.color = '#FFFFFF';
                                   }}
                                   onMouseLeave={e => {
                                     e.currentTarget.style.backgroundColor = '#FFFFFF';
-                                    e.currentTarget.style.color = '#6E42E5';
+                                    e.currentTarget.style.color = '#0B57D0';
                                   }}
                                 >
                                   Add
@@ -1153,7 +1153,7 @@ export function ChimneyServicePage({
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
-                                  backgroundColor: '#6E42E5',
+                                  backgroundColor: '#0B57D0',
                                   color: '#FFFFFF',
                                   borderRadius: 8,
                                   padding: '5px 8px',
@@ -1250,12 +1250,12 @@ export function ChimneyServicePage({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 6px rgba(99, 102, 241, 0.15)'
+                boxShadow: '0 2px 6px rgba(11, 87, 208, 0.15)'
               }}>
-                <span style={{ fontSize: 7, fontWeight: 900, color: '#4F46E5', lineHeight: 1 }}>
+                <span style={{ fontSize: 7, fontWeight: 900, color: '#0B57D0', lineHeight: 1 }}>
                   QUALITY
                 </span>
-                <span style={{ fontSize: 6.5, fontWeight: 800, color: '#7C3AED', lineHeight: 1, marginTop: 1 }}>
+                <span style={{ fontSize: 6.5, fontWeight: 800, color: '#0B57D0', lineHeight: 1, marginTop: 1 }}>
                   ASSURED
                 </span>
               </div>
@@ -1300,9 +1300,9 @@ export function ChimneyServicePage({
                     <path d="M12 12H20L28 42H58L66 22H24" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                     <circle cx="32" cy="48" r="3.5" fill="#94A3B8" />
                     <circle cx="54" cy="48" r="3.5" fill="#94A3B8" />
-                    <circle cx="48" cy="14" r="5" fill="#8B5CF6" />
+                    <circle cx="48" cy="14" r="5" fill="#0B57D0" />
                     <path d="M52 14L56 16L52 18Z" fill="#F59E0B" />
-                    <path d="M44 16C42 18 42 22 45 22C48 22 49 19 49 16Z" fill="#7C3AED" />
+                    <path d="M44 16C42 18 42 22 45 22C48 22 49 19 49 16Z" fill="#0B57D0" />
                   </svg>
                 </div>
 
@@ -1329,7 +1329,7 @@ export function ChimneyServicePage({
                   <h4 style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A', margin: 0 }}>
                     Cart Summary
                   </h4>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#6E42E5' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0' }}>
                     {totalCartCount} {totalCartCount === 1 ? 'item' : 'items'}
                   </span>
                 </div>
@@ -1411,7 +1411,7 @@ export function ChimneyServicePage({
                   onClick={onOpenCheckout}
                   style={{
                     width: '100%',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -1422,11 +1422,11 @@ export function ChimneyServicePage({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    boxShadow: '0 4px 12px rgba(110, 66, 229, 0.3)',
+                    boxShadow: '0 4px 12px rgba(11, 87, 208, 0.3)',
                     transition: 'background-color 0.15s ease'
                   }}
                   onMouseEnter={e => e.currentTarget.style.backgroundColor = '#582AD1'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = '#6E42E5'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0B57D0'}
                 >
                   <span>Proceed to Pay</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1485,7 +1485,7 @@ export function ChimneyServicePage({
                   {optionsModalService.title}
                 </h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#64748B' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: '#6E42E5' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontWeight: 700, color: '#0B57D0' }}>
                     <Star size={13} fill="#F59E0B" color="#F59E0B" /> {optionsModalService.rating}
                   </span>
                   <span>({optionsModalService.reviews})</span>
@@ -1521,7 +1521,7 @@ export function ChimneyServicePage({
                   <div 
                     key={opt.id}
                     style={{
-                      border: optQty > 0 ? '1.5px solid #6E42E5' : '1px solid #E5E7EB',
+                      border: optQty > 0 ? '1.5px solid #0B57D0' : '1px solid #E5E7EB',
                       backgroundColor: optQty > 0 ? '#FAF7FF' : '#FFFFFF',
                       borderRadius: 12,
                       padding: '14px 16px',
@@ -1537,7 +1537,7 @@ export function ChimneyServicePage({
                         {opt.title}
                       </h4>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#64748B', marginBottom: 4 }}>
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontWeight: 700, color: '#6E42E5' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontWeight: 700, color: '#0B57D0' }}>
                           <Star size={11} fill="#F59E0B" color="#F59E0B" /> {opt.rating}
                         </span>
                         <span>({opt.reviews})</span>
@@ -1569,21 +1569,21 @@ export function ChimneyServicePage({
                           style={{
                             padding: '6px 20px',
                             borderRadius: 8,
-                            border: '1.5px solid #6E42E5',
+                            border: '1.5px solid #0B57D0',
                             backgroundColor: '#FFFFFF',
-                            color: '#6E42E5',
+                            color: '#0B57D0',
                             fontSize: 13,
                             fontWeight: 800,
                             cursor: 'pointer',
                             transition: 'all 0.15s ease'
                           }}
                           onMouseEnter={e => {
-                            e.currentTarget.style.backgroundColor = '#6E42E5';
+                            e.currentTarget.style.backgroundColor = '#0B57D0';
                             e.currentTarget.style.color = '#FFFFFF';
                           }}
                           onMouseLeave={e => {
                             e.currentTarget.style.backgroundColor = '#FFFFFF';
-                            e.currentTarget.style.color = '#6E42E5';
+                            e.currentTarget.style.color = '#0B57D0';
                           }}
                         >
                           Add
@@ -1593,7 +1593,7 @@ export function ChimneyServicePage({
                           display: 'flex',
                           alignItems: 'center',
                           gap: 10,
-                          backgroundColor: '#6E42E5',
+                          backgroundColor: '#0B57D0',
                           borderRadius: 8,
                           padding: '5px 10px',
                           color: '#FFFFFF'
@@ -1637,7 +1637,7 @@ export function ChimneyServicePage({
                 type="button"
                 onClick={() => setOptionsModalService(null)}
                 style={{
-                  backgroundColor: '#6E42E5',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
@@ -1745,7 +1745,7 @@ export function ChimneyServicePage({
               }}
               style={{
                 width: '100%',
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 8,

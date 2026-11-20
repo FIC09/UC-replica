@@ -3965,7 +3965,7 @@ export default function App() {
             activeOpacity={0.7}
             onPress={() => setShowCustomerPaymentsAdminModal(true)}
           >
-            <View style={[styles.profileMenuIconBox, { backgroundColor: '#EEF2FF' }]}>
+            <View style={[styles.profileMenuIconBox, { backgroundColor: '#E8F1FF' }]}>
               <Text style={styles.profileMenuIcon}>📊</Text>
             </View>
             <View style={{ flex: 1 }}>
@@ -9145,7 +9145,7 @@ const styles = StyleSheet.create({
   },
   nativeModelPrice: {
     fontSize: 12,
-    color: '#E9D5FF',
+    color: '#E8F1FF',
     marginTop: 2,
   },
   whiteBuyBtn: {
@@ -9327,7 +9327,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
   },
   rewardsHeaderSub: {
-    color: '#DDD6FE',
+    color: '#E4E7EC',
     fontSize: 12.5,
     marginTop: 4,
   },
@@ -10280,7 +10280,7 @@ const styles = StyleSheet.create({
   modalCategory: {
     fontSize: 11.5,
     fontWeight: '800',
-    color: '#7C3AED',
+    color: '#0B57D0',
     textTransform: 'uppercase',
   },
   modalCloseBtn: {
@@ -10495,7 +10495,7 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#E8F1FF',
   },
   richModalCloseBtn: {
     position: 'absolute',
@@ -10879,7 +10879,7 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#E8F1FF',
   },
   searchResultBadge: {
     position: 'absolute',

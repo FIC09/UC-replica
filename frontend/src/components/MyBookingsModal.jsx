@@ -128,7 +128,7 @@ export function MyBookingsModal({
         {/* Header */}
         <div className="cart-drawer-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Calendar size={22} color="#6E42E5" />
+            <Calendar size={22} color="#0B57D0" />
             <div>
               <h3 className="cart-header-title">My Bookings</h3>
               <div style={{ fontSize: 12, color: '#64748B' }}>
@@ -140,72 +140,6 @@ export function MyBookingsModal({
             <X size={20} />
           </button>
         </div>
-
-        {/* Customer Account Header Card with Log Out */}
-        {currentUser && (
-          <div style={{
-            padding: '12px 20px',
-            background: '#F1F5F9',
-            borderBottom: '1px solid #E2E8F0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-              <div style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: '#6E42E5',
-                color: '#FFFFFF',
-                fontWeight: 700,
-                fontSize: 14,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0
-              }}>
-                {(currentUser.name || currentUser.phone || 'U').charAt(0).toUpperCase()}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {currentUser.name || 'Customer Account'}
-                </div>
-                <div style={{ fontSize: 11, color: '#64748B' }}>
-                  {currentUser.phone || currentUser.email || 'Verified Customer'}
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onLogout?.();
-              }}
-              title="Log out of your customer account"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 12px',
-                borderRadius: 8,
-                border: '1px solid #FECACA',
-                background: '#FEF2F2',
-                color: '#DC2626',
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                flexShrink: 0
-              }}
-            >
-              <LogOut size={13} />
-              <span>Log Out</span>
-            </button>
-          </div>
-        )}
 
         {/* Filter Tabs */}
         <div style={{
@@ -232,8 +166,8 @@ export function MyBookingsModal({
                 fontSize: 12,
                 fontWeight: 700,
                 border: '1px solid',
-                borderColor: filter === tab.id ? '#6E42E5' : '#E2E8F0',
-                background: filter === tab.id ? '#6E42E5' : '#fff',
+                borderColor: filter === tab.id ? '#0B57D0' : '#E2E8F0',
+                background: filter === tab.id ? '#0B57D0' : '#fff',
                 color: filter === tab.id ? '#fff' : '#64748B',
                 whiteSpace: 'nowrap'
               }}
@@ -252,8 +186,8 @@ export function MyBookingsModal({
                 width: 64,
                 height: 64,
                 borderRadius: '50%',
-                background: '#EEF2FF',
-                color: '#4F46E5',
+                background: '#E8F1FF',
+                color: '#0B57D0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -276,13 +210,13 @@ export function MyBookingsModal({
                 style={{
                   padding: '10px 24px',
                   borderRadius: 10,
-                  backgroundColor: '#6E42E5',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   fontWeight: 700,
                   fontSize: 14,
                   border: 'none',
                   cursor: 'pointer',
-                  boxShadow: '0 4px 12px rgba(110, 66, 229, 0.25)'
+                  boxShadow: '0 4px 12px rgba(11, 87, 208, 0.25)'
                 }}
               >
                 Log In / Sign Up
@@ -294,8 +228,8 @@ export function MyBookingsModal({
                 width: 64,
                 height: 64,
                 borderRadius: '50%',
-                background: '#F4F0FF',
-                color: '#6E42E5',
+                background: '#E8F1FF',
+                color: '#0B57D0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -352,7 +286,7 @@ export function MyBookingsModal({
 
                     {/* Slot */}
                     <div style={{ fontSize: 12.5, color: '#4B5563', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 5 }}>
-                      <Clock size={14} color="#6E42E5" />
+                      <Clock size={14} color="#0B57D0" />
                       <span>{formatSlotDisplay(b.slot, b.scheduledDate, b.createdAt)}</span>
                     </div>
 
@@ -409,8 +343,8 @@ export function MyBookingsModal({
                               flex: 1,
                               padding: '8px 12px',
                               borderRadius: 8,
-                              background: '#F4F0FF',
-                              color: '#6E42E5',
+                              background: '#E8F1FF',
+                              color: '#0B57D0',
                               fontSize: 12,
                               fontWeight: 700,
                               display: 'flex',
@@ -595,7 +529,7 @@ export function MyBookingsModal({
             <div className="checkout-modal-card" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
               <div style={{ padding: 18, borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <RotateCcw size={18} color="#6E42E5" />
+                  <RotateCcw size={18} color="#0B57D0" />
                   <h4 style={{ fontSize: 16, fontWeight: 800 }}>Reschedule Booking</h4>
                 </div>
                 <button type="button" onClick={() => setReschedulingBooking(null)}>
@@ -623,9 +557,9 @@ export function MyBookingsModal({
                         borderRadius: 8,
                         fontSize: 11.5,
                         fontWeight: 700,
-                        border: `1.5px solid ${newDate === d.label ? '#6E42E5' : '#E2E8F0'}`,
-                        background: newDate === d.label ? '#F4F0FF' : '#fff',
-                        color: newDate === d.label ? '#6E42E5' : '#4B5563'
+                        border: `1.5px solid ${newDate === d.label ? '#0B57D0' : '#E2E8F0'}`,
+                        background: newDate === d.label ? '#E8F1FF' : '#fff',
+                        color: newDate === d.label ? '#0B57D0' : '#4B5563'
                       }}
                     >
                       {d.prefix}
@@ -649,8 +583,8 @@ export function MyBookingsModal({
                         borderRadius: 8,
                         fontSize: 11.5,
                         fontWeight: 700,
-                        border: `1.5px solid ${newTime === ts ? '#6E42E5' : '#E2E8F0'}`,
-                        background: newTime === ts ? '#6E42E5' : '#fff',
+                        border: `1.5px solid ${newTime === ts ? '#0B57D0' : '#E2E8F0'}`,
+                        background: newTime === ts ? '#0B57D0' : '#fff',
                         color: newTime === ts ? '#fff' : '#4B5563'
                       }}
                     >
@@ -687,7 +621,7 @@ export function MyBookingsModal({
             <div className="checkout-modal-card" style={{ maxWidth: 440 }} onClick={(e) => e.stopPropagation()}>
               <div style={{ padding: 18, borderBottom: '1px solid #E2E8F0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Edit3 size={18} color="#6E42E5" />
+                  <Edit3 size={18} color="#0B57D0" />
                   <h4 style={{ fontSize: 16, fontWeight: 800 }}>Edit Service Address & Notes</h4>
                 </div>
                 <button type="button" onClick={() => setEditingAddressBooking(null)}>

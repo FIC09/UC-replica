@@ -2,10 +2,22 @@ import React from 'react';
 import { HardHat, Building2, ArrowRight, CheckCircle2, TrendingUp, Users, ShieldCheck, DollarSign } from 'lucide-react';
 
 export function OnboardingShowcaseSection({
+  user,
   selectedCity = '',
   onOpenWorkerOnboarding,
   onOpenPartnerOnboarding
 }) {
+  // Do not show worker and partner onboarding opportunities after customer login
+  if (user) {
+    return null;
+  }
+  try {
+    const saved = localStorage.getItem('uc_user');
+    if (saved && JSON.parse(saved)) {
+      return null;
+    }
+  } catch {}
+
   return (
     <section className="onboarding-showcase-section" style={{
       padding: '40px 0',
@@ -22,7 +34,7 @@ export function OnboardingShowcaseSection({
             gap: 6,
             fontSize: 11,
             fontWeight: 800,
-            color: '#6E42E5',
+            color: '#0B57D0',
             textTransform: 'uppercase',
             letterSpacing: 0.5,
             marginBottom: 6
@@ -143,34 +155,34 @@ export function OnboardingShowcaseSection({
           {/* Card 2: Partner Onboarding (For Businesses, Agencies & Fleets) */}
           <div style={{
             background: '#FFFFFF',
-            border: '1.5px solid #E9D5FF',
-            borderTop: '4px solid #6E42E5',
+            border: '1.5px solid #E8F1FF',
+            borderTop: '4px solid #0B57D0',
             borderRadius: 16,
             padding: 24,
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            boxShadow: '0 4px 14px rgba(110, 66, 229, 0.06)'
+            boxShadow: '0 4px 14px rgba(11, 87, 208, 0.06)'
           }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                 <div style={{
                   width: 44,
                   height: 44,
-                  background: '#F4F0FF',
-                  border: '1px solid #E9D5FF',
+                  background: '#E8F1FF',
+                  border: '1px solid #E8F1FF',
                   borderRadius: 10,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#6E42E5'
+                  color: '#0B57D0'
                 }}>
                   <Building2 size={22} />
                 </div>
                 <span style={{
-                  background: '#FAF5FF',
-                  border: '1px solid #E9D5FF',
-                  color: '#6E42E5',
+                  background: '#E8F1FF',
+                  border: '1px solid #E8F1FF',
+                  color: '#0B57D0',
                   fontSize: 11,
                   fontWeight: 800,
                   padding: '3px 10px',
@@ -189,15 +201,15 @@ export function OnboardingShowcaseSection({
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#334155' }}>
-                  <CheckCircle2 size={15} color="#6E42E5" />
+                  <CheckCircle2 size={15} color="#0B57D0" />
                   <span>Guaranteed high-volume enterprise booking dispatch</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#334155' }}>
-                  <CheckCircle2 size={15} color="#6E42E5" />
+                  <CheckCircle2 size={15} color="#0B57D0" />
                   <span>Partner Pro Fleet ERP software for live technician tracking</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#334155' }}>
-                  <CheckCircle2 size={15} color="#6E42E5" />
+                  <CheckCircle2 size={15} color="#0B57D0" />
                   <span>Dedicated corporate account manager & priority settlements</span>
                 </div>
               </div>
@@ -208,7 +220,7 @@ export function OnboardingShowcaseSection({
               onClick={onOpenPartnerOnboarding}
               style={{
                 width: '100%',
-                background: '#6E42E5',
+                background: '#0B57D0',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 8,
@@ -223,7 +235,7 @@ export function OnboardingShowcaseSection({
                 transition: 'background 0.15s ease'
               }}
               onMouseEnter={(e) => e.currentTarget.style.background = '#5829D6'}
-              onMouseLeave={(e) => e.currentTarget.style.background = '#6E42E5'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#0B57D0'}
             >
               <span>Apply for Partner Onboarding</span>
               <ArrowRight size={16} />

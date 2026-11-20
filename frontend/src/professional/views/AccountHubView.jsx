@@ -113,8 +113,8 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
           label: 'Earnings & Ledgers',
           desc: 'Daily breakdown, incentives, customer tips, deductions',
           icon: Wallet,
-          iconColor: '#7c3aed',
-          iconBg: '#f5f3ff',
+          iconColor: '#0B57D0',
+          iconBg: '#E8F1FF',
           path: '/professional/earnings',
           badge: 'View Ledger',
           badgeType: 'purple'
@@ -151,9 +151,9 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
       label: "Today's Jobs",
       desc: 'Active dispatches & OTP',
       icon: Briefcase,
-      color: '#7c3aed',
-      bg: '#faf5ff',
-      borderColor: '#ede9fe',
+      color: '#0B57D0',
+      bg: '#E8F1FF',
+      borderColor: '#E8F1FF',
       path: '/professional/jobs'
     },
     {
@@ -195,9 +195,9 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
       color = '#92400e';
       border = '#fde68a';
     } else if (badgeType === 'purple') {
-      bg = '#faf5ff';
-      color = '#6b21a8';
-      border = '#e9d5ff';
+      bg = '#E8F1FF';
+      color = '#0B57D0';
+      border = '#E8F1FF';
     }
 
     return (
@@ -233,7 +233,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#64748b' }}>
           <span
             onClick={() => onNavigate('/professional')}
-            style={{ cursor: 'pointer', color: '#7c3aed', fontWeight: 600 }}
+            style={{ cursor: 'pointer', color: '#0B57D0', fontWeight: 600 }}
           >
             Dashboard
           </span>
@@ -248,7 +248,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
 
       {/* Hero Profile Card */}
       <div style={{
-        background: 'linear-gradient(135deg, #1e1b4b 0%, #2e1065 25%, #4c1d95 65%, #6d28d9 100%)',
+        background: 'linear-gradient(135deg, #1e1b4b 0%, #2e1065 25%, #0B57D0 65%, #0849B1 100%)',
         borderRadius: 24,
         padding: '28px 26px',
         color: '#ffffff',
@@ -286,7 +286,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
                 height: 68,
                 borderRadius: '50%',
                 background: '#ffffff',
-                color: '#6d28d9',
+                color: '#0849B1',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -425,7 +425,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
               onClick={() => onNavigate('/professional/payouts')}
               style={{
                 background: '#ffffff',
-                color: '#6d28d9',
+                color: '#0849B1',
                 border: 'none',
                 padding: '9px 16px',
                 borderRadius: 20,
@@ -441,7 +441,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
               onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
               onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
             >
-              <Wallet size={14} color="#6d28d9" />
+              <Wallet size={14} color="#0849B1" />
               <span>Instant Payout</span>
             </button>
           </div>
@@ -660,7 +660,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
             fontWeight: 800,
             textTransform: 'uppercase',
             letterSpacing: 0.8,
-            color: '#7c3aed',
+            color: '#0B57D0',
             marginBottom: 10,
             paddingLeft: 4
           }}>
@@ -692,7 +692,7 @@ export function AccountHubView({ profile, onNavigate, onLogout, onToggleOnline, 
                     minHeight: 52
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#faf5ff';
+                    e.currentTarget.style.background = '#E8F1FF';
                     const chevron = e.currentTarget.querySelector('.pro-menu-chevron');
                     if (chevron) chevron.style.transform = 'translateX(3px)';
                   }}

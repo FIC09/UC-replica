@@ -300,7 +300,7 @@ export function MicrowaveServicePage({
                 gap: 8,
                 padding: '7px 14px',
                 borderRadius: 8,
-                backgroundColor: totalCartCount > 0 ? '#6E42E5' : '#F3F4F6',
+                backgroundColor: totalCartCount > 0 ? '#0B57D0' : '#F3F4F6',
                 color: totalCartCount > 0 ? '#FFFFFF' : '#374151',
                 border: 'none',
                 fontWeight: 700,
@@ -314,7 +314,7 @@ export function MicrowaveServicePage({
               {totalCartCount > 0 && (
                 <span style={{
                   backgroundColor: '#FFFFFF',
-                  color: '#6E42E5',
+                  color: '#0B57D0',
                   borderRadius: '50%',
                   width: 20,
                   height: 20,
@@ -449,7 +449,7 @@ export function MicrowaveServicePage({
                 type="button"
                 onClick={scrollToServices}
                 style={{
-                  backgroundColor: '#6E42E5',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 10,
@@ -457,11 +457,11 @@ export function MicrowaveServicePage({
                   fontSize: 14.5,
                   fontWeight: 700,
                   cursor: 'pointer',
-                  boxShadow: '0 4px 14px rgba(110, 66, 229, 0.28)',
+                  boxShadow: '0 4px 14px rgba(11, 87, 208, 0.28)',
                   transition: 'background-color 0.15s ease'
                 }}
                 onMouseEnter={e => e.currentTarget.style.backgroundColor = '#582AD1'}
-                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#6E42E5'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0B57D0'}
               >
                 View Services
               </button>
@@ -679,7 +679,7 @@ export function MicrowaveServicePage({
                         minWidth: 160,
                         maxWidth: 168,
                         backgroundColor: '#FFFFFF',
-                        border: qty > 0 ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
+                        border: qty > 0 ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
                         borderRadius: 14,
                         padding: '16px 14px',
                         display: 'flex',
@@ -741,9 +741,9 @@ export function MicrowaveServicePage({
                             }}
                             style={{
                               width: '100%',
-                              border: '1.5px solid #6E42E5',
+                              border: '1.5px solid #0B57D0',
                               backgroundColor: '#FFFFFF',
-                              color: '#6E42E5',
+                              color: '#0B57D0',
                               fontSize: 13,
                               fontWeight: 800,
                               padding: '6px 0',
@@ -753,12 +753,12 @@ export function MicrowaveServicePage({
                               transition: 'all 0.15s ease'
                             }}
                             onMouseEnter={e => {
-                              e.currentTarget.style.backgroundColor = '#6E42E5';
+                              e.currentTarget.style.backgroundColor = '#0B57D0';
                               e.currentTarget.style.color = '#FFFFFF';
                             }}
                             onMouseLeave={e => {
                               e.currentTarget.style.backgroundColor = '#FFFFFF';
-                              e.currentTarget.style.color = '#6E42E5';
+                              e.currentTarget.style.color = '#0B57D0';
                             }}
                           >
                             Add
@@ -769,7 +769,7 @@ export function MicrowaveServicePage({
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            backgroundColor: '#6E42E5',
+                            backgroundColor: '#0B57D0',
                             color: '#FFFFFF',
                             borderRadius: 8,
                             padding: '5px 8px',
@@ -859,7 +859,7 @@ export function MicrowaveServicePage({
                     <button
                       type="button"
                       onClick={() => setSelectedDetailItem(svc)}
-                      style={{ background: 'none', border: 'none', padding: 0, color: '#6E42E5', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                      style={{ background: 'none', border: 'none', padding: 0, color: '#0B57D0', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                     >
                       View details
                     </button>
@@ -875,9 +875,9 @@ export function MicrowaveServicePage({
                         }}
                         style={{
                           width: '100%',
-                          border: '1.5px solid #6E42E5',
+                          border: '1.5px solid #0B57D0',
                           backgroundColor: '#FFFFFF',
-                          color: '#6E42E5',
+                          color: '#0B57D0',
                           fontSize: 13,
                           fontWeight: 800,
                           padding: '6px 0',
@@ -892,7 +892,7 @@ export function MicrowaveServicePage({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        backgroundColor: '#6E42E5',
+                        backgroundColor: '#0B57D0',
                         color: '#FFFFFF',
                         borderRadius: 8,
                         padding: '5px 8px'
@@ -1204,12 +1204,12 @@ export function MicrowaveServicePage({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 2px 6px rgba(99, 102, 241, 0.15)'
+                boxShadow: '0 2px 6px rgba(11, 87, 208, 0.15)'
               }}>
-                <span style={{ fontSize: 7, fontWeight: 900, color: '#4F46E5', lineHeight: 1 }}>
+                <span style={{ fontSize: 7, fontWeight: 900, color: '#0B57D0', lineHeight: 1 }}>
                   QUALITY
                 </span>
-                <span style={{ fontSize: 6.5, fontWeight: 800, color: '#7C3AED', lineHeight: 1, marginTop: 1 }}>
+                <span style={{ fontSize: 6.5, fontWeight: 800, color: '#0B57D0', lineHeight: 1, marginTop: 1 }}>
                   ASSURED
                 </span>
               </div>
@@ -1254,9 +1254,9 @@ export function MicrowaveServicePage({
                     <path d="M12 12H20L28 42H58L66 22H24" stroke="#94A3B8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                     <circle cx="32" cy="48" r="3.5" fill="#94A3B8" />
                     <circle cx="54" cy="48" r="3.5" fill="#94A3B8" />
-                    <circle cx="48" cy="14" r="5" fill="#8B5CF6" />
+                    <circle cx="48" cy="14" r="5" fill="#0B57D0" />
                     <path d="M52 14L56 16L52 18Z" fill="#F59E0B" />
-                    <path d="M44 16C42 18 42 22 45 22C48 22 49 19 49 16Z" fill="#7C3AED" />
+                    <path d="M44 16C42 18 42 22 45 22C48 22 49 19 49 16Z" fill="#0B57D0" />
                   </svg>
                 </div>
 
@@ -1283,7 +1283,7 @@ export function MicrowaveServicePage({
                   <h4 style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A', margin: 0 }}>
                     Cart Summary
                   </h4>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#6E42E5' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0' }}>
                     {totalCartCount} {totalCartCount === 1 ? 'item' : 'items'}
                   </span>
                 </div>
@@ -1379,7 +1379,7 @@ export function MicrowaveServicePage({
                   onClick={onOpenCheckout}
                   style={{
                     width: '100%',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -1387,11 +1387,11 @@ export function MicrowaveServicePage({
                     fontSize: 14,
                     fontWeight: 800,
                     cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(110, 66, 229, 0.25)',
+                    boxShadow: '0 4px 12px rgba(11, 87, 208, 0.25)',
                     transition: 'all 0.15s ease'
                   }}
                   onMouseEnter={e => e.currentTarget.style.backgroundColor = '#582AD1'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = '#6E42E5'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0B57D0'}
                 >
                   Proceed to Pay
                 </button>
@@ -1477,7 +1477,7 @@ export function MicrowaveServicePage({
                 type="button"
                 onClick={() => setIsRateCardModalOpen(false)}
                 style={{
-                  backgroundColor: '#6E42E5',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
@@ -1525,7 +1525,7 @@ export function MicrowaveServicePage({
               borderBottom: '1px solid #F1F5F9'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <ShieldCheck size={22} color="#6E42E5" />
+                <ShieldCheck size={22} color="#0B57D0" />
                 <h3 style={{ fontSize: 16.5, fontWeight: 800, color: '#0F172A', margin: 0 }}>
                   FIC Cover: Up to 180 Days Warranty
                 </h3>
@@ -1570,7 +1570,7 @@ export function MicrowaveServicePage({
                 type="button"
                 onClick={() => setIsWarrantyModalOpen(false)}
                 style={{
-                  backgroundColor: '#6E42E5',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,

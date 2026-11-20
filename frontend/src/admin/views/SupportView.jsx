@@ -260,8 +260,8 @@ export function SupportView({ onShowToast }) {
                 fontWeight: 700,
                 padding: '2px 8px',
                 borderRadius: 6,
-                backgroundColor: '#EEF2FF',
-                color: '#4F46E5',
+                backgroundColor: '#E8F1FF',
+                color: '#0B57D0',
                 border: '1px solid #C7D2FE',
                 whiteSpace: 'nowrap'
               }}>
@@ -282,9 +282,11 @@ export function SupportView({ onShowToast }) {
         padding: '0 24px',
         display: 'flex',
         gap: 8,
-        position: 'sticky',
-        top: 64,
-        zIndex: 20
+        overflowX: 'auto',
+        flexWrap: 'nowrap',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
+        msOverflowStyle: 'none'
       }}>
         <button
           type="button"
@@ -296,12 +298,14 @@ export function SupportView({ onShowToast }) {
             border: 'none',
             background: 'none',
             cursor: 'pointer',
-            color: activeTab === 'tickets' ? '#6E42E5' : '#64748B',
-            borderBottom: activeTab === 'tickets' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+            color: activeTab === 'tickets' ? '#0B57D0' : '#64748B',
+            borderBottom: activeTab === 'tickets' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
           }}
         >
           <HelpCircle size={15} />
@@ -310,8 +314,8 @@ export function SupportView({ onShowToast }) {
             fontSize: 11,
             padding: '1px 6px',
             borderRadius: 10,
-            backgroundColor: activeTab === 'tickets' ? '#F3E8FF' : '#F1F5F9',
-            color: activeTab === 'tickets' ? '#6E42E5' : '#64748B'
+            backgroundColor: activeTab === 'tickets' ? '#E8F1FF' : '#F1F5F9',
+            color: activeTab === 'tickets' ? '#0B57D0' : '#64748B'
           }}>
             {tickets.length}
           </span>
@@ -327,12 +331,14 @@ export function SupportView({ onShowToast }) {
             border: 'none',
             background: 'none',
             cursor: 'pointer',
-            color: activeTab === 'revisits' ? '#6E42E5' : '#64748B',
-            borderBottom: activeTab === 'revisits' ? '2.5px solid #6E42E5' : '2.5px solid transparent',
+            color: activeTab === 'revisits' ? '#0B57D0' : '#64748B',
+            borderBottom: activeTab === 'revisits' ? '2.5px solid #0B57D0' : '2.5px solid transparent',
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            transition: 'all 0.15s ease'
+            transition: 'all 0.15s ease',
+            whiteSpace: 'nowrap',
+            flexShrink: 0
           }}
         >
           <RotateCcw size={15} />
@@ -341,8 +347,8 @@ export function SupportView({ onShowToast }) {
             fontSize: 11,
             padding: '1px 6px',
             borderRadius: 10,
-            backgroundColor: activeTab === 'revisits' ? '#F3E8FF' : '#F1F5F9',
-            color: activeTab === 'revisits' ? '#6E42E5' : '#64748B'
+            backgroundColor: activeTab === 'revisits' ? '#E8F1FF' : '#F1F5F9',
+            color: activeTab === 'revisits' ? '#0B57D0' : '#64748B'
           }}>
             {revisits.length}
           </span>
@@ -356,53 +362,25 @@ export function SupportView({ onShowToast }) {
       {activeTab === 'tickets' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Filter Bar */}
-          <div style={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 12,
-            padding: '14px 20px',
-            border: '1px solid #E2E8F0',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 12
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', flex: 1 }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                backgroundColor: '#F8FAFC',
-                border: '1px solid #D1D5DB',
-                borderRadius: 8,
-                padding: '8px 12px',
-                flex: '1 1 240px',
-                maxWidth: '100%'
-              }}>
-                <Search size={16} color="#64748B" />
-                <input
-                  type="text"
-                  placeholder="Search Ticket, Customer, Booking..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  style={{ border: 'none', backgroundColor: 'transparent', fontSize: 13, outline: 'none', width: '100%' }}
-                />
-              </div>
+          <div className="admin-support-filter-bar">
+            <div className="admin-support-search-box">
+              <Search size={16} color="#64748B" />
+              <input
+                type="text"
+                placeholder="Search Ticket, Customer, Booking..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ border: 'none', backgroundColor: 'transparent', fontSize: 13, outline: 'none', width: '100%' }}
+              />
+            </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>Role:</span>
+            <div className="admin-support-dropdowns-group">
+              <div className="admin-support-filter-item">
+                <span className="admin-support-filter-label">Role:</span>
                 <select
                   value={roleFilter}
                   onChange={e => setRoleFilter(e.target.value)}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: '1px solid #D1D5DB',
-                    fontSize: 12.5,
-                    backgroundColor: '#FFFFFF',
-                    color: '#0F172A',
-                    fontWeight: 600
-                  }}
+                  className="admin-support-select"
                 >
                   <option value="ALL">All Callers</option>
                   <option value="Customer">Customer</option>
@@ -411,44 +389,28 @@ export function SupportView({ onShowToast }) {
                 </select>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>Priority:</span>
+              <div className="admin-support-filter-item">
+                <span className="admin-support-filter-label">Priority:</span>
                 <select
                   value={priorityFilter}
                   onChange={e => setPriorityFilter(e.target.value)}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: '1px solid #D1D5DB',
-                    fontSize: 12.5,
-                    backgroundColor: '#FFFFFF',
-                    color: '#0F172A',
-                    fontWeight: 600
-                  }}
+                  className="admin-support-select"
                 >
                   <option value="ALL">All Priorities</option>
                   <option value="Critical">Critical</option>
                   <option value="Urgent">Urgent</option>
                   <option value="High">High</option>
-                  <option value="Normal">Normal / Medium</option>
+                  <option value="Normal">Normal</option>
                   <option value="Low">Low</option>
                 </select>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#64748B' }}>Status:</span>
+              <div className="admin-support-filter-item">
+                <span className="admin-support-filter-label">Status:</span>
                 <select
                   value={statusFilter}
                   onChange={e => setStatusFilter(e.target.value)}
-                  style={{
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    border: '1px solid #D1D5DB',
-                    fontSize: 12.5,
-                    backgroundColor: '#FFFFFF',
-                    color: '#0F172A',
-                    fontWeight: 600
-                  }}
+                  className="admin-support-select"
                 >
                   <option value="ALL">All Statuses</option>
                   <option value="Open">Open</option>
@@ -500,7 +462,7 @@ export function SupportView({ onShowToast }) {
                   filteredTickets.map(t => (
                     <tr key={t.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                       <td style={{ padding: '14px 18px' }}>
-                        <div style={{ fontWeight: 800, color: '#6E42E5' }}>{t.referenceNumber}</div>
+                        <div style={{ fontWeight: 800, color: '#0B57D0' }}>{t.referenceNumber}</div>
                         <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 2 }}>
                           Order: <strong style={{ color: '#0F172A' }}>{t.bookingId}</strong>
                         </div>
@@ -515,8 +477,8 @@ export function SupportView({ onShowToast }) {
                             fontWeight: 700,
                             padding: '1px 6px',
                             borderRadius: 4,
-                            backgroundColor: t.callerRole === 'Customer' ? '#EFF6FF' : t.callerRole === 'Professional' ? '#ECFDF5' : '#F5F3FF',
-                            color: t.callerRole === 'Customer' ? '#1D4ED8' : t.callerRole === 'Professional' ? '#047857' : '#6D28D9'
+                            backgroundColor: t.callerRole === 'Customer' ? '#EFF6FF' : t.callerRole === 'Professional' ? '#ECFDF5' : '#E8F1FF',
+                            color: t.callerRole === 'Customer' ? '#1D4ED8' : t.callerRole === 'Professional' ? '#047857' : '#0849B1'
                           }}>
                             {t.callerRole}
                           </span>
@@ -644,7 +606,7 @@ export function SupportView({ onShowToast }) {
                 {revisits.map(r => (
                   <tr key={r.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
                     <td style={{ padding: '14px 18px' }}>
-                      <div style={{ fontWeight: 800, color: '#6E42E5' }}>{r.id}</div>
+                      <div style={{ fontWeight: 800, color: '#0B57D0' }}>{r.id}</div>
                       <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 2 }}>
                         Original: <strong style={{ color: '#0F172A' }}>{r.originalBookingId}</strong>
                       </div>
@@ -879,7 +841,7 @@ export function SupportView({ onShowToast }) {
                           href={att}
                           target="_blank"
                           rel="noreferrer"
-                          style={{ fontSize: 11, color: '#6E42E5', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
+                          style={{ fontSize: 11, color: '#0B57D0', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}
                         >
                           <FileText size={12} /> Attachment #{i + 1}
                         </a>
@@ -908,9 +870,9 @@ export function SupportView({ onShowToast }) {
                       fontSize: 11.5,
                       fontWeight: 700,
                       cursor: 'pointer',
-                      border: !isInternalNote ? '1px solid #6E42E5' : '1px solid #E2E8F0',
-                      backgroundColor: !isInternalNote ? '#F5F3FF' : '#FFFFFF',
-                      color: !isInternalNote ? '#6E42E5' : '#64748B'
+                      border: !isInternalNote ? '1px solid #0B57D0' : '1px solid #E2E8F0',
+                      backgroundColor: !isInternalNote ? '#E8F1FF' : '#FFFFFF',
+                      color: !isInternalNote ? '#0B57D0' : '#64748B'
                     }}
                   >
                     Reply to Customer / Pro
@@ -963,7 +925,7 @@ export function SupportView({ onShowToast }) {
                     padding: '0 16px',
                     borderRadius: 8,
                     border: 'none',
-                    backgroundColor: isInternalNote ? '#D97706' : '#6E42E5',
+                    backgroundColor: isInternalNote ? '#D97706' : '#0B57D0',
                     color: '#FFFFFF',
                     fontWeight: 700,
                     fontSize: 13,
@@ -1134,7 +1096,7 @@ export function SupportView({ onShowToast }) {
                 <button
                   type="submit"
                   disabled={creatingTicket}
-                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0B57D0', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                 >
                   {creatingTicket ? 'Saving...' : 'Register Ticket'}
                 </button>
@@ -1178,7 +1140,7 @@ export function SupportView({ onShowToast }) {
               justifyContent: 'space-between'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <RotateCcw size={18} color="#6E42E5" />
+                <RotateCcw size={18} color="#0B57D0" />
                 <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
                   Log 30-Day Warranty Revisit Dispute
                 </h3>
@@ -1285,7 +1247,7 @@ export function SupportView({ onShowToast }) {
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0B57D0', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
                 >
                   Register Warranty Claim
                 </button>

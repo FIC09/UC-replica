@@ -412,7 +412,7 @@ export function RapidoChatDrawer({
                   width: 44,
                   height: 44,
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
+                  background: 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -420,7 +420,7 @@ export function RapidoChatDrawer({
                   fontSize: 16,
                   color: '#FFFFFF',
                   border: '2px solid rgba(255,255,255,0.3)',
-                  boxShadow: '0 4px 10px rgba(99, 102, 241, 0.4)'
+                  boxShadow: '0 4px 10px rgba(11, 87, 208, 0.4)'
                 }}
               >
                 {partnerName.slice(0, 2).toUpperCase()}
@@ -533,23 +533,23 @@ export function RapidoChatDrawer({
         <div
           style={{
             padding: '7px 16px',
-            background: '#EEF2FF',
+            background: '#E8F1FF',
             borderBottom: '1px solid #E0E7FF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             fontSize: 11,
-            color: '#4338CA'
+            color: '#0849B1'
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#4F46E5' }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#0B57D0' }} />
             <span>Direct Krishnagiri Town Channel • Doorstep dispatch</span>
           </div>
 
           {/* Bilingual Language Switcher */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: '#FFFFFF', padding: '2px 8px', borderRadius: 12, border: '1px solid #C7D2FE' }}>
-            <Globe size={11} color="#6366F1" />
+            <Globe size={11} color="#0B57D0" />
             <button
               type="button"
               onClick={() => setLanguage('en')}
@@ -558,7 +558,7 @@ export function RapidoChatDrawer({
                 border: 'none',
                 fontSize: 11,
                 fontWeight: language === 'en' ? 700 : 500,
-                color: language === 'en' ? '#4F46E5' : '#6B7280',
+                color: language === 'en' ? '#0B57D0' : '#6B7280',
                 cursor: 'pointer',
                 padding: 0
               }}
@@ -574,7 +574,7 @@ export function RapidoChatDrawer({
                 border: 'none',
                 fontSize: 11,
                 fontWeight: language === 'ta' ? 700 : 500,
-                color: language === 'ta' ? '#4F46E5' : '#6B7280',
+                color: language === 'ta' ? '#0B57D0' : '#6B7280',
                 cursor: 'pointer',
                 padding: 0
               }}
@@ -597,7 +597,7 @@ export function RapidoChatDrawer({
           }}
         >
           {loading && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8, color: '#6366F1' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 8, color: '#0B57D0' }}>
               <Loader2 size={24} className="animate-spin" />
               <span style={{ fontSize: 13, fontWeight: 600 }}>Connecting private channel...</span>
             </div>
@@ -650,7 +650,7 @@ export function RapidoChatDrawer({
                 <div
                   style={{
                     background: isMe
-                      ? 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)'
+                      ? 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)'
                       : '#FFFFFF',
                     color: isMe ? '#FFFFFF' : '#0F172A',
                     padding: '10px 14px',
@@ -659,7 +659,7 @@ export function RapidoChatDrawer({
                     borderBottomLeftRadius: isMe ? 16 : 4,
                     fontSize: 13.5,
                     lineHeight: 1.45,
-                    boxShadow: isMe ? '0 3px 10px rgba(79, 70, 229, 0.25)' : '0 1px 3px rgba(0,0,0,0.06)',
+                    boxShadow: isMe ? '0 3px 10px rgba(11, 87, 208, 0.25)' : '0 1px 3px rgba(0,0,0,0.06)',
                     border: isMe ? 'none' : '1px solid #E2E8F0',
                     wordBreak: 'break-word'
                   }}
@@ -746,9 +746,9 @@ export function RapidoChatDrawer({
             >
               <span>{partnerName} is typing</span>
               <div style={{ display: 'flex', gap: 3 }}>
-                <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#6366F1' }} />
-                <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#6366F1' }} />
-                <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#6366F1' }} />
+                <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#0B57D0' }} />
+                <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#0B57D0' }} />
+                <span className="typing-dot" style={{ width: 4, height: 4, borderRadius: '50%', background: '#0B57D0' }} />
               </div>
             </div>
           )}
@@ -790,8 +790,8 @@ export function RapidoChatDrawer({
                     transition: 'all 0.15s ease'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#6366F1';
-                    e.currentTarget.style.color = '#4F46E5';
+                    e.currentTarget.style.borderColor = '#0B57D0';
+                    e.currentTarget.style.color = '#0B57D0';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.borderColor = '#CBD5E1';
@@ -856,7 +856,7 @@ export function RapidoChatDrawer({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: uploadingImage ? '#94A3B8' : '#4F46E5',
+                color: uploadingImage ? '#94A3B8' : '#0B57D0',
                 cursor: 'pointer'
               }}
               title="Attach Photo"
@@ -883,7 +883,7 @@ export function RapidoChatDrawer({
                 transition: 'border-color 0.15s ease',
                 color: '#0F172A'
               }}
-              onFocus={(e) => { e.target.style.borderColor = '#6366F1'; }}
+              onFocus={(e) => { e.target.style.borderColor = '#0B57D0'; }}
               onBlur={(e) => { e.target.style.borderColor = '#E2E8F0'; }}
             />
 
@@ -898,14 +898,14 @@ export function RapidoChatDrawer({
                 borderRadius: '50%',
                 background: !inputText.trim() || sending
                   ? '#CBD5E1'
-                  : 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+                  : 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)',
                 border: 'none',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#FFFFFF',
                 cursor: !inputText.trim() || sending ? 'default' : 'pointer',
-                boxShadow: !inputText.trim() || sending ? 'none' : '0 4px 12px rgba(79, 70, 229, 0.35)',
+                boxShadow: !inputText.trim() || sending ? 'none' : '0 4px 12px rgba(11, 87, 208, 0.35)',
                 transition: 'all 0.15s ease'
               }}
             >

@@ -16,12 +16,12 @@ export function LoadingState({ message = 'Loading dispatch data...' }) {
       <div style={{
         width: 44,
         height: 44,
-        border: '4px solid #f3e8ff',
-        borderTopColor: '#7c3aed',
+        border: '4px solid #E8F1FF',
+        borderTopColor: '#0B57D0',
         borderRadius: '50%',
         animation: 'spin 0.8s linear infinite'
       }} />
-      <div style={{ marginTop: 16, fontSize: 14, fontWeight: 600, color: '#6b21a8' }}>
+      <div style={{ marginTop: 16, fontSize: 14, fontWeight: 600, color: '#0B57D0' }}>
         {message}
       </div>
     </div>
@@ -52,7 +52,7 @@ export function EmptyState({ icon = '📦', title = 'No Dispatches Found', messa
         <button
           onClick={onAction}
           style={{
-            background: '#7c3aed',
+            background: '#0B57D0',
             color: '#ffffff',
             border: 'none',
             padding: '12px 24px',
@@ -323,7 +323,7 @@ export function SessionExpiredModal({ onRelogin }) {
           onClick={onRelogin}
           style={{
             width: '100%',
-            background: '#7c3aed',
+            background: '#0B57D0',
             color: '#ffffff',
             border: 'none',
             padding: '12px 0',

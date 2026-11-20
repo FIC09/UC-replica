@@ -255,7 +255,7 @@ export function PartnerDashboardModal({
                   { label: 'Monthly GMV Handled', val: `₹${partnerProfile.grossTurnover.toLocaleString('en-IN')}`, sub: '+18% vs last month', color: '#60A5FA' },
                   { label: 'Agency Net Payout', val: `₹${partnerProfile.netAgencyPayout.toLocaleString('en-IN')}`, sub: 'Next settlement in 3 days', color: '#34D399' },
                   { label: 'Active Technicians', val: '12 Pros', sub: '98% attendance', color: '#FBBF24' },
-                  { label: 'Monthly Jobs Executed', val: '312 Jobs', sub: 'Target: 350-400 jobs', color: '#C084FC' }
+                  { label: 'Monthly Jobs Executed', val: '312 Jobs', sub: 'Target: 350-400 jobs', color: '#E8F1FF' }
                 ].map((s, idx) => (
                   <div key={idx} style={{
                     background: '#1E293B',

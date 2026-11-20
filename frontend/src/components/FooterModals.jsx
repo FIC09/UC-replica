@@ -304,7 +304,7 @@ export function FooterModals({ activeModal, onClose, selectedCity = 'Mumbai', on
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <HeartHandshake size={18} color="#7C3AED" />
+                    <HeartHandshake size={18} color="#0B57D0" />
                     <strong style={{ color: '#0F172A', fontSize: 13.5 }}>Fair Real-Time Pay</strong>
                   </div>
                   <p style={{ margin: 0, fontSize: 12.5, color: '#64748B' }}>
@@ -429,8 +429,8 @@ export function FooterModals({ activeModal, onClose, selectedCity = 'Mumbai', on
                   }}
                 >
                   <div style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>CONTRIBUTION MARGIN</div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: '#7C3AED', margin: '4px 0' }}>Positive</div>
-                  <div style={{ fontSize: 11.5, color: '#8B5CF6' }}>Unit-Economics Validated Across Top Hubs</div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: '#0B57D0', margin: '4px 0' }}>Positive</div>
+                  <div style={{ fontSize: 11.5, color: '#0B57D0' }}>Unit-Economics Validated Across Top Hubs</div>
                 </div>
               </div>
 

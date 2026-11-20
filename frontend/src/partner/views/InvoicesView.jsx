@@ -113,7 +113,7 @@ export function InvoicesView({ showToast }) {
                     <td style={{ padding: '14px 18px', color: '#64748b', fontSize: 12.5 }}>
                       ₹{(inv.cgst + inv.sgst).toLocaleString('en-IN')}
                     </td>
-                    <td style={{ padding: '14px 18px', fontWeight: 700, color: '#7c3aed', fontSize: 14 }}>
+                    <td style={{ padding: '14px 18px', fontWeight: 700, color: '#0B57D0', fontSize: 14 }}>
                       ₹{inv.totalInvoiceAmount.toLocaleString('en-IN')}
                     </td>
                     <td style={{ padding: '14px 18px' }}>
@@ -213,7 +213,7 @@ export function InvoicesView({ showToast }) {
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, fontSize: 15 }}>
                   <strong style={{ color: '#0f172a' }}>Total Invoice Payable:</strong>
-                  <strong style={{ color: '#7c3aed' }}>₹{selectedInvoice.totalInvoiceAmount.toLocaleString('en-IN')}</strong>
+                  <strong style={{ color: '#0B57D0' }}>₹{selectedInvoice.totalInvoiceAmount.toLocaleString('en-IN')}</strong>
                 </div>
               </div>
 

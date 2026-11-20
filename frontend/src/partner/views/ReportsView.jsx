@@ -196,7 +196,7 @@ export function ReportsView({ showToast, staff }) {
         gap: 14
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: '#0f172a' }}>
-          <Filter size={16} color="#7c3aed" /> Filters:
+          <Filter size={16} color="#0B57D0" /> Filters:
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -272,7 +272,7 @@ export function ReportsView({ showToast, staff }) {
               borderRadius: 8,
               fontSize: 12.5,
               fontWeight: activeDomain === d.id ? 700 : 500,
-              background: activeDomain === d.id ? '#7c3aed' : '#ffffff',
+              background: activeDomain === d.id ? '#0B57D0' : '#ffffff',
               color: activeDomain === d.id ? '#ffffff' : '#64748b',
               border: '1px solid #cbd5e1',
               cursor: 'pointer'
@@ -314,7 +314,7 @@ export function ReportsView({ showToast, staff }) {
             </div>
             <div style={{ background: '#f8fafc', padding: 16, borderRadius: 10, border: '1px solid #e2e8f0' }}>
               <span style={{ fontSize: 12, color: '#64748b' }}>Punctuality / On-Time</span>
-              <strong style={{ fontSize: 24, color: '#7c3aed', display: 'block', marginTop: 4 }}>
+              <strong style={{ fontSize: 24, color: '#0B57D0', display: 'block', marginTop: 4 }}>
                 {reportData?.onTimePunctuality || '0%'}
               </strong>
               <span style={{ fontSize: 11, color: '#94a3b8' }}>Real GPS mobile timestamps</span>

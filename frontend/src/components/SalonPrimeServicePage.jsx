@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, 
   MapPin, 
@@ -14,7 +14,9 @@ import {
   SlidersHorizontal, 
   ShieldCheck, 
   User,
-  Volume2
+  Volume2,
+  Calendar,
+  LogOut
 } from 'lucide-react';
 
 export function SalonPrimeServicePage({
@@ -31,7 +33,11 @@ export function SalonPrimeServicePage({
   monsoonSurge = false,
   user = null,
   onOpenAuth,
-  onOpenProfile
+  onOpenProfile,
+  onOpenBookings,
+  onOpenAddresses,
+  onLogout,
+  bookingsCount = 0
 }) {
   const [activeCategoryTab, setActiveCategoryTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +45,40 @@ export function SalonPrimeServicePage({
   const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
   const [customizingPackage, setCustomizingPackage] = useState(null);
   const [selectedDetailService, setSelectedDetailService] = useState(null);
+
+  // Profile Dropdown state
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const profileMenuRef = useRef(null);
+
+  // Close profile dropdown on outside click
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
+        setShowProfileMenu(false);
+      }
+    }
+    if (showProfileMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [showProfileMenu]);
+
+  // Resolve active logged-in user from prop or fallback to localStorage
+  const effectiveUser = useMemo(() => {
+    if (user && typeof user === 'object' && (user.name || user.phone || user.email || user.id || user._id)) {
+      return user;
+    }
+    try {
+      const saved = localStorage.getItem('uc_user');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  }, [user]);
 
   // Customization choices for packages
   const [selectedWax, setSelectedWax] = useState('Chocolate roll-on wax');
@@ -958,7 +998,7 @@ export function SalonPrimeServicePage({
       originalPrice: finalOriginal,
       serviceCategory: 'womens-salon'
     });
-    showToast(`✨ Added "${svc.title}" to cart`);
+    showToast(`Added "${svc.title}" to cart`);
   }
 
   function handleOpenCustomize(pkg) {
@@ -1050,7 +1090,7 @@ export function SalonPrimeServicePage({
                 maxWidth: 240
               }}
             >
-              <MapPin size={14} color="#6E42E5" style={{ flexShrink: 0 }} />
+              <MapPin size={14} color="#0B57D0" style={{ flexShrink: 0 }} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 4744+HMQ, {selectedLocality || selectedCity}
               </span>
@@ -1122,7 +1162,7 @@ export function SalonPrimeServicePage({
                   position: 'absolute',
                   top: -5,
                   right: -5,
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   color: '#fff',
                   fontSize: 10.5,
                   fontWeight: 900,
@@ -1139,32 +1179,221 @@ export function SalonPrimeServicePage({
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                if (user && onOpenProfile) {
-                  onOpenProfile();
-                } else if (onOpenAuth) {
-                  onOpenAuth();
-                }
-              }}
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: '50%',
-                background: user ? '#6E42E5' : '#F1F5F9',
-                border: '1px solid #E2E8F0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: user ? '#FFFFFF' : '#475569',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-              title={user ? `Profile: ${user.name}` : 'Login / Register'}
-            >
-              <User size={18} />
-            </button>
+            <div style={{ position: 'relative' }} ref={profileMenuRef}>
+              <button
+                type="button"
+                className="salon-profile-btn"
+                onClick={() => {
+                  if (!effectiveUser) {
+                    if (onOpenAuth) onOpenAuth('login');
+                  } else {
+                    setShowProfileMenu(prev => !prev);
+                  }
+                }}
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: '50%',
+                  background: effectiveUser ? '#0B57D0' : '#F1F5F9',
+                  border: '1px solid #E2E8F0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: effectiveUser ? '#FFFFFF' : '#475569',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0
+                }}
+                title={effectiveUser ? `Profile: ${effectiveUser.name || effectiveUser.phone || 'My Account'}` : 'Login / Register'}
+                aria-label="Profile Menu"
+              >
+                <User size={18} />
+              </button>
+
+              {/* Profile Dropdown */}
+              {showProfileMenu && (
+                <div
+                  className="salon-profile-dropdown"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    minWidth: '220px',
+                    background: '#FFFFFF',
+                    borderRadius: '10px',
+                    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
+                    border: '1px solid #E4E7EC',
+                    padding: '6px',
+                    zIndex: 10000,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}
+                >
+                  {!effectiveUser ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowProfileMenu(false);
+                        if (onOpenAuth) onOpenAuth('login');
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '9px 14px',
+                        background: '#0B57D0',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        borderRadius: '7px',
+                        fontSize: '13.5px',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        textAlign: 'center'
+                      }}
+                    >
+                      Login / Sign Up
+                    </button>
+                  ) : (
+                    <>
+                      {/* 1. User Name and Email */}
+                      <div style={{ padding: '8px 10px 10px', borderBottom: '1px solid #E4E7EC' }}>
+                        <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#152238', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {effectiveUser.name || effectiveUser.phone || 'My Account'}
+                        </div>
+                        <div style={{ fontSize: '11.5px', color: '#667085', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {effectiveUser.email || (effectiveUser.phone ? `+91 ${String(effectiveUser.phone).replace(/\D/g, '').slice(-10)}` : 'Verified Customer')}
+                        </div>
+                      </div>
+
+                      {/* 2. My Bookings */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          if (onOpenBookings) onOpenBookings();
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          background: 'none',
+                          color: '#152238',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <Calendar size={14} color="#0B57D0" />
+                          <span>My Bookings</span>
+                        </div>
+                        {bookingsCount > 0 && (
+                          <span style={{
+                            background: '#0B57D0',
+                            color: '#FFFFFF',
+                            borderRadius: '999px',
+                            padding: '1px 7px',
+                            fontSize: '10.5px',
+                            fontWeight: '700'
+                          }}>
+                            {bookingsCount}
+                          </span>
+                        )}
+                      </button>
+
+                      {/* 3. Manage Addresses */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          if (onOpenAddresses) onOpenAddresses();
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          background: 'none',
+                          color: '#152238',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8
+                        }}
+                      >
+                        <MapPin size={14} color="#0B57D0" />
+                        <span>Manage Addresses</span>
+                      </button>
+
+                      {/* 4. Profile Settings */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowProfileMenu(false);
+                          if (onOpenProfile) onOpenProfile();
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '8px 10px',
+                          background: 'none',
+                          color: '#152238',
+                          border: 'none',
+                          borderRadius: '6px',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8
+                        }}
+                      >
+                        <User size={14} color="#0B57D0" />
+                        <span>Profile Settings</span>
+                      </button>
+
+                      {/* 5. Logout */}
+                      {onLogout && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowProfileMenu(false);
+                            onLogout();
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '8px 10px',
+                            background: 'none',
+                            color: '#DC2626',
+                            border: 'none',
+                            borderTop: '1px solid #F1F5F9',
+                            borderRadius: '6px',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            marginTop: '2px'
+                          }}
+                        >
+                          <LogOut size={14} color="#DC2626" />
+                          <span>Logout</span>
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -1251,8 +1480,8 @@ export function SalonPrimeServicePage({
                     type="button"
                     onClick={() => handleCategoryTileClick(cat.id)}
                     style={{
-                      background: isActive ? '#F5F3FF' : '#FFFFFF',
-                      border: isActive ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
+                      background: isActive ? '#E8F1FF' : '#FFFFFF',
+                      border: isActive ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
                       borderRadius: 12,
                       padding: '10px 8px',
                       display: 'flex',
@@ -1310,8 +1539,8 @@ export function SalonPrimeServicePage({
                         width: 38,
                         height: 38,
                         borderRadius: 8,
-                        background: '#F3E8FF',
-                        color: '#6E42E5',
+                        background: '#E8F1FF',
+                        color: '#0B57D0',
                         fontWeight: 900,
                         fontSize: 16,
                         display: 'flex',
@@ -1339,7 +1568,7 @@ export function SalonPrimeServicePage({
                             position: 'absolute',
                             top: -4,
                             right: -6,
-                            background: '#7C3AED',
+                            background: '#0B57D0',
                             color: '#fff',
                             fontSize: 8.5,
                             fontWeight: 800,
@@ -1355,7 +1584,7 @@ export function SalonPrimeServicePage({
                     <span style={{
                       fontSize: 11,
                       fontWeight: isActive ? 800 : 600,
-                      color: isActive ? '#6E42E5' : '#334155',
+                      color: isActive ? '#0B57D0' : '#334155',
                       lineHeight: 1.2
                     }}>
                       {cat.label}
@@ -1780,7 +2009,7 @@ export function SalonPrimeServicePage({
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        if (service.optionsCount && (service.title.includes('Mani-Pedi') || service.title.includes('Combo') || service.title.includes('Package') || service.isPackage)) {
+                                        if (service.isPackage) {
                                           handleOpenCustomize(service);
                                         } else {
                                           handleAddService(service);
@@ -1790,7 +2019,7 @@ export function SalonPrimeServicePage({
                                         background: '#FFFFFF',
                                         border: '1.5px solid #CBD5E1',
                                         borderRadius: 8,
-                                        color: '#6E42E5',
+                                        color: '#0B57D0',
                                         fontSize: 13.5,
                                         fontWeight: 800,
                                         padding: '7px 22px',
@@ -1798,7 +2027,7 @@ export function SalonPrimeServicePage({
                                         boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
                                         transition: 'all 0.15s'
                                       }}
-                                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#6E42E5'; e.currentTarget.style.background = '#F5F3FF'; }}
+                                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#0B57D0'; e.currentTarget.style.background = '#E8F1FF'; }}
                                       onMouseLeave={e => { e.currentTarget.style.borderColor = '#CBD5E1'; e.currentTarget.style.background = '#FFFFFF'; }}
                                     >
                                       Add
@@ -1808,24 +2037,24 @@ export function SalonPrimeServicePage({
                                       display: 'inline-flex',
                                       alignItems: 'center',
                                       background: '#FFFFFF',
-                                      border: '1.5px solid #6E42E5',
+                                      border: '1.5px solid #0B57D0',
                                       borderRadius: 8,
                                       overflow: 'hidden'
                                     }}>
                                       <button
                                         type="button"
                                         onClick={() => onUpdateQty(service.id, qty - 1)}
-                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#6E42E5', cursor: 'pointer' }}
+                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#0B57D0', cursor: 'pointer' }}
                                       >
                                         <Minus size={12} strokeWidth={3} />
                                       </button>
-                                      <span style={{ fontWeight: 800, color: '#6E42E5', fontSize: 12, padding: '0 6px' }}>
+                                      <span style={{ fontWeight: 800, color: '#0B57D0', fontSize: 12, padding: '0 6px' }}>
                                         {qty}
                                       </span>
                                       <button
                                         type="button"
                                         onClick={() => onUpdateQty(service.id, qty + 1)}
-                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#6E42E5', cursor: 'pointer' }}
+                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#0B57D0', cursor: 'pointer' }}
                                       >
                                         <Plus size={12} strokeWidth={3} />
                                       </button>
@@ -1862,7 +2091,7 @@ export function SalonPrimeServicePage({
                                     <button
                                       type="button"
                                       onClick={() => {
-                                        if (service.optionsCount && (service.title.includes('Mani-Pedi') || service.title.includes('Combo') || service.title.includes('Package') || service.isPackage)) {
+                                        if (service.isPackage) {
                                           handleOpenCustomize(service);
                                         } else {
                                           handleAddService(service);
@@ -1870,19 +2099,19 @@ export function SalonPrimeServicePage({
                                       }}
                                       style={{
                                         background: '#FFFFFF',
-                                        border: '1.5px solid #6E42E5',
-                                        color: '#6E42E5',
+                                        border: '1.5px solid #0B57D0',
+                                        color: '#0B57D0',
                                         borderRadius: 8,
                                         padding: '7px 24px',
                                         fontSize: 13.5,
                                         fontWeight: 800,
                                         cursor: 'pointer',
                                         transition: 'all 0.15s',
-                                        boxShadow: '0 2px 6px rgba(110, 66, 229, 0.08)',
+                                        boxShadow: '0 2px 6px rgba(11, 87, 208, 0.08)',
                                         minWidth: 86
                                       }}
-                                      onMouseEnter={e => { e.currentTarget.style.background = '#6E42E5'; e.currentTarget.style.color = '#fff'; }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#6E42E5'; }}
+                                      onMouseEnter={e => { e.currentTarget.style.background = '#0B57D0'; e.currentTarget.style.color = '#fff'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#0B57D0'; }}
                                     >
                                       Add
                                     </button>
@@ -1890,35 +2119,29 @@ export function SalonPrimeServicePage({
                                     <div style={{
                                       display: 'inline-flex',
                                       alignItems: 'center',
-                                      background: '#F5F3FF',
-                                      border: '1.5px solid #6E42E5',
+                                      background: '#E8F1FF',
+                                      border: '1.5px solid #0B57D0',
                                       borderRadius: 8,
                                       overflow: 'hidden'
                                     }}>
                                       <button
                                         type="button"
                                         onClick={() => onUpdateQty(service.id, qty - 1)}
-                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#6E42E5', cursor: 'pointer' }}
+                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#0B57D0', cursor: 'pointer' }}
                                       >
                                         <Minus size={12} strokeWidth={3} />
                                       </button>
-                                      <span style={{ fontWeight: 800, color: '#6E42E5', fontSize: 12, padding: '0 6px' }}>
+                                      <span style={{ fontWeight: 800, color: '#0B57D0', fontSize: 12, padding: '0 6px' }}>
                                         {qty}
                                       </span>
                                       <button
                                         type="button"
                                         onClick={() => onUpdateQty(service.id, qty + 1)}
-                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#6E42E5', cursor: 'pointer' }}
+                                        style={{ background: 'none', border: 'none', padding: '6px 8px', color: '#0B57D0', cursor: 'pointer' }}
                                       >
                                         <Plus size={12} strokeWidth={3} />
                                       </button>
                                     </div>
-                                  )}
-
-                                  {service.optionsCount && (
-                                    <span style={{ fontSize: 11, color: '#64748B', fontWeight: 600 }}>
-                                      {service.optionsCount} {service.optionsCount === 1 ? 'option' : 'options'}
-                                    </span>
                                   )}
                                 </div>
                               )}
@@ -1976,10 +2199,10 @@ export function SalonPrimeServicePage({
                                     gap: 6,
                                     transition: 'all 0.15s'
                                   }}
-                                  onMouseEnter={e => e.currentTarget.style.borderColor = '#6E42E5'}
+                                  onMouseEnter={e => e.currentTarget.style.borderColor = '#0B57D0'}
                                   onMouseLeave={e => e.currentTarget.style.borderColor = '#CBD5E1'}
                                 >
-                                  <SlidersHorizontal size={13} color="#6E42E5" />
+                                  <SlidersHorizontal size={13} color="#0B57D0" />
                                   <span>Edit your package</span>
                                 </button>
                               ) : (
@@ -1989,7 +2212,7 @@ export function SalonPrimeServicePage({
                                   style={{
                                     background: 'none',
                                     border: 'none',
-                                    color: '#6E42E5',
+                                    color: '#0B57D0',
                                     fontSize: 12.5,
                                     fontWeight: 800,
                                     cursor: 'pointer',
@@ -2011,7 +2234,7 @@ export function SalonPrimeServicePage({
           </section>
 
           {/* ========================================================= */}
-          {/* RIGHT COLUMN: Promo Voucher + UC Promise + Sticky Cart Bar */}
+          {/* RIGHT COLUMN: UC Promise + Sticky Cart Bar */}
           {/* ========================================================= */}
           <aside className="salon-sidebar-col" style={{ position: 'sticky', top: 84, display: 'flex', flexDirection: 'column', gap: 16 }}>
             
@@ -2032,7 +2255,7 @@ export function SalonPrimeServicePage({
                 width: 48,
                 height: 48,
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #E0F2FE 0%, #F5D0FE 50%, #DDD6FE 100%)',
+                background: 'linear-gradient(135deg, #E0F2FE 0%, #F5D0FE 50%, #E4E7EC 100%)',
                 border: '1px solid rgba(147, 51, 234, 0.2)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -2041,7 +2264,7 @@ export function SalonPrimeServicePage({
                 textAlign: 'center',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
               }}>
-                <span style={{ fontSize: 7, fontWeight: 900, color: '#6B21A8', textTransform: 'uppercase' }}>QUALITY</span>
+                <span style={{ fontSize: 7, fontWeight: 900, color: '#0B57D0', textTransform: 'uppercase' }}>QUALITY</span>
                 <span style={{ fontSize: 6.5, fontWeight: 800, color: '#1E293B' }}>ASSURED</span>
               </div>
 
@@ -2068,14 +2291,14 @@ export function SalonPrimeServicePage({
             {/* Sticky Floating Purple Cart Bar (Only shown when items exist in cart) */}
             {cartCount > 0 && (
               <div style={{
-                background: '#6E42E5',
+                background: '#0B57D0',
                 borderRadius: 14,
                 padding: '14px 18px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 color: '#FFFFFF',
-                boxShadow: '0 8px 24px rgba(110, 66, 229, 0.35)',
+                boxShadow: '0 8px 24px rgba(11, 87, 208, 0.35)',
                 cursor: 'pointer',
                 transition: 'transform 0.15s'
               }}
@@ -2085,7 +2308,7 @@ export function SalonPrimeServicePage({
                   <div style={{ fontSize: 16, fontWeight: 900 }}>
                     ₹{cartSubtotal.toLocaleString('en-IN')}
                   </div>
-                  <div style={{ fontSize: 12, color: '#E9D5FF', textDecoration: 'line-through' }}>
+                  <div style={{ fontSize: 12, color: '#E8F1FF', textDecoration: 'line-through' }}>
                     ₹{Math.round(cartSubtotal * 1.15).toLocaleString('en-IN')}
                   </div>
                 </div>
@@ -2107,7 +2330,7 @@ export function SalonPrimeServicePage({
             <div style={{ fontSize: 16, fontWeight: 900 }}>
               ₹{cartSubtotal.toLocaleString('en-IN')}
             </div>
-            <div style={{ fontSize: 12, color: '#E9D5FF', textDecoration: 'line-through' }}>
+            <div style={{ fontSize: 12, color: '#E8F1FF', textDecoration: 'line-through' }}>
               ₹{Math.round(cartSubtotal * 1.15).toLocaleString('en-IN')}
             </div>
           </div>
@@ -2181,8 +2404,8 @@ export function SalonPrimeServicePage({
                       gap: 10,
                       padding: '10px 14px',
                       borderRadius: 10,
-                      border: selectedWax === w.name ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
-                      background: selectedWax === w.name ? '#F5F3FF' : '#FFFFFF',
+                      border: selectedWax === w.name ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
+                      background: selectedWax === w.name ? '#E8F1FF' : '#FFFFFF',
                       cursor: 'pointer'
                     }}>
                       <input
@@ -2190,7 +2413,7 @@ export function SalonPrimeServicePage({
                         name="wax-choice"
                         checked={selectedWax === w.name}
                         onChange={() => setSelectedWax(w.name)}
-                        style={{ accentColor: '#6E42E5' }}
+                        style={{ accentColor: '#0B57D0' }}
                       />
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{w.name}</div>
@@ -2218,8 +2441,8 @@ export function SalonPrimeServicePage({
                       gap: 10,
                       padding: '10px 14px',
                       borderRadius: 10,
-                      border: selectedFacial === f.name ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
-                      background: selectedFacial === f.name ? '#F5F3FF' : '#FFFFFF',
+                      border: selectedFacial === f.name ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
+                      background: selectedFacial === f.name ? '#E8F1FF' : '#FFFFFF',
                       cursor: 'pointer'
                     }}>
                       <input
@@ -2227,7 +2450,7 @@ export function SalonPrimeServicePage({
                         name="facial-choice"
                         checked={selectedFacial === f.name}
                         onChange={() => setSelectedFacial(f.name)}
-                        style={{ accentColor: '#6E42E5' }}
+                        style={{ accentColor: '#0B57D0' }}
                       />
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{f.name}</div>
@@ -2254,8 +2477,8 @@ export function SalonPrimeServicePage({
                       gap: 10,
                       padding: '10px 14px',
                       borderRadius: 10,
-                      border: selectedManiPedi === m.name ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
-                      background: selectedManiPedi === m.name ? '#F5F3FF' : '#FFFFFF',
+                      border: selectedManiPedi === m.name ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
+                      background: selectedManiPedi === m.name ? '#E8F1FF' : '#FFFFFF',
                       cursor: 'pointer'
                     }}>
                       <input
@@ -2263,7 +2486,7 @@ export function SalonPrimeServicePage({
                         name="mani-choice"
                         checked={selectedManiPedi === m.name}
                         onChange={() => setSelectedManiPedi(m.name)}
-                        style={{ accentColor: '#6E42E5' }}
+                        style={{ accentColor: '#0B57D0' }}
                       />
                       <div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A' }}>{m.name}</div>
@@ -2285,7 +2508,7 @@ export function SalonPrimeServicePage({
                 type="button"
                 onClick={handleSaveCustomization}
                 style={{
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 10,
@@ -2366,7 +2589,7 @@ export function SalonPrimeServicePage({
                 alignItems: 'center',
                 gap: 12
               }}>
-                <ShieldCheck size={24} color="#6E42E5" />
+                <ShieldCheck size={24} color="#0B57D0" />
                 <div style={{ fontSize: 12, color: '#334155' }}>
                   <strong style={{ color: '#0F172A', display: 'block' }}>100% Genuine Branded Kits</strong>
                   All wax strips, spatulas, and cleanup kits are sealed single-use.
@@ -2385,7 +2608,7 @@ export function SalonPrimeServicePage({
                   setSelectedDetailService(null);
                 }}
                 style={{
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 10,

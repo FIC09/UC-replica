@@ -247,7 +247,7 @@ export function NativeSmartLocksPage({
                   position: 'absolute',
                   top: -3,
                   right: -3,
-                  backgroundColor: '#6E42E5',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   fontSize: 10,
                   fontWeight: 800,
@@ -340,7 +340,7 @@ export function NativeSmartLocksPage({
                 showToast('Viewing Native Smart Locks models & features');
               }}
               style={{
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 8,
@@ -349,10 +349,10 @@ export function NativeSmartLocksPage({
                 fontWeight: 700,
                 cursor: 'pointer',
                 transition: 'background-color 0.15s ease, transform 0.1s ease',
-                boxShadow: '0 4px 12px rgba(110, 66, 229, 0.25)'
+                boxShadow: '0 4px 12px rgba(11, 87, 208, 0.25)'
               }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#582BE8'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#6E42E5'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0B57D0'}
             >
               View Services
             </button>
@@ -568,7 +568,7 @@ export function NativeSmartLocksPage({
                           padding: 0,
                           fontSize: 13.5,
                           fontWeight: 700,
-                          color: '#6E42E5',
+                          color: '#0B57D0',
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -607,7 +607,7 @@ export function NativeSmartLocksPage({
                             top: 0,
                             left: 0,
                             right: 0,
-                            backgroundColor: '#6E42E5',
+                            backgroundColor: '#0B57D0',
                             color: '#FFFFFF',
                             fontSize: 9.5,
                             fontWeight: 800,
@@ -677,19 +677,19 @@ export function NativeSmartLocksPage({
                             height: 36,
                             borderRadius: 8,
                             backgroundColor: '#FFFFFF',
-                            border: '1.5px solid #7C3AED',
-                            color: '#7C3AED',
+                            border: '1.5px solid #0B57D0',
+                            color: '#0B57D0',
                             fontSize: 13.5,
                             fontWeight: 800,
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            boxShadow: '0 2px 6px rgba(124, 58, 237, 0.12)',
+                            boxShadow: '0 2px 6px rgba(11, 87, 208, 0.12)',
                             transition: 'all 0.15s ease'
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#F5F3FF';
+                            e.currentTarget.style.backgroundColor = '#E8F1FF';
                             e.currentTarget.style.transform = 'translateY(-1px)';
                           }}
                           onMouseLeave={(e) => {
@@ -704,7 +704,7 @@ export function NativeSmartLocksPage({
                           width: 110,
                           height: 36,
                           borderRadius: 8,
-                          backgroundColor: '#7C3AED',
+                          backgroundColor: '#0B57D0',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
@@ -878,7 +878,7 @@ export function NativeSmartLocksPage({
                   width: 44,
                   height: 44,
                   borderRadius: '50%',
-                  background: 'linear-gradient(135deg, #BAE6FD 0%, #E9D5FF 50%, #FBCFE8 100%)',
+                  background: 'linear-gradient(135deg, #BAE6FD 0%, #E8F1FF 50%, #FBCFE8 100%)',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -908,74 +908,6 @@ export function NativeSmartLocksPage({
                   <span>Transparent Pricing</span>
                 </div>
               </div>
-            </div>
-
-            {/* 3. Cart Summary Box */}
-            <div style={{
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: 14,
-              padding: '24px 18px',
-              textAlign: 'center'
-            }}>
-              {totalCartCount === 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  {/* Shopping Basket Vector Icon matching Screenshot */}
-                  <div style={{
-                    width: 72,
-                    height: 56,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 10,
-                    opacity: 0.8
-                  }}>
-                    <svg width="64" height="48" viewBox="0 0 64 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M22 20C22 12 42 12 42 20" stroke="#CBD5E1" strokeWidth="2.5" strokeLinecap="round" />
-                      <ellipse cx="20" cy="14" rx="4" ry="2.5" fill="#7C3AED" />
-                      <circle cx="18" cy="13" r="1" fill="#FFFFFF" />
-                      <path d="M16 14L13 15" stroke="#F59E0B" strokeWidth="1.2" />
-                      <path d="M14 20H50L45 42H19L14 20Z" fill="#F1F5F9" stroke="#CBD5E1" strokeWidth="2" strokeLinejoin="round" />
-                      <line x1="22" y1="20" x2="25" y2="42" stroke="#E2E8F0" strokeWidth="2" />
-                      <line x1="32" y1="20" x2="32" y2="42" stroke="#E2E8F0" strokeWidth="2" />
-                      <line x1="42" y1="20" x2="39" y2="42" stroke="#E2E8F0" strokeWidth="2" />
-                    </svg>
-                  </div>
-                  <span style={{ fontSize: 13.5, color: '#64748B', fontWeight: 600 }}>
-                    No items in your cart
-                  </span>
-                </div>
-              ) : (
-                <div style={{ textAlign: 'left' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: '#0F172A' }}>Cart ({totalCartCount} items)</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: '#6E42E5' }}>₹{cartSubtotal.toLocaleString('en-IN')}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={onOpenCheckout}
-                    style={{
-                      width: '100%',
-                      backgroundColor: '#6E42E5',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      borderRadius: 8,
-                      padding: '12px 16px',
-                      fontSize: 13.5,
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      boxShadow: '0 4px 12px rgba(110, 66, 229, 0.25)'
-                    }}
-                  >
-                    <span>Proceed to Checkout</span>
-                    <ArrowRight size={15} />
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -1043,8 +975,27 @@ export function NativeSmartLocksPage({
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginTop: 3 }}>
                   <span style={{ color: '#F59E0B' }}>★</span> {selectedDetailLock.rating} ({selectedDetailLock.reviews})
                 </div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: '#0F172A', marginTop: 6 }}>
-                  ₹{(selectedDetailLock.offerPrice || selectedDetailLock.price).toLocaleString('en-IN')}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 6 }}>
+                  <span style={{ fontSize: 17, fontWeight: 800, color: '#0F172A' }}>
+                    ₹{(selectedDetailLock.offerPrice || selectedDetailLock.price).toLocaleString('en-IN')}
+                  </span>
+                  {selectedDetailLock.originalPrice && selectedDetailLock.originalPrice > (selectedDetailLock.offerPrice || selectedDetailLock.price) && (
+                    <span style={{ fontSize: 13, color: '#94A3B8', textDecoration: 'line-through' }}>
+                      ₹{selectedDetailLock.originalPrice.toLocaleString('en-IN')}
+                    </span>
+                  )}
+                  {selectedDetailLock.originalPrice && selectedDetailLock.originalPrice > (selectedDetailLock.offerPrice || selectedDetailLock.price) && (
+                    <span style={{
+                      fontSize: 11,
+                      fontWeight: 800,
+                      color: '#15803D',
+                      backgroundColor: '#DCFCE7',
+                      padding: '2px 7px',
+                      borderRadius: 4
+                    }}>
+                      {Math.round(((selectedDetailLock.originalPrice - (selectedDetailLock.offerPrice || selectedDetailLock.price)) / selectedDetailLock.originalPrice) * 100)}% OFF
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -1081,7 +1032,7 @@ export function NativeSmartLocksPage({
               }}
               style={{
                 width: '100%',
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 8,

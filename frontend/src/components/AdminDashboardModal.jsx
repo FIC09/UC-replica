@@ -352,12 +352,12 @@ export function AdminDashboardModal({
                 width: 38,
                 height: 38,
                 borderRadius: 10,
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#0B57D0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#FFFFFF',
-                boxShadow: '0 4px 12px rgba(110, 66, 229, 0.3)'
+                boxShadow: '0 4px 12px rgba(11, 87, 208, 0.3)'
               }}>
                 <LayoutDashboard size={20} />
               </div>
@@ -398,7 +398,7 @@ export function AdminDashboardModal({
                 fontWeight: 600,
                 color: '#1F2937'
               }}>
-                <MapPin size={15} color="#6E42E5" />
+                <MapPin size={15} color="#0B57D0" />
                 <select
                   value={selectedCity}
                   onChange={(e) => setSelectedCity(e.target.value)}
@@ -445,7 +445,7 @@ export function AdminDashboardModal({
                       padding: '10px 14px',
                       borderRadius: 10,
                       border: 'none',
-                      backgroundColor: isActive ? '#6E42E5' : 'transparent',
+                      backgroundColor: isActive ? '#0B57D0' : 'transparent',
                       color: isActive ? '#FFFFFF' : '#4B5563',
                       fontSize: 13.5,
                       fontWeight: isActive ? 700 : 600,
@@ -500,8 +500,8 @@ export function AdminDashboardModal({
                 width: 34,
                 height: 34,
                 borderRadius: '50%',
-                backgroundColor: '#EDE9FE',
-                color: '#6E42E5',
+                backgroundColor: '#E8F1FF',
+                color: '#0B57D0',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -673,8 +673,8 @@ export function AdminDashboardModal({
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: '#64748B' }}>Total GMV</span>
-                      <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <IndianRupee size={16} color="#7C3AED" />
+                      <div style={{ width: 32, height: 32, borderRadius: 8, backgroundColor: '#E8F1FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <IndianRupee size={16} color="#0B57D0" />
                       </div>
                     </div>
                     <div style={{ fontSize: 24, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
@@ -795,7 +795,7 @@ export function AdminDashboardModal({
                       padding: '8px 18px',
                       borderRadius: 8,
                       border: 'none',
-                      backgroundColor: monsoonSurge ? '#059669' : '#6E42E5',
+                      backgroundColor: monsoonSurge ? '#059669' : '#0B57D0',
                       color: '#FFFFFF',
                       fontSize: 13,
                       fontWeight: 700,
@@ -834,7 +834,7 @@ export function AdminDashboardModal({
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#6E42E5',
+                          color: '#0B57D0',
                           fontSize: 12.5,
                           fontWeight: 700,
                           cursor: 'pointer',
@@ -861,7 +861,7 @@ export function AdminDashboardModal({
                         <tbody>
                           {displayBookings.slice(0, 5).map(b => (
                             <tr key={b.id} style={{ borderBottom: '1px solid #F8FAFC' }}>
-                              <td style={{ padding: '10px 6px', fontWeight: 700, color: '#6E42E5' }}>{b.id}</td>
+                              <td style={{ padding: '10px 6px', fontWeight: 700, color: '#0B57D0' }}>{b.id}</td>
                               <td style={{ padding: '10px 6px', color: '#1E293B' }}>{b.customerName}</td>
                               <td style={{ padding: '10px 6px', color: '#475569', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {b.serviceName}
@@ -1065,8 +1065,8 @@ export function AdminDashboardModal({
                           fontSize: 12.5,
                           fontWeight: 700,
                           cursor: 'pointer',
-                          border: `1px solid ${bookingFilterStatus === st ? '#6E42E5' : '#E2E8F0'}`,
-                          backgroundColor: bookingFilterStatus === st ? '#6E42E5' : '#FFFFFF',
+                          border: `1px solid ${bookingFilterStatus === st ? '#0B57D0' : '#E2E8F0'}`,
+                          backgroundColor: bookingFilterStatus === st ? '#0B57D0' : '#FFFFFF',
                           color: bookingFilterStatus === st ? '#FFFFFF' : '#475569',
                           transition: 'all 0.15s ease'
                         }}
@@ -1101,7 +1101,7 @@ export function AdminDashboardModal({
                       {filteredBookings.length > 0 ? (
                         filteredBookings.map(b => (
                           <tr key={b.id} style={{ borderBottom: '1px solid #F1F5F9' }}>
-                            <td style={{ padding: '14px 18px', fontWeight: 800, color: '#6E42E5' }}>{b.id}</td>
+                            <td style={{ padding: '14px 18px', fontWeight: 800, color: '#0B57D0' }}>{b.id}</td>
                             <td style={{ padding: '14px 18px' }}>
                               <div style={{ fontWeight: 700, color: '#0F172A' }}>{b.customerName || 'Customer'}</div>
                               <div style={{ fontSize: 11.5, color: '#64748B', marginTop: 2 }}>{b.phone || '+91 98200 00000'}</div>
@@ -1268,12 +1268,12 @@ export function AdminDashboardModal({
                         padding: '8px 16px',
                         borderRadius: 8,
                         border: 'none',
-                        backgroundColor: '#6E42E5',
+                        backgroundColor: '#0B57D0',
                         color: '#FFFFFF',
                         fontSize: 13,
                         fontWeight: 700,
                         cursor: 'pointer',
-                        boxShadow: '0 2px 6px rgba(110, 66, 229, 0.3)'
+                        boxShadow: '0 2px 6px rgba(11, 87, 208, 0.3)'
                       }}
                     >
                       <Plus size={16} /> Add New Service
@@ -1559,7 +1559,7 @@ export function AdminDashboardModal({
                         <div>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 15, fontWeight: 800, color: '#0F172A' }}>{p.businessName}</span>
-                            <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 4, backgroundColor: '#F5F3FF', color: '#6D28D9' }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 4, backgroundColor: '#E8F1FF', color: '#0849B1' }}>
                               {p.businessType || 'Fleet Agency'}
                             </span>
                           </div>
@@ -1767,7 +1767,7 @@ export function AdminDashboardModal({
                 </button>
                 <button
                   type="submit"
-                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                  style={{ padding: '8px 18px', borderRadius: 8, border: 'none', backgroundColor: '#0B57D0', color: '#FFFFFF', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
                 >
                   Save Service
                 </button>

@@ -132,7 +132,7 @@ export function OverviewView({ onNavigate, showToast, staff }) {
         gap: 14
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#475569', fontSize: 13, fontWeight: 600 }}>
-          <Filter size={16} color="#7c3aed" /> Filter Analytics:
+          <Filter size={16} color="#0B57D0" /> Filter Analytics:
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
@@ -236,7 +236,7 @@ export function OverviewView({ onNavigate, showToast, staff }) {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: 12.5, fontWeight: 600 }}>
               <span>Today's Bookings</span>
-              <Calendar size={16} color="#7c3aed" />
+              <Calendar size={16} color="#0B57D0" />
             </div>
             <div style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '8px 0 2px' }}>
               {metrics.todayBookings}
@@ -365,7 +365,7 @@ export function OverviewView({ onNavigate, showToast, staff }) {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: 12.5, fontWeight: 600 }}>
               <span>Active Professionals</span>
-              <Users size={16} color="#7c3aed" />
+              <Users size={16} color="#0B57D0" />
             </div>
             <div style={{ fontSize: 24, fontWeight: 700, color: '#0f172a', margin: '8px 0 2px' }}>
               {metrics.activeProfessionals}
@@ -560,7 +560,7 @@ export function OverviewView({ onNavigate, showToast, staff }) {
         gap: 12
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Info size={24} color="#7c3aed" style={{ flexShrink: 0 }} />
+          <Info size={24} color="#0B57D0" style={{ flexShrink: 0 }} />
           <span style={{ fontSize: 13, color: '#475569' }}>
             <strong>Revenue Accounting Note:</strong> Gross Booking Value (₹{Number(metrics.grossBookingValue || 0).toLocaleString('en-IN')}) represents total customer price inclusive of taxes. Net Business Earnings (₹{Number(metrics.netBusinessEarnings || 0).toLocaleString('en-IN')}) is your agency take-home after platform commission and GST deductions.
           </span>
@@ -590,7 +590,7 @@ export function OverviewView({ onNavigate, showToast, staff }) {
             </div>
             <button
               onClick={() => onNavigate('/partner/bookings')}
-              style={{ fontSize: 12.5, fontWeight: 600, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              style={{ fontSize: 12.5, fontWeight: 600, color: '#0B57D0', background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
             >
               <span>View All</span>
               <ChevronRight size={14} />
@@ -641,14 +641,14 @@ export function OverviewView({ onNavigate, showToast, staff }) {
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Shield size={18} color="#7c3aed" />
+              <Shield size={18} color="#0B57D0" />
               <h3 style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: 0 }}>
                 Compliance & Training Alerts
               </h3>
             </div>
             <button
               onClick={() => onNavigate('/partner/documents')}
-              style={{ fontSize: 12.5, fontWeight: 600, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer' }}
+              style={{ fontSize: 12.5, fontWeight: 600, color: '#0B57D0', background: 'none', border: 'none', cursor: 'pointer' }}
             >
               KYC Hub
             </button>
@@ -796,7 +796,7 @@ export function OverviewView({ onNavigate, showToast, staff }) {
             </h3>
             <button
               onClick={() => onNavigate('/partner/bookings')}
-              style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+              style={{ fontSize: 13, fontWeight: 600, color: '#0B57D0', background: 'none', border: 'none', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
             >
               <span>View All</span>
               <ChevronRight size={14} />
@@ -868,7 +868,7 @@ export function OverviewView({ onNavigate, showToast, staff }) {
             </h3>
             <button
               onClick={() => onNavigate('/partner/team')}
-              style={{ fontSize: 13, fontWeight: 600, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer' }}
+              style={{ fontSize: 13, fontWeight: 600, color: '#0B57D0', background: 'none', border: 'none', cursor: 'pointer' }}
             >
               Manage Fleet <ChevronRight size={14} style={{ display: 'inline' }} />
             </button>

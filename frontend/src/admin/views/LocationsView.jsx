@@ -195,7 +195,7 @@ export function LocationsView({ onShowToast, onNavigate }) {
         boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-          <ShieldAlert size={18} color="#6E42E5" />
+          <ShieldAlert size={18} color="#0B57D0" />
           <span style={{ fontSize: 14, fontWeight: 700, color: '#0F172A' }}>
             Live Address Serviceability Tester (Strict Address Rejection)
           </span>
@@ -235,7 +235,7 @@ export function LocationsView({ onShowToast, onNavigate }) {
               padding: '8px 18px',
               borderRadius: 6,
               border: 'none',
-              backgroundColor: '#6E42E5',
+              backgroundColor: '#0B57D0',
               color: '#FFFFFF',
               fontSize: 13,
               fontWeight: 600,
@@ -295,7 +295,7 @@ export function LocationsView({ onShowToast, onNavigate }) {
               style={{
                 backgroundColor: '#FFFFFF',
                 borderRadius: 12,
-                border: isSelected ? '2px solid #6E42E5' : '1px solid #E2E8F0',
+                border: isSelected ? '2px solid #0B57D0' : '1px solid #E2E8F0',
                 padding: '20px',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.02)',
                 cursor: 'pointer',
@@ -304,7 +304,7 @@ export function LocationsView({ onShowToast, onNavigate }) {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <MapPin size={18} color="#6E42E5" />
+                  <MapPin size={18} color="#0B57D0" />
                   <span style={{ fontSize: 16, fontWeight: 800, color: '#0F172A' }}>{loc.city}</span>
                 </div>
 
@@ -372,7 +372,7 @@ export function LocationsView({ onShowToast, onNavigate }) {
                     padding: '4px 10px',
                     borderRadius: 6,
                     border: 'none',
-                    backgroundColor: loc.activeSurge ? '#D97706' : '#6E42E5',
+                    backgroundColor: loc.activeSurge ? '#D97706' : '#0B57D0',
                     color: '#FFFFFF',
                     fontSize: 11,
                     fontWeight: 600,
@@ -620,7 +620,7 @@ export function LocationsView({ onShowToast, onNavigate }) {
                     padding: '8px 18px',
                     borderRadius: 6,
                     border: 'none',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     fontSize: 13,
                     fontWeight: 600,
@@ -720,7 +720,7 @@ export function LocationsView({ onShowToast, onNavigate }) {
                     padding: '8px 18px',
                     borderRadius: 6,
                     border: 'none',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     fontSize: 13,
                     fontWeight: 600,

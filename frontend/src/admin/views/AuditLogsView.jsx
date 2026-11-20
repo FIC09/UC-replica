@@ -130,7 +130,7 @@ export function AuditLogsView({ onShowToast }) {
             cursor: exporting ? 'not-allowed' : 'pointer'
           }}
         >
-          <Download size={15} color="#6E42E5" /> {exporting ? 'Exporting...' : 'Export Audit CSV'}
+          <Download size={15} color="#0B57D0" /> {exporting ? 'Exporting...' : 'Export Audit CSV'}
         </button>
       </div>
 
@@ -146,7 +146,7 @@ export function AuditLogsView({ onShowToast }) {
         fontSize: 12.5,
         color: '#475569'
       }}>
-        <Lock size={18} color="#6E42E5" style={{ flexShrink: 0 }} />
+        <Lock size={18} color="#0B57D0" style={{ flexShrink: 0 }} />
         <span>
           <strong>Immutable Append-Only Ledger:</strong> Audit logs cannot be modified, edited, or deleted by any administrator account. All entries record actor credentials, IP address, timestamp in <code>Asia/Kolkata</code>, and safe before/after state summaries with sensitive bank account and authorization token sanitization.
         </span>
@@ -214,9 +214,9 @@ export function AuditLogsView({ onShowToast }) {
                 fontSize: 12,
                 fontWeight: 700,
                 cursor: 'pointer',
-                border: severityFilter === sev ? '1px solid #6E42E5' : '1px solid #E2E8F0',
-                backgroundColor: severityFilter === sev ? '#F5F3FF' : '#FFFFFF',
-                color: severityFilter === sev ? '#6E42E5' : '#475569'
+                border: severityFilter === sev ? '1px solid #0B57D0' : '1px solid #E2E8F0',
+                backgroundColor: severityFilter === sev ? '#E8F1FF' : '#FFFFFF',
+                color: severityFilter === sev ? '#0B57D0' : '#475569'
               }}
             >
               {sev === 'ALL' ? 'All Severity' : sev}
@@ -300,7 +300,7 @@ export function AuditLogsView({ onShowToast }) {
                       fontSize: 12,
                       cursor: 'pointer',
                       fontWeight: 600,
-                      color: '#6E42E5',
+                      color: '#0B57D0',
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: 4
@@ -378,7 +378,7 @@ export function AuditLogsView({ onShowToast }) {
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 4 }}>Action & Justification</div>
                 <div style={{ padding: '10px 14px', backgroundColor: '#FFFFFF', border: '1px solid #CBD5E1', borderRadius: 8, fontSize: 13 }}>
-                  <div style={{ fontWeight: 800, color: '#6E42E5', marginBottom: 4 }}>{selectedLog.action}</div>
+                  <div style={{ fontWeight: 800, color: '#0B57D0', marginBottom: 4 }}>{selectedLog.action}</div>
                   <div style={{ color: '#0F172A' }}>{selectedLog.reason}</div>
                 </div>
               </div>
@@ -427,7 +427,7 @@ export function AuditLogsView({ onShowToast }) {
             <div style={{ padding: '12px 20px', borderTop: '1px solid #E2E8F0', backgroundColor: '#F8FAFC', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => setSelectedLog(null)}
-                style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#6E42E5', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
+                style={{ padding: '8px 18px', borderRadius: 6, border: 'none', backgroundColor: '#0B57D0', color: '#FFFFFF', fontWeight: 700, cursor: 'pointer' }}
               >
                 Done
               </button>

@@ -376,7 +376,7 @@ export function PartnerOnboardingModal({
       }}>
         {/* Header Banner - High contrast Forge India Connect Light Theme */}
         <div style={{
-          background: 'linear-gradient(135deg, #F5F3FF 0%, #FFFFFF 60%, #EDE9FE 100%)',
+          background: 'linear-gradient(135deg, #E8F1FF 0%, #FFFFFF 60%, #E8F1FF 100%)',
           padding: '22px 28px',
           borderBottom: '1px solid #E2E8F0',
           position: 'relative'
@@ -410,9 +410,9 @@ export function PartnerOnboardingModal({
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            background: '#EDE9FE',
-            border: '1px solid #C4B5FD',
-            color: '#6D28D9',
+            background: '#E8F1FF',
+            border: '1px solid #E8F1FF',
+            color: '#0849B1',
             padding: '3px 10px',
             borderRadius: 6,
             fontSize: 11,
@@ -435,7 +435,7 @@ export function PartnerOnboardingModal({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginTop: 18 }}>
               <div style={{
                 padding: '8px 12px',
-                background: step === 1 ? '#6E42E5' : '#F1F5F9',
+                background: step === 1 ? '#0B57D0' : '#F1F5F9',
                 color: step === 1 ? '#FFFFFF' : '#64748B',
                 fontSize: 12,
                 fontWeight: 700,
@@ -443,13 +443,13 @@ export function PartnerOnboardingModal({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                border: step === 1 ? '1px solid #6E42E5' : '1px solid #E2E8F0'
+                border: step === 1 ? '1px solid #0B57D0' : '1px solid #E2E8F0'
               }}>
                 <span>1. Business &amp; Owner</span>
               </div>
               <div style={{
                 padding: '8px 12px',
-                background: step === 2 ? '#6E42E5' : '#F1F5F9',
+                background: step === 2 ? '#0B57D0' : '#F1F5F9',
                 color: step === 2 ? '#FFFFFF' : '#64748B',
                 fontSize: 12,
                 fontWeight: 700,
@@ -457,13 +457,13 @@ export function PartnerOnboardingModal({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                border: step === 2 ? '1px solid #6E42E5' : '1px solid #E2E8F0'
+                border: step === 2 ? '1px solid #0B57D0' : '1px solid #E2E8F0'
               }}>
                 <span>2. Fleet &amp; Capacity</span>
               </div>
               <div style={{
                 padding: '8px 12px',
-                background: step === 3 ? '#6E42E5' : '#F1F5F9',
+                background: step === 3 ? '#0B57D0' : '#F1F5F9',
                 color: step === 3 ? '#FFFFFF' : '#64748B',
                 fontSize: 12,
                 fontWeight: 700,
@@ -471,7 +471,7 @@ export function PartnerOnboardingModal({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 6,
-                border: step === 3 ? '1px solid #6E42E5' : '1px solid #E2E8F0'
+                border: step === 3 ? '1px solid #0B57D0' : '1px solid #E2E8F0'
               }}>
                 <span>3. Settlement Account</span>
               </div>
@@ -553,7 +553,7 @@ export function PartnerOnboardingModal({
                 {/* Date of Birth Field (Bug 05) */}
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                    <Calendar size={13} color="#6E42E5" />
+                    <Calendar size={13} color="#0B57D0" />
                     <span>Owner / Representative Date of Birth *</span>
                   </label>
                   <input
@@ -574,7 +574,7 @@ export function PartnerOnboardingModal({
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                    <Phone size={13} color="#6E42E5" />
+                    <Phone size={13} color="#0B57D0" />
                     <span>Business Contact Mobile *</span>
                   </label>
                   <input
@@ -591,7 +591,7 @@ export function PartnerOnboardingModal({
 
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                    <Mail size={13} color="#6E42E5" />
+                    <Mail size={13} color="#0B57D0" />
                     <span>Corporate Email Address *</span>
                   </label>
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -617,7 +617,7 @@ export function PartnerOnboardingModal({
                         disabled={isSendingOtp || !email.includes('@')}
                         onClick={handleSendEmailOtp}
                         style={{
-                          background: '#6E42E5',
+                          background: '#0B57D0',
                           color: '#FFFFFF',
                           border: 'none',
                           borderRadius: 8,
@@ -645,7 +645,7 @@ export function PartnerOnboardingModal({
                       <button
                         type="button"
                         onClick={handleVerifyEmailOtp}
-                        style={{ background: '#6E42E5', color: '#fff', border: 'none', borderRadius: 8, padding: '0 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                        style={{ background: '#0B57D0', color: '#fff', border: 'none', borderRadius: 8, padding: '0 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                       >
                         {isVerifyingOtp ? 'Checking...' : 'Confirm OTP'}
                       </button>
@@ -658,7 +658,7 @@ export function PartnerOnboardingModal({
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
                 <div>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#334155', display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
-                    <Lock size={13} color="#6E42E5" />
+                    <Lock size={13} color="#0B57D0" />
                     <span>Create Portal Password (Min. 6 Characters) *</span>
                   </label>
                   <div style={{ position: 'relative' }}>
@@ -757,7 +757,7 @@ export function PartnerOnboardingModal({
                 type="submit"
                 style={{
                   marginTop: 10,
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 8,
@@ -792,8 +792,8 @@ export function PartnerOnboardingModal({
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat.id)}
                         style={{
-                          background: isSelected ? '#F5F3FF' : '#F8FAFC',
-                          border: isSelected ? '2px solid #6E42E5' : '1px solid #E2E8F0',
+                          background: isSelected ? '#E8F1FF' : '#F8FAFC',
+                          border: isSelected ? '2px solid #0B57D0' : '1px solid #E2E8F0',
                           borderRadius: 8,
                           padding: '12px 14px',
                           cursor: 'pointer',
@@ -803,8 +803,8 @@ export function PartnerOnboardingModal({
                           transition: 'all 0.15s'
                         }}
                       >
-                        <Building2 size={16} color={isSelected ? '#6E42E5' : '#64748B'} />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? '#5B21B6' : '#1E293B' }}>
+                        <Building2 size={16} color={isSelected ? '#0B57D0' : '#64748B'} />
+                        <span style={{ fontSize: 13, fontWeight: 700, color: isSelected ? '#0849B1' : '#1E293B' }}>
                           {cat.name}
                         </span>
                       </div>
@@ -900,7 +900,7 @@ export function PartnerOnboardingModal({
                 textAlign: 'center',
                 background: '#F8FAFC'
               }}>
-                <UploadCloud size={24} color="#6E42E5" style={{ margin: '0 auto 6px' }} />
+                <UploadCloud size={24} color="#0B57D0" style={{ margin: '0 auto 6px' }} />
                 <div style={{ fontSize: 12, fontWeight: 700, color: '#1E293B' }}>Upload Incorporation / GST Certificate</div>
                 <div style={{ fontSize: 11, color: '#64748B', marginTop: 2 }}>PDF / Scanned certificate up to 10MB</div>
                 <button
@@ -943,7 +943,7 @@ export function PartnerOnboardingModal({
                   type="submit"
                   style={{
                     flex: 1,
-                    background: '#6E42E5',
+                    background: '#0B57D0',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -968,16 +968,16 @@ export function PartnerOnboardingModal({
           {step === 3 && (
             <form onSubmit={handleSubmitPartner} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{
-                background: '#F5F3FF',
-                border: '1px solid #DDD6FE',
+                background: '#E8F1FF',
+                border: '1px solid #E4E7EC',
                 padding: '14px 18px',
                 borderRadius: 10,
                 fontSize: 12.5,
-                color: '#5B21B6',
+                color: '#0849B1',
                 lineHeight: 1.5
               }}>
                 <div style={{ fontWeight: 800, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <CreditCard size={16} color="#6E42E5" />
+                  <CreditCard size={16} color="#0B57D0" />
                   <span>Corporate Payout &amp; Settlement Account</span>
                 </div>
                 All aggregated customer payouts for jobs completed by your fleet will be transferred exclusively into this corporate account. Individual technician payouts under agency fleets are routed through your agency payroll.
@@ -1101,7 +1101,7 @@ export function PartnerOnboardingModal({
                   type="submit"
                   style={{
                     flex: 1,
-                    background: '#6E42E5',
+                    background: '#0B57D0',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -1128,15 +1128,15 @@ export function PartnerOnboardingModal({
               <div style={{
                 width: 64,
                 height: 64,
-                background: '#EDE9FE',
-                border: '2px solid #7C3AED',
+                background: '#E8F1FF',
+                border: '2px solid #0B57D0',
                 borderRadius: '50%',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 16px'
               }}>
-                <CheckCircle2 size={34} color="#7C3AED" />
+                <CheckCircle2 size={34} color="#0B57D0" />
               </div>
 
               <h3 style={{ fontSize: 22, fontWeight: 900, color: '#0F172A', marginBottom: 8 }}>
@@ -1159,7 +1159,7 @@ export function PartnerOnboardingModal({
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 8, borderBottom: '1px solid #E2E8F0' }}>
                   <span style={{ color: '#64748B' }}>Partner Reference:</span>
-                  <strong style={{ color: '#6E42E5' }}>{submittedPartnerApp.id}</strong>
+                  <strong style={{ color: '#0B57D0' }}>{submittedPartnerApp.id}</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #E2E8F0' }}>
                   <span style={{ color: '#64748B' }}>Corporate Email:</span>
@@ -1205,7 +1205,7 @@ export function PartnerOnboardingModal({
                     window.dispatchEvent(new PopStateEvent('popstate'));
                   }}
                   style={{
-                    background: '#6E42E5',
+                    background: '#0B57D0',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,

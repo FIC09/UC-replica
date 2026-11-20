@@ -774,7 +774,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           style={{
             background: 'none',
             border: 'none',
-            color: '#7c3aed',
+            color: '#0B57D0',
             fontSize: 14,
             fontWeight: 700,
             cursor: 'pointer',
@@ -790,11 +790,11 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
           <span style={{
             background: job.status === 'Completed' ? '#ecfdf5' :
               job.status === 'In Progress' ? '#dbeafe' :
-              job.status === 'Arrived' ? '#ede9fe' :
+              job.status === 'Arrived' ? '#E8F1FF' :
               job.status === 'En Route' ? '#fef3c7' : '#f1f5f9',
             color: job.status === 'Completed' ? '#059669' :
               job.status === 'In Progress' ? '#1e40af' :
-              job.status === 'Arrived' ? '#6b21a8' :
+              job.status === 'Arrived' ? '#0B57D0' :
               job.status === 'En Route' ? '#92400e' : '#475569',
             padding: '4px 14px',
             borderRadius: 20,
@@ -858,7 +858,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                   width: 32,
                   height: 32,
                   borderRadius: '50%',
-                  background: isCompleted ? '#059669' : isCurrent ? '#7c3aed' : '#ffffff',
+                  background: isCompleted ? '#059669' : isCurrent ? '#0B57D0' : '#ffffff',
                   color: isCompleted || isCurrent ? '#ffffff' : '#94a3b8',
                   border: isCompleted || isCurrent ? 'none' : '2px solid #CBD5E1',
                   display: 'flex',
@@ -866,7 +866,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                   justifyContent: 'center',
                   fontWeight: 800,
                   fontSize: 13,
-                  boxShadow: isCurrent ? '0 0 0 4px rgba(124, 58, 237, 0.2)' : isCompleted ? '0 2px 6px rgba(5, 150, 105, 0.2)' : 'none',
+                  boxShadow: isCurrent ? '0 0 0 4px rgba(11, 87, 208, 0.2)' : isCompleted ? '0 2px 6px rgba(5, 150, 105, 0.2)' : 'none',
                   transition: 'all 0.2s ease'
                 }}>
                   {isCompleted ? '✓' : idx + 1}
@@ -874,7 +874,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 <span style={{
                   fontSize: 11.5,
                   fontWeight: isCurrent ? 800 : isCompleted ? 700 : 500,
-                  color: isCurrent ? '#7c3aed' : isCompleted ? '#059669' : '#64748b',
+                  color: isCurrent ? '#0B57D0' : isCompleted ? '#059669' : '#64748b',
                   marginTop: 8,
                   textAlign: 'center'
                 }}>
@@ -923,15 +923,15 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               <span style={{
                 background: job.status === 'Completed' ? '#ECFDF5' :
                   job.status === 'In Progress' ? '#EFF6FF' :
-                  job.status === 'Arrived' ? '#FAF5FF' :
+                  job.status === 'Arrived' ? '#E8F1FF' :
                   job.status === 'En Route' ? '#FFFBEB' : '#F1F5F9',
                 color: job.status === 'Completed' ? '#059669' :
                   job.status === 'In Progress' ? '#1E40AF' :
-                  job.status === 'Arrived' ? '#6B21A8' :
+                  job.status === 'Arrived' ? '#0B57D0' :
                   job.status === 'En Route' ? '#92400E' : '#475569',
                 border: `1px solid ${job.status === 'Completed' ? '#A7F3D0' :
                   job.status === 'In Progress' ? '#BFDBFE' :
-                  job.status === 'Arrived' ? '#DDD6FE' :
+                  job.status === 'Arrived' ? '#E4E7EC' :
                   job.status === 'En Route' ? '#FDE68A' : '#E2E8F0'}`,
                 padding: '2px 10px',
                 borderRadius: 12,
@@ -947,7 +947,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                   borderRadius: '50%',
                   background: job.status === 'Completed' ? '#059669' :
                     job.status === 'In Progress' ? '#2563EB' :
-                    job.status === 'Arrived' ? '#7C3AED' :
+                    job.status === 'Arrived' ? '#0B57D0' :
                     job.status === 'En Route' ? '#D97706' : '#64748B'
                 }} />
                 <span>{job.status}</span>
@@ -1113,7 +1113,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               <button
                 onClick={() => handleUpdateStatus('Arrived')}
                 style={{
-                  background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                  background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
                   color: '#ffffff',
                   border: 'none',
                   padding: '12px 22px',
@@ -1124,7 +1124,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 8,
-                  boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)',
+                  boxShadow: '0 4px 12px rgba(11, 87, 208, 0.25)',
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
@@ -1194,7 +1194,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 onClick={() => setIsChatDrawerOpen(true)}
                 style={{
                   background: '#FFFFFF',
-                  color: '#4F46E5',
+                  color: '#0B57D0',
                   border: '1.5px solid #C7D2FE',
                   padding: '11px 18px',
                   borderRadius: 10,
@@ -1208,7 +1208,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                   transition: 'all 0.15s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#EEF2FF';
+                  e.currentTarget.style.background = '#E8F1FF';
                   e.currentTarget.style.borderColor = '#818CF8';
                   e.currentTarget.style.transform = 'translateY(-1px)';
                 }}
@@ -1353,7 +1353,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 <span style={{ fontSize: 14.5, fontWeight: 800, color: '#0F172A' }}>
                   Work Verification Evidence Photos
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#7C3AED', background: '#F5F3FF', border: '1px solid #DDD6FE', padding: '2px 8px', borderRadius: 12 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#0B57D0', background: '#E8F1FF', border: '1px solid #E4E7EC', padding: '2px 8px', borderRadius: 12 }}>
                   Mandatory SOP Process
                 </span>
               </div>
@@ -1420,7 +1420,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                               await loadJob();
                             }
                           })}
-                          style={{ fontSize: 11, color: '#7C3AED', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
+                          style={{ fontSize: 11, color: '#0B57D0', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline', background: 'none', border: 'none', padding: 0 }}
                         >
                           📷 Retake Live
                         </button>
@@ -1630,10 +1630,10 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             style={{
-              background: activeTab === tab.id ? '#7c3aed' : '#ffffff',
+              background: activeTab === tab.id ? '#0B57D0' : '#ffffff',
               color: activeTab === tab.id ? '#ffffff' : '#475569',
               border: '1px solid',
-              borderColor: activeTab === tab.id ? '#7c3aed' : '#e2e8f0',
+              borderColor: activeTab === tab.id ? '#0B57D0' : '#e2e8f0',
               padding: '10px 18px',
               borderRadius: 10,
               fontSize: 13,
@@ -1643,7 +1643,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               alignItems: 'center',
               gap: 8,
               whiteSpace: 'nowrap',
-              boxShadow: activeTab === tab.id ? '0 2px 4px rgba(124, 58, 237, 0.2)' : 'none',
+              boxShadow: activeTab === tab.id ? '0 2px 4px rgba(11, 87, 208, 0.2)' : 'none',
               transition: 'all 0.15s ease'
             }}
           >
@@ -1651,7 +1651,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
             {tab.count !== null && (
               <span style={{
                 background: activeTab === tab.id ? '#ffffff' : '#f1f5f9',
-                color: activeTab === tab.id ? '#7c3aed' : '#64748b',
+                color: activeTab === tab.id ? '#0B57D0' : '#64748b',
                 padding: '2px 7px',
                 borderRadius: 12,
                 fontSize: 11,
@@ -1876,7 +1876,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                   disabled={isUploadingPhoto}
                   style={{
                     flex: 1,
-                    background: isUploadingPhoto ? '#94a3b8' : '#7c3aed',
+                    background: isUploadingPhoto ? '#94a3b8' : '#0B57D0',
                     color: '#ffffff',
                     border: 'none',
                     textAlign: 'center',
@@ -2031,7 +2031,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 type="submit"
                 disabled={isSubmittingExtraWork}
                 style={{
-                  background: '#7c3aed',
+                  background: '#0B57D0',
                   color: '#ffffff',
                   border: 'none',
                   padding: '12px 20px',
@@ -2101,7 +2101,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                       {/* Verifiable Customer Approval Simulation (Demo Flow) */}
                       {item.status === 'Pending Customer Approval' && (
                         <div style={{ marginTop: 14, background: '#ffffff', padding: '12px 14px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: '#6b21a8', textTransform: 'uppercase', marginBottom: 8 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: '#0B57D0', textTransform: 'uppercase', marginBottom: 8 }}>
                             Customer Authorization Workflow
                           </div>
                           <p style={{ fontSize: 11, color: '#64748b', margin: '0 0 10px 0' }}>
@@ -2201,7 +2201,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                     style={{
                       alignSelf: isPro ? 'flex-end' : 'flex-start',
                       maxWidth: '80%',
-                      background: isPro ? '#7c3aed' : '#ffffff',
+                      background: isPro ? '#0B57D0' : '#ffffff',
                       color: isPro ? '#ffffff' : '#0f172a',
                       padding: '10px 14px',
                       borderRadius: 12,
@@ -2250,7 +2250,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
               />
               <button
                 type="submit"
-                style={{ background: '#7c3aed', color: '#ffffff', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
+                style={{ background: '#0B57D0', color: '#ffffff', border: 'none', padding: '10px 18px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}
               >
                 Send
               </button>
@@ -2262,8 +2262,8 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
 
             {/* Customer Access Instructions */}
             {job.customerInstructions && (
-              <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 14, padding: '18px 20px' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#6b21a8', textTransform: 'uppercase' }}>
+              <div style={{ background: '#E8F1FF', border: '1px solid #E8F1FF', borderRadius: 14, padding: '18px 20px' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0', textTransform: 'uppercase' }}>
                   Customer Entry Instructions
                 </div>
                 <div style={{ fontSize: 14, color: '#3b0764', marginTop: 4, fontStyle: 'italic' }}>
@@ -2454,7 +2454,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 <div style={{ fontSize: 13, color: '#1e293b', marginTop: 4, lineHeight: 1.4 }}>
                   {currentPolicy.policyText || 'Evaluated under platform dispatch operational rules.'}
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', marginTop: 6 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0', marginTop: 6 }}>
                   Resolution: {currentPolicy.resolution}
                 </div>
                 <div style={{ fontSize: 11, color: '#059669', marginTop: 4 }}>
@@ -2693,7 +2693,7 @@ export function JobDetailView({ jobId, onNavigate, showToast }) {
                 onClick={handleAddNote}
                 disabled={isAddingNote || !newNoteInput.trim()}
                 style={{
-                  background: '#7c3aed',
+                  background: '#0B57D0',
                   color: '#ffffff',
                   border: 'none',
                   padding: '8px 14px',

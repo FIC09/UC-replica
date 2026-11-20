@@ -78,12 +78,12 @@ export function AdminLoginModal({
             <div style={{
               width: 36,
               height: 36,
-              background: 'linear-gradient(135deg, #6E42E5 0%, #8B5CF6 100%)',
+              background: 'linear-gradient(135deg, #0B57D0 0%, #0B57D0 100%)',
               borderRadius: 10,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: '0 4px 12px rgba(110, 66, 229, 0.4)'
+              boxShadow: '0 4px 12px rgba(11, 87, 208, 0.4)'
             }}>
               <ShieldCheck size={20} color="#FFFFFF" />
             </div>
@@ -121,14 +121,14 @@ export function AdminLoginModal({
         <div style={{ padding: '22px 24px' }}>
           {/* Credentials Helper Box */}
           <div style={{
-            background: 'rgba(110, 66, 229, 0.08)',
-            border: '1px solid rgba(110, 66, 229, 0.3)',
+            background: 'rgba(11, 87, 208, 0.08)',
+            border: '1px solid rgba(11, 87, 208, 0.3)',
             borderRadius: 12,
             padding: '12px 14px',
             marginBottom: 20
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 800, color: '#A78BFA', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 800, color: '#0B57D0', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 <KeyRound size={14} />
                 <span>Admin Login Credentials</span>
               </div>
@@ -136,7 +136,7 @@ export function AdminLoginModal({
                 type="button"
                 onClick={handleAutoFill}
                 style={{
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 6,
@@ -282,7 +282,7 @@ export function AdminLoginModal({
               disabled={isLoading}
               style={{
                 width: '100%',
-                background: '#6E42E5',
+                background: '#0B57D0',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 8,
@@ -297,7 +297,7 @@ export function AdminLoginModal({
                 transition: 'background 0.15s'
               }}
               onMouseEnter={e => e.currentTarget.style.background = '#582AD1'}
-              onMouseLeave={e => e.currentTarget.style.background = '#6E42E5'}
+              onMouseLeave={e => e.currentTarget.style.background = '#0B57D0'}
             >
               <span>{isLoading ? 'Verifying Credentials...' : 'Access Admin Hub'}</span>
               <ArrowRight size={16} />

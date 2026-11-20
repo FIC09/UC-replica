@@ -435,7 +435,7 @@ export function SalonRoyaleServicePage({
                 maxWidth: 240
               }}
             >
-              <MapPin size={14} color="#7C3AED" style={{ flexShrink: 0 }} />
+              <MapPin size={14} color="#0B57D0" style={{ flexShrink: 0 }} />
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 4744+HMQ, {selectedLocality || selectedCity}
               </span>
@@ -531,7 +531,7 @@ export function SalonRoyaleServicePage({
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 4,
-                background: '#6D28D9',
+                background: '#0849B1',
                 color: '#FFFFFF',
                 borderRadius: 50,
                 padding: '2px 8px',
@@ -586,7 +586,7 @@ export function SalonRoyaleServicePage({
                       alignItems: 'center',
                       gap: 6,
                       borderRadius: 10,
-                      outline: isActive ? '2px solid #7C3AED' : 'none'
+                      outline: isActive ? '2px solid #0B57D0' : 'none'
                     }}
                   >
                     <div
@@ -599,7 +599,7 @@ export function SalonRoyaleServicePage({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        border: isActive ? '2px solid #7C3AED' : '1px solid #E2E8F0'
+                        border: isActive ? '2px solid #0B57D0' : '1px solid #E2E8F0'
                       }}
                     >
                       {cat.iconType === 'package' ? (
@@ -635,7 +635,7 @@ export function SalonRoyaleServicePage({
                       style={{
                         fontSize: 10.5,
                         fontWeight: isActive ? 700 : 500,
-                        color: isActive ? '#7C3AED' : '#334155',
+                        color: isActive ? '#0B57D0' : '#334155',
                         textAlign: 'center',
                         lineHeight: 1.2,
                         maxWidth: 62
@@ -769,7 +769,7 @@ export function SalonRoyaleServicePage({
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 3,
-                                background: '#6D28D9',
+                                background: '#0849B1',
                                 color: '#FFFFFF',
                                 borderRadius: 50,
                                 padding: '1px 6px',
@@ -846,7 +846,7 @@ export function SalonRoyaleServicePage({
                                 padding: 0,
                                 fontSize: 12,
                                 fontWeight: 700,
-                                color: '#7C3AED',
+                                color: '#0B57D0',
                                 cursor: 'pointer',
                                 textDecoration: 'none'
                               }}
@@ -886,14 +886,14 @@ export function SalonRoyaleServicePage({
                                 onClick={() => handleAdd(srv)}
                                 style={{
                                   background: '#FFFFFF',
-                                  border: '1.5px solid #7C3AED',
-                                  color: '#7C3AED',
+                                  border: '1.5px solid #0B57D0',
+                                  color: '#0B57D0',
                                   borderRadius: 8,
                                   padding: '7px 22px',
                                   fontSize: 13,
                                   fontWeight: 800,
                                   cursor: 'pointer',
-                                  boxShadow: '0 2px 6px rgba(124, 58, 237, 0.12)',
+                                  boxShadow: '0 2px 6px rgba(11, 87, 208, 0.12)',
                                   transition: 'all 0.15s ease'
                                 }}
                               >
@@ -905,11 +905,11 @@ export function SalonRoyaleServicePage({
                                   display: 'flex',
                                   alignItems: 'center',
                                   gap: 10,
-                                  background: '#FAF5FF',
-                                  border: '1.5px solid #7C3AED',
+                                  background: '#E8F1FF',
+                                  border: '1.5px solid #0B57D0',
                                   borderRadius: 8,
                                   padding: '5px 12px',
-                                  color: '#7C3AED',
+                                  color: '#0B57D0',
                                   fontWeight: 800,
                                   fontSize: 13
                                 }}
@@ -921,7 +921,7 @@ export function SalonRoyaleServicePage({
                                     background: 'none',
                                     border: 'none',
                                     padding: 0,
-                                    color: '#7C3AED',
+                                    color: '#0B57D0',
                                     cursor: 'pointer',
                                     display: 'flex'
                                   }}
@@ -936,7 +936,7 @@ export function SalonRoyaleServicePage({
                                     background: 'none',
                                     border: 'none',
                                     padding: 0,
-                                    color: '#7C3AED',
+                                    color: '#0B57D0',
                                     cursor: 'pointer',
                                     display: 'flex'
                                   }}
@@ -976,7 +976,7 @@ export function SalonRoyaleServicePage({
                     width: 44,
                     height: 44,
                     borderRadius: '50%',
-                    background: 'radial-gradient(circle, #E0E7FF 0%, #EDE9FE 100%)',
+                    background: 'radial-gradient(circle, #E0E7FF 0%, #E8F1FF 100%)',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -984,8 +984,8 @@ export function SalonRoyaleServicePage({
                     border: '1.5px solid #C7D2FE'
                   }}
                 >
-                  <ShieldCheck size={18} color="#6D28D9" />
-                  <span style={{ fontSize: 6.5, fontWeight: 800, color: '#4338CA', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                  <ShieldCheck size={18} color="#0849B1" />
+                  <span style={{ fontSize: 6.5, fontWeight: 800, color: '#0849B1', textTransform: 'uppercase', letterSpacing: 0.3 }}>
                     Assured
                   </span>
                 </div>
@@ -1011,7 +1011,7 @@ export function SalonRoyaleServicePage({
             {cartCount > 0 && (
               <div
                 style={{
-                  background: '#6D28D9',
+                  background: '#0849B1',
                   borderRadius: 14,
                   padding: '14px 18px',
                   display: 'flex',
@@ -1052,7 +1052,7 @@ export function SalonRoyaleServicePage({
             left: 20,
             right: 20,
             zIndex: 90,
-            background: '#6D28D9',
+            background: '#0849B1',
             borderRadius: 14,
             padding: '14px 20px',
             display: 'none', // Shown via responsive CSS if needed

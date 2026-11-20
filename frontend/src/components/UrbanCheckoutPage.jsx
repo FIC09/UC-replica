@@ -24,7 +24,8 @@ import {
   Crosshair,
   Loader2,
   Zap,
-  AlertTriangle
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
 import { MUMBAI_LOCALITIES, CITY_LOCALITIES, COUPONS, CITIES } from '../data/servicesData';
 import { PaymentGatewayModal } from './PaymentGatewayModal';
@@ -96,14 +97,28 @@ export function UrbanCheckoutPage({
 
   // Filter out any legacy mock addresses and ensure guests start with zero addresses
   const sanitizedSavedAddresses = React.useMemo(() => {
-    if (!currentUser && !user) return [];
-    return (savedAddresses || []).filter(addr => 
-      addr && 
-      addr.id !== 'ADDR-KG-1' && 
-      addr.id !== 'ADDR-1' && 
-      !addr.flat?.includes('Door 14/2') && 
-      !addr.flat?.includes('Flat 402')
-    );
+    const activeUser = currentUser || user;
+    if (!activeUser) return [];
+    return (savedAddresses || []).filter(addr => {
+      if (!addr) return false;
+      if (addr.id === 'ADDR-KG-1' || addr.id === 'ADDR-1' || addr.id === '1' || addr.id === '2' || addr.id === '3') return false;
+      if (addr.flat && (addr.flat.includes('Door 14/2') || addr.flat.includes('Flat 402'))) return false;
+
+      const currentId = (activeUser._id || activeUser.id || '').toString().trim();
+      const addrId = (addr.userId || '').toString().trim();
+
+      const currentPhone = (activeUser.phone || '').toString().replace(/\D/g, '').slice(-10);
+      const addrPhone = (addr.userPhone || addr.phone || '').toString().replace(/\D/g, '').slice(-10);
+
+      const currentEmail = (activeUser.email || '').toString().trim().toLowerCase();
+      const addrEmail = (addr.userEmail || addr.email || '').toString().trim().toLowerCase();
+
+      if (addrId && currentId && addrId === currentId) return true;
+      if (addrPhone && currentPhone && addrPhone === currentPhone) return true;
+      if (addrEmail && currentEmail && addrEmail === currentEmail) return true;
+
+      return false;
+    });
   }, [savedAddresses, currentUser, user]);
 
   const getCityLocalities = (city) => {
@@ -161,7 +176,7 @@ export function UrbanCheckoutPage({
   const [formPincode, setFormPincode] = useState(pincode);
   const [formLandmark, setFormLandmark] = useState(landmark);
   const [formLabel, setFormLabel] = useState(addressLabel);
-  const [formMode, setFormMode] = useState(sanitizedSavedAddresses.length > 0 ? 'saved' : 'manual');
+  const [formMode, setFormMode] = useState('manual');
   const [addressFormError, setAddressFormError] = useState('');
 
   // Real-Time GPS Detection State (Strictly Zero Fake Locations)
@@ -295,6 +310,7 @@ export function UrbanCheckoutPage({
             : `${localityPart}, ${city} - ${postcode}`;
 
           const resolvedCityState = resolvedAddress.state || CITIES.find(c => c.name.toLowerCase() === (city || '').toLowerCase())?.state || 'Tamil Nadu';
+          const activeUser = currentUser || user;
           const newGpsAddr = {
             id: 'gps-' + Date.now(),
             label: 'Current GPS Location',
@@ -306,7 +322,11 @@ export function UrbanCheckoutPage({
             landmark: landmarkPart,
             isDefault: true,
             formatted: fullFormatted,
-            isGpsVerified: true
+            isGpsVerified: true,
+            userId: activeUser?._id || activeUser?.id || '',
+            userPhone: activeUser?.phone || '',
+            userEmail: activeUser?.email || '',
+            userName: activeUser?.name || 'Customer'
           };
 
           // Update active checkout state
@@ -378,7 +398,7 @@ export function UrbanCheckoutPage({
     setFormLandmark(landmark);
     setFormLabel(addressLabel || 'Home');
     setAddressFormError('');
-    setFormMode(sanitizedSavedAddresses.length > 0 ? 'saved' : 'manual');
+    setFormMode('manual');
     setIsAddressModalOpen(true);
   };
 
@@ -431,6 +451,7 @@ export function UrbanCheckoutPage({
     }
 
     if (onAddAddress) {
+      const activeUser = currentUser || user;
       const matchedState = CITIES.find(c => c.name.toLowerCase() === formCity.toLowerCase())?.state || 'Tamil Nadu';
       const newAddr = {
         id: 'ADDR-' + Date.now(),
@@ -442,7 +463,11 @@ export function UrbanCheckoutPage({
         pincode: formPincode.trim(),
         landmark: formLandmark.trim(),
         isDefault: true,
-        formatted: `${formFlat.trim()}, ${resolvedLocality}, ${formCity}, ${matchedState}${formPincode.trim() ? ' - ' + formPincode.trim() : ''}${formLandmark.trim() ? ` (${formLandmark.trim()})` : ''}`
+        formatted: `${formFlat.trim()}, ${resolvedLocality}, ${formCity}, ${matchedState}${formPincode.trim() ? ' - ' + formPincode.trim() : ''}${formLandmark.trim() ? ` (${formLandmark.trim()})` : ''}`,
+        userId: activeUser?._id || activeUser?.id || '',
+        userPhone: activeUser?.phone || '',
+        userEmail: activeUser?.email || '',
+        userName: activeUser?.name || 'Customer'
       };
       onAddAddress(newAddr);
     }
@@ -762,6 +787,7 @@ export function UrbanCheckoutPage({
   }, 0);
 
   const { bookingFee, isSurgeActive, surgeAmount, gstRate, maintenanceMode } = usePlatformSettings();
+  const [confirmedBooking, setConfirmedBooking] = useState(null);
 
   const itemSavings = Math.max(0, originalSubtotal - itemsSubtotal);
 
@@ -1062,7 +1088,7 @@ export function UrbanCheckoutPage({
         contactPhone: formattedPhone
       },
       slot: `${selectedDate}, ${selectedTime}`,
-      scheduledDate: selectedDateObj?.dateObj,
+      scheduledDate: selectedCalendarDate || new Date(),
       status: 'Confirmed',
       paymentStatus: (paymentDetails?.method === 'cod' || paymentDetails?.methodLabel?.toLowerCase().includes('cash')) ? 'Pending' : 'Paid',
       paymentMethod: paymentDetails?.methodLabel || paymentMethod.toUpperCase(),
@@ -1080,6 +1106,7 @@ export function UrbanCheckoutPage({
       savings: totalSavings
     };
 
+    setConfirmedBooking(bookingPayload);
     if (onConfirmOrder) {
       onConfirmOrder(bookingPayload);
     }
@@ -1173,6 +1200,198 @@ export function UrbanCheckoutPage({
       {/* ======================================================== */}
       {/* 2. MAIN CHECKOUT BODY (2-COLUMN MATCHING SCREENSHOT)     */}
       {/* ======================================================== */}
+      {confirmedBooking ? (
+        <main style={{
+          flex: 1,
+          maxWidth: 720,
+          width: '100%',
+          margin: '0 auto',
+          padding: '36px 20px 60px 20px',
+          boxSizing: 'border-box'
+        }}>
+          <div style={{
+            background: '#FFFFFF',
+            border: '1px solid #E4E7EC',
+            borderRadius: 16,
+            padding: '36px 28px',
+            boxShadow: '0 10px 30px rgba(11, 87, 208, 0.08)',
+            textAlign: 'center'
+          }}>
+            {/* Success Icon */}
+            <div style={{
+              width: 72,
+              height: 72,
+              borderRadius: '50%',
+              backgroundColor: '#DCFCE7',
+              color: '#16A34A',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 18px auto',
+              border: '2px solid #86EFAC'
+            }}>
+              <CheckCircle2 size={42} strokeWidth={2.4} />
+            </div>
+
+            <h1 style={{
+              fontSize: 24,
+              fontWeight: 800,
+              color: '#152238',
+              marginBottom: 8
+            }}>
+              Booking Confirmed!
+            </h1>
+            <p style={{
+              fontSize: 14.5,
+              color: '#667085',
+              maxWidth: 480,
+              margin: '0 auto 24px auto',
+              lineHeight: 1.5
+            }}>
+              Your service has been scheduled successfully on this checkout flow.
+            </p>
+
+            {/* Booking Details Card */}
+            <div style={{
+              background: '#F4F7FC',
+              borderRadius: 12,
+              border: '1px solid #E4E7EC',
+              padding: '20px 22px',
+              textAlign: 'left',
+              marginBottom: 24
+            }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingBottom: 14,
+                borderBottom: '1px solid #E4E7EC',
+                marginBottom: 14
+              }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Booking Reference
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#0B57D0', marginTop: 2 }}>
+                    #{confirmedBooking.id}
+                  </div>
+                </div>
+                <div style={{
+                  padding: '4px 12px',
+                  borderRadius: 20,
+                  backgroundColor: '#DCFCE7',
+                  color: '#16A34A',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5
+                }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#16A34A' }} />
+                  <span>Confirmed</span>
+                </div>
+              </div>
+
+              {/* Items List */}
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+                  Booked Services
+                </div>
+                {confirmedBooking.items && confirmedBooking.items.length > 0 ? (
+                  confirmedBooking.items.map((item, idx) => (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, color: '#152238', marginBottom: 6 }}>
+                      <span>{item.title || item.name} × {item.qty}</span>
+                      <span style={{ fontWeight: 700 }}>₹{((item.price || 0) * (item.qty || 1)).toLocaleString('en-IN')}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: 13.5, color: '#152238' }}>{confirmedBooking.serviceName}</div>
+                )}
+              </div>
+
+              {/* Date & Time */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, paddingTop: 12, borderTop: '1px solid #E4E7EC' }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Scheduled Slot
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#152238', marginTop: 3 }}>
+                    📅 {confirmedBooking.slot}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Payment ({confirmedBooking.paymentMethod})
+                  </div>
+                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#16A34A', marginTop: 3 }}>
+                    ₹{confirmedBooking.totalAmount.toLocaleString('en-IN')} • {confirmedBooking.paymentStatus}
+                  </div>
+                </div>
+              </div>
+
+              {/* Address */}
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #E4E7EC' }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#667085', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Delivery Address
+                </div>
+                <div style={{ fontSize: 13, color: '#152238', marginTop: 3 }}>
+                  📍 {confirmedBooking.address}
+                </div>
+              </div>
+            </div>
+
+            {/* Value Props & Assurance */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-around',
+              flexWrap: 'wrap',
+              gap: 12,
+              padding: '14px 10px',
+              backgroundColor: '#EFF6FF',
+              borderRadius: 10,
+              border: '1px solid #BFDBFE',
+              marginBottom: 24,
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: '#1E40AF'
+            }}>
+              <span>🛡️ 30-Day Service Warranty</span>
+              <span>•</span>
+              <span>🔒 Transparent Pricing & Protection</span>
+              <span>•</span>
+              <span>⚡ Aadhaar-Verified Technician</span>
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={onBackHome}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#0B57D0',
+                  color: '#FFFFFF',
+                  borderRadius: 10,
+                  border: 'none',
+                  fontSize: 14,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  boxShadow: '0 4px 12px rgba(11, 87, 208, 0.25)',
+                  transition: 'background 0.15s ease'
+                }}
+                onMouseEnter={e => e.currentTarget.style.backgroundColor = '#0849B1'}
+                onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0B57D0'}
+              >
+                <span>Return to Marketplace</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        </main>
+      ) : (
       <main style={{
         flex: 1,
         maxWidth: 1100,
@@ -1211,7 +1430,7 @@ export function UrbanCheckoutPage({
               type="button"
               onClick={onBackHome}
               style={{
-                background: '#5E3BEE',
+                background: '#0B57D0',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 10,
@@ -1302,7 +1521,7 @@ export function UrbanCheckoutPage({
                             style={{
                               flex: 1,
                               padding: '11px 0',
-                              backgroundColor: '#5E3BEE',
+                              backgroundColor: '#0B57D0',
                               color: '#FFFFFF',
                               border: 'none',
                               borderRadius: 10,
@@ -1321,8 +1540,8 @@ export function UrbanCheckoutPage({
                               flex: 1,
                               padding: '11px 0',
                               backgroundColor: '#F3F0FF',
-                              color: '#5E3BEE',
-                              border: '1.5px solid #DDD6FE',
+                              color: '#0B57D0',
+                              border: '1.5px solid #E4E7EC',
                               borderRadius: 10,
                               fontSize: 14,
                               fontWeight: 700,
@@ -1345,7 +1564,7 @@ export function UrbanCheckoutPage({
                             style={{
                               background: 'none',
                               border: 'none',
-                              color: '#5E3BEE',
+                              color: '#0B57D0',
                               fontWeight: 700,
                               cursor: 'pointer',
                               padding: 0
@@ -1424,7 +1643,7 @@ export function UrbanCheckoutPage({
                           disabled={isSubmittingSignup}
                           style={{
                             padding: '11px 0',
-                            backgroundColor: '#5E3BEE',
+                            backgroundColor: '#0B57D0',
                             color: '#FFFFFF',
                             border: 'none',
                             borderRadius: 10,
@@ -1453,8 +1672,8 @@ export function UrbanCheckoutPage({
                         width: 40,
                         height: 40,
                         borderRadius: '50%',
-                        background: '#EEF2FF',
-                        color: '#4F46E5',
+                        background: '#E8F1FF',
+                        color: '#0B57D0',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1490,7 +1709,7 @@ export function UrbanCheckoutPage({
                       style={{
                         background: 'transparent',
                         border: 'none',
-                        color: '#6E42E5',
+                        color: '#0B57D0',
                         fontSize: 12.5,
                         fontWeight: 700,
                         cursor: 'pointer'
@@ -1527,10 +1746,10 @@ export function UrbanCheckoutPage({
                       onClick={handleDetectGpsLocation}
                       disabled={isDetectingGps}
                       style={{
-                        background: '#FAF5FF',
-                        border: '1px solid #DDD6FE',
+                        background: '#E8F1FF',
+                        border: '1px solid #E4E7EC',
                         borderRadius: 6,
-                        color: '#7C3AED',
+                        color: '#0B57D0',
                         fontSize: 12,
                         fontWeight: 700,
                         cursor: isDetectingGps ? 'not-allowed' : 'pointer',
@@ -1553,7 +1772,7 @@ export function UrbanCheckoutPage({
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: '#6E42E5',
+                        color: '#0B57D0',
                         fontSize: 13,
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -1580,7 +1799,7 @@ export function UrbanCheckoutPage({
                       cursor: 'pointer',
                       transition: 'border-color 0.15s ease'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#6E42E5'}
+                    onMouseEnter={(e) => e.currentTarget.style.borderColor = '#0B57D0'}
                     onMouseLeave={(e) => e.currentTarget.style.borderColor = '#E5E7EB'}
                   >
                     <input
@@ -1588,7 +1807,7 @@ export function UrbanCheckoutPage({
                       name="checkoutAddress"
                       checked={true}
                       readOnly
-                      style={{ marginTop: 3, accentColor: '#5E3BEE' }}
+                      style={{ marginTop: 3, accentColor: '#0B57D0' }}
                     />
                     <div style={{ flex: 1 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
@@ -1637,7 +1856,7 @@ export function UrbanCheckoutPage({
                     onClick={handleOpenAddressModal}
                     style={{
                       padding: '16px 18px',
-                      background: '#FAF5FF',
+                      background: '#E8F1FF',
                       borderRadius: 12,
                       border: '1.5px dashed #A855F7',
                       display: 'flex',
@@ -1647,12 +1866,12 @@ export function UrbanCheckoutPage({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <MapPin size={20} color="#7C3AED" />
+                      <MapPin size={20} color="#0B57D0" />
                       <div>
                         <div style={{ fontSize: 14, fontWeight: 700, color: '#581C87' }}>
                           No service address added
                         </div>
-                        <div style={{ fontSize: 12.5, color: '#7E22CE' }}>
+                        <div style={{ fontSize: 12.5, color: '#0849B1' }}>
                           Enter your house / flat number and service address
                         </div>
                       </div>
@@ -1665,7 +1884,7 @@ export function UrbanCheckoutPage({
                         handleOpenAddressModal();
                       }}
                       style={{
-                        background: '#7C3AED',
+                        background: '#0B57D0',
                         color: '#FFFFFF',
                         border: 'none',
                         padding: '8px 16px',
@@ -1712,7 +1931,7 @@ export function UrbanCheckoutPage({
                         {calendarMonthTitle}
                       </span>
                       {isViewingCurrentMonth && (
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#5E3BEE', background: '#F5F3FF', padding: '1px 6px', borderRadius: 4 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#0B57D0', background: '#E8F1FF', padding: '1px 6px', borderRadius: 4 }}>
                           Current Month
                         </span>
                       )}
@@ -1795,14 +2014,14 @@ export function UrbanCheckoutPage({
                             height: 34,
                             borderRadius: 8,
                             border: isSelected 
-                              ? '1.5px solid #5E3BEE' 
-                              : (isToday ? '1.5px solid #DDD6FE' : '1px solid transparent'),
+                              ? '1.5px solid #0B57D0' 
+                              : (isToday ? '1.5px solid #E4E7EC' : '1px solid transparent'),
                             background: isSelected 
-                              ? '#5E3BEE' 
-                              : (isPast ? '#F3F4F6' : (isToday ? '#FAF5FF' : '#FFFFFF')),
+                              ? '#0B57D0' 
+                              : (isPast ? '#F3F4F6' : (isToday ? '#E8F1FF' : '#FFFFFF')),
                             color: isSelected 
                               ? '#FFFFFF' 
-                              : (isPast ? '#9CA3AF' : (isToday ? '#7C3AED' : '#1F2937')),
+                              : (isPast ? '#9CA3AF' : (isToday ? '#0B57D0' : '#1F2937')),
                             fontSize: 12,
                             fontWeight: (isSelected || isToday) ? 800 : 500,
                             cursor: isPast ? 'not-allowed' : 'pointer',
@@ -1816,7 +2035,7 @@ export function UrbanCheckoutPage({
                         >
                           <span>{dayNum}</span>
                           {isToday && !isSelected && (
-                            <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#7C3AED', position: 'absolute', bottom: 3 }} />
+                            <span style={{ width: 4, height: 4, borderRadius: '50%', background: '#0B57D0', position: 'absolute', bottom: 3 }} />
                           )}
                         </button>
                       );
@@ -1872,7 +2091,7 @@ export function UrbanCheckoutPage({
                       borderRadius: 8,
                       border: 'none',
                       backgroundColor: !isCustomTimeMode ? '#FFFFFF' : 'transparent',
-                      color: !isCustomTimeMode ? '#5E3BEE' : '#6B7280',
+                      color: !isCustomTimeMode ? '#0B57D0' : '#6B7280',
                       fontWeight: !isCustomTimeMode ? 700 : 500,
                       fontSize: 12,
                       cursor: 'pointer',
@@ -1887,8 +2106,8 @@ export function UrbanCheckoutPage({
                     <span>⚡ Available Slots</span>
                     <span style={{
                       fontSize: 10.5,
-                      backgroundColor: !isCustomTimeMode ? '#EDE9FE' : '#E5E7EB',
-                      color: !isCustomTimeMode ? '#5E3BEE' : '#6B7280',
+                      backgroundColor: !isCustomTimeMode ? '#E8F1FF' : '#E5E7EB',
+                      color: !isCustomTimeMode ? '#0B57D0' : '#6B7280',
                       padding: '1px 6px',
                       borderRadius: 10,
                       fontWeight: 700
@@ -1905,7 +2124,7 @@ export function UrbanCheckoutPage({
                       padding: '7px 10px',
                       borderRadius: 8,
                       border: 'none',
-                      backgroundColor: isCustomTimeMode ? '#5E3BEE' : 'transparent',
+                      backgroundColor: isCustomTimeMode ? '#0B57D0' : 'transparent',
                       color: isCustomTimeMode ? '#FFFFFF' : '#6B7280',
                       fontWeight: isCustomTimeMode ? 700 : 500,
                       fontSize: 12,
@@ -1921,7 +2140,7 @@ export function UrbanCheckoutPage({
                     <span>⏰ Pick Custom Time</span>
                     <span style={{
                       fontSize: 10,
-                      backgroundColor: isCustomTimeMode ? '#7C3AED' : '#E5E7EB',
+                      backgroundColor: isCustomTimeMode ? '#0B57D0' : '#E5E7EB',
                       color: isCustomTimeMode ? '#FFFFFF' : '#4B5563',
                       padding: '1px 5px',
                       borderRadius: 10,
@@ -1975,9 +2194,9 @@ export function UrbanCheckoutPage({
                             style={{
                               padding: '10px 12px',
                               borderRadius: 8,
-                              border: isSel ? '2px solid #5E3BEE' : '1px solid #E5E7EB',
-                              backgroundColor: isDisabled ? '#F3F4F6' : (isSel ? '#F5F3FF' : '#FFFFFF'),
-                              color: isDisabled ? '#9CA3AF' : (isSel ? '#5E3BEE' : '#111827'),
+                              border: isSel ? '2px solid #0B57D0' : '1px solid #E5E7EB',
+                              backgroundColor: isDisabled ? '#F3F4F6' : (isSel ? '#E8F1FF' : '#FFFFFF'),
+                              color: isDisabled ? '#9CA3AF' : (isSel ? '#0B57D0' : '#111827'),
                               fontSize: 12.5,
                               fontWeight: isSel ? 700 : 500,
                               cursor: isDisabled ? 'not-allowed' : 'pointer',
@@ -2016,7 +2235,7 @@ export function UrbanCheckoutPage({
                         onClick={handleSelectCustomTimeMode}
                         style={{
                           padding: '6px 12px',
-                          backgroundColor: '#5E3BEE',
+                          backgroundColor: '#0B57D0',
                           color: '#FFFFFF',
                           border: 'none',
                           borderRadius: 7,
@@ -2036,13 +2255,13 @@ export function UrbanCheckoutPage({
                   <div style={{
                     padding: 14,
                     borderRadius: 12,
-                    backgroundColor: '#FAF5FF',
-                    border: '1.5px solid #DDD6FE'
+                    backgroundColor: '#E8F1FF',
+                    border: '1.5px solid #E4E7EC'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: 15 }}>⏰</span>
-                        <span style={{ fontSize: 13, fontWeight: 800, color: '#5B21B6' }}>
+                        <span style={{ fontSize: 13, fontWeight: 800, color: '#0849B1' }}>
                           Choose Your Preferred Arrival Time
                         </span>
                       </div>
@@ -2075,7 +2294,7 @@ export function UrbanCheckoutPage({
                       backgroundColor: '#FFFFFF',
                       padding: '8px 12px',
                       borderRadius: 10,
-                      border: '1px solid #C4B5FD'
+                      border: '1px solid #E8F1FF'
                     }}>
                       <label htmlFor="custom-arrival-time" style={{ fontSize: 12, fontWeight: 700, color: '#4B5563', whiteSpace: 'nowrap' }}>
                         Custom Time:
@@ -2122,9 +2341,9 @@ export function UrbanCheckoutPage({
                               style={{
                                 padding: '6px 8px',
                                 borderRadius: 6,
-                                border: isSel ? '1.5px solid #5E3BEE' : '1px solid #E9D5FF',
-                                backgroundColor: passed ? '#F3F4F6' : (isSel ? '#5E3BEE' : '#FFFFFF'),
-                                color: passed ? '#9CA3AF' : (isSel ? '#FFFFFF' : '#4C1D95'),
+                                border: isSel ? '1.5px solid #0B57D0' : '1px solid #E8F1FF',
+                                backgroundColor: passed ? '#F3F4F6' : (isSel ? '#0B57D0' : '#FFFFFF'),
+                                color: passed ? '#9CA3AF' : (isSel ? '#FFFFFF' : '#0B57D0'),
                                 fontSize: 11,
                                 fontWeight: 600,
                                 cursor: passed ? 'not-allowed' : 'pointer',
@@ -2261,7 +2480,7 @@ export function UrbanCheckoutPage({
                             style={{
                               width: 17,
                               height: 17,
-                              accentColor: '#6E42E5',
+                              accentColor: '#0B57D0',
                               cursor: 'pointer'
                             }}
                             title={selectedItemIds.has(item.id) ? "Uncheck to exclude from checkout" : "Check to include in checkout"}
@@ -2284,8 +2503,8 @@ export function UrbanCheckoutPage({
                           display: 'flex',
                           alignItems: 'center',
                           gap: 12,
-                          backgroundColor: '#F5F3FF',
-                          border: '1px solid #DDD6FE',
+                          backgroundColor: '#E8F1FF',
+                          border: '1px solid #E4E7EC',
                           borderRadius: 8,
                           padding: '4px 10px',
                           userSelect: 'none'
@@ -2296,7 +2515,7 @@ export function UrbanCheckoutPage({
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              color: '#6E42E5',
+                              color: '#0B57D0',
                               cursor: 'pointer',
                               padding: 0,
                               display: 'flex',
@@ -2308,7 +2527,7 @@ export function UrbanCheckoutPage({
                           <span style={{
                             fontSize: 13.5,
                             fontWeight: 800,
-                            color: '#6E42E5',
+                            color: '#0B57D0',
                             minWidth: 12,
                             textAlign: 'center'
                           }}>
@@ -2320,7 +2539,7 @@ export function UrbanCheckoutPage({
                             style={{
                               background: 'transparent',
                               border: 'none',
-                              color: '#6E42E5',
+                              color: '#0B57D0',
                               cursor: 'pointer',
                               padding: 0,
                               display: 'flex',
@@ -2509,7 +2728,7 @@ export function UrbanCheckoutPage({
                         onClick={() => handleApplyCoupon()}
                         disabled={!couponCode.trim() || isApplyingCoupon}
                         style={{
-                          backgroundColor: (couponCode.trim() && !isApplyingCoupon) ? '#6E42E5' : '#E5E7EB',
+                          backgroundColor: (couponCode.trim() && !isApplyingCoupon) ? '#0B57D0' : '#E5E7EB',
                           color: (couponCode.trim() && !isApplyingCoupon) ? '#FFFFFF' : '#9CA3AF',
                           border: 'none',
                           borderRadius: 8,
@@ -2529,32 +2748,6 @@ export function UrbanCheckoutPage({
                         {couponError}
                       </div>
                     )}
-
-                    {/* Quick suggestion pills for available active coupons */}
-                    {availableCoupons && availableCoupons.length > 0 && (
-                      <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-                        {availableCoupons.slice(0, 4).map(c => (
-                          <button
-                            key={c.code}
-                            type="button"
-                            onClick={() => handleApplyCoupon(c.code)}
-                            disabled={isApplyingCoupon}
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              padding: '4px 8px',
-                              background: '#F5F3FF',
-                              color: '#6E42E5',
-                              borderRadius: 6,
-                              border: '1px dashed #DDD6FE',
-                              cursor: isApplyingCoupon ? 'wait' : 'pointer'
-                            }}
-                          >
-                            {c.code} {c.type === 'percentage' ? `(${c.discount}% OFF)` : `(-₹${c.discountAmount || c.discount})`}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -2562,22 +2755,22 @@ export function UrbanCheckoutPage({
               {/* UC Plus VIP Member Active Banner */}
               {hasUCPlus && (
                 <div style={{
-                  backgroundColor: '#FAF5FF',
-                  border: '1.5px solid #DDD6FE',
+                  backgroundColor: '#E8F1FF',
+                  border: '1.5px solid #E4E7EC',
                   borderRadius: 14,
                   padding: '12px 16px',
                   marginBottom: 16,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  boxShadow: '0 1px 3px rgba(110, 66, 229, 0.05)'
+                  boxShadow: '0 1px 3px rgba(11, 87, 208, 0.05)'
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{
                       width: 32,
                       height: 32,
                       borderRadius: '50%',
-                      backgroundColor: '#7C3AED',
+                      backgroundColor: '#0B57D0',
                       color: '#FFFFFF',
                       display: 'flex',
                       alignItems: 'center',
@@ -2587,10 +2780,10 @@ export function UrbanCheckoutPage({
                       <Sparkles size={16} />
                     </div>
                     <div>
-                      <div style={{ fontSize: 13.5, fontWeight: 800, color: '#5B21B6' }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 800, color: '#0849B1' }}>
                         UC Plus VIP Membership Active
                       </div>
-                      <div style={{ fontSize: 12, color: '#6D28D9', marginTop: 1 }}>
+                      <div style={{ fontSize: 12, color: '#0849B1', marginTop: 1 }}>
                         Extra 10% off (-₹{ucPlusDiscount}) + ₹0 Hygiene Fee applied
                       </div>
                     </div>
@@ -2838,7 +3031,7 @@ export function UrbanCheckoutPage({
                 style={{
                   width: '100%',
                   padding: '15px 0',
-                  backgroundColor: (maintenanceMode || activeCheckoutItems.length === 0) ? '#94A3B8' : '#5E3BEE',
+                  backgroundColor: (maintenanceMode || activeCheckoutItems.length === 0) ? '#94A3B8' : '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   borderRadius: 12,
@@ -2860,7 +3053,7 @@ export function UrbanCheckoutPage({
                 }}
                 onMouseLeave={e => {
                   if (!maintenanceMode && activeCheckoutItems.length > 0) {
-                    e.currentTarget.style.backgroundColor = '#5E3BEE';
+                    e.currentTarget.style.backgroundColor = '#0B57D0';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }
                 }}
@@ -2872,6 +3065,7 @@ export function UrbanCheckoutPage({
           </div>
         )}
       </main>
+      )}
 
       {/* 100% Safe & Secure Payment Gateway Modal (GPay, PhonePe, Paytm, COD, Card, Wallets) */}
       <PaymentGatewayModal
@@ -2934,12 +3128,12 @@ export function UrbanCheckoutPage({
                   width: 36,
                   height: 36,
                   borderRadius: 10,
-                  background: '#F3E8FF',
+                  background: '#E8F1FF',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center'
                 }}>
-                  <MapPin size={18} color="#7C3AED" />
+                  <MapPin size={18} color="#0B57D0" />
                 </div>
                 <div>
                   <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: '#111827' }}>
@@ -2972,141 +3166,16 @@ export function UrbanCheckoutPage({
 
             {/* Modal Body */}
             <div style={{ padding: '20px 24px' }}>
-              {/* PRIMARY HIGH-PRECISION GPS DETECTION CARD */}
-              <div style={{
-                marginBottom: 16,
-                padding: '14px 16px',
-                borderRadius: 14,
-                background: 'linear-gradient(135deg, #FAF5FF 0%, #F5F3FF 100%)',
-                border: '1.5px solid #DDD6FE',
-                boxShadow: '0 2px 6px rgba(124, 58, 237, 0.08)'
-              }}>
+              {/* Tab Switcher: Enter Manually displayed first, Saved Addresses displayed second */}
+              {sanitizedSavedAddresses.length > 0 && (
                 <div style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: '50%',
-                      background: '#7C3AED',
-                      color: '#FFFFFF',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      boxShadow: '0 4px 10px rgba(124, 58, 237, 0.3)'
-                    }}>
-                      <Navigation size={18} />
-                    </div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 800, color: '#111827' }}>
-                        Detect Current Location
-                      </div>
-                      <div style={{ fontSize: 11.5, color: '#6B7280', marginTop: 1 }}>
-                        Uses device GPS for exact, real-time doorstep delivery
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={isDetectingGps}
-                    onClick={handleDetectGpsLocation}
-                    style={{
-                      padding: '9px 16px',
-                      borderRadius: 10,
-                      backgroundColor: '#7C3AED',
-                      color: '#FFFFFF',
-                      border: 'none',
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      cursor: isDetectingGps ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)',
-                      whiteSpace: 'nowrap',
-                      transition: 'all 0.15s ease'
-                    }}
-                  >
-                    {isDetectingGps ? (
-                      <>
-                        <Loader2 size={14} className="spin-animate" />
-                        <span>Locating GPS...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Crosshair size={14} />
-                        <span>Use GPS</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {gpsStatusText && (
-                  <div style={{
-                    marginTop: 10,
-                    padding: '8px 12px',
-                    background: '#EDE9FE',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    color: '#5B21B6',
-                    fontWeight: 600,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8
-                  }}>
-                    <Loader2 size={13} className="spin-animate" />
-                    <span>{gpsStatusText}</span>
-                  </div>
-                )}
-
-                {gpsError && (
-                  <div style={{
-                    marginTop: 10,
-                    padding: '8px 12px',
-                    background: '#FEF2F2',
-                    border: '1px solid #FECACA',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    color: '#B91C1C',
-                    fontWeight: 600
-                  }}>
-                    ⚠️ {gpsError}
-                  </div>
-                )}
-              </div>
-              {/* Tab Switcher if there are saved addresses */}
-              {savedAddresses.length > 0 && (
-                <div style={{
-                  display: 'flex',
-                  background: '#F3F4F6',
+                  background: '#F4F7FC',
                   borderRadius: 10,
                   padding: 4,
-                  marginBottom: 18
+                  marginBottom: 18,
+                  border: '1px solid #E4E7EC'
                 }}>
-                  <button
-                    type="button"
-                    onClick={() => setFormMode('saved')}
-                    style={{
-                      flex: 1,
-                      padding: '8px 12px',
-                      borderRadius: 8,
-                      border: 'none',
-                      background: formMode === 'saved' ? '#FFFFFF' : 'transparent',
-                      color: formMode === 'saved' ? '#111827' : '#6B7280',
-                      fontWeight: 700,
-                      fontSize: 13,
-                      cursor: 'pointer',
-                      boxShadow: formMode === 'saved' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
-                    }}
-                  >
-                    Saved Addresses ({sanitizedSavedAddresses.length})
-                  </button>
                   <button
                     type="button"
                     onClick={() => setFormMode('manual')}
@@ -3116,14 +3185,34 @@ export function UrbanCheckoutPage({
                       borderRadius: 8,
                       border: 'none',
                       background: formMode === 'manual' ? '#FFFFFF' : 'transparent',
-                      color: formMode === 'manual' ? '#111827' : '#6B7280',
+                      color: formMode === 'manual' ? '#0B57D0' : '#667085',
                       fontWeight: 700,
                       fontSize: 13,
                       cursor: 'pointer',
-                      boxShadow: formMode === 'manual' ? '0 1px 2px rgba(0,0,0,0.05)' : 'none'
+                      boxShadow: formMode === 'manual' ? '0 1px 3px rgba(11, 87, 208, 0.12)' : 'none',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     Enter Manually
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormMode('saved')}
+                    style={{
+                      flex: 1,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      border: 'none',
+                      background: formMode === 'saved' ? '#FFFFFF' : 'transparent',
+                      color: formMode === 'saved' ? '#0B57D0' : '#667085',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      cursor: 'pointer',
+                      boxShadow: formMode === 'saved' ? '0 1px 3px rgba(11, 87, 208, 0.12)' : 'none',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    Saved Addresses ({sanitizedSavedAddresses.length})
                   </button>
                 </div>
               )}
@@ -3140,8 +3229,8 @@ export function UrbanCheckoutPage({
                         style={{
                           padding: '14px 16px',
                           borderRadius: 12,
-                          border: `1.5px solid ${isSelected ? '#7C3AED' : '#E5E7EB'}`,
-                          background: isSelected ? '#FAF5FF' : '#FFFFFF',
+                          border: `1.5px solid ${isSelected ? '#0B57D0' : '#E5E7EB'}`,
+                          background: isSelected ? '#E8F1FF' : '#FFFFFF',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'flex-start',
@@ -3154,7 +3243,7 @@ export function UrbanCheckoutPage({
                           name="savedAddressPicker"
                           checked={isSelected}
                           onChange={() => handleSelectSavedAddress(addr)}
-                          style={{ marginTop: 3, accentColor: '#7C3AED' }}
+                          style={{ marginTop: 3, accentColor: '#0B57D0' }}
                         />
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
@@ -3192,7 +3281,7 @@ export function UrbanCheckoutPage({
                       borderRadius: 10,
                       border: '1.5px dashed #CBD5E1',
                       background: '#F8FAFC',
-                      color: '#6E42E5',
+                      color: '#0B57D0',
                       fontWeight: 700,
                       fontSize: 13,
                       display: 'flex',
@@ -3209,32 +3298,6 @@ export function UrbanCheckoutPage({
               ) : (
                 /* Mode 2: Manual Address Entry Form */
                 <form onSubmit={handleSaveManualAddress}>
-                  <button
-                    type="button"
-                    disabled={isDetectingGps}
-                    onClick={handleDetectGpsLocation}
-                    style={{
-                      width: '100%',
-                      padding: '10px 14px',
-                      marginBottom: 16,
-                      borderRadius: 10,
-                      border: '1.5px solid #7C3AED',
-                      backgroundColor: '#FAF5FF',
-                      color: '#7C3AED',
-                      fontSize: 12.5,
-                      fontWeight: 700,
-                      cursor: isDetectingGps ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                      boxShadow: '0 1px 3px rgba(124, 58, 237, 0.08)'
-                    }}
-                  >
-                    <Crosshair size={15} />
-                    <span>{isDetectingGps ? 'Acquiring GPS Position...' : 'Auto-fill Form via Current GPS Location'}</span>
-                  </button>
-
                   {addressFormError && (
                     <div style={{
                       padding: '10px 14px',
@@ -3256,25 +3319,6 @@ export function UrbanCheckoutPage({
                       <label style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>
                         City *
                       </label>
-                      {onOpenLocationModal && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsAddressModalOpen(false);
-                            onOpenLocationModal();
-                          }}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#6E42E5',
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Detect via GPS
-                        </button>
-                      )}
                     </div>
                     <select
                       value={formCity}
@@ -3435,9 +3479,9 @@ export function UrbanCheckoutPage({
                           style={{
                             padding: '7px 16px',
                             borderRadius: 8,
-                            border: `1.5px solid ${formLabel === type ? '#7C3AED' : '#E5E7EB'}`,
-                            background: formLabel === type ? '#F5F3FF' : '#FFFFFF',
-                            color: formLabel === type ? '#7C3AED' : '#4B5563',
+                            border: `1.5px solid ${formLabel === type ? '#0B57D0' : '#E5E7EB'}`,
+                            background: formLabel === type ? '#E8F1FF' : '#FFFFFF',
+                            color: formLabel === type ? '#0B57D0' : '#4B5563',
                             fontWeight: 700,
                             fontSize: 12.5,
                             cursor: 'pointer'
@@ -3455,7 +3499,7 @@ export function UrbanCheckoutPage({
                       type="submit"
                       style={{
                         flex: 1,
-                        background: '#6E42E5',
+                        background: '#0B57D0',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: 10,
@@ -3473,9 +3517,9 @@ export function UrbanCheckoutPage({
                         type="button"
                         onClick={() => setFormMode('saved')}
                         style={{
-                          background: '#F3F4F6',
-                          color: '#4B5563',
-                          border: 'none',
+                          background: '#F4F7FC',
+                          color: '#152238',
+                          border: '1px solid #E4E7EC',
                           borderRadius: 10,
                           padding: '12px 16px',
                           fontSize: 13,
@@ -3483,10 +3527,72 @@ export function UrbanCheckoutPage({
                           cursor: 'pointer'
                         }}
                       >
-                        Back to Saved
+                        View All Saved ({sanitizedSavedAddresses.length})
                       </button>
                     )}
                   </div>
+
+                  {/* Saved Addresses for Logged-In User Below Manual Form */}
+                  {sanitizedSavedAddresses.length > 0 && (
+                    <div style={{ marginTop: 22, paddingTop: 16, borderTop: '1px solid #E4E7EC' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#152238' }}>
+                          Saved Addresses ({sanitizedSavedAddresses.length})
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#0B57D0' }}>
+                          Select to Auto-Fill
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {sanitizedSavedAddresses.map((addr) => {
+                          const isSelected = selectedAddressId === addr.id;
+                          return (
+                            <div
+                              key={addr.id}
+                              onClick={() => handleSelectSavedAddress(addr)}
+                              style={{
+                                padding: '12px 14px',
+                                borderRadius: 10,
+                                border: `1.5px solid ${isSelected ? '#0B57D0' : '#E4E7EC'}`,
+                                background: isSelected ? '#E8F1FF' : '#FFFFFF',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: 10,
+                                transition: 'all 0.15s ease'
+                              }}
+                            >
+                              <input
+                                type="radio"
+                                name="manualViewSavedPicker"
+                                checked={isSelected}
+                                onChange={() => handleSelectSavedAddress(addr)}
+                                style={{ marginTop: 3, accentColor: '#0B57D0' }}
+                              />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                                  <span style={{ fontSize: 13, fontWeight: 700, color: '#152238' }}>
+                                    {addr.label || 'Address'}
+                                  </span>
+                                  {addr.isDefault && (
+                                    <span style={{ fontSize: 10.5, fontWeight: 700, color: '#16A34A', background: '#ECFDF5', padding: '1px 6px', borderRadius: 4 }}>
+                                      Default
+                                    </span>
+                                  )}
+                                  <span style={{ fontSize: 11, fontWeight: 600, color: '#667085' }}>
+                                    • {addr.city}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: 12, color: '#667085', lineHeight: 1.4 }}>
+                                  {addr.formatted || `${addr.flat}, ${addr.locality}, ${addr.city} - ${addr.pincode}`}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </form>
               )}
             </div>

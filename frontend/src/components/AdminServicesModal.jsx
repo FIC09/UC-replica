@@ -235,7 +235,7 @@ export function AdminServicesModal({
           color: '#fff'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <Wrench size={22} color="#A78BFA" />
+            <Wrench size={22} color="#0B57D0" />
             <div>
               <h3 style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>
                 Service Catalogue Management (CRUD)
@@ -378,7 +378,7 @@ export function AdminServicesModal({
               <div style={{ marginBottom: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                   <label style={{ fontSize: 12, fontWeight: 700, color: '#4B5563', display: 'flex', alignItems: 'center', gap: 6, margin: 0 }}>
-                    <ImageIcon size={14} color="#6E42E5" />
+                    <ImageIcon size={14} color="#0B57D0" />
                     <span>Service Photo (Upload Manually from Device or Use URL) *</span>
                   </label>
                   {manualPhotoName && (
@@ -429,7 +429,7 @@ export function AdminServicesModal({
                     }}
                     title="Click to browse and upload photo manually from your device"
                   >
-                    <Upload size={14} color="#A78BFA" />
+                    <Upload size={14} color="#0B57D0" />
                     <span>Upload Photo Manually</span>
                   </button>
 
@@ -527,11 +527,11 @@ export function AdminServicesModal({
                         padding: '3px 8px',
                         fontSize: 11,
                         fontWeight: 600,
-                        background: image === sample.url ? '#EDE9FE' : '#fff',
-                        border: `1px solid ${image === sample.url ? '#8B5CF6' : '#E2E8F0'}`,
+                        background: image === sample.url ? '#E8F1FF' : '#fff',
+                        border: `1px solid ${image === sample.url ? '#0B57D0' : '#E2E8F0'}`,
                         borderRadius: 0,
                         cursor: 'pointer',
-                        color: image === sample.url ? '#6E42E5' : '#475569'
+                        color: image === sample.url ? '#0B57D0' : '#475569'
                       }}
                     >
                       {sample.label}
@@ -597,14 +597,14 @@ export function AdminServicesModal({
                   style={{
                     padding: '10px 18px',
                     borderRadius: 0,
-                    background: '#6E42E5',
+                    background: '#0B57D0',
                     color: '#fff',
                     fontSize: 13.5,
                     fontWeight: 800,
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
-                    boxShadow: '0 4px 12px rgba(110, 66, 229, 0.25)',
+                    boxShadow: '0 4px 12px rgba(11, 87, 208, 0.25)',
                     cursor: 'pointer'
                   }}
                 >
@@ -763,8 +763,8 @@ export function AdminServicesModal({
                             style={{
                               padding: '6px 10px',
                               borderRadius: 0,
-                              background: '#F4F0FF',
-                              color: '#6E42E5',
+                              background: '#E8F1FF',
+                              color: '#0B57D0',
                               fontSize: 12,
                               fontWeight: 700,
                               display: 'flex',

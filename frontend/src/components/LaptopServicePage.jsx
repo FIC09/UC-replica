@@ -316,7 +316,7 @@ export function LaptopServicePage({
                 gap: 8,
                 padding: '7px 14px',
                 borderRadius: 8,
-                backgroundColor: totalCartCount > 0 ? '#6E42E5' : '#F3F4F6',
+                backgroundColor: totalCartCount > 0 ? '#0B57D0' : '#F3F4F6',
                 color: totalCartCount > 0 ? '#FFFFFF' : '#374151',
                 border: 'none',
                 fontWeight: 700,
@@ -330,7 +330,7 @@ export function LaptopServicePage({
               {totalCartCount > 0 && (
                 <span style={{
                   backgroundColor: '#FFFFFF',
-                  color: '#6E42E5',
+                  color: '#0B57D0',
                   borderRadius: '50%',
                   width: 20,
                   height: 20,
@@ -398,7 +398,7 @@ export function LaptopServicePage({
                 width: 18,
                 height: 18,
                 borderRadius: '50%',
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF'
               }}>
                 <Star size={11} fill="#FFFFFF" color="#FFFFFF" />
@@ -426,7 +426,7 @@ export function LaptopServicePage({
           onClick={() => setIsWarrantyModalOpen(true)}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <ShieldCheck size={16} color="#6E42E5" />
+              <ShieldCheck size={16} color="#0B57D0" />
               <span>Up to 180 days warranty</span>
             </div>
             <ChevronRight size={15} color="#94A3B8" />
@@ -437,7 +437,7 @@ export function LaptopServicePage({
             type="button"
             onClick={() => openServiceDetails(LAPTOP_SERVICES[0])}
             style={{
-              backgroundColor: '#6E42E5',
+              backgroundColor: '#0B57D0',
               color: '#FFFFFF',
               border: 'none',
               borderRadius: 8,
@@ -449,7 +449,7 @@ export function LaptopServicePage({
               transition: 'background-color 0.15s ease'
             }}
             onMouseEnter={e => e.currentTarget.style.backgroundColor = '#582AD1'}
-            onMouseLeave={e => e.currentTarget.style.backgroundColor = '#6E42E5'}
+            onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0B57D0'}
           >
             View Services
           </button>
@@ -515,7 +515,7 @@ export function LaptopServicePage({
                           width: 16,
                           height: 16,
                           borderRadius: '50%',
-                          backgroundColor: '#6E42E5',
+                          backgroundColor: '#0B57D0',
                           color: '#FFFFFF'
                         }}>
                           <Star size={10} fill="#FFFFFF" color="#FFFFFF" />
@@ -575,7 +575,7 @@ export function LaptopServicePage({
                           background: 'none',
                           border: 'none',
                           padding: 0,
-                          color: '#6E42E5',
+                          color: '#0B57D0',
                           fontSize: 13,
                           fontWeight: 700,
                           cursor: 'pointer',
@@ -629,9 +629,9 @@ export function LaptopServicePage({
                             }}
                             style={{
                               width: '100px',
-                              border: '1.5px solid #6E42E5',
+                              border: '1.5px solid #0B57D0',
                               backgroundColor: '#FFFFFF',
-                              color: '#6E42E5',
+                              color: '#0B57D0',
                               fontSize: 13.5,
                               fontWeight: 800,
                               padding: '6px 0',
@@ -640,12 +640,12 @@ export function LaptopServicePage({
                               transition: 'all 0.15s ease'
                             }}
                             onMouseEnter={e => {
-                              e.currentTarget.style.backgroundColor = '#6E42E5';
+                              e.currentTarget.style.backgroundColor = '#0B57D0';
                               e.currentTarget.style.color = '#FFFFFF';
                             }}
                             onMouseLeave={e => {
                               e.currentTarget.style.backgroundColor = '#FFFFFF';
-                              e.currentTarget.style.color = '#6E42E5';
+                              e.currentTarget.style.color = '#0B57D0';
                             }}
                           >
                             Add
@@ -656,7 +656,7 @@ export function LaptopServicePage({
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            backgroundColor: '#6E42E5',
+                            backgroundColor: '#0B57D0',
                             color: '#FFFFFF',
                             borderRadius: 8,
                             padding: '5px 10px',
@@ -692,12 +692,6 @@ export function LaptopServicePage({
                               <Plus size={14} />
                             </button>
                           </div>
-                        )}
-
-                        {service.optionsCount && (
-                          <span style={{ fontSize: 11, color: '#64748B', marginTop: 4 }}>
-                            {service.optionsCount} options
-                          </span>
                         )}
                       </div>
                     </div>
@@ -750,7 +744,7 @@ export function LaptopServicePage({
                 width: 50,
                 height: 50,
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #A78BFA 0%, #EC4899 50%, #60A5FA 100%)',
+                background: 'linear-gradient(135deg, #0B57D0 0%, #EC4899 50%, #60A5FA 100%)',
                 padding: 2,
                 display: 'flex',
                 alignItems: 'center',
@@ -769,7 +763,7 @@ export function LaptopServicePage({
                   textAlign: 'center',
                   padding: 2
                 }}>
-                  <span style={{ fontSize: 7, fontWeight: 900, color: '#6E42E5', lineHeight: 1 }}>
+                  <span style={{ fontSize: 7, fontWeight: 900, color: '#0B57D0', lineHeight: 1 }}>
                     QUALITY
                   </span>
                   <span style={{ fontSize: 6.5, fontWeight: 800, color: '#EC4899', lineHeight: 1 }}>
@@ -817,7 +811,7 @@ export function LaptopServicePage({
                   <path d="M12 10H16L22 42H54L58 18H20" stroke="#CBD5E1" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                   <circle cx="26" cy="48" r="3.5" fill="#94A3B8" />
                   <circle cx="50" cy="48" r="3.5" fill="#94A3B8" />
-                  <path d="M48 6C48 6 52 3 56 6C60 9 58 13 58 13C58 13 55 12 52 11C49 10 48 6 48 6Z" fill="#8B5CF6" />
+                  <path d="M48 6C48 6 52 3 56 6C60 9 58 13 58 13C58 13 55 12 52 11C49 10 48 6 48 6Z" fill="#0B57D0" />
                   <circle cx="54" cy="7" r="1" fill="#FFFFFF" />
                   <line x1="28" y1="24" x2="48" y2="24" stroke="#E2E8F0" strokeWidth="2" strokeLinecap="round" />
                   <line x1="30" y1="30" x2="46" y2="30" stroke="#E2E8F0" strokeWidth="2" strokeLinecap="round" />
@@ -847,7 +841,7 @@ export function LaptopServicePage({
                   <h4 style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', margin: 0 }}>
                     Cart Summary
                   </h4>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: '#6E42E5' }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0' }}>
                     {totalCartCount} {totalCartCount === 1 ? 'item' : 'items'}
                   </span>
                 </div>
@@ -928,7 +922,7 @@ export function LaptopServicePage({
                   onClick={onOpenCheckout}
                   style={{
                     width: '100%',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -939,11 +933,11 @@ export function LaptopServicePage({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    boxShadow: '0 4px 12px rgba(110, 66, 229, 0.3)',
+                    boxShadow: '0 4px 12px rgba(11, 87, 208, 0.3)',
                     transition: 'background-color 0.15s ease'
                   }}
                   onMouseEnter={e => e.currentTarget.style.backgroundColor = '#582AD1'}
-                  onMouseLeave={e => e.currentTarget.style.backgroundColor = '#6E42E5'}
+                  onMouseLeave={e => e.currentTarget.style.backgroundColor = '#0B57D0'}
                 >
                   <span>Proceed to Pay</span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1018,7 +1012,7 @@ export function LaptopServicePage({
               }}
               style={{
                 width: '100%',
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 8,
@@ -1063,8 +1057,8 @@ export function LaptopServicePage({
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <ShieldCheck size={20} color="#6E42E5" />
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#E8F1FF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <ShieldCheck size={20} color="#0B57D0" />
                 </div>
                 <div>
                   <h3 style={{ fontSize: 17, fontWeight: 800, color: '#0F172A', margin: 0 }}>
@@ -1092,7 +1086,7 @@ export function LaptopServicePage({
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6E42E5', marginTop: 6 }} />
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#0B57D0', marginTop: 6 }} />
                 <div>
                   <h5 style={{ margin: '0 0 2px 0', fontSize: 13.5, fontWeight: 700, color: '#0F172A' }}>100% Genuine Replacement Parts</h5>
                   <p style={{ margin: 0, fontSize: 12.5, color: '#64748B', lineHeight: 1.5 }}>

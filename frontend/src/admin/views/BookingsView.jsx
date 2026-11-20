@@ -871,9 +871,9 @@ export function BookingsView({ onShowToast, onNavigate }) {
     } else if (s === 'in progress') {
       bg = '#EFF6FF'; color = '#0284C7'; border = '#BFDBFE';
     } else if (s === 'en route') {
-      bg = '#F5F3FF'; color = '#7C3AED'; border = '#DDD6FE';
+      bg = '#E8F1FF'; color = '#0B57D0'; border = '#E4E7EC';
     } else if (s === 'assigned') {
-      bg = '#FAF5FF'; color = '#6E42E5'; border = '#E9D5FF';
+      bg = '#E8F1FF'; color = '#0B57D0'; border = '#E8F1FF';
     } else if (s === 'confirmed') {
       bg = '#ECFDF5'; color = '#059669'; border = '#A7F3D0';
     } else if (s === 'pending') {
@@ -893,9 +893,12 @@ export function BookingsView({ onShowToast, onNavigate }) {
         fontWeight: 600,
         backgroundColor: bg,
         color: color,
-        border: `1px solid ${border}`
+        border: `1px solid ${border}`,
+        whiteSpace: 'nowrap',
+        lineHeight: 1.2,
+        boxSizing: 'border-box'
       }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: color }} />
+        <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: color, flexShrink: 0 }} />
         {status}
       </span>
     );
@@ -919,12 +922,17 @@ export function BookingsView({ onShowToast, onNavigate }) {
 
     return (
       <span style={{
-        padding: '2px 8px',
+        padding: '3px 8px',
         borderRadius: 4,
         fontSize: 11,
         fontWeight: 600,
         backgroundColor: bg,
-        color: color
+        color: color,
+        whiteSpace: 'nowrap',
+        display: 'inline-flex',
+        alignItems: 'center',
+        lineHeight: 1.2,
+        boxSizing: 'border-box'
       }}>
         {status || 'Pending'}
       </span>
@@ -975,16 +983,16 @@ export function BookingsView({ onShowToast, onNavigate }) {
             gap: 5,
             padding: '3px 8px',
             borderRadius: 6,
-            backgroundColor: '#F5F3FF',
-            color: '#7C3AED',
+            backgroundColor: '#E8F1FF',
+            color: '#0B57D0',
             fontSize: 11,
             fontWeight: 700,
-            border: '1px solid #DDD6FE'
+            border: '1px solid #E4E7EC'
           }}>
             <Timer size={12} className="animate-spin" />
             Offered ({remainingSecs}s)
           </span>
-          <div style={{ fontSize: 10, color: '#7C3AED', marginTop: 2, fontWeight: 600 }}>
+          <div style={{ fontSize: 10, color: '#0B57D0', marginTop: 2, fontWeight: 600 }}>
             To: {proName}
           </div>
         </div>
@@ -1109,9 +1117,9 @@ export function BookingsView({ onShowToast, onNavigate }) {
           borderRadius: 12,
           fontSize: 10.5,
           fontWeight: 800,
-          border: isAuto ? '1px solid #BFDBFE' : '1px solid #DDD6FE',
-          backgroundColor: isAuto ? '#EFF6FF' : '#F5F3FF',
-          color: isAuto ? '#1D4ED8' : '#6D28D9',
+          border: isAuto ? '1px solid #BFDBFE' : '1px solid #E4E7EC',
+          backgroundColor: isAuto ? '#EFF6FF' : '#E8F1FF',
+          color: isAuto ? '#1D4ED8' : '#0849B1',
           cursor: 'pointer',
           transition: 'all 0.15s ease'
         }}
@@ -1260,10 +1268,10 @@ export function BookingsView({ onShowToast, onNavigate }) {
               fetchBookingsList(true, 1, { statusFilter: nextVal, page: 1 });
             }}
             style={{
-              backgroundColor: statusFilter === 'Pending' ? '#F5F3FF' : '#FFFFFF',
+              backgroundColor: statusFilter === 'Pending' ? '#E8F1FF' : '#FFFFFF',
               borderRadius: 8,
               padding: '8px 12px',
-              border: statusFilter === 'Pending' ? '2px solid #7C3AED' : '1px solid #E2E8F0',
+              border: statusFilter === 'Pending' ? '2px solid #0B57D0' : '1px solid #E2E8F0',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -1275,8 +1283,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
               width: 30,
               height: 30,
               borderRadius: 6,
-              backgroundColor: '#F5F3FF',
-              color: '#7C3AED',
+              backgroundColor: '#E8F1FF',
+              color: '#0B57D0',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1485,7 +1493,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
         </div>
 
         {/* Compact Filter Bar */}
-        <div style={{
+        <div className="admin-bookings-filter-bar" style={{
           backgroundColor: '#FFFFFF',
           borderRadius: 10,
           padding: '10px 14px',
@@ -1495,8 +1503,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
           gap: 10
         }}>
           {/* Search & Main Row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <div style={{
+          <div className="admin-bookings-filter-controls" style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <div className="admin-bookings-search-box" style={{
               display: 'flex',
               alignItems: 'center',
               gap: 8,
@@ -1529,162 +1537,170 @@ export function BookingsView({ onShowToast, onNavigate }) {
               )}
             </div>
 
-            {/* Booking Status Filter */}
-            <select
-              value={statusFilter}
-              onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
-              style={{
-                height: 36,
-                padding: '6px 10px',
-                borderRadius: 6,
-                border: '1px solid #CBD5E1',
-                fontSize: 12.5,
-                backgroundColor: '#FFFFFF',
-                color: '#334155',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="ALL">All Statuses</option>
-              <option value="Pending">Pending</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Assigned">Assigned</option>
-              <option value="En Route">En Route</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Completed">Completed</option>
-              <option value="Cancelled">Cancelled</option>
-              <option value="Deleted">Deleted</option>
-            </select>
+            <div className="admin-bookings-dropdowns-grid">
+              {/* Booking Status Filter */}
+              <select
+                className="admin-bookings-select"
+                value={statusFilter}
+                onChange={e => { setStatusFilter(e.target.value); setPage(1); }}
+                style={{
+                  height: 36,
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  border: '1px solid #CBD5E1',
+                  fontSize: 12.5,
+                  backgroundColor: '#FFFFFF',
+                  color: '#334155',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Confirmed">Confirmed</option>
+                <option value="Assigned">Assigned</option>
+                <option value="En Route">En Route</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Completed">Completed</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="Deleted">Deleted</option>
+              </select>
 
-            {/* Payment Status Filter */}
-            <select
-              value={paymentFilter}
-              onChange={e => { setPaymentFilter(e.target.value); setPage(1); }}
-              style={{
-                height: 36,
-                padding: '6px 10px',
-                borderRadius: 6,
-                border: '1px solid #CBD5E1',
-                fontSize: 12.5,
-                backgroundColor: '#FFFFFF',
-                color: '#334155',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="ALL">All Payments</option>
-              <option value="Paid">Paid</option>
-              <option value="Pending">Pending</option>
-              <option value="Refunded">Refunded</option>
-              <option value="Failed">Failed</option>
-            </select>
+              {/* Payment Status Filter */}
+              <select
+                className="admin-bookings-select"
+                value={paymentFilter}
+                onChange={e => { setPaymentFilter(e.target.value); setPage(1); }}
+                style={{
+                  height: 36,
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  border: '1px solid #CBD5E1',
+                  fontSize: 12.5,
+                  backgroundColor: '#FFFFFF',
+                  color: '#334155',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="ALL">All Payments</option>
+                <option value="Paid">Paid</option>
+                <option value="Pending">Pending</option>
+                <option value="Refunded">Refunded</option>
+                <option value="Failed">Failed</option>
+              </select>
 
-            {/* City Filter */}
-            <select
-              value={cityFilter}
-              onChange={e => { setCityFilter(e.target.value); setPage(1); }}
-              style={{
-                height: 36,
-                padding: '6px 10px',
-                borderRadius: 6,
-                border: '1px solid #CBD5E1',
-                fontSize: 12.5,
-                backgroundColor: '#FFFFFF',
-                color: '#334155',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="ALL">All Cities</option>
-              <option value="Krishnagiri">Krishnagiri</option>
-              <option value="Mumbai">Mumbai</option>
-              <option value="Bengaluru">Bengaluru</option>
-              <option value="Delhi NCR">Delhi NCR</option>
-            </select>
+              {/* City Filter */}
+              <select
+                className="admin-bookings-select"
+                value={cityFilter}
+                onChange={e => { setCityFilter(e.target.value); setPage(1); }}
+                style={{
+                  height: 36,
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  border: '1px solid #CBD5E1',
+                  fontSize: 12.5,
+                  backgroundColor: '#FFFFFF',
+                  color: '#334155',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="ALL">All Cities</option>
+                <option value="Krishnagiri">Krishnagiri</option>
+                <option value="Mumbai">Mumbai</option>
+                <option value="Bengaluru">Bengaluru</option>
+                <option value="Delhi NCR">Delhi NCR</option>
+              </select>
 
-            {/* Assigned vs Unassigned */}
-            <select
-              value={assignedFilter}
-              onChange={e => { setAssignedFilter(e.target.value); setPage(1); }}
-              style={{
-                height: 36,
-                padding: '6px 10px',
-                borderRadius: 6,
-                border: assignedFilter !== 'ALL' ? '1.5px solid #F59E0B' : '1px solid #CBD5E1',
-                fontSize: 12.5,
-                backgroundColor: assignedFilter !== 'ALL' ? '#FFFBEB' : '#FFFFFF',
-                color: '#334155',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="ALL">All Assignments</option>
-              <option value="assigned">Assigned to Pro</option>
-              <option value="unassigned">⚠️ Unassigned (Need Pro)</option>
-            </select>
+              {/* Assigned vs Unassigned */}
+              <select
+                className="admin-bookings-select"
+                value={assignedFilter}
+                onChange={e => { setAssignedFilter(e.target.value); setPage(1); }}
+                style={{
+                  height: 36,
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  border: assignedFilter !== 'ALL' ? '1.5px solid #F59E0B' : '1px solid #CBD5E1',
+                  fontSize: 12.5,
+                  backgroundColor: assignedFilter !== 'ALL' ? '#FFFBEB' : '#FFFFFF',
+                  color: '#334155',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="ALL">All Assignments</option>
+                <option value="assigned">Assigned to Pro</option>
+                <option value="unassigned">⚠️ Unassigned (Need Pro)</option>
+              </select>
 
-            {/* Partner Agency Filter */}
-            <select
-              value={partnerFilter}
-              onChange={e => { setPartnerFilter(e.target.value); setPage(1); }}
-              style={{
-                height: 36,
-                padding: '6px 10px',
-                borderRadius: 6,
-                border: '1px solid #CBD5E1',
-                fontSize: 12.5,
-                backgroundColor: '#FFFFFF',
-                color: '#334155',
-                cursor: 'pointer'
-              }}
-            >
-              <option value="ALL">All Partners</option>
-              <option value="Direct">Direct Freelance Pro</option>
-              <option value="Apex Home Solutions LLP">Apex Home Solutions LLP</option>
-              <option value="Selvam Fleet Services">Selvam Fleet Services</option>
-              <option value="Urban Clean Tech Agency">Urban Clean Tech Agency</option>
-            </select>
+              {/* Partner Agency Filter */}
+              <select
+                className="admin-bookings-select"
+                value={partnerFilter}
+                onChange={e => { setPartnerFilter(e.target.value); setPage(1); }}
+                style={{
+                  height: 36,
+                  padding: '6px 10px',
+                  borderRadius: 6,
+                  border: '1px solid #CBD5E1',
+                  fontSize: 12.5,
+                  backgroundColor: '#FFFFFF',
+                  color: '#334155',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="ALL">All Partners</option>
+                <option value="Direct">Direct Freelance Pro</option>
+                <option value="Apex Home Solutions LLP">Apex Home Solutions LLP</option>
+                <option value="Selvam Fleet Services">Selvam Fleet Services</option>
+                <option value="Urban Clean Tech Agency">Urban Clean Tech Agency</option>
+              </select>
 
-            {/* Live Count Indicator & Reset */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 'auto' }}>
-              <span style={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: '#6E42E5',
-                backgroundColor: '#F5F3FF',
-                border: '1px solid #DDD6FE',
-                padding: '4px 9px',
-                borderRadius: 6,
-                height: 36,
-                display: 'inline-flex',
-                alignItems: 'center',
-                boxSizing: 'border-box'
-              }}>
-                {bookings.length} {bookings.length === 1 ? 'booking' : 'bookings'}
-              </span>
+              {/* Live Count Indicator & Reset */}
+              <div className="admin-bookings-badge-container" style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 'auto' }}>
+                <span className="admin-bookings-count-badge" style={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: '#0B57D0',
+                  backgroundColor: '#E8F1FF',
+                  border: '1px solid #E4E7EC',
+                  padding: '4px 9px',
+                  borderRadius: 6,
+                  height: 36,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  boxSizing: 'border-box'
+                }}>
+                  {bookings.length} {bookings.length === 1 ? 'booking' : 'bookings'}
+                </span>
 
-              {(statusFilter !== 'ALL' || paymentFilter !== 'ALL' || cityFilter !== 'ALL' || partnerFilter !== 'ALL' || assignedFilter !== 'ALL' || search) && (
-                <button
-                  onClick={() => {
-                    setStatusFilter('ALL');
-                    setPaymentFilter('ALL');
-                    setCityFilter('ALL');
-                    setCategoryFilter('ALL');
-                    setPartnerFilter('ALL');
-                    setAssignedFilter('ALL');
-                    setSearch('');
-                    setPage(1);
-                  }}
-                  style={{
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    color: '#6E42E5',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    padding: '4px 6px',
-                    textDecoration: 'underline'
-                  }}
-                >
-                  Reset
-                </button>
-              )}
+                {(statusFilter !== 'ALL' || paymentFilter !== 'ALL' || cityFilter !== 'ALL' || partnerFilter !== 'ALL' || assignedFilter !== 'ALL' || search) && (
+                  <button
+                    className="admin-bookings-reset-btn"
+                    onClick={() => {
+                      setStatusFilter('ALL');
+                      setPaymentFilter('ALL');
+                      setCityFilter('ALL');
+                      setCategoryFilter('ALL');
+                      setPartnerFilter('ALL');
+                      setAssignedFilter('ALL');
+                      setSearch('');
+                      setPage(1);
+                    }}
+                    style={{
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      color: '#0B57D0',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      padding: '4px 6px',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    Reset
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -1748,12 +1764,12 @@ export function BookingsView({ onShowToast, onNavigate }) {
                         padding: '7px 16px',
                         borderRadius: 8,
                         border: 'none',
-                        backgroundColor: '#6E42E5',
+                        backgroundColor: '#0B57D0',
                         color: '#FFFFFF',
                         fontSize: 12.5,
                         fontWeight: 600,
                         cursor: 'pointer',
-                        boxShadow: '0 2px 6px rgba(110,66,229,0.25)'
+                        boxShadow: '0 2px 6px rgba(11, 87, 208,0.25)'
                       }}
                     >
                       Reset All Filters & Show All Bookings
@@ -1775,7 +1791,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       onMouseLeave={e => e.currentTarget.style.backgroundColor = '#FFFFFF'}
                     >
                       {/* Booking Reference */}
-                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#6E42E5', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: '#0B57D0', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
                         {b.id || b.bookingReference}
                       </td>
 
@@ -1960,7 +1976,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                                 display: 'inline-flex',
                                 alignItems: 'center',
                                 gap: 4,
-                                backgroundColor: '#7C3AED',
+                                backgroundColor: '#0B57D0',
                                 color: '#FFFFFF',
                                 border: 'none',
                                 borderRadius: 6,
@@ -1968,7 +1984,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                                 fontSize: 11.5,
                                 fontWeight: 700,
                                 cursor: 'pointer',
-                                boxShadow: '0 2px 4px rgba(124, 58, 237, 0.25)',
+                                boxShadow: '0 2px 4px rgba(11, 87, 208, 0.25)',
                                 whiteSpace: 'nowrap'
                               }}
                             >
@@ -2148,64 +2164,37 @@ export function BookingsView({ onShowToast, onNavigate }) {
             borderLeft: '1px solid #E2E8F0'
           }}>
             {/* Drawer Header */}
-            <div style={{
-              padding: '16px 18px',
-              borderBottom: '1px solid #E2E8F0',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              backgroundColor: '#FFFFFF',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10,
-              flexWrap: 'wrap',
-              gap: 10
-            }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <h3 style={{ fontSize: 17, fontWeight: 700, color: '#0F172A', margin: 0 }}>
+            <div className="admin-booking-drawer-header">
+              <div className="admin-booking-drawer-header-left">
+                <div className="admin-booking-drawer-ref-row">
+                  <h3 className="admin-booking-drawer-ref-title">
                     {selectedBooking.id || selectedBooking.bookingReference}
                   </h3>
-                  {renderStatusBadge(selectedBooking.status)}
-                  {renderPaymentBadge(selectedBooking.paymentStatus)}
+                  <div className="admin-booking-drawer-badges">
+                    {renderStatusBadge(selectedBooking.status)}
+                    {renderPaymentBadge(selectedBooking.paymentStatus)}
+                  </div>
                 </div>
-                <div style={{ fontSize: 12, color: '#64748B', marginTop: 4 }}>
+                <div className="admin-booking-drawer-created-date">
                   Created on {new Date(selectedBooking.createdAt || Date.now()).toLocaleString()}
                 </div>
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div className="admin-booking-drawer-header-actions">
                 <button
+                  type="button"
+                  className="admin-booking-drawer-invoice-btn"
                   onClick={() => setShowInvoiceModal(true)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 12px',
-                    borderRadius: 6,
-                    border: '1px solid #CBD5E1',
-                    backgroundColor: '#FFFFFF',
-                    color: '#334155',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
+                  title="View Tax Invoice"
                 >
-                  <Printer size={14} /> Tax Invoice
+                  <Printer size={14} style={{ flexShrink: 0 }} />
+                  <span>Tax Invoice</span>
                 </button>
                 <button
+                  type="button"
+                  className="admin-booking-drawer-close-btn"
                   onClick={() => setSelectedBooking(null)}
-                  style={{
-                    backgroundColor: '#F1F5F9',
-                    border: 'none',
-                    borderRadius: '50%',
-                    width: 32,
-                    height: 32,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer'
-                  }}
+                  title="Close Drawer"
                 >
                   <X size={18} color="#475569" />
                 </button>
@@ -2213,7 +2202,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
             </div>
 
             {/* Drawer Body */}
-            <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+            <div className="admin-booking-drawer-body" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: 24 }}>
               
               {/* Lifecycle Interactive Stepper */}
               <div style={{
@@ -2224,7 +2213,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
               }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>Service Dispatch Pipeline</span>
-                  <span style={{ fontSize: 11, fontWeight: 500, color: '#6E42E5' }}>Strict State-Machine Enforced</span>
+                  <span style={{ fontSize: 11, fontWeight: 500, color: '#0B57D0' }}>Strict State-Machine Enforced</span>
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
@@ -2238,7 +2227,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                           width: 28,
                           height: 28,
                           borderRadius: '50%',
-                          backgroundColor: isCurrent ? '#6E42E5' : isPassed ? '#16A34A' : '#E2E8F0',
+                          backgroundColor: isCurrent ? '#0B57D0' : isPassed ? '#16A34A' : '#E2E8F0',
                           color: isPassed || isCurrent ? '#FFFFFF' : '#64748B',
                           display: 'flex',
                           alignItems: 'center',
@@ -2249,7 +2238,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                         }}>
                           {isPassed && !isCurrent ? <Check size={14} /> : i + 1}
                         </div>
-                        <span style={{ fontSize: 10, fontWeight: isCurrent ? 700 : 500, color: isCurrent ? '#6E42E5' : '#64748B' }}>
+                        <span style={{ fontSize: 10, fontWeight: isCurrent ? 700 : 500, color: isCurrent ? '#0B57D0' : '#64748B' }}>
                           {st}
                         </span>
                       </div>
@@ -2266,7 +2255,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                         key={nextSt}
                         onClick={() => handleTransition(nextSt)}
                         style={{
-                          backgroundColor: nextSt === 'Cancelled' || nextSt === 'Failed' ? '#FEE2E2' : '#6E42E5',
+                          backgroundColor: nextSt === 'Cancelled' || nextSt === 'Failed' ? '#FEE2E2' : '#0B57D0',
                           color: nextSt === 'Cancelled' || nextSt === 'Failed' ? '#DC2626' : '#FFFFFF',
                           border: 'none',
                           borderRadius: 6,
@@ -2297,9 +2286,9 @@ export function BookingsView({ onShowToast, onNavigate }) {
                     gap: 6,
                     padding: '8px 14px',
                     borderRadius: 8,
-                    border: '1px solid #6E42E5',
-                    backgroundColor: '#F5F3FF',
-                    color: '#6E42E5',
+                    border: '1px solid #0B57D0',
+                    backgroundColor: '#E8F1FF',
+                    color: '#0B57D0',
                     fontSize: 12,
                     fontWeight: 600,
                     cursor: 'pointer'
@@ -2453,7 +2442,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 border: '1px solid #E2E8F0'
               }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <User size={15} color="#6E42E5" />
+                  <User size={15} color="#0B57D0" />
                   Customer & Service Location
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
@@ -2507,7 +2496,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                     padding: '10px 12px',
                     borderRadius: 6,
                     backgroundColor: '#F8FAFC',
-                    borderLeft: '3px solid #6E42E5',
+                    borderLeft: '3px solid #0B57D0',
                     fontSize: 12,
                     color: '#334155'
                   }}>
@@ -2524,7 +2513,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 border: '1px solid #E2E8F0'
               }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Wrench size={15} color="#6E42E5" />
+                  <Wrench size={15} color="#0B57D0" />
                   Assigned Professional & Partner Agency
                 </div>
 
@@ -2535,8 +2524,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
                         width: 42,
                         height: 42,
                         borderRadius: '50%',
-                        backgroundColor: '#EDE9FE',
-                        color: '#6E42E5',
+                        backgroundColor: '#E8F1FF',
+                        color: '#0B57D0',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -2614,10 +2603,10 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Camera size={15} color="#6E42E5" />
+                        <Camera size={15} color="#0B57D0" />
                         <span>Technician Work Verification Photos</span>
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: '#6E42E5', background: '#EDE9FE', padding: '2px 8px', borderRadius: 4 }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: '#0B57D0', background: '#E8F1FF', padding: '2px 8px', borderRadius: 4 }}>
                         Mandatory SOP Compliance
                       </span>
                     </div>
@@ -2675,7 +2664,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                               Uploaded: {beforePhoto.uploadedAt ? new Date(beforePhoto.uploadedAt).toLocaleString() : 'On record'}
                             </div>
                             {beforePhoto.uploadedBy && (
-                              <div style={{ fontSize: 10, color: '#6E42E5', marginTop: 2 }}>
+                              <div style={{ fontSize: 10, color: '#0B57D0', marginTop: 2 }}>
                                 By: <strong>{beforePhoto.uploadedBy}</strong>
                               </div>
                             )}
@@ -2755,7 +2744,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                               Uploaded: {afterPhoto.uploadedAt ? new Date(afterPhoto.uploadedAt).toLocaleString() : 'On record'}
                             </div>
                             {afterPhoto.uploadedBy && (
-                              <div style={{ fontSize: 10, color: '#6E42E5', marginTop: 2 }}>
+                              <div style={{ fontSize: 10, color: '#0B57D0', marginTop: 2 }}>
                                 By: <strong>{afterPhoto.uploadedBy}</strong>
                               </div>
                             )}
@@ -2795,7 +2784,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 border: '1px solid #E2E8F0'
               }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <CreditCard size={15} color="#6E42E5" />
+                  <CreditCard size={15} color="#0B57D0" />
                   Service Items & Financial Ledger
                 </div>
 
@@ -2852,7 +2841,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                     borderTop: '1px solid #E2E8F0'
                   }}>
                     <span>Grand Total:</span>
-                    <span style={{ color: '#6E42E5' }}>₹{selectedBooking.totalAmount}</span>
+                    <span style={{ color: '#0B57D0' }}>₹{selectedBooking.totalAmount}</span>
                   </div>
                 </div>
 
@@ -2900,7 +2889,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 border: '1px solid #E2E8F0'
               }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <MessageSquare size={15} color="#6E42E5" />
+                  <MessageSquare size={15} color="#0B57D0" />
                   Internal Administrative Notes ({selectedBooking.internalNotes?.length || 0})
                 </div>
 
@@ -2946,7 +2935,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   <button
                     type="submit"
                     style={{
-                      backgroundColor: '#6E42E5',
+                      backgroundColor: '#0B57D0',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: 6,
@@ -2969,7 +2958,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 border: '1px solid #E2E8F0'
               }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#0F172A', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <Clock size={15} color="#6E42E5" />
+                  <Clock size={15} color="#0B57D0" />
                   Audit Trail & Event Timeline
                 </div>
 
@@ -2982,7 +2971,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        backgroundColor: '#6E42E5',
+                        backgroundColor: '#0B57D0',
                         marginTop: 5,
                         flexShrink: 0
                       }} />
@@ -2994,7 +2983,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                           </span>
                         </div>
                         <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>{event.description}</div>
-                        <div style={{ fontSize: 10, color: '#6E42E5', marginTop: 2 }}>
+                        <div style={{ fontSize: 10, color: '#0B57D0', marginTop: 2 }}>
                           Actor: <strong>{event.actor}</strong> ({event.actorRole || 'System'})
                         </div>
                       </div>
@@ -3100,8 +3089,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
               {/* Offer Expiration Configuration Row */}
               <div style={{
                 padding: '12px 24px',
-                backgroundColor: '#FAF5FF',
-                borderBottom: '1px solid #E9D5FF',
+                backgroundColor: '#E8F1FF',
+                borderBottom: '1px solid #E8F1FF',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
@@ -3109,7 +3098,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                 gap: 10
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Timer size={16} color="#7C3AED" />
+                  <Timer size={16} color="#0B57D0" />
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#581C87' }}>
                     Offer Expiration Countdown:
                   </span>
@@ -3123,8 +3112,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       style={{
                         padding: '4px 10px',
                         borderRadius: 6,
-                        border: offerTimeout === secs ? '1.5px solid #7C3AED' : '1px solid #CBD5E1',
-                        backgroundColor: offerTimeout === secs ? '#7C3AED' : '#FFFFFF',
+                        border: offerTimeout === secs ? '1.5px solid #0B57D0' : '1px solid #CBD5E1',
+                        backgroundColor: offerTimeout === secs ? '#0B57D0' : '#FFFFFF',
                         color: offerTimeout === secs ? '#FFFFFF' : '#475569',
                         fontSize: 11.5,
                         fontWeight: 700,
@@ -3192,9 +3181,9 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       style={{
                         padding: '5px 10px',
                         borderRadius: 6,
-                        border: candidateFilter === f.id ? '1.5px solid #6E42E5' : '1px solid #E2E8F0',
-                        backgroundColor: candidateFilter === f.id ? '#F5F3FF' : '#FFFFFF',
-                        color: candidateFilter === f.id ? '#6E42E5' : '#64748B',
+                        border: candidateFilter === f.id ? '1.5px solid #0B57D0' : '1px solid #E2E8F0',
+                        backgroundColor: candidateFilter === f.id ? '#E8F1FF' : '#FFFFFF',
+                        color: candidateFilter === f.id ? '#0B57D0' : '#64748B',
                         fontSize: 11,
                         fontWeight: 700,
                         cursor: 'pointer',
@@ -3219,7 +3208,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
               }}>
                 {loadingEligiblePros ? (
                   <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748B' }}>
-                    <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px auto', display: 'block', color: '#7C3AED' }} />
+                    <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 8px auto', display: 'block', color: '#0B57D0' }} />
                     <div style={{ fontWeight: 600, fontSize: 13 }}>Evaluating technicians by Attendance &amp; Workload criteria...</div>
                     <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 2 }}>Verifying shift presence, active bookings count, leaves, and travel distance</div>
                   </div>
@@ -3250,7 +3239,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                         style={{
                           backgroundColor: '#FFFFFF',
                           borderRadius: 12,
-                          border: isSelected ? '2px solid #7C3AED' : '1px solid #E2E8F0',
+                          border: isSelected ? '2px solid #0B57D0' : '1px solid #E2E8F0',
                           padding: '14px 16px',
                           display: 'flex',
                           alignItems: 'center',
@@ -3258,7 +3247,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                           gap: 14,
                           cursor: canAssign ? 'pointer' : 'not-allowed',
                           opacity: canAssign ? 1 : 0.65,
-                          boxShadow: isSelected ? '0 4px 14px rgba(124, 58, 237, 0.15)' : '0 1px 3px rgba(0,0,0,0.02)',
+                          boxShadow: isSelected ? '0 4px 14px rgba(11, 87, 208, 0.15)' : '0 1px 3px rgba(0,0,0,0.02)',
                           transition: 'all 0.15s ease'
                         }}
                       >
@@ -3268,7 +3257,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                             width: 44,
                             height: 44,
                             borderRadius: '50%',
-                            backgroundColor: isSelected ? '#7C3AED' : (isPresent ? '#DCFCE7' : '#F1F5F9'),
+                            backgroundColor: isSelected ? '#0B57D0' : (isPresent ? '#DCFCE7' : '#F1F5F9'),
                             color: isSelected ? '#FFFFFF' : (isPresent ? '#15803D' : '#475569'),
                             display: 'flex',
                             alignItems: 'center',
@@ -3319,7 +3308,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
 
                             {/* Skills Tags & Trade */}
                             <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: 11, fontWeight: 700, color: '#6E42E5' }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: '#0B57D0' }}>
                                 {candidate.trade || 'Specialist'}:
                               </span>
                               {(candidate.skills || []).slice(0, 3).map((sk, idx) => (
@@ -3358,7 +3347,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 16, textAlign: 'right', flexShrink: 0 }}>
                           <div>
                             <div style={{ fontSize: 12, fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 4 }}>
-                              <MapPin size={12} color="#6E42E5" />
+                              <MapPin size={12} color="#0B57D0" />
                               {candidate.distanceKm != null ? `${candidate.distanceKm} km` : '0 km'} • ~{candidate.etaMinutes || 6}m ETA
                             </div>
                             <div style={{ fontSize: 11, color: '#64748B', marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6 }}>
@@ -3380,8 +3369,8 @@ export function BookingsView({ onShowToast, onNavigate }) {
                             width: 24,
                             height: 24,
                             borderRadius: '50%',
-                            border: isSelected ? '2px solid #7C3AED' : '2px solid #CBD5E1',
-                            backgroundColor: isSelected ? '#7C3AED' : '#FFFFFF',
+                            border: isSelected ? '2px solid #0B57D0' : '2px solid #CBD5E1',
+                            backgroundColor: isSelected ? '#0B57D0' : '#FFFFFF',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -3407,7 +3396,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
               }}>
                 <div style={{ fontSize: 12, color: '#64748B' }}>
                   {selectedCandidate ? (
-                    <span>Selected: <strong style={{ color: '#7C3AED' }}>{selectedCandidate.name}</strong> • Offer expires in {offerTimeout}s</span>
+                    <span>Selected: <strong style={{ color: '#0B57D0' }}>{selectedCandidate.name}</strong> • Offer expires in {offerTimeout}s</span>
                   ) : (
                     <span>Select an eligible worker from the verified candidates above</span>
                   )}
@@ -3478,12 +3467,12 @@ export function BookingsView({ onShowToast, onNavigate }) {
                       padding: '9px 20px',
                       borderRadius: 8,
                       border: 'none',
-                      backgroundColor: selectedCandidate && !isSubmittingOffer ? '#7C3AED' : '#CBD5E1',
+                      backgroundColor: selectedCandidate && !isSubmittingOffer ? '#0B57D0' : '#CBD5E1',
                       color: '#FFFFFF',
                       fontSize: 13,
                       fontWeight: 700,
                       cursor: selectedCandidate && !isSubmittingOffer ? 'pointer' : 'not-allowed',
-                      boxShadow: selectedCandidate ? '0 4px 10px rgba(124, 58, 237, 0.25)' : 'none'
+                      boxShadow: selectedCandidate ? '0 4px 10px rgba(11, 87, 208, 0.25)' : 'none'
                     }}
                   >
                     {isSubmittingOffer ? (
@@ -3633,7 +3622,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   padding: '8px 18px',
                   borderRadius: 6,
                   border: 'none',
-                  backgroundColor: '#6E42E5',
+                  backgroundColor: '#0B57D0',
                   color: '#FFFFFF',
                   fontSize: 13,
                   fontWeight: 600,
@@ -3905,7 +3894,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
             {/* Invoice Top Actions */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, borderBottom: '1px solid #E2E8F0', paddingBottom: 16 }}>
               <div>
-                <span style={{ fontSize: 18, fontWeight: 800, color: '#6E42E5' }}>URBAN SERVICES PLATFORM</span>
+                <span style={{ fontSize: 18, fontWeight: 800, color: '#0B57D0' }}>URBAN SERVICES PLATFORM</span>
                 <span style={{ fontSize: 12, color: '#64748B', display: 'block' }}>Tax Invoice & Service Bill</span>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
@@ -3917,7 +3906,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                     gap: 6,
                     padding: '8px 14px',
                     borderRadius: 6,
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     border: 'none',
                     fontSize: 12,
@@ -4017,7 +4006,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
                   borderTop: '2px solid #0F172A'
                 }}>
                   <span>Total Amount Paid:</span>
-                  <span style={{ color: '#6E42E5' }}>₹{selectedBooking.totalAmount}</span>
+                  <span style={{ color: '#0B57D0' }}>₹{selectedBooking.totalAmount}</span>
                 </div>
               </div>
             </div>
@@ -4128,7 +4117,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
             }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Plus size={18} color="#6E42E5" />
+                  <Plus size={18} color="#0B57D0" />
                   Create New Service Booking
                 </h3>
                 <p style={{ margin: '2px 0 0 0', fontSize: 11.5, color: '#64748B' }}>
@@ -4500,12 +4489,12 @@ export function BookingsView({ onShowToast, onNavigate }) {
                     padding: '8px 18px',
                     borderRadius: 6,
                     border: 'none',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     fontSize: 12.5,
                     fontWeight: 700,
                     cursor: isSubmittingCreate ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 4px rgba(110, 66, 229, 0.3)'
+                    boxShadow: '0 2px 4px rgba(11, 87, 208, 0.3)'
                   }}
                 >
                   {isSubmittingCreate ? 'Creating in Atlas...' : 'Create & Dispatch Booking'}
@@ -4555,7 +4544,7 @@ export function BookingsView({ onShowToast, onNavigate }) {
             }}>
               <div>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: '#0F172A', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <Edit size={16} color="#6E42E5" />
+                  <Edit size={16} color="#0B57D0" />
                   Edit Booking #{editFormData.id}
                 </h3>
                 <p style={{ margin: '2px 0 0 0', fontSize: 11.5, color: '#64748B' }}>
@@ -4720,12 +4709,12 @@ export function BookingsView({ onShowToast, onNavigate }) {
                     padding: '8px 18px',
                     borderRadius: 6,
                     border: 'none',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     fontSize: 12.5,
                     fontWeight: 700,
                     cursor: isSubmittingEdit ? 'not-allowed' : 'pointer',
-                    boxShadow: '0 2px 4px rgba(110, 66, 229, 0.3)'
+                    boxShadow: '0 2px 4px rgba(11, 87, 208, 0.3)'
                   }}
                 >
                   {isSubmittingEdit ? 'Saving Changes...' : 'Save Changes'}

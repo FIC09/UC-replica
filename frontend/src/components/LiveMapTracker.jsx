@@ -151,7 +151,7 @@ export function LiveMapTracker({
     // 1. Road corridor casing buffer
     if (!outerGlowPolylineRef.current) {
       outerGlowPolylineRef.current = L.polyline(latLngWaypoints, {
-        color: '#DDD6FE',
+        color: '#E4E7EC',
         weight: 12,
         opacity: 0.65,
         lineCap: 'round',
@@ -164,7 +164,7 @@ export function LiveMapTracker({
     // 2. Full planned dashed route line
     if (!routePolylineRef.current) {
       routePolylineRef.current = L.polyline(latLngWaypoints, {
-        color: '#7C3AED',
+        color: '#0B57D0',
         weight: 6,
         opacity: 0.9,
         lineCap: 'round',
@@ -179,7 +179,7 @@ export function LiveMapTracker({
     const traveledPoints = latLngWaypoints.slice(0, localWaypointIndex + 1);
     if (!traveledPolylineRef.current) {
       traveledPolylineRef.current = L.polyline(traveledPoints, {
-        color: '#4C1D95',
+        color: '#0B57D0',
         weight: 7,
         opacity: 1,
         lineCap: 'round',
@@ -196,10 +196,10 @@ export function LiveMapTracker({
         className: 'uc-hub-leaflet-marker',
         html: `
           <div style="position: relative; width: 96px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; pointer-events: none;">
-            <div style="position: absolute; top: 0; background: #312E81; color: #EEF2FF; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; white-space: nowrap; box-shadow: 0 3px 8px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.3);">
+            <div style="position: absolute; top: 0; background: #312E81; color: #E8F1FF; font-size: 10px; font-weight: 800; padding: 2px 8px; border-radius: 12px; white-space: nowrap; box-shadow: 0 3px 8px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.3);">
               Pro Origin 🛵
             </div>
-            <div style="width: 30px; height: 30px; border-radius: 50%; background: #4F46E5; border: 3px solid #FFFFFF; box-shadow: 0 3px 10px rgba(79,70,229,0.4); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 13px;">
+            <div style="width: 30px; height: 30px; border-radius: 50%; background: #0B57D0; border: 3px solid #FFFFFF; box-shadow: 0 3px 10px rgba(11, 87, 208,0.4); display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 13px;">
               🛠️
             </div>
           </div>
@@ -274,17 +274,17 @@ export function LiveMapTracker({
           <!-- Floating Partner Name Tag -->
           <div style="position: absolute; top: 2px; background: #0F172A; color: #FFFFFF; font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px; white-space: nowrap; box-shadow: 0 4px 14px rgba(0,0,0,0.35); display: flex; align-items: center; gap: 6px; border: 1.5px solid rgba(255,255,255,0.4); z-index: 20;">
             <span>${workerName}</span>
-            <span style="background: ${isCompleted ? '#059669' : '#7C3AED'}; font-size: 9.5px; padding: 1px 5px; border-radius: 6px; font-weight: 800;">
+            <span style="background: ${isCompleted ? '#059669' : '#0B57D0'}; font-size: 9.5px; padding: 1px 5px; border-radius: 6px; font-weight: 800;">
               ${isCompleted ? 'Done ✅' : `${workerSpeed} km/h`}
             </span>
           </div>
 
           <!-- Pulsing Radar Vehicle Icon with Rotational Heading -->
           <div style="position: absolute; bottom: 8px; width: 54px; height: 54px; display: flex; align-items: center; justify-content: center;">
-            <div style="position: absolute; inset: -8px; border-radius: 50%; background: ${isCompleted ? 'rgba(5, 150, 105, 0.3)' : 'rgba(124, 58, 237, 0.3)'}; animation: uc-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-            <div style="position: absolute; inset: -3px; border-radius: 50%; background: ${isCompleted ? 'rgba(5, 150, 105, 0.45)' : 'rgba(124, 58, 237, 0.45)'}; animation: uc-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite; animation-delay: 0.3s;"></div>
+            <div style="position: absolute; inset: -8px; border-radius: 50%; background: ${isCompleted ? 'rgba(5, 150, 105, 0.3)' : 'rgba(11, 87, 208, 0.3)'}; animation: uc-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+            <div style="position: absolute; inset: -3px; border-radius: 50%; background: ${isCompleted ? 'rgba(5, 150, 105, 0.45)' : 'rgba(11, 87, 208, 0.45)'}; animation: uc-ping 1.4s cubic-bezier(0, 0, 0.2, 1) infinite; animation-delay: 0.3s;"></div>
 
-            <div style="position: relative; width: 42px; height: 42px; border-radius: 50%; background: ${isCompleted ? 'linear-gradient(135deg, #059669 0%, #10B981 100%)' : 'linear-gradient(135deg, #7C3AED 0%, #5B21B6 100%)'}; border: 3.5px solid #FFFFFF; box-shadow: 0 4px 16px rgba(109, 40, 217, 0.75); display: flex; align-items: center; justify-content: center; color: #FFFFFF; transform: rotate(${currentHeading}deg); transition: transform 0.35s ease-out; z-index: 10;">
+            <div style="position: relative; width: 42px; height: 42px; border-radius: 50%; background: ${isCompleted ? 'linear-gradient(135deg, #059669 0%, #10B981 100%)' : 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)'}; border: 3.5px solid #FFFFFF; box-shadow: 0 4px 16px rgba(109, 40, 217, 0.75); display: flex; align-items: center; justify-content: center; color: #FFFFFF; transform: rotate(${currentHeading}deg); transition: transform 0.35s ease-out; z-index: 10;">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.7 16 10 16 10l-1.5-4.5A2 2 0 0 0 12.6 4H8.5a1.5 1.5 0 0 0-1.5 1.5V10H4a2 2 0 0 0-2 2v4c0 .6.4 1 1 1h2" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 <circle cx="7" cy="17" r="2.5" fill="#38BDF8" stroke="#FFFFFF" stroke-width="1.5"/>
@@ -520,7 +520,7 @@ export function LiveMapTracker({
             width: 38,
             height: 38,
             borderRadius: 10,
-            background: isCompleted ? '#059669' : (isArrivedState ? '#10B981' : '#7C3AED'),
+            background: isCompleted ? '#059669' : (isArrivedState ? '#10B981' : '#0B57D0'),
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -671,9 +671,9 @@ export function LiveMapTracker({
             width: 38,
             height: 38,
             borderRadius: 10,
-            background: followVehicle ? '#EDE9FE' : '#FFFFFF',
-            border: followVehicle ? '1.5px solid #7C3AED' : '1px solid #CBD5E1',
-            color: followVehicle ? '#6D28D9' : '#64748B',
+            background: followVehicle ? '#E8F1FF' : '#FFFFFF',
+            border: followVehicle ? '1.5px solid #0B57D0' : '1px solid #CBD5E1',
+            color: followVehicle ? '#0849B1' : '#64748B',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -788,7 +788,7 @@ export function LiveMapTracker({
               <div style={{
                 width: `${Math.round(((localWaypointIndex + 1) / waypoints.length) * 100)}%`,
                 height: '100%',
-                background: '#7C3AED',
+                background: '#0B57D0',
                 borderRadius: 3,
                 transition: 'width 0.25s ease'
               }} />
@@ -849,7 +849,7 @@ export function LiveMapTracker({
               type="button"
               onClick={handleAdvanceStep}
               style={{
-                background: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+                background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 8,
@@ -860,7 +860,7 @@ export function LiveMapTracker({
                 display: 'flex',
                 alignItems: 'center',
                 gap: 5,
-                boxShadow: '0 2px 10px rgba(124, 58, 237, 0.35)'
+                boxShadow: '0 2px 10px rgba(11, 87, 208, 0.35)'
               }}
             >
               <Navigation size={12} />

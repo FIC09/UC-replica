@@ -4,6 +4,7 @@ import {
   Search,
   ShoppingCart,
   CircleUserRound,
+  User,
   X,
   ChevronDown,
   Calendar,
@@ -15,7 +16,8 @@ import {
   LogOut,
   UserCheck,
   Wrench,
-  PlusCircle
+  PlusCircle,
+  Settings
 } from 'lucide-react';
 
 export function Navbar({
@@ -47,7 +49,9 @@ export function Navbar({
   activeNavTab = 'homes',
   onSelectNavTab,
   activeBooking = null,
-  onOpenChat
+  onOpenChat,
+  isLandingSearchOpen = false,
+  onToggleLandingSearch
 }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
@@ -130,188 +134,91 @@ export function Navbar({
   return (
     <header className="uc-navbar-exact">
       <div className="container-custom uc-nav-row">
-        {/* Left: UC Logo + Exact Stacked Text + Header Nav Tabs (Matches Screenshot) */}
+        {/* Left: UC Logo + Delivery Location directly beneath project name */}
         <div className="uc-nav-left">
-          <div
-            className="uc-exact-logo"
-            onClick={() => {
-              if (onSelectNavTab) onSelectNavTab('homes');
-              onSelectCategory('all');
-            }}
-          >
-            <div className="uc-square-badge">FIC</div>
-            <div className="uc-text-wrap">
-              <span className="uc-exact-name">Forge</span>
-              <span className="uc-exact-sub">India Connect</span>
-            </div>
-          </div>
-
-          {/* Exact Header Nav Tabs: Homes, Native, Beauty (Desktop view) */}
-          <nav className="uc-sublinks uc-sublinks-desktop">
-            <span
-              className={`uc-sublink-item ${activeNavTab === 'homes' ? 'active' : ''}`}
-              onClick={() => onSelectNavTab ? onSelectNavTab('homes') : onSelectCategory('all')}
-            >
-              Homes
-            </span>
-            <span
-              className={`uc-sublink-item ${activeNavTab === 'native' ? 'active' : ''}`}
-              onClick={() => onSelectNavTab ? onSelectNavTab('native') : onSelectCategory('native-ro')}
-            >
-              Native
-            </span>
-            <span
-              className={`uc-sublink-item ${activeNavTab === 'beauty' ? 'active' : ''}`}
-              onClick={() => onSelectNavTab ? onSelectNavTab('beauty') : onSelectCategory('womens-salon')}
-            >
-              Beauty
-            </span>
-          </nav>
-        </div>
-
-        {/* Right / Center Controls: Location, Search, Cart, Profile (Exact layout from screenshot) */}
-        <div className="uc-nav-right">
-          {/* Location Selector Box (Rounded rectangle with pin and chevron) */}
-          <div
-            className="uc-exact-loc-box"
-            onClick={onOpenLocationModal}
-            title="Change Delivery Location"
-          >
-            <MapPin size={16} color="#4B5563" />
-            <span className="uc-loc-text" title={`${selectedLocality || ''}, ${selectedCity}`}>
-              4744+HMQ, {selectedLocality || selectedCity}
-            </span>
-            <ChevronDown size={14} color="#6B7280" />
-          </div>
-
-          {/* Search Box with Clickable Search Button and Enter key support */}
-          <div className="uc-exact-search-container" ref={searchRef}>
-            <form
-              className="uc-exact-search-box"
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleExecuteSearch();
+          <div className="uc-brand-location-col">
+            <div
+              className="uc-exact-logo"
+              onClick={() => {
+                if (onSelectNavTab) onSelectNavTab('homes');
+                onSelectCategory('all');
               }}
             >
-              <button
-                type="submit"
-                id="landing-search-btn"
-                className="uc-search-submit-btn"
-                title="Search services"
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  padding: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  cursor: 'pointer',
-                  color: '#6B7280'
-                }}
-              >
-                <Search size={16} />
-              </button>
-              <input
-                type="text"
-                id="landing-search-input"
-                className="uc-search-bare-input"
-                placeholder={
-                  activeNavTab === 'beauty'
-                    ? "Search for 'Ayurvedic massage'"
-                    : activeNavTab === 'native'
-                      ? "Search for 'Water Purifier'"
-                      : "Search for 'Electricians', 'AC Repair'..."
-                }
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowSearchDropdown(true);
-                }}
-                onFocus={() => setShowSearchDropdown(true)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleExecuteSearch();
-                  }
-                }}
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  style={{ color: '#9CA3AF', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </form>
-
-            {/* Live Autocomplete Dropdown */}
-            {showSearchDropdown && (
-              <div className="search-results-dropdown">
-                {searchQuery.trim() ? (
-                  filteredServices.length > 0 ? (
-                    <div>
-                      <div className="search-section-header">Services matching "{searchQuery}"</div>
-                      {filteredServices.map(service => (
-                        <div
-                          key={service.id}
-                          className="search-result-item"
-                          onClick={() => {
-                            onSelectService(service);
-                            setShowSearchDropdown(false);
-                            setSearchQuery('');
-                          }}
-                        >
-                          <div className="search-result-info">
-                            <img src={service.image} alt={service.title} className="search-item-thumb" />
-                            <div>
-                              <div className="search-item-title">{service.title}</div>
-                              <div className="search-item-meta">
-                                <span style={{ color: '#059669', fontWeight: 700 }}>₹{service.price}</span>
-                                <span>•</span>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: 2, color: '#D97706' }}>
-                                  <Star size={11} fill="#D97706" /> {service.rating}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#6E42E5' }}>View</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ padding: '24px 16px', textAlign: 'center', color: '#6B7280', fontSize: 13 }}>
-                      No matching service found for "{searchQuery}".
-                    </div>
-                  )
-                ) : (
-                  <div>
-                    <div className="search-section-header">Trending Searches in {selectedCity || 'your city'}</div>
-                    <div style={{ padding: '8px 16px 14px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {['Kitchen Cleaning', 'Powerjet AC', 'Rica Waxing', 'Men Haircut', 'Water Purifier RO'].map(trend => (
-                        <span
-                          key={trend}
-                          onClick={() => setSearchQuery(trend)}
-                          style={{
-                            fontSize: 12,
-                            fontWeight: 600,
-                            padding: '6px 12px',
-                            background: '#F3F4F6',
-                            borderRadius: 6,
-                            cursor: 'pointer',
-                            color: '#374151'
-                          }}
-                        >
-                          🔥 {trend}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <div className="uc-square-badge">FIC</div>
+              <div className="uc-text-wrap">
+                <span className="uc-exact-name">Forge</span>
+                <span className="uc-exact-sub">India Connect</span>
               </div>
-            )}
+            </div>
+
+            {/* Delivery Location Selector Box (Positioned directly below the project name) */}
+            <div
+              className="uc-exact-loc-box"
+              onClick={onOpenLocationModal}
+              title="Change Delivery Location"
+            >
+              <MapPin size={13} color="#0B57D0" />
+              <span className="uc-loc-text" title={`${selectedLocality || ''}, ${selectedCity}`}>
+                4744+HMQ, {selectedLocality || selectedCity}
+              </span>
+              <ChevronDown size={13} color="#6B7280" />
+            </div>
           </div>
+        </div>
+
+        {/* Center: Exact Header Nav Tabs: Homes, Native, Beauty (Center-Aligned Desktop View) */}
+        <nav className="uc-sublinks uc-sublinks-desktop uc-nav-center">
+          <span
+            className={`uc-sublink-item ${activeNavTab === 'homes' ? 'active' : ''}`}
+            onClick={() => onSelectNavTab ? onSelectNavTab('homes') : onSelectCategory('all')}
+          >
+            Homes
+          </span>
+          <span
+            className={`uc-sublink-item ${activeNavTab === 'native' ? 'active' : ''}`}
+            onClick={() => onSelectNavTab ? onSelectNavTab('native') : onSelectCategory('native-ro')}
+          >
+            Native
+          </span>
+          <span
+            className={`uc-sublink-item ${activeNavTab === 'beauty' ? 'active' : ''}`}
+            onClick={() => onSelectNavTab ? onSelectNavTab('beauty') : onSelectCategory('womens-salon')}
+          >
+            Beauty
+          </span>
+        </nav>
+
+        {/* Right / Center Controls: Search, Cart, Profile */}
+        <div className="uc-nav-right">
+          {/* Search Icon Button - Strictly only icon, no placeholder and no text */}
+          <button
+            type="button"
+            id="landing-search-btn"
+            className={`uc-cart-circle-btn uc-search-circle-btn ${isLandingSearchOpen ? 'active' : ''}`}
+            onClick={() => {
+              if (onToggleLandingSearch) {
+                onToggleLandingSearch();
+              }
+            }}
+            title="Search for services"
+            aria-label="Search"
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: '50%',
+              border: isLandingSearchOpen ? '1.5px solid #0B57D0' : '1px solid #E4E7EC',
+              backgroundColor: isLandingSearchOpen ? '#E8F1FF' : '#FFFFFF',
+              color: isLandingSearchOpen ? '#0B57D0' : '#152238',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              flexShrink: 0
+            }}
+          >
+            <Search size={18} strokeWidth={2} />
+          </button>
 
 
 
@@ -383,11 +290,11 @@ export function Navbar({
                   position: 'absolute',
                   top: 'calc(100% + 8px)',
                   right: 0,
-                  minWidth: user ? '170px' : '140px',
+                  minWidth: user ? '210px' : '140px',
                   background: '#FFFFFF',
                   borderRadius: '10px',
                   boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
-                  border: '1px solid #E2E8F0',
+                  border: '1px solid #E4E7EC',
                   padding: '6px',
                   zIndex: 1000,
                   display: 'flex',
@@ -406,7 +313,7 @@ export function Navbar({
                     style={{
                       width: '100%',
                       padding: '9px 14px',
-                      background: '#000000',
+                      background: '#0B57D0',
                       color: '#FFFFFF',
                       border: 'none',
                       borderRadius: '7px',
@@ -416,8 +323,8 @@ export function Navbar({
                       textAlign: 'center',
                       transition: 'background 0.15s ease'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1F2937'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#000000'}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#0849B1'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#0B57D0'}
                   >
                     Login
                   </button>
@@ -438,20 +345,126 @@ export function Navbar({
                       );
                       const rawName = user.name || user.phone || 'My Account';
                       const displayName = (rawName === 'Super Admin' || rawName === 'Executive Admin (Ops Lead)' || isAdmin) ? 'Admin' : rawName;
-                      const displayRole = isAdmin ? 'Admin' : (user.role || 'Customer');
+                      const displayEmail = user.email || (user.phone ? `+91 ${user.phone.replace(/\D/g, '').slice(-10)}` : 'customer@forgeindia.in');
 
                       return (
                         <>
-                          <div style={{ padding: '6px 8px 8px', borderBottom: '1px solid #F1F5F9' }}>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#111827', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {/* 1. User Name and Email */}
+                          <div style={{ padding: '8px 10px 10px', borderBottom: '1px solid #E4E7EC' }}>
+                            <div style={{ fontSize: '13.5px', fontWeight: '700', color: '#152238', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {displayName}
                             </div>
-                            <div style={{ fontSize: '11px', color: '#6B7280', textTransform: 'capitalize' }}>
-                              {displayRole}
+                            <div style={{ fontSize: '11.5px', color: '#667085', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {displayEmail}
                             </div>
                           </div>
 
-                          {isAdmin ? (
+                          {/* 2. My Bookings */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowProfileMenu(false);
+                              if (onOpenBookings) onOpenBookings();
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              background: 'none',
+                              color: '#152238',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              transition: 'background 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F4F7FC'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <Calendar size={14} color="#0B57D0" />
+                              <span>My Bookings</span>
+                            </div>
+                            {bookingsCount > 0 && (
+                              <span style={{
+                                background: '#0B57D0',
+                                color: '#FFFFFF',
+                                borderRadius: '999px',
+                                padding: '1px 7px',
+                                fontSize: '10.5px',
+                                fontWeight: '700'
+                              }}>
+                                {bookingsCount}
+                              </span>
+                            )}
+                          </button>
+
+                          {/* 3. Manage Addresses */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowProfileMenu(false);
+                              if (onOpenAddresses) onOpenAddresses();
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              background: 'none',
+                              color: '#152238',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              transition: 'background 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F4F7FC'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <MapPin size={14} color="#0B57D0" />
+                            <span>Manage Addresses</span>
+                          </button>
+
+                          {/* 4. Profile Settings */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowProfileMenu(false);
+                              if (onOpenProfile) onOpenProfile();
+                            }}
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              background: 'none',
+                              color: '#152238',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 8,
+                              transition: 'background 0.15s ease'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F4F7FC'}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                          >
+                            <Settings size={14} color="#0B57D0" />
+                            <span>Profile Settings</span>
+                          </button>
+
+                          {/* Admin Dashboard if Admin */}
+                          {isAdmin && (
                             <>
                               <button
                                 type="button"
@@ -463,23 +476,24 @@ export function Navbar({
                                 }}
                                 style={{
                                   width: '100%',
-                                  padding: '7px 8px',
+                                  padding: '8px 10px',
                                   background: 'none',
-                                  color: '#111827',
+                                  color: '#152238',
                                   border: 'none',
                                   borderRadius: '6px',
-                                  fontSize: '12.5px',
+                                  fontSize: '13px',
                                   fontWeight: '600',
                                   cursor: 'pointer',
                                   textAlign: 'left',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  gap: '8px'
+                                  gap: '8px',
+                                  transition: 'background 0.15s ease'
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F4F7FC'}
                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                               >
-                                <ShieldCheck size={14} color="#7C3AED" />
+                                <ShieldCheck size={14} color="#0B57D0" />
                                 <span>Admin Dashboard</span>
                               </button>
 
@@ -492,123 +506,25 @@ export function Navbar({
                                   }}
                                   style={{
                                     width: '100%',
-                                    padding: '7px 8px',
+                                    padding: '8px 10px',
                                     background: 'none',
-                                    color: '#111827',
+                                    color: '#152238',
                                     border: 'none',
                                     borderRadius: '6px',
-                                    fontSize: '12.5px',
+                                    fontSize: '13px',
                                     fontWeight: '600',
                                     cursor: 'pointer',
                                     textAlign: 'left',
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: '8px'
+                                    gap: '8px',
+                                    transition: 'background 0.15s ease'
                                   }}
-                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
+                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F4F7FC'}
                                   onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                 >
-                                  <Wrench size={14} color="#4B5563" />
+                                  <Wrench size={14} color="#667085" />
                                   <span>Services Catalogue</span>
-                                </button>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              {onOpenProfile && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setShowProfileMenu(false);
-                                    onOpenProfile();
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    padding: '7px 8px',
-                                    background: 'none',
-                                    color: '#111827',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '12.5px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    textAlign: 'left',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 8
-                                  }}
-                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                >
-                                  <User size={14} color="#6E42E5" />
-                                  <span>My Profile</span>
-                                </button>
-                              )}
-
-                              {onOpenBookings && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setShowProfileMenu(false);
-                                    onOpenBookings();
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    padding: '7px 8px',
-                                    background: 'none',
-                                    color: '#111827',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '12.5px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    textAlign: 'left',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between'
-                                  }}
-                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                >
-                                  <span>My Bookings</span>
-                                  {bookingsCount > 0 && (
-                                    <span style={{
-                                      background: '#000000',
-                                      color: '#FFFFFF',
-                                      borderRadius: '999px',
-                                      padding: '1px 6px',
-                                      fontSize: '10.5px',
-                                      fontWeight: '700'
-                                    }}>
-                                      {bookingsCount}
-                                    </span>
-                                  )}
-                                </button>
-                              )}
-
-                              {onOpenAddresses && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setShowProfileMenu(false);
-                                    onOpenAddresses();
-                                  }}
-                                  style={{
-                                    width: '100%',
-                                    padding: '7px 8px',
-                                    background: 'none',
-                                    color: '#111827',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '12.5px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    textAlign: 'left'
-                                  }}
-                                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#F8FAFC'}
-                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                >
-                                  Manage Addresses
                                 </button>
                               )}
                             </>
@@ -617,6 +533,7 @@ export function Navbar({
                       );
                     })()}
 
+                    {/* 5. Log Out */}
                     <button
                       type="button"
                       onClick={() => {
@@ -630,25 +547,26 @@ export function Navbar({
                       }}
                       style={{
                         width: '100%',
-                        padding: '7px 8px',
+                        padding: '8px 10px',
                         background: 'none',
-                        color: '#EF4444',
+                        color: '#DC2626',
                         border: 'none',
                         borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: '600',
+                        fontSize: '12.5px',
+                        fontWeight: '700',
                         cursor: 'pointer',
                         textAlign: 'left',
-                        borderTop: '1px solid #F1F5F9',
+                        borderTop: '1px solid #E4E7EC',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
-                        marginTop: '2px'
+                        gap: '8px',
+                        marginTop: '4px',
+                        transition: 'background 0.15s ease'
                       }}
                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#FEF2F2'}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                     >
-                      <LogOut size={13} color="#EF4444" />
+                      <LogOut size={14} color="#DC2626" />
                       <span>Log Out</span>
                     </button>
                   </>

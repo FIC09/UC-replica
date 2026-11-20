@@ -235,29 +235,29 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
           maxWidth: 540,
           width: '100%',
           textAlign: 'center',
-          boxShadow: '0 25px 50px -12px rgba(124, 58, 237, 0.15)',
-          border: '1.5px solid #ddd6fe'
+          boxShadow: '0 25px 50px -12px rgba(11, 87, 208, 0.15)',
+          border: '1.5px solid #E4E7EC'
         }}>
           <div style={{
             width: 70,
             height: 70,
             borderRadius: '50%',
-            background: '#faf5ff',
-            color: '#7c3aed',
+            background: '#E8F1FF',
+            color: '#0B57D0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontSize: 34,
             margin: '0 auto 16px auto',
-            border: '2px solid #ddd6fe'
+            border: '2px solid #E4E7EC'
           }}>
             📋
           </div>
 
           <div style={{
             display: 'inline-block',
-            background: '#faf5ff',
-            color: '#7c3aed',
+            background: '#E8F1FF',
+            color: '#0B57D0',
             padding: '4px 14px',
             borderRadius: 20,
             fontSize: 12,
@@ -307,7 +307,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
             <div style={{ marginTop: 4 }}><strong>Employment Type:</strong> {submittedApplication.employmentType}</div>
             <div style={{ marginTop: 4 }}><strong>Primary Hub:</strong> {submittedApplication.city} ({submittedApplication.locality})</div>
             <div style={{ marginTop: 4 }}><strong>State:</strong> {CITIES.find(c => c.name.toLowerCase() === (submittedApplication.city || '').toLowerCase())?.state || 'Tamil Nadu'}</div>
-            <div style={{ marginTop: 4 }}><strong>Application Status:</strong> <span style={{ color: '#7c3aed', fontWeight: 700 }}>Under Review</span></div>
+            <div style={{ marginTop: 4 }}><strong>Application Status:</strong> <span style={{ color: '#0B57D0', fontWeight: 700 }}>Under Review</span></div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -319,7 +319,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
               }}
               style={{
                 width: '100%',
-                background: '#7c3aed',
+                background: '#0B57D0',
                 color: '#ffffff',
                 border: 'none',
                 padding: '14px 0',
@@ -328,7 +328,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
                 fontWeight: 700,
                 cursor: 'pointer',
                 minHeight: 48,
-                boxShadow: '0 4px 14px rgba(124, 58, 237, 0.3)'
+                boxShadow: '0 4px 14px rgba(11, 87, 208, 0.3)'
               }}
             >
               Track Onboarding Status Checklist →
@@ -389,7 +389,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
               width: 36,
               height: 36,
               borderRadius: 10,
-              background: '#7c3aed',
+              background: '#0B57D0',
               color: '#ffffff',
               display: 'flex',
               alignItems: 'center',
@@ -400,7 +400,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
             </div>
             <div>
               <div style={{ fontSize: 16, fontWeight: 800, color: '#0f172a' }}>Urban Pro Onboarding</div>
-              <div style={{ fontSize: 11, color: '#6b21a8', fontWeight: 700 }}>PARTNER APPLICATION</div>
+              <div style={{ fontSize: 11, color: '#0B57D0', fontWeight: 700 }}>PARTNER APPLICATION</div>
             </div>
           </div>
 
@@ -413,9 +413,9 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
             <button
               onClick={handleSaveDraftManual}
               style={{
-                background: '#faf5ff',
-                border: '1px solid #ddd6fe',
-                color: '#7c3aed',
+                background: '#E8F1FF',
+                border: '1px solid #E4E7EC',
+                color: '#0B57D0',
                 padding: '6px 12px',
                 borderRadius: 8,
                 fontSize: 12,
@@ -431,8 +431,8 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
         {/* Saved Draft Alert */}
         {hasSavedDraft && step === 1 && (
           <div style={{
-            background: '#faf5ff',
-            border: '1px solid #e9d5ff',
+            background: '#E8F1FF',
+            border: '1px solid #E8F1FF',
             borderRadius: 12,
             padding: '12px 16px',
             marginBottom: 20,
@@ -441,7 +441,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
             justifyContent: 'space-between',
             gap: 10
           }}>
-            <div style={{ fontSize: 12, color: '#6b21a8' }}>
+            <div style={{ fontSize: 12, color: '#0B57D0' }}>
               <strong>Application draft restored:</strong> Continue from where you left off.
             </div>
             <button
@@ -488,9 +488,9 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
                   width: 32,
                   height: 32,
                   borderRadius: '50%',
-                  background: isCur ? '#7c3aed' : isPast ? '#ecfdf5' : '#f1f5f9',
+                  background: isCur ? '#0B57D0' : isPast ? '#ecfdf5' : '#f1f5f9',
                   color: isCur ? '#ffffff' : isPast ? '#059669' : '#64748b',
-                  border: isCur ? '2px solid #6366f1' : isPast ? '1.5px solid #a7f3d0' : '1px solid #cbd5e1',
+                  border: isCur ? '2px solid #0B57D0' : isPast ? '1.5px solid #a7f3d0' : '1px solid #cbd5e1',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -503,7 +503,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
                 <div style={{
                   fontSize: 10,
                   fontWeight: isCur ? 800 : 600,
-                  color: isCur ? '#7c3aed' : '#64748b',
+                  color: isCur ? '#0B57D0' : '#64748b',
                   marginTop: 4,
                   textAlign: 'center',
                   whiteSpace: 'nowrap'
@@ -746,8 +746,8 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
                     updateField('partnerAgencyName', '');
                   }}
                   style={{
-                    border: `1.5px solid ${formData.employmentType === 'Direct Freelance' ? '#7c3aed' : '#cbd5e1'}`,
-                    background: formData.employmentType === 'Direct Freelance' ? '#faf5ff' : '#ffffff',
+                    border: `1.5px solid ${formData.employmentType === 'Direct Freelance' ? '#0B57D0' : '#cbd5e1'}`,
+                    background: formData.employmentType === 'Direct Freelance' ? '#E8F1FF' : '#ffffff',
                     borderRadius: 12,
                     padding: '14px',
                     cursor: 'pointer'
@@ -768,8 +768,8 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
                     updateField('partnerAgencyName', 'Apex Home Solutions LLP');
                   }}
                   style={{
-                    border: `1.5px solid ${formData.employmentType === 'Agency Employed' ? '#7c3aed' : '#cbd5e1'}`,
-                    background: formData.employmentType === 'Agency Employed' ? '#faf5ff' : '#ffffff',
+                    border: `1.5px solid ${formData.employmentType === 'Agency Employed' ? '#0B57D0' : '#cbd5e1'}`,
+                    background: formData.employmentType === 'Agency Employed' ? '#E8F1FF' : '#ffffff',
                     borderRadius: 12,
                     padding: '14px',
                     cursor: 'pointer'
@@ -829,9 +829,9 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
                       style={{
                         padding: '10px 14px',
                         borderRadius: 10,
-                        border: `1.5px solid ${sel ? '#7c3aed' : '#cbd5e1'}`,
-                        background: sel ? '#faf5ff' : '#ffffff',
-                        color: sel ? '#6b21a8' : '#334155',
+                        border: `1.5px solid ${sel ? '#0B57D0' : '#cbd5e1'}`,
+                        background: sel ? '#E8F1FF' : '#ffffff',
+                        color: sel ? '#0B57D0' : '#334155',
                         fontSize: 13,
                         fontWeight: sel ? 700 : 500,
                         cursor: 'pointer',
@@ -1053,19 +1053,19 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
 
             {/* Document Upload Stubs */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
-              <div style={{ border: '2px dashed #ddd6fe', borderRadius: 12, padding: '14px', textAlign: 'center', background: '#faf5ff' }}>
+              <div style={{ border: '2px dashed #E4E7EC', borderRadius: 12, padding: '14px', textAlign: 'center', background: '#E8F1FF' }}>
                 <div style={{ fontSize: 24 }}>🪪</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', marginTop: 4 }}>Aadhaar Front/Back</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0', marginTop: 4 }}>Aadhaar Front/Back</div>
                 <div style={{ fontSize: 10, color: '#64748b' }}>Photo Ready to Upload</div>
               </div>
-              <div style={{ border: '2px dashed #ddd6fe', borderRadius: 12, padding: '14px', textAlign: 'center', background: '#faf5ff' }}>
+              <div style={{ border: '2px dashed #E4E7EC', borderRadius: 12, padding: '14px', textAlign: 'center', background: '#E8F1FF' }}>
                 <div style={{ fontSize: 24 }}>💳</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', marginTop: 4 }}>PAN Card Scan</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0', marginTop: 4 }}>PAN Card Scan</div>
                 <div style={{ fontSize: 10, color: '#64748b' }}>Flat Scan (No Flash)</div>
               </div>
-              <div style={{ border: '2px dashed #ddd6fe', borderRadius: 12, padding: '14px', textAlign: 'center', background: '#faf5ff' }}>
+              <div style={{ border: '2px dashed #E4E7EC', borderRadius: 12, padding: '14px', textAlign: 'center', background: '#E8F1FF' }}>
                 <div style={{ fontSize: 24 }}>📜</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', marginTop: 4 }}>Trade Certificate</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#0B57D0', marginTop: 4 }}>Trade Certificate</div>
                 <div style={{ fontSize: 10, color: '#64748b' }}>Diploma / License</div>
               </div>
             </div>
@@ -1212,7 +1212,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
                   type="checkbox"
                   checked={agreeTerms}
                   onChange={(e) => setAgreeTerms(e.target.checked)}
-                  style={{ width: 18, height: 18, accentColor: '#7c3aed', marginTop: 2 }}
+                  style={{ width: 18, height: 18, accentColor: '#0B57D0', marginTop: 2 }}
                 />
                 <span style={{ fontSize: 12, color: '#92400e', lineHeight: 1.45 }}>
                   I confirm that all submitted documents and experience records are truthful and accurate. I understand that registration does not grant immediate approval, and worker privileges will remain inactive until background clearance is completed.
@@ -1254,7 +1254,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
               style={{
                 background: 'none',
                 border: 'none',
-                color: '#7c3aed',
+                color: '#0B57D0',
                 fontSize: 13,
                 fontWeight: 700,
                 cursor: 'pointer',
@@ -1269,7 +1269,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
             <button
               onClick={handleNext}
               style={{
-                background: '#7c3aed',
+                background: '#0B57D0',
                 color: '#ffffff',
                 border: 'none',
                 padding: '12px 28px',
@@ -1278,7 +1278,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
                 fontWeight: 700,
                 cursor: 'pointer',
                 minHeight: 48,
-                boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)'
+                boxShadow: '0 4px 12px rgba(11, 87, 208, 0.25)'
               }}
             >
               Continue to Step {step + 1} →
@@ -1288,7 +1288,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
               onClick={handleSubmit}
               disabled={submitting}
               style={{
-                background: '#7c3aed',
+                background: '#0B57D0',
                 color: '#ffffff',
                 border: 'none',
                 padding: '14px 32px',
@@ -1297,7 +1297,7 @@ export function ProfessionalRegister({ onNavigateToLogin, onExitToMarketplace, s
                 fontWeight: 800,
                 cursor: 'pointer',
                 minHeight: 48,
-                boxShadow: '0 6px 16px rgba(124, 58, 237, 0.3)'
+                boxShadow: '0 6px 16px rgba(11, 87, 208, 0.3)'
               }}
             >
               {submitting ? 'Submitting Application...' : 'Submit Application for Review ✓'}

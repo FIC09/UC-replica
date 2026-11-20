@@ -351,7 +351,7 @@ export function PartnersView({ onShowToast, onNavigate }) {
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            backgroundColor: '#6E42E5',
+            backgroundColor: '#0B57D0',
             color: '#FFFFFF',
             border: 'none',
             borderRadius: 8,
@@ -461,7 +461,7 @@ export function PartnersView({ onShowToast, onNavigate }) {
               style={{
                 backgroundColor: 'transparent',
                 border: 'none',
-                color: '#6E42E5',
+                color: '#0B57D0',
                 fontSize: 13,
                 fontWeight: 600,
                 cursor: 'pointer'
@@ -531,8 +531,8 @@ export function PartnersView({ onShowToast, onNavigate }) {
                           width: 38,
                           height: 38,
                           borderRadius: 8,
-                          backgroundColor: '#EDE9FE',
-                          color: '#6E42E5',
+                          backgroundColor: '#E8F1FF',
+                          color: '#0B57D0',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -573,7 +573,7 @@ export function PartnersView({ onShowToast, onNavigate }) {
                     {/* Fleet */}
                     <td style={{ padding: '14px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <Users size={14} color="#6E42E5" />
+                        <Users size={14} color="#0B57D0" />
                         <span style={{ fontWeight: 600, color: '#0F172A' }}>
                           {p.techniciansCount || p.fleetSize || 10} technicians
                         </span>
@@ -733,8 +733,8 @@ export function PartnersView({ onShowToast, onNavigate }) {
                     padding: '12px 14px',
                     border: 'none',
                     backgroundColor: 'transparent',
-                    borderBottom: drawerTab === t.id ? '2px solid #6E42E5' : '2px solid transparent',
-                    color: drawerTab === t.id ? '#6E42E5' : '#64748B',
+                    borderBottom: drawerTab === t.id ? '2px solid #0B57D0' : '2px solid transparent',
+                    color: drawerTab === t.id ? '#0B57D0' : '#64748B',
                     fontSize: 12,
                     fontWeight: drawerTab === t.id ? 700 : 500,
                     cursor: 'pointer',
@@ -928,7 +928,7 @@ export function PartnersView({ onShowToast, onNavigate }) {
                       <span style={{ fontSize: 11, color: '#64748B', display: 'block', marginBottom: 6 }}>Franchise Categories:</span>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {(selectedPartner.serviceCategories || [selectedPartner.categoryName]).map((cat, i) => (
-                          <span key={i} style={{ backgroundColor: '#EDE9FE', color: '#6E42E5', padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
+                          <span key={i} style={{ backgroundColor: '#E8F1FF', color: '#0B57D0', padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 600 }}>
                             {cat}
                           </span>
                         ))}
@@ -1183,7 +1183,7 @@ export function PartnersView({ onShowToast, onNavigate }) {
                     </div>
                     <div>
                       <span style={{ color: '#64748B' }}>Contract Take-Rate:</span>
-                      <div style={{ fontWeight: 600, color: '#6E42E5', marginTop: 2 }}>
+                      <div style={{ fontWeight: 600, color: '#0B57D0', marginTop: 2 }}>
                         {selectedPartner.commissionRate || '18%'} Commission
                       </div>
                     </div>
@@ -1286,7 +1286,7 @@ export function PartnersView({ onShowToast, onNavigate }) {
                     <button
                       type="submit"
                       style={{
-                        backgroundColor: '#6E42E5',
+                        backgroundColor: '#0B57D0',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: 6,
@@ -1450,7 +1450,7 @@ export function PartnersView({ onShowToast, onNavigate }) {
                     padding: '8px 20px',
                     borderRadius: 6,
                     border: 'none',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     fontSize: 13,
                     fontWeight: 600,
@@ -1547,7 +1547,7 @@ export function PartnersView({ onShowToast, onNavigate }) {
                     padding: '8px 18px',
                     borderRadius: 6,
                     border: 'none',
-                    backgroundColor: '#6E42E5',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     fontSize: 13,
                     fontWeight: 600,

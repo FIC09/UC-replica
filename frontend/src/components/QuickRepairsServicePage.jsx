@@ -610,7 +610,7 @@ export function QuickRepairsServicePage({
               color: '#0F172A'
             }}
           >
-            <MapPin size={14} color="#6E42E5" />
+            <MapPin size={14} color="#0B57D0" />
             <span>{selectedLocality}, {selectedCity}</span>
           </div>
 
@@ -639,7 +639,7 @@ export function QuickRepairsServicePage({
                 position: 'absolute',
                 top: -4,
                 right: -4,
-                background: '#6E42E5',
+                background: '#0B57D0',
                 color: '#FFFFFF',
                 fontSize: 10,
                 fontWeight: 800,
@@ -679,7 +679,7 @@ export function QuickRepairsServicePage({
                 name: 'Electrician',
                 eta: '71 mins',
                 icon: Zap,
-                color: '#6E42E5',
+                color: '#0B57D0',
                 desc: 'Fans, lights, switches & wiring'
               },
               {
@@ -895,7 +895,7 @@ export function QuickRepairsServicePage({
                     padding: '10px 14px',
                     borderRadius: 10,
                     border: 'none',
-                    background: isSecActive ? '#6E42E5' : 'transparent',
+                    background: isSecActive ? '#0B57D0' : 'transparent',
                     color: isSecActive ? '#FFFFFF' : '#334155',
                     fontSize: 13,
                     fontWeight: isSecActive ? 700 : 500,
@@ -933,11 +933,11 @@ export function QuickRepairsServicePage({
           <div style={{
             marginTop: 18,
             padding: '12px',
-            background: '#F5F3FF',
+            background: '#E8F1FF',
             borderRadius: 12,
-            border: '1px solid #DDD6FE'
+            border: '1px solid #E4E7EC'
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, color: '#6E42E5', marginBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, color: '#0B57D0', marginBottom: 4 }}>
               <ShieldCheck size={16} />
               <span>UC 30-Day Guarantee</span>
             </div>
@@ -989,7 +989,7 @@ export function QuickRepairsServicePage({
                 style={{
                   padding: '8px 18px',
                   borderRadius: 10,
-                  background: '#6E42E5',
+                  background: '#0B57D0',
                   color: '#FFFFFF',
                   border: 'none',
                   fontSize: 13,
@@ -1036,9 +1036,9 @@ export function QuickRepairsServicePage({
                           display: 'inline-block',
                           fontSize: 10,
                           fontWeight: 800,
-                          color: '#6E42E5',
-                          background: '#F5F3FF',
-                          border: '1px solid #DDD6FE',
+                          color: '#0B57D0',
+                          background: '#E8F1FF',
+                          border: '1px solid #E4E7EC',
                           padding: '3px 8px',
                           borderRadius: 6,
                           marginBottom: 8,
@@ -1136,7 +1136,7 @@ export function QuickRepairsServicePage({
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#6E42E5',
+                          color: '#0B57D0',
                           fontSize: 12.5,
                           fontWeight: 700,
                           padding: 0,
@@ -1184,7 +1184,7 @@ export function QuickRepairsServicePage({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          background: '#6E42E5',
+                          background: '#0B57D0',
                           color: '#FFFFFF',
                           borderRadius: 10,
                           padding: '6px 14px',
@@ -1234,15 +1234,15 @@ export function QuickRepairsServicePage({
                           type="button"
                           onClick={() => {
                             onAddToCart(product);
-                            showToast(`🛒 Added "${product.title}" to cart`);
+                            showToast(`Added "${product.title}" to cart`);
                           }}
                           style={{
                             width: '100%',
                             padding: '8px 0',
                             borderRadius: 10,
                             background: '#FFFFFF',
-                            color: '#6E42E5',
-                            border: '1.5px solid #6E42E5',
+                            color: '#0B57D0',
+                            border: '1.5px solid #0B57D0',
                             fontSize: 13,
                             fontWeight: 800,
                             cursor: 'pointer',
@@ -1250,12 +1250,12 @@ export function QuickRepairsServicePage({
                             transition: 'all 0.15s'
                           }}
                           onMouseEnter={e => {
-                            e.currentTarget.style.background = '#6E42E5';
+                            e.currentTarget.style.background = '#0B57D0';
                             e.currentTarget.style.color = '#FFFFFF';
                           }}
                           onMouseLeave={e => {
                             e.currentTarget.style.background = '#FFFFFF';
-                            e.currentTarget.style.color = '#6E42E5';
+                            e.currentTarget.style.color = '#0B57D0';
                           }}
                         >
                           Add +
@@ -1393,13 +1393,13 @@ export function QuickRepairsServicePage({
               onClick={() => {
                 onAddToCart(selectedDetailProduct);
                 setSelectedDetailProduct(null);
-                showToast(`🛒 Added "${selectedDetailProduct.title}" to cart`);
+                showToast(`Added "${selectedDetailProduct.title}" to cart`);
               }}
               style={{
                 width: '100%',
                 padding: '12px 0',
                 borderRadius: 12,
-                background: '#6E42E5',
+                background: '#0B57D0',
                 color: '#FFFFFF',
                 border: 'none',
                 fontSize: 14,
@@ -1445,7 +1445,7 @@ export function QuickRepairsServicePage({
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <ShoppingBag size={18} color="#A78BFA" />
+              <ShoppingBag size={18} color="#0B57D0" />
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 800 }}>
@@ -1478,7 +1478,7 @@ export function QuickRepairsServicePage({
               type="button"
               onClick={onOpenCheckout}
               style={{
-                background: '#6E42E5',
+                background: '#0B57D0',
                 color: '#FFFFFF',
                 border: 'none',
                 borderRadius: 10,

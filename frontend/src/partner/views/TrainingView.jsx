@@ -236,7 +236,7 @@ export function TrainingView({ showToast }) {
                 >
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                      <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: '#7c3aed', background: '#f3e8ff', padding: '3px 8px', borderRadius: 4 }}>
+                      <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', color: '#0B57D0', background: '#E8F1FF', padding: '3px 8px', borderRadius: 4 }}>
                         {course.category}
                       </span>
                       <span style={{

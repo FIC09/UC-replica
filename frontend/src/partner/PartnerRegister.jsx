@@ -139,7 +139,7 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
       }}>
         {/* Banner */}
         <div style={{
-          background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+          background: 'linear-gradient(135deg, #0B57D0 0%, #0849B1 100%)',
           color: '#fff',
           padding: '24px 28px',
           display: 'flex',
@@ -147,14 +147,14 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
           justifyContent: 'space-between'
         }}>
           <div>
-            <span style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.8, color: '#e9d5ff', fontWeight: 700 }}>
+            <span style={{ fontSize: 11.5, textTransform: 'uppercase', letterSpacing: 0.8, color: '#E8F1FF', fontWeight: 700 }}>
               Step {step} of 2 • Enterprise Application
             </span>
             <h1 style={{ fontSize: 20, fontWeight: 700, margin: '4px 0 0' }}>
               Partner Fleet Registration
             </h1>
           </div>
-          <Building2 size={32} color="#ddd6fe" />
+          <Building2 size={32} color="#E4E7EC" />
         </div>
 
         {/* Content */}
@@ -346,7 +346,7 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
                       alignItems: 'center',
                       gap: 8,
                       padding: '10px 20px',
-                      background: '#7c3aed',
+                      background: '#0B57D0',
                       color: '#fff',
                       border: 'none',
                       borderRadius: 8,
@@ -480,7 +480,7 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
                     style={{
                       flex: 2,
                       padding: '10px 16px',
-                      background: '#7c3aed',
+                      background: '#0B57D0',
                       color: '#fff',
                       border: 'none',
                       borderRadius: 8,
@@ -500,7 +500,7 @@ export function PartnerRegister({ onRegisterSuccess, onNavigate, onExitToMarketp
             Already registered?{' '}
             <button
               onClick={() => onNavigate('/partner/login')}
-              style={{ background: 'none', border: 'none', color: '#7c3aed', fontWeight: 700, cursor: 'pointer' }}
+              style={{ background: 'none', border: 'none', color: '#0B57D0', fontWeight: 700, cursor: 'pointer' }}
             >
               Sign In Here
             </button>

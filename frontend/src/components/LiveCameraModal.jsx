@@ -502,7 +502,7 @@ export function LiveCameraModal({
                   type="button"
                   onClick={startCamera}
                   style={{
-                    backgroundColor: '#7C3AED',
+                    backgroundColor: '#0B57D0',
                     color: '#FFFFFF',
                     border: 'none',
                     borderRadius: 8,
@@ -796,7 +796,7 @@ export function LiveCameraModal({
                   padding: '13px 20px',
                   borderRadius: 10,
                   border: 'none',
-                  backgroundColor: isStreaming ? '#7C3AED' : '#475569',
+                  backgroundColor: isStreaming ? '#0B57D0' : '#475569',
                   color: '#FFFFFF',
                   fontSize: 14,
                   fontWeight: 800,
@@ -805,14 +805,14 @@ export function LiveCameraModal({
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
-                  boxShadow: isStreaming ? '0 4px 14px rgba(124, 58, 237, 0.4)' : 'none',
+                  boxShadow: isStreaming ? '0 4px 14px rgba(11, 87, 208, 0.4)' : 'none',
                   transition: 'transform 0.1s'
                 }}
                 onMouseEnter={(e) => {
-                  if (isStreaming) e.currentTarget.style.backgroundColor = '#6D28D9';
+                  if (isStreaming) e.currentTarget.style.backgroundColor = '#0849B1';
                 }}
                 onMouseLeave={(e) => {
-                  if (isStreaming) e.currentTarget.style.backgroundColor = '#7C3AED';
+                  if (isStreaming) e.currentTarget.style.backgroundColor = '#0B57D0';
                 }}
               >
                 <span style={{ fontSize: 18 }}>📸</span>

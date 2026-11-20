@@ -94,8 +94,8 @@ export function NotificationsView({ onShowToast }) {
               fontWeight: 700,
               padding: '3px 8px',
               borderRadius: 6,
-              backgroundColor: '#EEF2FF',
-              color: '#4F46E5',
+              backgroundColor: '#E8F1FF',
+              color: '#0B57D0',
               border: '1px solid #C7D2FE'
             }}>
               Provider-Confirmed Delivery Safeguard
@@ -113,9 +113,9 @@ export function NotificationsView({ onShowToast }) {
             style={{
               padding: '8px 14px',
               borderRadius: 8,
-              border: activeTab === 'all' ? '1px solid #6E42E5' : '1px solid #E2E8F0',
-              backgroundColor: activeTab === 'all' ? '#F5F3FF' : '#FFFFFF',
-              color: activeTab === 'all' ? '#6E42E5' : '#64748B',
+              border: activeTab === 'all' ? '1px solid #0B57D0' : '1px solid #E2E8F0',
+              backgroundColor: activeTab === 'all' ? '#E8F1FF' : '#FFFFFF',
+              color: activeTab === 'all' ? '#0B57D0' : '#64748B',
               fontSize: 12.5,
               fontWeight: 700,
               cursor: 'pointer'
@@ -156,7 +156,7 @@ export function NotificationsView({ onShowToast }) {
           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)'
         }}>
           <h4 style={{ fontSize: 14, fontWeight: 800, color: '#0F172A', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Send size={16} color="#6E42E5" /> Compose New Broadcast
+            <Send size={16} color="#0B57D0" /> Compose New Broadcast
           </h4>
 
           <form onSubmit={handleSendBroadcast} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -174,9 +174,9 @@ export function NotificationsView({ onShowToast }) {
                       fontSize: 12,
                       fontWeight: 700,
                       cursor: 'pointer',
-                      border: channel === ch ? '1px solid #6E42E5' : '1px solid #E2E8F0',
-                      backgroundColor: channel === ch ? '#F5F3FF' : '#FFFFFF',
-                      color: channel === ch ? '#6E42E5' : '#475569',
+                      border: channel === ch ? '1px solid #0B57D0' : '1px solid #E2E8F0',
+                      backgroundColor: channel === ch ? '#E8F1FF' : '#FFFFFF',
+                      color: channel === ch ? '#0B57D0' : '#475569',
                       textAlign: 'center'
                     }}
                   >
@@ -244,7 +244,7 @@ export function NotificationsView({ onShowToast }) {
                 padding: '10px 18px',
                 borderRadius: 8,
                 border: 'none',
-                backgroundColor: '#6E42E5',
+                backgroundColor: '#0B57D0',
                 color: '#FFFFFF',
                 fontSize: 13,
                 fontWeight: 700,

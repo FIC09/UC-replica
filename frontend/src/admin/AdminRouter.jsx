@@ -251,7 +251,7 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
           <div style={{
             width: 20,
             height: 20,
-            border: '2.5px solid #6366F1',
+            border: '2.5px solid #0B57D0',
             borderTopColor: 'transparent',
             borderRadius: '50%',
             animation: 'spin 0.8s linear infinite'
@@ -293,9 +293,9 @@ export function AdminRouter({ onExitToMarketplace, onLogout: onAppLogout }) {
       case '/admin/payments':
         return <PaymentsView onShowToast={showToast} onNavigate={handleNavigate} />;
       case '/admin/payouts':
-        return <PayoutsView onShowToast={showToast} />;
+        return <PayoutsView onShowToast={showToast} onNavigate={handleNavigate} />;
       case '/admin/refunds':
-        return <RefundsView onShowToast={showToast} />;
+        return <RefundsView onShowToast={showToast} onNavigate={handleNavigate} />;
       case '/admin/support':
         return <SupportView onShowToast={showToast} />;
       case '/admin/reviews':
